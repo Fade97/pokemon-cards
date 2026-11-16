@@ -110,8 +110,11 @@ h3{font-size:15px;font-weight:700;margin:14px 0 7px}
 .primary{flex:1;background:var(--action);color:var(--action-ink);border:0;border-radius:var(--r-md);padding:14px;font-weight:700;font-size:16px}
 .secondary{background:none;border:1.5px solid var(--line);border-radius:var(--r-md);padding:14px 16px;font-weight:600}
 /* collections */
-.total{display:flex;justify-content:space-between;align-items:flex-end;padding:4px 0 16px;border-bottom:1px solid var(--line)}
-.total .num{font-size:52px}
+.total{padding:4px 0 16px;border-bottom:1px solid var(--line)}
+.total .num{font-size:44px;margin:2px 0;font-variant-numeric:proportional-nums;letter-spacing:-.03em}
+.total .sum{color:var(--ink);font-weight:600}
+.up{color:#1F7A3A;font-weight:600;margin-left:4px}
+.set header .val{font-size:13px;font-weight:600;color:var(--muted);margin-left:8px}
 .total p{font-size:14px;color:var(--muted)}
 .total .eur{text-align:right;font-size:24px;font-weight:700}
 .total .eur small{display:block;font-size:13px;font-weight:500;color:var(--muted)}
@@ -222,23 +225,24 @@ h3{font-size:15px;font-weight:700;margin:14px 0 7px}
   <div class="scroll">
     <div class="top"><h2>Collections</h2><button class="ghost">New</button></div>
     <div class="total">
-      <div><p>All cards</p><div class="num">412</div></div>
-      <div class="eur">1.284 €<small>Cardmarket trend</small></div>
+      <p>Collection value, Cardmarket trend</p>
+      <div class="num">1.284,60 €</div>
+      <p class="sum">All cards, 412 copies <span class="up">+18,20 € this week</span></p>
     </div>
     <div class="langs" data-group="lang" data-multi>
       <button class="chip" aria-pressed="true">EN</button><button class="chip" aria-pressed="true">DE</button>
       <button class="chip" aria-pressed="false">FR</button><button class="chip" aria-pressed="false">IT</button><button class="chip" aria-pressed="false">JP</button>
     </div>
     <section class="set">
-      <header><b>151</b><span>87<small>/165</small></span></header>
+      <header><b>151<span class="val">612,30 €</span></b><span>87<small>/165</small></span></header>
       <div class="slots" id="g151" aria-label="151: 87 of 165 owned"></div>
       <div class="legend"><span>001</span><span>Tap a slot to see the card</span><span>165</span></div>
     </section>
-    <section class="set"><header><b>Prismatic Evolutions</b><span>41<small>/131</small></span></header><div class="slots thin" data-total="131" data-own="41"></div></section>
-    <section class="set"><header><b>Surging Sparks</b><span>58<small>/191</small></span></header><div class="slots thin" data-total="191" data-own="58"></div></section>
-    <section class="set"><header><b>Pitch Black</b><span>12<small>/120</small></span></header><div class="slots thin" data-total="120" data-own="12"></div></section>
+    <section class="set"><header><b>Prismatic Evolutions<span class="val">238,10 €</span></b><span>41<small>/131</small></span></header><div class="slots thin" data-total="131" data-own="41"></div></section>
+    <section class="set"><header><b>Surging Sparks<span class="val">96,75 €</span></b><span>58<small>/191</small></span></header><div class="slots thin" data-total="191" data-own="58"></div></section>
+    <section class="set"><header><b>Pitch Black<span class="val">41,20 €</span></b><span>12<small>/120</small></span></header><div class="slots thin" data-total="120" data-own="12"></div></section>
     <p class="sub">Japanese sets</p>
-    <section class="set"><header><b>SV2a</b><span>19<small>/165</small></span></header><div class="slots thin" data-total="165" data-own="19"></div></section>
+    <section class="set"><header><b>SV2a<span class="val">188,40 €</span></b><span>19<small>/165</small></span></header><div class="slots thin" data-total="165" data-own="19"></div></section>
     <p class="sub">Your collections</p>
     <div class="custom"><div><b>Trade binder</b><span>36 cards</span></div><span>212 €</span></div>
   </div>
