@@ -1,0 +1,50 @@
+{
+  "run": "mnv3_256",
+  "backbone": "mobilenetv3_large_100.ra_in1k",
+  "dim": 256,
+  "input": "1x224x224x3 float32 RGB [0,1]",
+  "size_mb_f32": 18.24,
+  "int8_method": "PT2E static, per-channel int8 weights + int8 activations",
+  "size_mb_int8": 5.16,
+  "w8_method": "ai-edge-quantizer dynamic_wi8_afp32 (int8 weights, float activations)",
+  "size_mb_w8": 4.97,
+  "top1_pytorch_subset": 0.95,
+  "f32_cosine_vs_pytorch": {
+    "min": 0.9999998807907104,
+    "mean": 1.0,
+    "share_gt_0.99": 1.0
+  },
+  "f32_top1_subset_own_index": 0.95,
+  "f32_cpu_ms_per_image_x86_8threads": 3.59,
+  "int8_cosine_vs_pytorch": {
+    "min": 0.5875422358512878,
+    "mean": 0.9127358198165894,
+    "share_gt_0.99": 0.0
+  },
+  "int8_top1_subset_own_index": 0.9366666666666666,
+  "int8_cpu_ms_per_image_x86_8threads": 7.16,
+  "w8_cosine_vs_pytorch": {
+    "min": 0.8212509751319885,
+    "mean": 0.9653029441833496,
+    "share_gt_0.99": 0.013333333333333334
+  },
+  "w8_top1_subset_own_index": 0.95,
+  "w8_cpu_ms_per_image_x86_8threads": 12.09,
+  "index_size": {
+    "trained_sets": {
+      "cards": 870,
+      "dim": 256,
+      "float32_kb": 870.0,
+      "float16_kb": 435.0,
+      "int8_kb": 217.5
+    },
+    "with_unseen": {
+      "cards": 1028,
+      "dim": 256,
+      "float32_kb": 1028.0,
+      "float16_kb": 514.0,
+      "int8_kb": 257.0
+    }
+  },
+  "n_check": 300
+}
