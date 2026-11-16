@@ -33,6 +33,8 @@ SETS = [
     ("en", "me03", False),
     ("en", "me04", False),
     ("de", "30th", True),   # "30 Jahre", released 2026-09-16, unseen
+    ("de", "me04", True),   # "Wachsendes Chaos": German twin of the trained en/me04 (language-twin test)
+    ("de", "me03", True),   # "Optimale Ordnung": German twin of the trained en/me03
 ]
 
 
