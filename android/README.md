@@ -6,7 +6,7 @@ Kotlin + Jetpack Compose app (ADR 0001). Package `de.fabianduerkop.cardindex`, d
 ## Requirements
 
 - JDK 17
-- Android SDK with platform 36. Point Gradle at it with `local.properties` (gitignored):
+- Android SDK with platform 37.0 (`compileSdk`; `targetSdk` is 36). Point Gradle at it with `local.properties` (gitignored):
   `sdk.dir=/path/to/Android/sdk`, or set `ANDROID_HOME`.
 
 The Gradle wrapper downloads the right Gradle version on the first run.
@@ -66,5 +66,5 @@ adb shell am start -n de.fabianduerkop.cardindex/.MainActivity
 
 ## Versions
 
-All versions live in `gradle/libs.versions.toml`. `compileSdk` is 36, which holds back AndroidX: Core 1.19,
-Compose 1.12 (BOM 2026.08+), Navigation 2.10 and Lifecycle 2.11 need `compileSdk` 37.
+All versions live in `gradle/libs.versions.toml`. `compileSdk` is 37 (platform `android-37.0`), which current
+AndroidX needs; `targetSdk` stays 36. Unit tests run Robolectric on SDK 35 because SDK 36+ needs Java 21.

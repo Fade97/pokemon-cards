@@ -8,7 +8,8 @@ plugins {
 
 android {
     namespace = "de.fabianduerkop.cardindex"
-    compileSdk = 36
+    // Platform android-37.0: AGP 9 addresses Android 17 by release and minor API level.
+    compileSdk { version = release(37) { minorApiLevel = 0 } }
 
     defaultConfig {
         applicationId = "de.fabianduerkop.cardindex"
