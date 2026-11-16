@@ -1,0 +1,23 @@
+# Android / Gradle
+.gradle/
+.kotlin/
+build/
+**/build/
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+*.apk
+*.aab
+*.ap_
+*.dex
+output-metadata.json
+
+# IDEs
+.idea/
+*.iml
+.DS_Store
+
+# Signing keys never go into the repository
+*.keystore
+*.jks
