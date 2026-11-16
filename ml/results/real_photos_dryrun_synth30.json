@@ -1,0 +1,104 @@
+{
+ "photos": 30,
+ "label_status": {
+  "auto": 17,
+  "pending": 13
+ },
+ "n_evaluated": 17,
+ "all": {
+  "n": 17,
+  "detected": 1.0,
+  "top1_embedding": 1.0,
+  "top5_embedding": 1.0,
+  "top1_after_rerank": 1.0,
+  "ocr_read_rate": 0.5882352941176471
+ },
+ "trained_sets": {
+  "n": 15,
+  "detected": 1.0,
+  "top1_embedding": 1.0,
+  "top5_embedding": 1.0,
+  "top1_after_rerank": 1.0,
+  "ocr_read_rate": 0.6666666666666666
+ },
+ "unseen_sets": {
+  "n": 2,
+  "detected": 1.0,
+  "top1_embedding": 1.0,
+  "top5_embedding": 1.0,
+  "top1_after_rerank": 1.0,
+  "ocr_read_rate": 0.0
+ },
+ "by_lang": {
+  "de": {
+   "n": 6,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.3333333333333333
+  },
+  "en": {
+   "n": 6,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.6666666666666666
+  },
+  "ja": {
+   "n": 5,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.8
+  }
+ },
+ "by_set": {
+  "de/30th": {
+   "n": 2,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.0
+  },
+  "de/sv03.5": {
+   "n": 4,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.5
+  },
+  "en/me04": {
+   "n": 3,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.6666666666666666
+  },
+  "en/sv03.5": {
+   "n": 3,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.6666666666666666
+  },
+  "ja/SV2a": {
+   "n": 5,
+   "detected": 1.0,
+   "top1_embedding": 1.0,
+   "top5_embedding": 1.0,
+   "top1_after_rerank": 1.0,
+   "ocr_read_rate": 0.8
+  }
+ },
+ "reviewed_only": {
+  "n": 0
+ },
+ "note": "13 photos still pending review. Auto-accepted photos are pipeline-correct by construction, so accuracy is an upper bound until all disagreements are reviewed. Lower bound (pending counted as errors): 0.567"
+}

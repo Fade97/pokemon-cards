@@ -1,0 +1,40 @@
+{
+ "n": 200,
+ "labeler_coverage": 0.64,
+ "labeler_precision": 0.9453125,
+ "labeler_accuracy_overall": 0.605,
+ "labeler_wrong_kinds": {
+  "same_pokemon_other_card": 2,
+  "other": 5
+ },
+ "labeler_by_lang": {
+  "de/30th": {
+   "n": 30,
+   "coverage": 0.5666666666666667,
+   "correct": 0.5
+  },
+  "en": {
+   "n": 85,
+   "coverage": 0.7411764705882353,
+   "correct": 0.7176470588235294
+  },
+  "ja": {
+   "n": 49,
+   "coverage": 0.5510204081632653,
+   "correct": 0.5306122448979592
+  },
+  "de": {
+   "n": 36,
+   "coverage": 0.5833333333333334,
+   "correct": 0.5277777777777778
+  }
+ },
+ "pipeline_top1": 0.955,
+ "pipeline_top1_trained_sets": 0.9647058823529412,
+ "pipeline_top1_unseen_sets": 0.9,
+ "auto_accepted": 116,
+ "auto_accepted_rate": 0.58,
+ "auto_accepted_wrong (shared error)": 0,
+ "shared_error_rate_of_auto": 0.0,
+ "to_review": 84
+}
