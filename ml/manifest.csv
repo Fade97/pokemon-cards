@@ -1,0 +1,1029 @@
+key,card_id,lang,set_id,set_name,local_id,official,name,category,dex_ids,image_url,holdout
+en/sv03.5-001,sv03.5-001,en,sv03.5,151,001,165,Bulbasaur,Pokemon,1,https://assets.tcgdex.net/en/sv/sv03.5/001,0
+en/sv03.5-002,sv03.5-002,en,sv03.5,151,002,165,Ivysaur,Pokemon,2,https://assets.tcgdex.net/en/sv/sv03.5/002,0
+en/sv03.5-003,sv03.5-003,en,sv03.5,151,003,165,Venusaur ex,Pokemon,3,https://assets.tcgdex.net/en/sv/sv03.5/003,0
+en/sv03.5-004,sv03.5-004,en,sv03.5,151,004,165,Charmander,Pokemon,4,https://assets.tcgdex.net/en/sv/sv03.5/004,0
+en/sv03.5-005,sv03.5-005,en,sv03.5,151,005,165,Charmeleon,Pokemon,5,https://assets.tcgdex.net/en/sv/sv03.5/005,0
+en/sv03.5-006,sv03.5-006,en,sv03.5,151,006,165,Charizard ex,Pokemon,6,https://assets.tcgdex.net/en/sv/sv03.5/006,0
+en/sv03.5-007,sv03.5-007,en,sv03.5,151,007,165,Squirtle,Pokemon,7,https://assets.tcgdex.net/en/sv/sv03.5/007,0
+en/sv03.5-008,sv03.5-008,en,sv03.5,151,008,165,Wartortle,Pokemon,8,https://assets.tcgdex.net/en/sv/sv03.5/008,0
+en/sv03.5-009,sv03.5-009,en,sv03.5,151,009,165,Blastoise ex,Pokemon,9,https://assets.tcgdex.net/en/sv/sv03.5/009,0
+en/sv03.5-010,sv03.5-010,en,sv03.5,151,010,165,Caterpie,Pokemon,10,https://assets.tcgdex.net/en/sv/sv03.5/010,0
+en/sv03.5-011,sv03.5-011,en,sv03.5,151,011,165,Metapod,Pokemon,11,https://assets.tcgdex.net/en/sv/sv03.5/011,0
+en/sv03.5-012,sv03.5-012,en,sv03.5,151,012,165,Butterfree,Pokemon,12,https://assets.tcgdex.net/en/sv/sv03.5/012,0
+en/sv03.5-013,sv03.5-013,en,sv03.5,151,013,165,Weedle,Pokemon,13,https://assets.tcgdex.net/en/sv/sv03.5/013,0
+en/sv03.5-014,sv03.5-014,en,sv03.5,151,014,165,Kakuna,Pokemon,14,https://assets.tcgdex.net/en/sv/sv03.5/014,0
+en/sv03.5-015,sv03.5-015,en,sv03.5,151,015,165,Beedrill,Pokemon,15,https://assets.tcgdex.net/en/sv/sv03.5/015,0
+en/sv03.5-016,sv03.5-016,en,sv03.5,151,016,165,Pidgey,Pokemon,16,https://assets.tcgdex.net/en/sv/sv03.5/016,0
+en/sv03.5-017,sv03.5-017,en,sv03.5,151,017,165,Pidgeotto,Pokemon,17,https://assets.tcgdex.net/en/sv/sv03.5/017,0
+en/sv03.5-018,sv03.5-018,en,sv03.5,151,018,165,Pidgeot,Pokemon,18,https://assets.tcgdex.net/en/sv/sv03.5/018,0
+en/sv03.5-019,sv03.5-019,en,sv03.5,151,019,165,Rattata,Pokemon,19,https://assets.tcgdex.net/en/sv/sv03.5/019,0
+en/sv03.5-020,sv03.5-020,en,sv03.5,151,020,165,Raticate,Pokemon,20,https://assets.tcgdex.net/en/sv/sv03.5/020,0
+en/sv03.5-021,sv03.5-021,en,sv03.5,151,021,165,Spearow,Pokemon,21,https://assets.tcgdex.net/en/sv/sv03.5/021,0
+en/sv03.5-022,sv03.5-022,en,sv03.5,151,022,165,Fearow,Pokemon,22,https://assets.tcgdex.net/en/sv/sv03.5/022,0
+en/sv03.5-023,sv03.5-023,en,sv03.5,151,023,165,Ekans,Pokemon,23,https://assets.tcgdex.net/en/sv/sv03.5/023,0
+en/sv03.5-024,sv03.5-024,en,sv03.5,151,024,165,Arbok ex,Pokemon,24,https://assets.tcgdex.net/en/sv/sv03.5/024,0
+en/sv03.5-025,sv03.5-025,en,sv03.5,151,025,165,Pikachu,Pokemon,25,https://assets.tcgdex.net/en/sv/sv03.5/025,0
+en/sv03.5-026,sv03.5-026,en,sv03.5,151,026,165,Raichu,Pokemon,26,https://assets.tcgdex.net/en/sv/sv03.5/026,0
+en/sv03.5-027,sv03.5-027,en,sv03.5,151,027,165,Sandshrew,Pokemon,27,https://assets.tcgdex.net/en/sv/sv03.5/027,0
+en/sv03.5-028,sv03.5-028,en,sv03.5,151,028,165,Sandslash,Pokemon,28,https://assets.tcgdex.net/en/sv/sv03.5/028,0
+en/sv03.5-029,sv03.5-029,en,sv03.5,151,029,165,Nidoran♀,Pokemon,29,https://assets.tcgdex.net/en/sv/sv03.5/029,0
+en/sv03.5-030,sv03.5-030,en,sv03.5,151,030,165,Nidorina,Pokemon,30,https://assets.tcgdex.net/en/sv/sv03.5/030,0
+en/sv03.5-031,sv03.5-031,en,sv03.5,151,031,165,Nidoqueen,Pokemon,31,https://assets.tcgdex.net/en/sv/sv03.5/031,0
+en/sv03.5-032,sv03.5-032,en,sv03.5,151,032,165,Nidoran♂,Pokemon,32,https://assets.tcgdex.net/en/sv/sv03.5/032,0
+en/sv03.5-033,sv03.5-033,en,sv03.5,151,033,165,Nidorino,Pokemon,33,https://assets.tcgdex.net/en/sv/sv03.5/033,0
+en/sv03.5-034,sv03.5-034,en,sv03.5,151,034,165,Nidoking,Pokemon,34,https://assets.tcgdex.net/en/sv/sv03.5/034,0
+en/sv03.5-035,sv03.5-035,en,sv03.5,151,035,165,Clefairy,Pokemon,35,https://assets.tcgdex.net/en/sv/sv03.5/035,0
+en/sv03.5-036,sv03.5-036,en,sv03.5,151,036,165,Clefable,Pokemon,36,https://assets.tcgdex.net/en/sv/sv03.5/036,0
+en/sv03.5-037,sv03.5-037,en,sv03.5,151,037,165,Vulpix,Pokemon,37,https://assets.tcgdex.net/en/sv/sv03.5/037,0
+en/sv03.5-038,sv03.5-038,en,sv03.5,151,038,165,Ninetales ex,Pokemon,38,https://assets.tcgdex.net/en/sv/sv03.5/038,0
+en/sv03.5-039,sv03.5-039,en,sv03.5,151,039,165,Jigglypuff,Pokemon,39,https://assets.tcgdex.net/en/sv/sv03.5/039,0
+en/sv03.5-040,sv03.5-040,en,sv03.5,151,040,165,Wigglytuff ex,Pokemon,40,https://assets.tcgdex.net/en/sv/sv03.5/040,0
+en/sv03.5-041,sv03.5-041,en,sv03.5,151,041,165,Zubat,Pokemon,41,https://assets.tcgdex.net/en/sv/sv03.5/041,0
+en/sv03.5-042,sv03.5-042,en,sv03.5,151,042,165,Golbat,Pokemon,42,https://assets.tcgdex.net/en/sv/sv03.5/042,0
+en/sv03.5-043,sv03.5-043,en,sv03.5,151,043,165,Oddish,Pokemon,43,https://assets.tcgdex.net/en/sv/sv03.5/043,0
+en/sv03.5-044,sv03.5-044,en,sv03.5,151,044,165,Gloom,Pokemon,44,https://assets.tcgdex.net/en/sv/sv03.5/044,0
+en/sv03.5-045,sv03.5-045,en,sv03.5,151,045,165,Vileplume,Pokemon,45,https://assets.tcgdex.net/en/sv/sv03.5/045,0
+en/sv03.5-046,sv03.5-046,en,sv03.5,151,046,165,Paras,Pokemon,46,https://assets.tcgdex.net/en/sv/sv03.5/046,0
+en/sv03.5-047,sv03.5-047,en,sv03.5,151,047,165,Parasect,Pokemon,47,https://assets.tcgdex.net/en/sv/sv03.5/047,0
+en/sv03.5-048,sv03.5-048,en,sv03.5,151,048,165,Venonat,Pokemon,48,https://assets.tcgdex.net/en/sv/sv03.5/048,0
+en/sv03.5-049,sv03.5-049,en,sv03.5,151,049,165,Venomoth,Pokemon,49,https://assets.tcgdex.net/en/sv/sv03.5/049,0
+en/sv03.5-050,sv03.5-050,en,sv03.5,151,050,165,Diglett,Pokemon,50,https://assets.tcgdex.net/en/sv/sv03.5/050,0
+en/sv03.5-051,sv03.5-051,en,sv03.5,151,051,165,Dugtrio,Pokemon,51,https://assets.tcgdex.net/en/sv/sv03.5/051,0
+en/sv03.5-052,sv03.5-052,en,sv03.5,151,052,165,Meowth,Pokemon,52,https://assets.tcgdex.net/en/sv/sv03.5/052,0
+en/sv03.5-053,sv03.5-053,en,sv03.5,151,053,165,Persian,Pokemon,53,https://assets.tcgdex.net/en/sv/sv03.5/053,0
+en/sv03.5-054,sv03.5-054,en,sv03.5,151,054,165,Psyduck,Pokemon,54,https://assets.tcgdex.net/en/sv/sv03.5/054,0
+en/sv03.5-055,sv03.5-055,en,sv03.5,151,055,165,Golduck,Pokemon,55,https://assets.tcgdex.net/en/sv/sv03.5/055,0
+en/sv03.5-056,sv03.5-056,en,sv03.5,151,056,165,Mankey,Pokemon,56,https://assets.tcgdex.net/en/sv/sv03.5/056,0
+en/sv03.5-057,sv03.5-057,en,sv03.5,151,057,165,Primeape,Pokemon,57,https://assets.tcgdex.net/en/sv/sv03.5/057,0
+en/sv03.5-058,sv03.5-058,en,sv03.5,151,058,165,Growlithe,Pokemon,58,https://assets.tcgdex.net/en/sv/sv03.5/058,0
+en/sv03.5-059,sv03.5-059,en,sv03.5,151,059,165,Arcanine,Pokemon,59,https://assets.tcgdex.net/en/sv/sv03.5/059,0
+en/sv03.5-060,sv03.5-060,en,sv03.5,151,060,165,Poliwag,Pokemon,60,https://assets.tcgdex.net/en/sv/sv03.5/060,0
+en/sv03.5-061,sv03.5-061,en,sv03.5,151,061,165,Poliwhirl,Pokemon,61,https://assets.tcgdex.net/en/sv/sv03.5/061,0
+en/sv03.5-062,sv03.5-062,en,sv03.5,151,062,165,Poliwrath,Pokemon,62,https://assets.tcgdex.net/en/sv/sv03.5/062,0
+en/sv03.5-063,sv03.5-063,en,sv03.5,151,063,165,Abra,Pokemon,63,https://assets.tcgdex.net/en/sv/sv03.5/063,0
+en/sv03.5-064,sv03.5-064,en,sv03.5,151,064,165,Kadabra,Pokemon,64,https://assets.tcgdex.net/en/sv/sv03.5/064,0
+en/sv03.5-065,sv03.5-065,en,sv03.5,151,065,165,Alakazam ex,Pokemon,65,https://assets.tcgdex.net/en/sv/sv03.5/065,0
+en/sv03.5-066,sv03.5-066,en,sv03.5,151,066,165,Machop,Pokemon,66,https://assets.tcgdex.net/en/sv/sv03.5/066,0
+en/sv03.5-067,sv03.5-067,en,sv03.5,151,067,165,Machoke,Pokemon,67,https://assets.tcgdex.net/en/sv/sv03.5/067,0
+en/sv03.5-068,sv03.5-068,en,sv03.5,151,068,165,Machamp,Pokemon,68,https://assets.tcgdex.net/en/sv/sv03.5/068,0
+en/sv03.5-069,sv03.5-069,en,sv03.5,151,069,165,Bellsprout,Pokemon,69,https://assets.tcgdex.net/en/sv/sv03.5/069,0
+en/sv03.5-070,sv03.5-070,en,sv03.5,151,070,165,Weepinbell,Pokemon,70,https://assets.tcgdex.net/en/sv/sv03.5/070,0
+en/sv03.5-071,sv03.5-071,en,sv03.5,151,071,165,Victreebel,Pokemon,71,https://assets.tcgdex.net/en/sv/sv03.5/071,0
+en/sv03.5-072,sv03.5-072,en,sv03.5,151,072,165,Tentacool,Pokemon,72,https://assets.tcgdex.net/en/sv/sv03.5/072,0
+en/sv03.5-073,sv03.5-073,en,sv03.5,151,073,165,Tentacruel,Pokemon,73,https://assets.tcgdex.net/en/sv/sv03.5/073,0
+en/sv03.5-074,sv03.5-074,en,sv03.5,151,074,165,Geodude,Pokemon,74,https://assets.tcgdex.net/en/sv/sv03.5/074,0
+en/sv03.5-075,sv03.5-075,en,sv03.5,151,075,165,Graveler,Pokemon,75,https://assets.tcgdex.net/en/sv/sv03.5/075,0
+en/sv03.5-076,sv03.5-076,en,sv03.5,151,076,165,Golem ex,Pokemon,76,https://assets.tcgdex.net/en/sv/sv03.5/076,0
+en/sv03.5-077,sv03.5-077,en,sv03.5,151,077,165,Ponyta,Pokemon,77,https://assets.tcgdex.net/en/sv/sv03.5/077,0
+en/sv03.5-078,sv03.5-078,en,sv03.5,151,078,165,Rapidash,Pokemon,78,https://assets.tcgdex.net/en/sv/sv03.5/078,0
+en/sv03.5-079,sv03.5-079,en,sv03.5,151,079,165,Slowpoke,Pokemon,79,https://assets.tcgdex.net/en/sv/sv03.5/079,0
+en/sv03.5-080,sv03.5-080,en,sv03.5,151,080,165,Slowbro,Pokemon,80,https://assets.tcgdex.net/en/sv/sv03.5/080,0
+en/sv03.5-081,sv03.5-081,en,sv03.5,151,081,165,Magnemite,Pokemon,81,https://assets.tcgdex.net/en/sv/sv03.5/081,0
+en/sv03.5-082,sv03.5-082,en,sv03.5,151,082,165,Magneton,Pokemon,82,https://assets.tcgdex.net/en/sv/sv03.5/082,0
+en/sv03.5-083,sv03.5-083,en,sv03.5,151,083,165,Farfetch'd,Pokemon,83,https://assets.tcgdex.net/en/sv/sv03.5/083,0
+en/sv03.5-084,sv03.5-084,en,sv03.5,151,084,165,Doduo,Pokemon,84,https://assets.tcgdex.net/en/sv/sv03.5/084,0
+en/sv03.5-085,sv03.5-085,en,sv03.5,151,085,165,Dodrio,Pokemon,85,https://assets.tcgdex.net/en/sv/sv03.5/085,0
+en/sv03.5-086,sv03.5-086,en,sv03.5,151,086,165,Seel,Pokemon,86,https://assets.tcgdex.net/en/sv/sv03.5/086,0
+en/sv03.5-087,sv03.5-087,en,sv03.5,151,087,165,Dewgong,Pokemon,87,https://assets.tcgdex.net/en/sv/sv03.5/087,0
+en/sv03.5-088,sv03.5-088,en,sv03.5,151,088,165,Grimer,Pokemon,88,https://assets.tcgdex.net/en/sv/sv03.5/088,0
+en/sv03.5-089,sv03.5-089,en,sv03.5,151,089,165,Muk,Pokemon,89,https://assets.tcgdex.net/en/sv/sv03.5/089,0
+en/sv03.5-090,sv03.5-090,en,sv03.5,151,090,165,Shellder,Pokemon,90,https://assets.tcgdex.net/en/sv/sv03.5/090,0
+en/sv03.5-091,sv03.5-091,en,sv03.5,151,091,165,Cloyster,Pokemon,91,https://assets.tcgdex.net/en/sv/sv03.5/091,0
+en/sv03.5-092,sv03.5-092,en,sv03.5,151,092,165,Gastly,Pokemon,92,https://assets.tcgdex.net/en/sv/sv03.5/092,0
+en/sv03.5-093,sv03.5-093,en,sv03.5,151,093,165,Haunter,Pokemon,93,https://assets.tcgdex.net/en/sv/sv03.5/093,0
+en/sv03.5-094,sv03.5-094,en,sv03.5,151,094,165,Gengar,Pokemon,94,https://assets.tcgdex.net/en/sv/sv03.5/094,0
+en/sv03.5-095,sv03.5-095,en,sv03.5,151,095,165,Onix,Pokemon,95,https://assets.tcgdex.net/en/sv/sv03.5/095,0
+en/sv03.5-096,sv03.5-096,en,sv03.5,151,096,165,Drowzee,Pokemon,96,https://assets.tcgdex.net/en/sv/sv03.5/096,0
+en/sv03.5-097,sv03.5-097,en,sv03.5,151,097,165,Hypno,Pokemon,97,https://assets.tcgdex.net/en/sv/sv03.5/097,0
+en/sv03.5-098,sv03.5-098,en,sv03.5,151,098,165,Krabby,Pokemon,98,https://assets.tcgdex.net/en/sv/sv03.5/098,0
+en/sv03.5-099,sv03.5-099,en,sv03.5,151,099,165,Kingler,Pokemon,99,https://assets.tcgdex.net/en/sv/sv03.5/099,0
+en/sv03.5-100,sv03.5-100,en,sv03.5,151,100,165,Voltorb,Pokemon,100,https://assets.tcgdex.net/en/sv/sv03.5/100,0
+en/sv03.5-101,sv03.5-101,en,sv03.5,151,101,165,Electrode,Pokemon,101,https://assets.tcgdex.net/en/sv/sv03.5/101,0
+en/sv03.5-102,sv03.5-102,en,sv03.5,151,102,165,Exeggcute,Pokemon,102,https://assets.tcgdex.net/en/sv/sv03.5/102,0
+en/sv03.5-103,sv03.5-103,en,sv03.5,151,103,165,Exeggutor,Pokemon,103,https://assets.tcgdex.net/en/sv/sv03.5/103,0
+en/sv03.5-104,sv03.5-104,en,sv03.5,151,104,165,Cubone,Pokemon,104,https://assets.tcgdex.net/en/sv/sv03.5/104,0
+en/sv03.5-105,sv03.5-105,en,sv03.5,151,105,165,Marowak,Pokemon,105,https://assets.tcgdex.net/en/sv/sv03.5/105,0
+en/sv03.5-106,sv03.5-106,en,sv03.5,151,106,165,Hitmonlee,Pokemon,106,https://assets.tcgdex.net/en/sv/sv03.5/106,0
+en/sv03.5-107,sv03.5-107,en,sv03.5,151,107,165,Hitmonchan,Pokemon,107,https://assets.tcgdex.net/en/sv/sv03.5/107,0
+en/sv03.5-108,sv03.5-108,en,sv03.5,151,108,165,Lickitung,Pokemon,108,https://assets.tcgdex.net/en/sv/sv03.5/108,0
+en/sv03.5-109,sv03.5-109,en,sv03.5,151,109,165,Koffing,Pokemon,109,https://assets.tcgdex.net/en/sv/sv03.5/109,0
+en/sv03.5-110,sv03.5-110,en,sv03.5,151,110,165,Weezing,Pokemon,110,https://assets.tcgdex.net/en/sv/sv03.5/110,0
+en/sv03.5-111,sv03.5-111,en,sv03.5,151,111,165,Rhyhorn,Pokemon,111,https://assets.tcgdex.net/en/sv/sv03.5/111,0
+en/sv03.5-112,sv03.5-112,en,sv03.5,151,112,165,Rhydon,Pokemon,112,https://assets.tcgdex.net/en/sv/sv03.5/112,0
+en/sv03.5-113,sv03.5-113,en,sv03.5,151,113,165,Chansey,Pokemon,113,https://assets.tcgdex.net/en/sv/sv03.5/113,0
+en/sv03.5-114,sv03.5-114,en,sv03.5,151,114,165,Tangela,Pokemon,114,https://assets.tcgdex.net/en/sv/sv03.5/114,0
+en/sv03.5-115,sv03.5-115,en,sv03.5,151,115,165,Kangaskhan ex,Pokemon,115,https://assets.tcgdex.net/en/sv/sv03.5/115,0
+en/sv03.5-116,sv03.5-116,en,sv03.5,151,116,165,Horsea,Pokemon,116,https://assets.tcgdex.net/en/sv/sv03.5/116,0
+en/sv03.5-117,sv03.5-117,en,sv03.5,151,117,165,Seadra,Pokemon,117,https://assets.tcgdex.net/en/sv/sv03.5/117,0
+en/sv03.5-118,sv03.5-118,en,sv03.5,151,118,165,Goldeen,Pokemon,118,https://assets.tcgdex.net/en/sv/sv03.5/118,0
+en/sv03.5-119,sv03.5-119,en,sv03.5,151,119,165,Seaking,Pokemon,119,https://assets.tcgdex.net/en/sv/sv03.5/119,0
+en/sv03.5-120,sv03.5-120,en,sv03.5,151,120,165,Staryu,Pokemon,120,https://assets.tcgdex.net/en/sv/sv03.5/120,0
+en/sv03.5-121,sv03.5-121,en,sv03.5,151,121,165,Starmie,Pokemon,121,https://assets.tcgdex.net/en/sv/sv03.5/121,0
+en/sv03.5-122,sv03.5-122,en,sv03.5,151,122,165,Mr. Mime,Pokemon,122,https://assets.tcgdex.net/en/sv/sv03.5/122,0
+en/sv03.5-123,sv03.5-123,en,sv03.5,151,123,165,Scyther,Pokemon,123,https://assets.tcgdex.net/en/sv/sv03.5/123,0
+en/sv03.5-124,sv03.5-124,en,sv03.5,151,124,165,Jynx ex,Pokemon,124,https://assets.tcgdex.net/en/sv/sv03.5/124,0
+en/sv03.5-125,sv03.5-125,en,sv03.5,151,125,165,Electabuzz,Pokemon,125,https://assets.tcgdex.net/en/sv/sv03.5/125,0
+en/sv03.5-126,sv03.5-126,en,sv03.5,151,126,165,Magmar,Pokemon,126,https://assets.tcgdex.net/en/sv/sv03.5/126,0
+en/sv03.5-127,sv03.5-127,en,sv03.5,151,127,165,Pinsir,Pokemon,127,https://assets.tcgdex.net/en/sv/sv03.5/127,0
+en/sv03.5-128,sv03.5-128,en,sv03.5,151,128,165,Tauros,Pokemon,128,https://assets.tcgdex.net/en/sv/sv03.5/128,0
+en/sv03.5-129,sv03.5-129,en,sv03.5,151,129,165,Magikarp,Pokemon,129,https://assets.tcgdex.net/en/sv/sv03.5/129,0
+en/sv03.5-130,sv03.5-130,en,sv03.5,151,130,165,Gyarados,Pokemon,130,https://assets.tcgdex.net/en/sv/sv03.5/130,0
+en/sv03.5-131,sv03.5-131,en,sv03.5,151,131,165,Lapras,Pokemon,131,https://assets.tcgdex.net/en/sv/sv03.5/131,0
+en/sv03.5-132,sv03.5-132,en,sv03.5,151,132,165,Ditto,Pokemon,132,https://assets.tcgdex.net/en/sv/sv03.5/132,0
+en/sv03.5-133,sv03.5-133,en,sv03.5,151,133,165,Eevee,Pokemon,133,https://assets.tcgdex.net/en/sv/sv03.5/133,0
+en/sv03.5-134,sv03.5-134,en,sv03.5,151,134,165,Vaporeon,Pokemon,134,https://assets.tcgdex.net/en/sv/sv03.5/134,0
+en/sv03.5-135,sv03.5-135,en,sv03.5,151,135,165,Jolteon,Pokemon,135,https://assets.tcgdex.net/en/sv/sv03.5/135,0
+en/sv03.5-136,sv03.5-136,en,sv03.5,151,136,165,Flareon,Pokemon,136,https://assets.tcgdex.net/en/sv/sv03.5/136,0
+en/sv03.5-137,sv03.5-137,en,sv03.5,151,137,165,Porygon,Pokemon,137,https://assets.tcgdex.net/en/sv/sv03.5/137,0
+en/sv03.5-138,sv03.5-138,en,sv03.5,151,138,165,Omanyte,Pokemon,138,https://assets.tcgdex.net/en/sv/sv03.5/138,0
+en/sv03.5-139,sv03.5-139,en,sv03.5,151,139,165,Omastar,Pokemon,139,https://assets.tcgdex.net/en/sv/sv03.5/139,0
+en/sv03.5-140,sv03.5-140,en,sv03.5,151,140,165,Kabuto,Pokemon,140,https://assets.tcgdex.net/en/sv/sv03.5/140,0
+en/sv03.5-141,sv03.5-141,en,sv03.5,151,141,165,Kabutops,Pokemon,141,https://assets.tcgdex.net/en/sv/sv03.5/141,0
+en/sv03.5-142,sv03.5-142,en,sv03.5,151,142,165,Aerodactyl,Pokemon,142,https://assets.tcgdex.net/en/sv/sv03.5/142,0
+en/sv03.5-143,sv03.5-143,en,sv03.5,151,143,165,Snorlax,Pokemon,143,https://assets.tcgdex.net/en/sv/sv03.5/143,0
+en/sv03.5-144,sv03.5-144,en,sv03.5,151,144,165,Articuno,Pokemon,144,https://assets.tcgdex.net/en/sv/sv03.5/144,0
+en/sv03.5-145,sv03.5-145,en,sv03.5,151,145,165,Zapdos ex,Pokemon,145,https://assets.tcgdex.net/en/sv/sv03.5/145,0
+en/sv03.5-146,sv03.5-146,en,sv03.5,151,146,165,Moltres,Pokemon,146,https://assets.tcgdex.net/en/sv/sv03.5/146,0
+en/sv03.5-147,sv03.5-147,en,sv03.5,151,147,165,Dratini,Pokemon,147,https://assets.tcgdex.net/en/sv/sv03.5/147,0
+en/sv03.5-148,sv03.5-148,en,sv03.5,151,148,165,Dragonair,Pokemon,148,https://assets.tcgdex.net/en/sv/sv03.5/148,0
+en/sv03.5-149,sv03.5-149,en,sv03.5,151,149,165,Dragonite,Pokemon,149,https://assets.tcgdex.net/en/sv/sv03.5/149,0
+en/sv03.5-150,sv03.5-150,en,sv03.5,151,150,165,Mewtwo,Pokemon,150,https://assets.tcgdex.net/en/sv/sv03.5/150,0
+en/sv03.5-151,sv03.5-151,en,sv03.5,151,151,165,Mew ex,Pokemon,151,https://assets.tcgdex.net/en/sv/sv03.5/151,0
+en/sv03.5-152,sv03.5-152,en,sv03.5,151,152,165,Antique Dome Fossil,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/152,0
+en/sv03.5-153,sv03.5-153,en,sv03.5,151,153,165,Antique Helix Fossil,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/153,0
+en/sv03.5-154,sv03.5-154,en,sv03.5,151,154,165,Antique Old Amber,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/154,0
+en/sv03.5-155,sv03.5-155,en,sv03.5,151,155,165,Big Air Balloon,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/155,0
+en/sv03.5-156,sv03.5-156,en,sv03.5,151,156,165,Bill's Transfer,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/156,0
+en/sv03.5-157,sv03.5-157,en,sv03.5,151,157,165,Cycling Road,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/157,0
+en/sv03.5-158,sv03.5-158,en,sv03.5,151,158,165,Daisy's Help,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/158,0
+en/sv03.5-159,sv03.5-159,en,sv03.5,151,159,165,Energy Sticker,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/159,0
+en/sv03.5-160,sv03.5-160,en,sv03.5,151,160,165,Erika's Invitation,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/160,0
+en/sv03.5-161,sv03.5-161,en,sv03.5,151,161,165,Giovanni's Charisma,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/161,0
+en/sv03.5-162,sv03.5-162,en,sv03.5,151,162,165,Grabber,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/162,0
+en/sv03.5-163,sv03.5-163,en,sv03.5,151,163,165,Leftovers,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/163,0
+en/sv03.5-164,sv03.5-164,en,sv03.5,151,164,165,Protective Goggles,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/164,0
+en/sv03.5-165,sv03.5-165,en,sv03.5,151,165,165,Rigid Band,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/165,0
+en/sv03.5-166,sv03.5-166,en,sv03.5,151,166,165,Bulbasaur,Pokemon,1,https://assets.tcgdex.net/en/sv/sv03.5/166,0
+en/sv03.5-167,sv03.5-167,en,sv03.5,151,167,165,Ivysaur,Pokemon,2,https://assets.tcgdex.net/en/sv/sv03.5/167,0
+en/sv03.5-168,sv03.5-168,en,sv03.5,151,168,165,Charmander,Pokemon,4,https://assets.tcgdex.net/en/sv/sv03.5/168,0
+en/sv03.5-169,sv03.5-169,en,sv03.5,151,169,165,Charmeleon,Pokemon,5,https://assets.tcgdex.net/en/sv/sv03.5/169,0
+en/sv03.5-170,sv03.5-170,en,sv03.5,151,170,165,Squirtle,Pokemon,7,https://assets.tcgdex.net/en/sv/sv03.5/170,0
+en/sv03.5-171,sv03.5-171,en,sv03.5,151,171,165,Wartortle,Pokemon,8,https://assets.tcgdex.net/en/sv/sv03.5/171,0
+en/sv03.5-172,sv03.5-172,en,sv03.5,151,172,165,Caterpie,Pokemon,10,https://assets.tcgdex.net/en/sv/sv03.5/172,0
+en/sv03.5-173,sv03.5-173,en,sv03.5,151,173,165,Pikachu,Pokemon,25,https://assets.tcgdex.net/en/sv/sv03.5/173,0
+en/sv03.5-174,sv03.5-174,en,sv03.5,151,174,165,Nidoking,Pokemon,34,https://assets.tcgdex.net/en/sv/sv03.5/174,0
+en/sv03.5-175,sv03.5-175,en,sv03.5,151,175,165,Psyduck,Pokemon,54,https://assets.tcgdex.net/en/sv/sv03.5/175,0
+en/sv03.5-176,sv03.5-176,en,sv03.5,151,176,165,Poliwhirl,Pokemon,61,https://assets.tcgdex.net/en/sv/sv03.5/176,0
+en/sv03.5-177,sv03.5-177,en,sv03.5,151,177,165,Machoke,Pokemon,67,https://assets.tcgdex.net/en/sv/sv03.5/177,0
+en/sv03.5-178,sv03.5-178,en,sv03.5,151,178,165,Tangela,Pokemon,114,https://assets.tcgdex.net/en/sv/sv03.5/178,0
+en/sv03.5-179,sv03.5-179,en,sv03.5,151,179,165,Mr. Mime,Pokemon,122,https://assets.tcgdex.net/en/sv/sv03.5/179,0
+en/sv03.5-180,sv03.5-180,en,sv03.5,151,180,165,Omanyte,Pokemon,138,https://assets.tcgdex.net/en/sv/sv03.5/180,0
+en/sv03.5-181,sv03.5-181,en,sv03.5,151,181,165,Dragonair,Pokemon,148,https://assets.tcgdex.net/en/sv/sv03.5/181,0
+en/sv03.5-182,sv03.5-182,en,sv03.5,151,182,165,Venusaur ex,Pokemon,3,https://assets.tcgdex.net/en/sv/sv03.5/182,0
+en/sv03.5-183,sv03.5-183,en,sv03.5,151,183,165,Charizard ex,Pokemon,6,https://assets.tcgdex.net/en/sv/sv03.5/183,0
+en/sv03.5-184,sv03.5-184,en,sv03.5,151,184,165,Blastoise ex,Pokemon,9,https://assets.tcgdex.net/en/sv/sv03.5/184,0
+en/sv03.5-185,sv03.5-185,en,sv03.5,151,185,165,Arbok ex,Pokemon,24,https://assets.tcgdex.net/en/sv/sv03.5/185,0
+en/sv03.5-186,sv03.5-186,en,sv03.5,151,186,165,Ninetales ex,Pokemon,38,https://assets.tcgdex.net/en/sv/sv03.5/186,0
+en/sv03.5-187,sv03.5-187,en,sv03.5,151,187,165,Wigglytuff ex,Pokemon,40,https://assets.tcgdex.net/en/sv/sv03.5/187,0
+en/sv03.5-188,sv03.5-188,en,sv03.5,151,188,165,Alakazam ex,Pokemon,65,https://assets.tcgdex.net/en/sv/sv03.5/188,0
+en/sv03.5-189,sv03.5-189,en,sv03.5,151,189,165,Golem ex,Pokemon,76,https://assets.tcgdex.net/en/sv/sv03.5/189,0
+en/sv03.5-190,sv03.5-190,en,sv03.5,151,190,165,Kangaskhan ex,Pokemon,115,https://assets.tcgdex.net/en/sv/sv03.5/190,0
+en/sv03.5-191,sv03.5-191,en,sv03.5,151,191,165,Jynx ex,Pokemon,124,https://assets.tcgdex.net/en/sv/sv03.5/191,0
+en/sv03.5-192,sv03.5-192,en,sv03.5,151,192,165,Zapdos ex,Pokemon,145,https://assets.tcgdex.net/en/sv/sv03.5/192,0
+en/sv03.5-193,sv03.5-193,en,sv03.5,151,193,165,Mew ex,Pokemon,151,https://assets.tcgdex.net/en/sv/sv03.5/193,0
+en/sv03.5-194,sv03.5-194,en,sv03.5,151,194,165,Bill's Transfer,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/194,0
+en/sv03.5-195,sv03.5-195,en,sv03.5,151,195,165,Daisy's Help,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/195,0
+en/sv03.5-196,sv03.5-196,en,sv03.5,151,196,165,Erika's Invitation,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/196,0
+en/sv03.5-197,sv03.5-197,en,sv03.5,151,197,165,Giovanni's Charisma,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/197,0
+en/sv03.5-198,sv03.5-198,en,sv03.5,151,198,165,Venusaur ex,Pokemon,3,https://assets.tcgdex.net/en/sv/sv03.5/198,0
+en/sv03.5-199,sv03.5-199,en,sv03.5,151,199,165,Charizard ex,Pokemon,6,https://assets.tcgdex.net/en/sv/sv03.5/199,0
+en/sv03.5-200,sv03.5-200,en,sv03.5,151,200,165,Blastoise ex,Pokemon,9,https://assets.tcgdex.net/en/sv/sv03.5/200,0
+en/sv03.5-201,sv03.5-201,en,sv03.5,151,201,165,Alakazam ex,Pokemon,65,https://assets.tcgdex.net/en/sv/sv03.5/201,0
+en/sv03.5-202,sv03.5-202,en,sv03.5,151,202,165,Zapdos ex,Pokemon,145,https://assets.tcgdex.net/en/sv/sv03.5/202,0
+en/sv03.5-203,sv03.5-203,en,sv03.5,151,203,165,Erika's Invitation,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/203,0
+en/sv03.5-204,sv03.5-204,en,sv03.5,151,204,165,Giovanni's Charisma,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/204,0
+en/sv03.5-205,sv03.5-205,en,sv03.5,151,205,165,Mew ex,Pokemon,151,https://assets.tcgdex.net/en/sv/sv03.5/205,0
+en/sv03.5-206,sv03.5-206,en,sv03.5,151,206,165,Switch,Trainer,,https://assets.tcgdex.net/en/sv/sv03.5/206,0
+en/sv03.5-207,sv03.5-207,en,sv03.5,151,207,165,Basic Psychic Energy,Energy,,https://assets.tcgdex.net/en/sv/sv03.5/207,0
+de/sv03.5-001,sv03.5-001,de,sv03.5,151,001,165,Bisasam,Pokémon,1,https://assets.tcgdex.net/de/sv/sv03.5/001,0
+de/sv03.5-002,sv03.5-002,de,sv03.5,151,002,165,Bisaknosp,Pokémon,2,https://assets.tcgdex.net/de/sv/sv03.5/002,0
+de/sv03.5-003,sv03.5-003,de,sv03.5,151,003,165,Bisaflor-ex,Pokémon,3,https://assets.tcgdex.net/de/sv/sv03.5/003,0
+de/sv03.5-004,sv03.5-004,de,sv03.5,151,004,165,Glumanda,Pokémon,4,https://assets.tcgdex.net/de/sv/sv03.5/004,0
+de/sv03.5-005,sv03.5-005,de,sv03.5,151,005,165,Glutexo,Pokémon,5,https://assets.tcgdex.net/de/sv/sv03.5/005,0
+de/sv03.5-006,sv03.5-006,de,sv03.5,151,006,165,Glurak-ex,Pokémon,6,https://assets.tcgdex.net/de/sv/sv03.5/006,0
+de/sv03.5-007,sv03.5-007,de,sv03.5,151,007,165,Schiggy,Pokémon,7,https://assets.tcgdex.net/de/sv/sv03.5/007,0
+de/sv03.5-008,sv03.5-008,de,sv03.5,151,008,165,Schillok,Pokémon,8,https://assets.tcgdex.net/de/sv/sv03.5/008,0
+de/sv03.5-009,sv03.5-009,de,sv03.5,151,009,165,Turtok-ex,Pokémon,9,https://assets.tcgdex.net/de/sv/sv03.5/009,0
+de/sv03.5-010,sv03.5-010,de,sv03.5,151,010,165,Raupy,Pokémon,10,https://assets.tcgdex.net/de/sv/sv03.5/010,0
+de/sv03.5-011,sv03.5-011,de,sv03.5,151,011,165,Safcon,Pokémon,11,https://assets.tcgdex.net/de/sv/sv03.5/011,0
+de/sv03.5-012,sv03.5-012,de,sv03.5,151,012,165,Smettbo,Pokémon,12,https://assets.tcgdex.net/de/sv/sv03.5/012,0
+de/sv03.5-013,sv03.5-013,de,sv03.5,151,013,165,Hornliu,Pokémon,13,https://assets.tcgdex.net/de/sv/sv03.5/013,0
+de/sv03.5-014,sv03.5-014,de,sv03.5,151,014,165,Kokuna,Pokémon,14,https://assets.tcgdex.net/de/sv/sv03.5/014,0
+de/sv03.5-015,sv03.5-015,de,sv03.5,151,015,165,Bibor,Pokémon,15,https://assets.tcgdex.net/de/sv/sv03.5/015,0
+de/sv03.5-016,sv03.5-016,de,sv03.5,151,016,165,Taubsi,Pokémon,16,https://assets.tcgdex.net/de/sv/sv03.5/016,0
+de/sv03.5-017,sv03.5-017,de,sv03.5,151,017,165,Tauboga,Pokémon,17,https://assets.tcgdex.net/de/sv/sv03.5/017,0
+de/sv03.5-018,sv03.5-018,de,sv03.5,151,018,165,Tauboss,Pokémon,18,https://assets.tcgdex.net/de/sv/sv03.5/018,0
+de/sv03.5-019,sv03.5-019,de,sv03.5,151,019,165,Rattfratz,Pokémon,19,https://assets.tcgdex.net/de/sv/sv03.5/019,0
+de/sv03.5-020,sv03.5-020,de,sv03.5,151,020,165,Rattikarl,Pokémon,20,https://assets.tcgdex.net/de/sv/sv03.5/020,0
+de/sv03.5-021,sv03.5-021,de,sv03.5,151,021,165,Habitak,Pokémon,21,https://assets.tcgdex.net/de/sv/sv03.5/021,0
+de/sv03.5-022,sv03.5-022,de,sv03.5,151,022,165,Ibitak,Pokémon,22,https://assets.tcgdex.net/de/sv/sv03.5/022,0
+de/sv03.5-023,sv03.5-023,de,sv03.5,151,023,165,Rettan,Pokémon,23,https://assets.tcgdex.net/de/sv/sv03.5/023,0
+de/sv03.5-024,sv03.5-024,de,sv03.5,151,024,165,Arbok-ex,Pokémon,24,https://assets.tcgdex.net/de/sv/sv03.5/024,0
+de/sv03.5-025,sv03.5-025,de,sv03.5,151,025,165,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/sv/sv03.5/025,0
+de/sv03.5-026,sv03.5-026,de,sv03.5,151,026,165,Raichu,Pokémon,26,https://assets.tcgdex.net/de/sv/sv03.5/026,0
+de/sv03.5-027,sv03.5-027,de,sv03.5,151,027,165,Sandan,Pokémon,27,https://assets.tcgdex.net/de/sv/sv03.5/027,0
+de/sv03.5-028,sv03.5-028,de,sv03.5,151,028,165,Sandamer,Pokémon,28,https://assets.tcgdex.net/de/sv/sv03.5/028,0
+de/sv03.5-029,sv03.5-029,de,sv03.5,151,029,165,Nidoran♀,Pokémon,29,https://assets.tcgdex.net/de/sv/sv03.5/029,0
+de/sv03.5-030,sv03.5-030,de,sv03.5,151,030,165,Nidorina,Pokémon,30,https://assets.tcgdex.net/de/sv/sv03.5/030,0
+de/sv03.5-031,sv03.5-031,de,sv03.5,151,031,165,Nidoqueen,Pokémon,31,https://assets.tcgdex.net/de/sv/sv03.5/031,0
+de/sv03.5-032,sv03.5-032,de,sv03.5,151,032,165,Nidoran♂,Pokémon,32,https://assets.tcgdex.net/de/sv/sv03.5/032,0
+de/sv03.5-033,sv03.5-033,de,sv03.5,151,033,165,Nidorino,Pokémon,33,https://assets.tcgdex.net/de/sv/sv03.5/033,0
+de/sv03.5-034,sv03.5-034,de,sv03.5,151,034,165,Nidoking,Pokémon,34,https://assets.tcgdex.net/de/sv/sv03.5/034,0
+de/sv03.5-035,sv03.5-035,de,sv03.5,151,035,165,Piepi,Pokémon,35,https://assets.tcgdex.net/de/sv/sv03.5/035,0
+de/sv03.5-036,sv03.5-036,de,sv03.5,151,036,165,Pixi,Pokémon,36,https://assets.tcgdex.net/de/sv/sv03.5/036,0
+de/sv03.5-037,sv03.5-037,de,sv03.5,151,037,165,Vulpix,Pokémon,37,https://assets.tcgdex.net/de/sv/sv03.5/037,0
+de/sv03.5-038,sv03.5-038,de,sv03.5,151,038,165,Vulnona-ex,Pokémon,38,https://assets.tcgdex.net/de/sv/sv03.5/038,0
+de/sv03.5-039,sv03.5-039,de,sv03.5,151,039,165,Pummeluff,Pokémon,39,https://assets.tcgdex.net/de/sv/sv03.5/039,0
+de/sv03.5-040,sv03.5-040,de,sv03.5,151,040,165,Knuddeluff-ex,Pokémon,40,https://assets.tcgdex.net/de/sv/sv03.5/040,0
+de/sv03.5-041,sv03.5-041,de,sv03.5,151,041,165,Zubat,Pokémon,41,https://assets.tcgdex.net/de/sv/sv03.5/041,0
+de/sv03.5-042,sv03.5-042,de,sv03.5,151,042,165,Golbat,Pokémon,42,https://assets.tcgdex.net/de/sv/sv03.5/042,0
+de/sv03.5-043,sv03.5-043,de,sv03.5,151,043,165,Myrapla,Pokémon,43,https://assets.tcgdex.net/de/sv/sv03.5/043,0
+de/sv03.5-044,sv03.5-044,de,sv03.5,151,044,165,Duflor,Pokémon,44,https://assets.tcgdex.net/de/sv/sv03.5/044,0
+de/sv03.5-045,sv03.5-045,de,sv03.5,151,045,165,Giflor,Pokémon,45,https://assets.tcgdex.net/de/sv/sv03.5/045,0
+de/sv03.5-046,sv03.5-046,de,sv03.5,151,046,165,Paras,Pokémon,46,https://assets.tcgdex.net/de/sv/sv03.5/046,0
+de/sv03.5-047,sv03.5-047,de,sv03.5,151,047,165,Parasek,Pokémon,47,https://assets.tcgdex.net/de/sv/sv03.5/047,0
+de/sv03.5-048,sv03.5-048,de,sv03.5,151,048,165,Bluzuk,Pokémon,48,https://assets.tcgdex.net/de/sv/sv03.5/048,0
+de/sv03.5-049,sv03.5-049,de,sv03.5,151,049,165,Omot,Pokémon,49,https://assets.tcgdex.net/de/sv/sv03.5/049,0
+de/sv03.5-050,sv03.5-050,de,sv03.5,151,050,165,Digda,Pokémon,50,https://assets.tcgdex.net/de/sv/sv03.5/050,0
+de/sv03.5-051,sv03.5-051,de,sv03.5,151,051,165,Digdri,Pokémon,51,https://assets.tcgdex.net/de/sv/sv03.5/051,0
+de/sv03.5-052,sv03.5-052,de,sv03.5,151,052,165,Mauzi,Pokémon,52,https://assets.tcgdex.net/de/sv/sv03.5/052,0
+de/sv03.5-053,sv03.5-053,de,sv03.5,151,053,165,Snobilikat,Pokémon,53,https://assets.tcgdex.net/de/sv/sv03.5/053,0
+de/sv03.5-054,sv03.5-054,de,sv03.5,151,054,165,Enton,Pokémon,54,https://assets.tcgdex.net/de/sv/sv03.5/054,0
+de/sv03.5-055,sv03.5-055,de,sv03.5,151,055,165,Entoron,Pokémon,55,https://assets.tcgdex.net/de/sv/sv03.5/055,0
+de/sv03.5-056,sv03.5-056,de,sv03.5,151,056,165,Menki,Pokémon,56,https://assets.tcgdex.net/de/sv/sv03.5/056,0
+de/sv03.5-057,sv03.5-057,de,sv03.5,151,057,165,Rasaff,Pokémon,57,https://assets.tcgdex.net/de/sv/sv03.5/057,0
+de/sv03.5-058,sv03.5-058,de,sv03.5,151,058,165,Fukano,Pokémon,58,https://assets.tcgdex.net/de/sv/sv03.5/058,0
+de/sv03.5-059,sv03.5-059,de,sv03.5,151,059,165,Arkani,Pokémon,59,https://assets.tcgdex.net/de/sv/sv03.5/059,0
+de/sv03.5-060,sv03.5-060,de,sv03.5,151,060,165,Quapsel,Pokémon,60,https://assets.tcgdex.net/de/sv/sv03.5/060,0
+de/sv03.5-061,sv03.5-061,de,sv03.5,151,061,165,Quaputzi,Pokémon,61,https://assets.tcgdex.net/de/sv/sv03.5/061,0
+de/sv03.5-062,sv03.5-062,de,sv03.5,151,062,165,Quappo,Pokémon,62,https://assets.tcgdex.net/de/sv/sv03.5/062,0
+de/sv03.5-063,sv03.5-063,de,sv03.5,151,063,165,Abra,Pokémon,63,https://assets.tcgdex.net/de/sv/sv03.5/063,0
+de/sv03.5-064,sv03.5-064,de,sv03.5,151,064,165,Kadabra,Pokémon,64,https://assets.tcgdex.net/de/sv/sv03.5/064,0
+de/sv03.5-065,sv03.5-065,de,sv03.5,151,065,165,Simsala-ex,Pokémon,65,https://assets.tcgdex.net/de/sv/sv03.5/065,0
+de/sv03.5-066,sv03.5-066,de,sv03.5,151,066,165,Machollo,Pokémon,66,https://assets.tcgdex.net/de/sv/sv03.5/066,0
+de/sv03.5-067,sv03.5-067,de,sv03.5,151,067,165,Maschock,Pokémon,67,https://assets.tcgdex.net/de/sv/sv03.5/067,0
+de/sv03.5-068,sv03.5-068,de,sv03.5,151,068,165,Machomei,Pokémon,68,https://assets.tcgdex.net/de/sv/sv03.5/068,0
+de/sv03.5-069,sv03.5-069,de,sv03.5,151,069,165,Knofensa,Pokémon,69,https://assets.tcgdex.net/de/sv/sv03.5/069,0
+de/sv03.5-070,sv03.5-070,de,sv03.5,151,070,165,Ultrigaria,Pokémon,70,https://assets.tcgdex.net/de/sv/sv03.5/070,0
+de/sv03.5-071,sv03.5-071,de,sv03.5,151,071,165,Sarzenia,Pokémon,71,https://assets.tcgdex.net/de/sv/sv03.5/071,0
+de/sv03.5-072,sv03.5-072,de,sv03.5,151,072,165,Tentacha,Pokémon,72,https://assets.tcgdex.net/de/sv/sv03.5/072,0
+de/sv03.5-073,sv03.5-073,de,sv03.5,151,073,165,Tentoxa,Pokémon,73,https://assets.tcgdex.net/de/sv/sv03.5/073,0
+de/sv03.5-074,sv03.5-074,de,sv03.5,151,074,165,Kleinstein,Pokémon,74,https://assets.tcgdex.net/de/sv/sv03.5/074,0
+de/sv03.5-075,sv03.5-075,de,sv03.5,151,075,165,Georok,Pokémon,75,https://assets.tcgdex.net/de/sv/sv03.5/075,0
+de/sv03.5-076,sv03.5-076,de,sv03.5,151,076,165,Geowaz-ex,Pokémon,76,https://assets.tcgdex.net/de/sv/sv03.5/076,0
+de/sv03.5-077,sv03.5-077,de,sv03.5,151,077,165,Ponita,Pokémon,77,https://assets.tcgdex.net/de/sv/sv03.5/077,0
+de/sv03.5-078,sv03.5-078,de,sv03.5,151,078,165,Gallopa,Pokémon,78,https://assets.tcgdex.net/de/sv/sv03.5/078,0
+de/sv03.5-079,sv03.5-079,de,sv03.5,151,079,165,Flegmon,Pokémon,79,https://assets.tcgdex.net/de/sv/sv03.5/079,0
+de/sv03.5-080,sv03.5-080,de,sv03.5,151,080,165,Lahmus,Pokémon,80,https://assets.tcgdex.net/de/sv/sv03.5/080,0
+de/sv03.5-081,sv03.5-081,de,sv03.5,151,081,165,Magnetilo,Pokémon,81,https://assets.tcgdex.net/de/sv/sv03.5/081,0
+de/sv03.5-082,sv03.5-082,de,sv03.5,151,082,165,Magneton,Pokémon,82,https://assets.tcgdex.net/de/sv/sv03.5/082,0
+de/sv03.5-083,sv03.5-083,de,sv03.5,151,083,165,Porenta,Pokémon,83,https://assets.tcgdex.net/de/sv/sv03.5/083,0
+de/sv03.5-084,sv03.5-084,de,sv03.5,151,084,165,Dodu,Pokémon,84,https://assets.tcgdex.net/de/sv/sv03.5/084,0
+de/sv03.5-085,sv03.5-085,de,sv03.5,151,085,165,Dodri,Pokémon,85,https://assets.tcgdex.net/de/sv/sv03.5/085,0
+de/sv03.5-086,sv03.5-086,de,sv03.5,151,086,165,Jurob,Pokémon,86,https://assets.tcgdex.net/de/sv/sv03.5/086,0
+de/sv03.5-087,sv03.5-087,de,sv03.5,151,087,165,Jugong,Pokémon,87,https://assets.tcgdex.net/de/sv/sv03.5/087,0
+de/sv03.5-088,sv03.5-088,de,sv03.5,151,088,165,Sleima,Pokémon,88,https://assets.tcgdex.net/de/sv/sv03.5/088,0
+de/sv03.5-089,sv03.5-089,de,sv03.5,151,089,165,Sleimok,Pokémon,89,https://assets.tcgdex.net/de/sv/sv03.5/089,0
+de/sv03.5-090,sv03.5-090,de,sv03.5,151,090,165,Muschas,Pokémon,90,https://assets.tcgdex.net/de/sv/sv03.5/090,0
+de/sv03.5-091,sv03.5-091,de,sv03.5,151,091,165,Austos,Pokémon,91,https://assets.tcgdex.net/de/sv/sv03.5/091,0
+de/sv03.5-092,sv03.5-092,de,sv03.5,151,092,165,Nebulak,Pokémon,92,https://assets.tcgdex.net/de/sv/sv03.5/092,0
+de/sv03.5-093,sv03.5-093,de,sv03.5,151,093,165,Alpollo,Pokémon,93,https://assets.tcgdex.net/de/sv/sv03.5/093,0
+de/sv03.5-094,sv03.5-094,de,sv03.5,151,094,165,Gengar,Pokémon,94,https://assets.tcgdex.net/de/sv/sv03.5/094,0
+de/sv03.5-095,sv03.5-095,de,sv03.5,151,095,165,Onix,Pokémon,95,https://assets.tcgdex.net/de/sv/sv03.5/095,0
+de/sv03.5-096,sv03.5-096,de,sv03.5,151,096,165,Traumato,Pokémon,96,https://assets.tcgdex.net/de/sv/sv03.5/096,0
+de/sv03.5-097,sv03.5-097,de,sv03.5,151,097,165,Hypno,Pokémon,97,https://assets.tcgdex.net/de/sv/sv03.5/097,0
+de/sv03.5-098,sv03.5-098,de,sv03.5,151,098,165,Krabby,Pokémon,98,https://assets.tcgdex.net/de/sv/sv03.5/098,0
+de/sv03.5-099,sv03.5-099,de,sv03.5,151,099,165,Kingler,Pokémon,99,https://assets.tcgdex.net/de/sv/sv03.5/099,0
+de/sv03.5-100,sv03.5-100,de,sv03.5,151,100,165,Voltobal,Pokémon,100,https://assets.tcgdex.net/de/sv/sv03.5/100,0
+de/sv03.5-101,sv03.5-101,de,sv03.5,151,101,165,Lektrobal,Pokémon,101,https://assets.tcgdex.net/de/sv/sv03.5/101,0
+de/sv03.5-102,sv03.5-102,de,sv03.5,151,102,165,Owei,Pokémon,102,https://assets.tcgdex.net/de/sv/sv03.5/102,0
+de/sv03.5-103,sv03.5-103,de,sv03.5,151,103,165,Kokowei,Pokémon,103,https://assets.tcgdex.net/de/sv/sv03.5/103,0
+de/sv03.5-104,sv03.5-104,de,sv03.5,151,104,165,Tragosso,Pokémon,104,https://assets.tcgdex.net/de/sv/sv03.5/104,0
+de/sv03.5-105,sv03.5-105,de,sv03.5,151,105,165,Knogga,Pokémon,105,https://assets.tcgdex.net/de/sv/sv03.5/105,0
+de/sv03.5-106,sv03.5-106,de,sv03.5,151,106,165,Kicklee,Pokémon,106,https://assets.tcgdex.net/de/sv/sv03.5/106,0
+de/sv03.5-107,sv03.5-107,de,sv03.5,151,107,165,Nockchan,Pokémon,107,https://assets.tcgdex.net/de/sv/sv03.5/107,0
+de/sv03.5-108,sv03.5-108,de,sv03.5,151,108,165,Schlurp,Pokémon,108,https://assets.tcgdex.net/de/sv/sv03.5/108,0
+de/sv03.5-109,sv03.5-109,de,sv03.5,151,109,165,Smogon,Pokémon,109,https://assets.tcgdex.net/de/sv/sv03.5/109,0
+de/sv03.5-110,sv03.5-110,de,sv03.5,151,110,165,Smogmog,Pokémon,110,https://assets.tcgdex.net/de/sv/sv03.5/110,0
+de/sv03.5-111,sv03.5-111,de,sv03.5,151,111,165,Rihorn,Pokémon,111,https://assets.tcgdex.net/de/sv/sv03.5/111,0
+de/sv03.5-112,sv03.5-112,de,sv03.5,151,112,165,Rizeros,Pokémon,112,https://assets.tcgdex.net/de/sv/sv03.5/112,0
+de/sv03.5-113,sv03.5-113,de,sv03.5,151,113,165,Chaneira,Pokémon,113,https://assets.tcgdex.net/de/sv/sv03.5/113,0
+de/sv03.5-114,sv03.5-114,de,sv03.5,151,114,165,Tangela,Pokémon,114,https://assets.tcgdex.net/de/sv/sv03.5/114,0
+de/sv03.5-115,sv03.5-115,de,sv03.5,151,115,165,Kangama-ex,Pokémon,115,https://assets.tcgdex.net/de/sv/sv03.5/115,0
+de/sv03.5-116,sv03.5-116,de,sv03.5,151,116,165,Seeper,Pokémon,116,https://assets.tcgdex.net/de/sv/sv03.5/116,0
+de/sv03.5-117,sv03.5-117,de,sv03.5,151,117,165,Seemon,Pokémon,117,https://assets.tcgdex.net/de/sv/sv03.5/117,0
+de/sv03.5-118,sv03.5-118,de,sv03.5,151,118,165,Goldini,Pokémon,118,https://assets.tcgdex.net/de/sv/sv03.5/118,0
+de/sv03.5-119,sv03.5-119,de,sv03.5,151,119,165,Golking,Pokémon,119,https://assets.tcgdex.net/de/sv/sv03.5/119,0
+de/sv03.5-120,sv03.5-120,de,sv03.5,151,120,165,Sterndu,Pokémon,120,https://assets.tcgdex.net/de/sv/sv03.5/120,0
+de/sv03.5-121,sv03.5-121,de,sv03.5,151,121,165,Starmie,Pokémon,121,https://assets.tcgdex.net/de/sv/sv03.5/121,0
+de/sv03.5-122,sv03.5-122,de,sv03.5,151,122,165,Pantimos,Pokémon,122,https://assets.tcgdex.net/de/sv/sv03.5/122,0
+de/sv03.5-123,sv03.5-123,de,sv03.5,151,123,165,Sichlor,Pokémon,123,https://assets.tcgdex.net/de/sv/sv03.5/123,0
+de/sv03.5-124,sv03.5-124,de,sv03.5,151,124,165,Rossana-ex,Pokémon,124,https://assets.tcgdex.net/de/sv/sv03.5/124,0
+de/sv03.5-125,sv03.5-125,de,sv03.5,151,125,165,Elektek,Pokémon,125,https://assets.tcgdex.net/de/sv/sv03.5/125,0
+de/sv03.5-126,sv03.5-126,de,sv03.5,151,126,165,Magmar,Pokémon,126,https://assets.tcgdex.net/de/sv/sv03.5/126,0
+de/sv03.5-127,sv03.5-127,de,sv03.5,151,127,165,Pinsir,Pokémon,127,https://assets.tcgdex.net/de/sv/sv03.5/127,0
+de/sv03.5-128,sv03.5-128,de,sv03.5,151,128,165,Tauros,Pokémon,128,https://assets.tcgdex.net/de/sv/sv03.5/128,0
+de/sv03.5-129,sv03.5-129,de,sv03.5,151,129,165,Karpador,Pokémon,129,https://assets.tcgdex.net/de/sv/sv03.5/129,0
+de/sv03.5-130,sv03.5-130,de,sv03.5,151,130,165,Garados,Pokémon,130,https://assets.tcgdex.net/de/sv/sv03.5/130,0
+de/sv03.5-131,sv03.5-131,de,sv03.5,151,131,165,Lapras,Pokémon,131,https://assets.tcgdex.net/de/sv/sv03.5/131,0
+de/sv03.5-132,sv03.5-132,de,sv03.5,151,132,165,Ditto,Pokémon,132,https://assets.tcgdex.net/de/sv/sv03.5/132,0
+de/sv03.5-133,sv03.5-133,de,sv03.5,151,133,165,Evoli,Pokémon,133,https://assets.tcgdex.net/de/sv/sv03.5/133,0
+de/sv03.5-134,sv03.5-134,de,sv03.5,151,134,165,Aquana,Pokémon,134,https://assets.tcgdex.net/de/sv/sv03.5/134,0
+de/sv03.5-135,sv03.5-135,de,sv03.5,151,135,165,Blitza,Pokémon,135,https://assets.tcgdex.net/de/sv/sv03.5/135,0
+de/sv03.5-136,sv03.5-136,de,sv03.5,151,136,165,Flamara,Pokémon,136,https://assets.tcgdex.net/de/sv/sv03.5/136,0
+de/sv03.5-137,sv03.5-137,de,sv03.5,151,137,165,Porygon,Pokémon,137,https://assets.tcgdex.net/de/sv/sv03.5/137,0
+de/sv03.5-138,sv03.5-138,de,sv03.5,151,138,165,Amonitas,Pokémon,138,https://assets.tcgdex.net/de/sv/sv03.5/138,0
+de/sv03.5-139,sv03.5-139,de,sv03.5,151,139,165,Amoroso,Pokémon,139,https://assets.tcgdex.net/de/sv/sv03.5/139,0
+de/sv03.5-140,sv03.5-140,de,sv03.5,151,140,165,Kabuto,Pokémon,140,https://assets.tcgdex.net/de/sv/sv03.5/140,0
+de/sv03.5-141,sv03.5-141,de,sv03.5,151,141,165,Kabutops,Pokémon,141,https://assets.tcgdex.net/de/sv/sv03.5/141,0
+de/sv03.5-142,sv03.5-142,de,sv03.5,151,142,165,Aerodactyl,Pokémon,142,https://assets.tcgdex.net/de/sv/sv03.5/142,0
+de/sv03.5-143,sv03.5-143,de,sv03.5,151,143,165,Relaxo,Pokémon,143,https://assets.tcgdex.net/de/sv/sv03.5/143,0
+de/sv03.5-144,sv03.5-144,de,sv03.5,151,144,165,Arktos,Pokémon,144,https://assets.tcgdex.net/de/sv/sv03.5/144,0
+de/sv03.5-145,sv03.5-145,de,sv03.5,151,145,165,Zapdos-ex,Pokémon,145,https://assets.tcgdex.net/de/sv/sv03.5/145,0
+de/sv03.5-146,sv03.5-146,de,sv03.5,151,146,165,Lavados,Pokémon,146,https://assets.tcgdex.net/de/sv/sv03.5/146,0
+de/sv03.5-147,sv03.5-147,de,sv03.5,151,147,165,Dratini,Pokémon,147,https://assets.tcgdex.net/de/sv/sv03.5/147,0
+de/sv03.5-148,sv03.5-148,de,sv03.5,151,148,165,Dragonir,Pokémon,148,https://assets.tcgdex.net/de/sv/sv03.5/148,0
+de/sv03.5-149,sv03.5-149,de,sv03.5,151,149,165,Dragoran,Pokémon,149,https://assets.tcgdex.net/de/sv/sv03.5/149,0
+de/sv03.5-150,sv03.5-150,de,sv03.5,151,150,165,Mewtu,Pokémon,150,https://assets.tcgdex.net/de/sv/sv03.5/150,0
+de/sv03.5-151,sv03.5-151,de,sv03.5,151,151,165,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/sv/sv03.5/151,0
+de/sv03.5-152,sv03.5-152,de,sv03.5,151,152,165,Antikes Domfossil,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/152,0
+de/sv03.5-153,sv03.5-153,de,sv03.5,151,153,165,Antikes Helixfossil,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/153,0
+de/sv03.5-154,sv03.5-154,de,sv03.5,151,154,165,Antiker Altbernstein,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/154,0
+de/sv03.5-155,sv03.5-155,de,sv03.5,151,155,165,Großer Luftballon,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/155,0
+de/sv03.5-156,sv03.5-156,de,sv03.5,151,156,165,Bills Transfer,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/156,0
+de/sv03.5-157,sv03.5-157,de,sv03.5,151,157,165,Radweg,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/157,0
+de/sv03.5-158,sv03.5-158,de,sv03.5,151,158,165,Sarahs Hilfe,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/158,0
+de/sv03.5-159,sv03.5-159,de,sv03.5,151,159,165,Energiesticker,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/159,0
+de/sv03.5-160,sv03.5-160,de,sv03.5,151,160,165,Erikas Einladung,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/160,0
+de/sv03.5-161,sv03.5-161,de,sv03.5,151,161,165,Giovannis Charisma,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/161,0
+de/sv03.5-162,sv03.5-162,de,sv03.5,151,162,165,Greifarm,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/162,0
+de/sv03.5-163,sv03.5-163,de,sv03.5,151,163,165,Überreste,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/163,0
+de/sv03.5-164,sv03.5-164,de,sv03.5,151,164,165,Sicherheitsbrille,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/164,0
+de/sv03.5-165,sv03.5-165,de,sv03.5,151,165,165,Härteband,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/165,0
+de/sv03.5-166,sv03.5-166,de,sv03.5,151,166,165,Bisasam,Pokémon,1,https://assets.tcgdex.net/de/sv/sv03.5/166,0
+de/sv03.5-167,sv03.5-167,de,sv03.5,151,167,165,Bisaknosp,Pokémon,2,https://assets.tcgdex.net/de/sv/sv03.5/167,0
+de/sv03.5-168,sv03.5-168,de,sv03.5,151,168,165,Glumanda,Pokémon,4,https://assets.tcgdex.net/de/sv/sv03.5/168,0
+de/sv03.5-169,sv03.5-169,de,sv03.5,151,169,165,Glutexo,Pokémon,5,https://assets.tcgdex.net/de/sv/sv03.5/169,0
+de/sv03.5-170,sv03.5-170,de,sv03.5,151,170,165,Schiggy,Pokémon,7,https://assets.tcgdex.net/de/sv/sv03.5/170,0
+de/sv03.5-171,sv03.5-171,de,sv03.5,151,171,165,Schillok,Pokémon,8,https://assets.tcgdex.net/de/sv/sv03.5/171,0
+de/sv03.5-172,sv03.5-172,de,sv03.5,151,172,165,Raupy,Pokémon,10,https://assets.tcgdex.net/de/sv/sv03.5/172,0
+de/sv03.5-173,sv03.5-173,de,sv03.5,151,173,165,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/sv/sv03.5/173,0
+de/sv03.5-174,sv03.5-174,de,sv03.5,151,174,165,Nidoking,Pokémon,34,https://assets.tcgdex.net/de/sv/sv03.5/174,0
+de/sv03.5-175,sv03.5-175,de,sv03.5,151,175,165,Enton,Pokémon,54,https://assets.tcgdex.net/de/sv/sv03.5/175,0
+de/sv03.5-176,sv03.5-176,de,sv03.5,151,176,165,Quaputzi,Pokémon,61,https://assets.tcgdex.net/de/sv/sv03.5/176,0
+de/sv03.5-177,sv03.5-177,de,sv03.5,151,177,165,Maschock,Pokémon,67,https://assets.tcgdex.net/de/sv/sv03.5/177,0
+de/sv03.5-178,sv03.5-178,de,sv03.5,151,178,165,Tangela,Pokémon,114,https://assets.tcgdex.net/de/sv/sv03.5/178,0
+de/sv03.5-179,sv03.5-179,de,sv03.5,151,179,165,Pantimos,Pokémon,122,https://assets.tcgdex.net/de/sv/sv03.5/179,0
+de/sv03.5-180,sv03.5-180,de,sv03.5,151,180,165,Amonitas,Pokémon,138,https://assets.tcgdex.net/de/sv/sv03.5/180,0
+de/sv03.5-181,sv03.5-181,de,sv03.5,151,181,165,Dragonir,Pokémon,148,https://assets.tcgdex.net/de/sv/sv03.5/181,0
+de/sv03.5-182,sv03.5-182,de,sv03.5,151,182,165,Bisaflor-ex,Pokémon,3,https://assets.tcgdex.net/de/sv/sv03.5/182,0
+de/sv03.5-183,sv03.5-183,de,sv03.5,151,183,165,Glurak-ex,Pokémon,6,https://assets.tcgdex.net/de/sv/sv03.5/183,0
+de/sv03.5-184,sv03.5-184,de,sv03.5,151,184,165,Turtok-ex,Pokémon,9,https://assets.tcgdex.net/de/sv/sv03.5/184,0
+de/sv03.5-185,sv03.5-185,de,sv03.5,151,185,165,Arbok-ex,Pokémon,24,https://assets.tcgdex.net/de/sv/sv03.5/185,0
+de/sv03.5-186,sv03.5-186,de,sv03.5,151,186,165,Vulnona-ex,Pokémon,38,https://assets.tcgdex.net/de/sv/sv03.5/186,0
+de/sv03.5-187,sv03.5-187,de,sv03.5,151,187,165,Knuddeluff-ex,Pokémon,40,https://assets.tcgdex.net/de/sv/sv03.5/187,0
+de/sv03.5-188,sv03.5-188,de,sv03.5,151,188,165,Simsala-ex,Pokémon,65,https://assets.tcgdex.net/de/sv/sv03.5/188,0
+de/sv03.5-189,sv03.5-189,de,sv03.5,151,189,165,Geowaz-ex,Pokémon,76,https://assets.tcgdex.net/de/sv/sv03.5/189,0
+de/sv03.5-190,sv03.5-190,de,sv03.5,151,190,165,Kangama-ex,Pokémon,115,https://assets.tcgdex.net/de/sv/sv03.5/190,0
+de/sv03.5-191,sv03.5-191,de,sv03.5,151,191,165,Rossana-ex,Pokémon,124,https://assets.tcgdex.net/de/sv/sv03.5/191,0
+de/sv03.5-192,sv03.5-192,de,sv03.5,151,192,165,Zapdos-ex,Pokémon,145,https://assets.tcgdex.net/de/sv/sv03.5/192,0
+de/sv03.5-193,sv03.5-193,de,sv03.5,151,193,165,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/sv/sv03.5/193,0
+de/sv03.5-194,sv03.5-194,de,sv03.5,151,194,165,Bills Transfer,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/194,0
+de/sv03.5-195,sv03.5-195,de,sv03.5,151,195,165,Sarahs Hilfe,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/195,0
+de/sv03.5-196,sv03.5-196,de,sv03.5,151,196,165,Erikas Einladung,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/196,0
+de/sv03.5-197,sv03.5-197,de,sv03.5,151,197,165,Giovannis Charisma,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/197,0
+de/sv03.5-198,sv03.5-198,de,sv03.5,151,198,165,Bisaflor-ex,Pokémon,3,https://assets.tcgdex.net/de/sv/sv03.5/198,0
+de/sv03.5-199,sv03.5-199,de,sv03.5,151,199,165,Glurak-ex,Pokémon,6,https://assets.tcgdex.net/de/sv/sv03.5/199,0
+de/sv03.5-200,sv03.5-200,de,sv03.5,151,200,165,Turtok-ex,Pokémon,9,https://assets.tcgdex.net/de/sv/sv03.5/200,0
+de/sv03.5-201,sv03.5-201,de,sv03.5,151,201,165,Simsala-ex,Pokémon,65,https://assets.tcgdex.net/de/sv/sv03.5/201,0
+de/sv03.5-202,sv03.5-202,de,sv03.5,151,202,165,Zapdos-ex,Pokémon,145,https://assets.tcgdex.net/de/sv/sv03.5/202,0
+de/sv03.5-203,sv03.5-203,de,sv03.5,151,203,165,Erikas Einladung,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/203,0
+de/sv03.5-204,sv03.5-204,de,sv03.5,151,204,165,Giovannis Charisma,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/204,0
+de/sv03.5-205,sv03.5-205,de,sv03.5,151,205,165,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/sv/sv03.5/205,0
+de/sv03.5-206,sv03.5-206,de,sv03.5,151,206,165,Tausch,Trainer,,https://assets.tcgdex.net/de/sv/sv03.5/206,0
+de/sv03.5-207,sv03.5-207,de,sv03.5,151,207,165,Basis-Psychic-Energie,Energie,,https://assets.tcgdex.net/de/sv/sv03.5/207,0
+ja/SV2a-001,SV2a-001,ja,SV2a,ポケモンカード151,001,165,フシギダネ,Pokemon,1,https://assets.tcgdex.net/ja/SV/SV2a/001,0
+ja/SV2a-002,SV2a-002,ja,SV2a,ポケモンカード151,002,165,フシギソウ,Pokemon,2,https://assets.tcgdex.net/ja/SV/SV2a/002,0
+ja/SV2a-003,SV2a-003,ja,SV2a,ポケモンカード151,003,165,フシギバナex,Pokemon,3,https://assets.tcgdex.net/ja/SV/SV2a/003,0
+ja/SV2a-004,SV2a-004,ja,SV2a,ポケモンカード151,004,165,ヒトカゲ,Pokemon,4,https://assets.tcgdex.net/ja/SV/SV2a/004,0
+ja/SV2a-005,SV2a-005,ja,SV2a,ポケモンカード151,005,165,リザード,Pokemon,5,https://assets.tcgdex.net/ja/SV/SV2a/005,0
+ja/SV2a-006,SV2a-006,ja,SV2a,ポケモンカード151,006,165,リザードンex,Pokemon,6,https://assets.tcgdex.net/ja/SV/SV2a/006,0
+ja/SV2a-007,SV2a-007,ja,SV2a,ポケモンカード151,007,165,ゼニガメ,Pokemon,7,https://assets.tcgdex.net/ja/SV/SV2a/007,0
+ja/SV2a-008,SV2a-008,ja,SV2a,ポケモンカード151,008,165,カメール,Pokemon,8,https://assets.tcgdex.net/ja/SV/SV2a/008,0
+ja/SV2a-009,SV2a-009,ja,SV2a,ポケモンカード151,009,165,カメックスex,Pokemon,9,https://assets.tcgdex.net/ja/SV/SV2a/009,0
+ja/SV2a-010,SV2a-010,ja,SV2a,ポケモンカード151,010,165,キャタピー,Pokemon,10,https://assets.tcgdex.net/ja/SV/SV2a/010,0
+ja/SV2a-011,SV2a-011,ja,SV2a,ポケモンカード151,011,165,トランセル,Pokemon,11,https://assets.tcgdex.net/ja/SV/SV2a/011,0
+ja/SV2a-012,SV2a-012,ja,SV2a,ポケモンカード151,012,165,バタフリー,Pokemon,12,https://assets.tcgdex.net/ja/SV/SV2a/012,0
+ja/SV2a-013,SV2a-013,ja,SV2a,ポケモンカード151,013,165,ビードル,Pokemon,13,https://assets.tcgdex.net/ja/SV/SV2a/013,0
+ja/SV2a-014,SV2a-014,ja,SV2a,ポケモンカード151,014,165,コクーン,Pokemon,14,https://assets.tcgdex.net/ja/SV/SV2a/014,0
+ja/SV2a-015,SV2a-015,ja,SV2a,ポケモンカード151,015,165,スピアー,Pokemon,15,https://assets.tcgdex.net/ja/SV/SV2a/015,0
+ja/SV2a-016,SV2a-016,ja,SV2a,ポケモンカード151,016,165,ポッポ,Pokemon,16,https://assets.tcgdex.net/ja/SV/SV2a/016,0
+ja/SV2a-017,SV2a-017,ja,SV2a,ポケモンカード151,017,165,ピジョン,Pokemon,17,https://assets.tcgdex.net/ja/SV/SV2a/017,0
+ja/SV2a-018,SV2a-018,ja,SV2a,ポケモンカード151,018,165,ピジョット,Pokemon,18,https://assets.tcgdex.net/ja/SV/SV2a/018,0
+ja/SV2a-019,SV2a-019,ja,SV2a,ポケモンカード151,019,165,コラッタ,Pokemon,19,https://assets.tcgdex.net/ja/SV/SV2a/019,0
+ja/SV2a-020,SV2a-020,ja,SV2a,ポケモンカード151,020,165,ラッタ,Pokemon,20,https://assets.tcgdex.net/ja/SV/SV2a/020,0
+ja/SV2a-021,SV2a-021,ja,SV2a,ポケモンカード151,021,165,オニスズメ,Pokemon,21,https://assets.tcgdex.net/ja/SV/SV2a/021,0
+ja/SV2a-022,SV2a-022,ja,SV2a,ポケモンカード151,022,165,オニドリル,Pokemon,22,https://assets.tcgdex.net/ja/SV/SV2a/022,0
+ja/SV2a-023,SV2a-023,ja,SV2a,ポケモンカード151,023,165,アーボ,Pokemon,23,https://assets.tcgdex.net/ja/SV/SV2a/023,0
+ja/SV2a-024,SV2a-024,ja,SV2a,ポケモンカード151,024,165,アーボックex,Pokemon,24,https://assets.tcgdex.net/ja/SV/SV2a/024,0
+ja/SV2a-025,SV2a-025,ja,SV2a,ポケモンカード151,025,165,ピカチュウ,Pokemon,25,https://assets.tcgdex.net/ja/SV/SV2a/025,0
+ja/SV2a-026,SV2a-026,ja,SV2a,ポケモンカード151,026,165,ライチュウ,Pokemon,26,https://assets.tcgdex.net/ja/SV/SV2a/026,0
+ja/SV2a-027,SV2a-027,ja,SV2a,ポケモンカード151,027,165,サンド,Pokemon,27,https://assets.tcgdex.net/ja/SV/SV2a/027,0
+ja/SV2a-028,SV2a-028,ja,SV2a,ポケモンカード151,028,165,サンドパン,Pokemon,28,https://assets.tcgdex.net/ja/SV/SV2a/028,0
+ja/SV2a-029,SV2a-029,ja,SV2a,ポケモンカード151,029,165,ニドラン♀,Pokemon,29,https://assets.tcgdex.net/ja/SV/SV2a/029,0
+ja/SV2a-030,SV2a-030,ja,SV2a,ポケモンカード151,030,165,ニドリーナ,Pokemon,30,https://assets.tcgdex.net/ja/SV/SV2a/030,0
+ja/SV2a-031,SV2a-031,ja,SV2a,ポケモンカード151,031,165,ニドクイン,Pokemon,31,https://assets.tcgdex.net/ja/SV/SV2a/031,0
+ja/SV2a-032,SV2a-032,ja,SV2a,ポケモンカード151,032,165,ニドラン♂,Pokemon,32,https://assets.tcgdex.net/ja/SV/SV2a/032,0
+ja/SV2a-033,SV2a-033,ja,SV2a,ポケモンカード151,033,165,ニドリーノ,Pokemon,33,https://assets.tcgdex.net/ja/SV/SV2a/033,0
+ja/SV2a-034,SV2a-034,ja,SV2a,ポケモンカード151,034,165,ニドキング,Pokemon,34,https://assets.tcgdex.net/ja/SV/SV2a/034,0
+ja/SV2a-035,SV2a-035,ja,SV2a,ポケモンカード151,035,165,ピッピ,Pokemon,35,https://assets.tcgdex.net/ja/SV/SV2a/035,0
+ja/SV2a-036,SV2a-036,ja,SV2a,ポケモンカード151,036,165,ピクシー,Pokemon,36,https://assets.tcgdex.net/ja/SV/SV2a/036,0
+ja/SV2a-037,SV2a-037,ja,SV2a,ポケモンカード151,037,165,ロコン,Pokemon,37,https://assets.tcgdex.net/ja/SV/SV2a/037,0
+ja/SV2a-038,SV2a-038,ja,SV2a,ポケモンカード151,038,165,キュウコンex,Pokemon,38,https://assets.tcgdex.net/ja/SV/SV2a/038,0
+ja/SV2a-039,SV2a-039,ja,SV2a,ポケモンカード151,039,165,プリン,Pokemon,39,https://assets.tcgdex.net/ja/SV/SV2a/039,0
+ja/SV2a-040,SV2a-040,ja,SV2a,ポケモンカード151,040,165,プクリンex,Pokemon,40,https://assets.tcgdex.net/ja/SV/SV2a/040,0
+ja/SV2a-041,SV2a-041,ja,SV2a,ポケモンカード151,041,165,ズバット,Pokemon,41,https://assets.tcgdex.net/ja/SV/SV2a/041,0
+ja/SV2a-042,SV2a-042,ja,SV2a,ポケモンカード151,042,165,ゴルバット,Pokemon,42,https://assets.tcgdex.net/ja/SV/SV2a/042,0
+ja/SV2a-043,SV2a-043,ja,SV2a,ポケモンカード151,043,165,ナゾノクサ,Pokemon,43,https://assets.tcgdex.net/ja/SV/SV2a/043,0
+ja/SV2a-044,SV2a-044,ja,SV2a,ポケモンカード151,044,165,クサイハナ,Pokemon,44,https://assets.tcgdex.net/ja/SV/SV2a/044,0
+ja/SV2a-045,SV2a-045,ja,SV2a,ポケモンカード151,045,165,ラフレシア,Pokemon,45,https://assets.tcgdex.net/ja/SV/SV2a/045,0
+ja/SV2a-046,SV2a-046,ja,SV2a,ポケモンカード151,046,165,パラス,Pokemon,46,https://assets.tcgdex.net/ja/SV/SV2a/046,0
+ja/SV2a-047,SV2a-047,ja,SV2a,ポケモンカード151,047,165,パラセクト,Pokemon,47,https://assets.tcgdex.net/ja/SV/SV2a/047,0
+ja/SV2a-048,SV2a-048,ja,SV2a,ポケモンカード151,048,165,コンパン,Pokemon,48,https://assets.tcgdex.net/ja/SV/SV2a/048,0
+ja/SV2a-049,SV2a-049,ja,SV2a,ポケモンカード151,049,165,モルフォン,Pokemon,49,https://assets.tcgdex.net/ja/SV/SV2a/049,0
+ja/SV2a-050,SV2a-050,ja,SV2a,ポケモンカード151,050,165,ディグダ,Pokemon,50,https://assets.tcgdex.net/ja/SV/SV2a/050,0
+ja/SV2a-051,SV2a-051,ja,SV2a,ポケモンカード151,051,165,ダグトリオ,Pokemon,51,https://assets.tcgdex.net/ja/SV/SV2a/051,0
+ja/SV2a-052,SV2a-052,ja,SV2a,ポケモンカード151,052,165,ニャース,Pokemon,52,https://assets.tcgdex.net/ja/SV/SV2a/052,0
+ja/SV2a-053,SV2a-053,ja,SV2a,ポケモンカード151,053,165,ペルシアン,Pokemon,53,https://assets.tcgdex.net/ja/SV/SV2a/053,0
+ja/SV2a-054,SV2a-054,ja,SV2a,ポケモンカード151,054,165,コダック,Pokemon,54,https://assets.tcgdex.net/ja/SV/SV2a/054,0
+ja/SV2a-055,SV2a-055,ja,SV2a,ポケモンカード151,055,165,ゴルダック,Pokemon,55,https://assets.tcgdex.net/ja/SV/SV2a/055,0
+ja/SV2a-056,SV2a-056,ja,SV2a,ポケモンカード151,056,165,マンキー,Pokemon,56,https://assets.tcgdex.net/ja/SV/SV2a/056,0
+ja/SV2a-057,SV2a-057,ja,SV2a,ポケモンカード151,057,165,オコリザル,Pokemon,57,https://assets.tcgdex.net/ja/SV/SV2a/057,0
+ja/SV2a-058,SV2a-058,ja,SV2a,ポケモンカード151,058,165,ガーディ,Pokemon,58,https://assets.tcgdex.net/ja/SV/SV2a/058,0
+ja/SV2a-059,SV2a-059,ja,SV2a,ポケモンカード151,059,165,ウインディ,Pokemon,59,https://assets.tcgdex.net/ja/SV/SV2a/059,0
+ja/SV2a-060,SV2a-060,ja,SV2a,ポケモンカード151,060,165,ニョロモ,Pokemon,60,https://assets.tcgdex.net/ja/SV/SV2a/060,0
+ja/SV2a-061,SV2a-061,ja,SV2a,ポケモンカード151,061,165,ニョロゾ,Pokemon,61,https://assets.tcgdex.net/ja/SV/SV2a/061,0
+ja/SV2a-062,SV2a-062,ja,SV2a,ポケモンカード151,062,165,ニョロボン,Pokemon,62,https://assets.tcgdex.net/ja/SV/SV2a/062,0
+ja/SV2a-063,SV2a-063,ja,SV2a,ポケモンカード151,063,165,ケーシィ,Pokemon,63,https://assets.tcgdex.net/ja/SV/SV2a/063,0
+ja/SV2a-064,SV2a-064,ja,SV2a,ポケモンカード151,064,165,ユンゲラー,Pokemon,64,https://assets.tcgdex.net/ja/SV/SV2a/064,0
+ja/SV2a-065,SV2a-065,ja,SV2a,ポケモンカード151,065,165,フーディンex,Pokemon,65,https://assets.tcgdex.net/ja/SV/SV2a/065,0
+ja/SV2a-066,SV2a-066,ja,SV2a,ポケモンカード151,066,165,ワンリキー,Pokemon,66,https://assets.tcgdex.net/ja/SV/SV2a/066,0
+ja/SV2a-067,SV2a-067,ja,SV2a,ポケモンカード151,067,165,ゴーリキー,Pokemon,67,https://assets.tcgdex.net/ja/SV/SV2a/067,0
+ja/SV2a-068,SV2a-068,ja,SV2a,ポケモンカード151,068,165,カイリキー,Pokemon,68,https://assets.tcgdex.net/ja/SV/SV2a/068,0
+ja/SV2a-069,SV2a-069,ja,SV2a,ポケモンカード151,069,165,マダツボミ,Pokemon,69,https://assets.tcgdex.net/ja/SV/SV2a/069,0
+ja/SV2a-070,SV2a-070,ja,SV2a,ポケモンカード151,070,165,ウツドン,Pokemon,70,https://assets.tcgdex.net/ja/SV/SV2a/070,0
+ja/SV2a-071,SV2a-071,ja,SV2a,ポケモンカード151,071,165,ウツボット,Pokemon,71,https://assets.tcgdex.net/ja/SV/SV2a/071,0
+ja/SV2a-072,SV2a-072,ja,SV2a,ポケモンカード151,072,165,メノクラゲ,Pokemon,72,https://assets.tcgdex.net/ja/SV/SV2a/072,0
+ja/SV2a-073,SV2a-073,ja,SV2a,ポケモンカード151,073,165,ドククラゲ,Pokemon,73,https://assets.tcgdex.net/ja/SV/SV2a/073,0
+ja/SV2a-074,SV2a-074,ja,SV2a,ポケモンカード151,074,165,イシツブテ,Pokemon,74,https://assets.tcgdex.net/ja/SV/SV2a/074,0
+ja/SV2a-075,SV2a-075,ja,SV2a,ポケモンカード151,075,165,ゴローン,Pokemon,75,https://assets.tcgdex.net/ja/SV/SV2a/075,0
+ja/SV2a-076,SV2a-076,ja,SV2a,ポケモンカード151,076,165,ゴローニャex,Pokemon,76,https://assets.tcgdex.net/ja/SV/SV2a/076,0
+ja/SV2a-077,SV2a-077,ja,SV2a,ポケモンカード151,077,165,ポニータ,Pokemon,77,https://assets.tcgdex.net/ja/SV/SV2a/077,0
+ja/SV2a-078,SV2a-078,ja,SV2a,ポケモンカード151,078,165,ギャロップ,Pokemon,78,https://assets.tcgdex.net/ja/SV/SV2a/078,0
+ja/SV2a-079,SV2a-079,ja,SV2a,ポケモンカード151,079,165,ヤドン,Pokemon,79,https://assets.tcgdex.net/ja/SV/SV2a/079,0
+ja/SV2a-080,SV2a-080,ja,SV2a,ポケモンカード151,080,165,ヤドラン,Pokemon,80,https://assets.tcgdex.net/ja/SV/SV2a/080,0
+ja/SV2a-081,SV2a-081,ja,SV2a,ポケモンカード151,081,165,コイル,Pokemon,81,https://assets.tcgdex.net/ja/SV/SV2a/081,0
+ja/SV2a-082,SV2a-082,ja,SV2a,ポケモンカード151,082,165,レアコイル,Pokemon,82,https://assets.tcgdex.net/ja/SV/SV2a/082,0
+ja/SV2a-083,SV2a-083,ja,SV2a,ポケモンカード151,083,165,カモネギ,Pokemon,83,https://assets.tcgdex.net/ja/SV/SV2a/083,0
+ja/SV2a-084,SV2a-084,ja,SV2a,ポケモンカード151,084,165,ドードー,Pokemon,84,https://assets.tcgdex.net/ja/SV/SV2a/084,0
+ja/SV2a-085,SV2a-085,ja,SV2a,ポケモンカード151,085,165,ドードリオ,Pokemon,85,https://assets.tcgdex.net/ja/SV/SV2a/085,0
+ja/SV2a-086,SV2a-086,ja,SV2a,ポケモンカード151,086,165,パウワウ,Pokemon,86,https://assets.tcgdex.net/ja/SV/SV2a/086,0
+ja/SV2a-087,SV2a-087,ja,SV2a,ポケモンカード151,087,165,ジュゴン,Pokemon,87,https://assets.tcgdex.net/ja/SV/SV2a/087,0
+ja/SV2a-088,SV2a-088,ja,SV2a,ポケモンカード151,088,165,ベトベター,Pokemon,88,https://assets.tcgdex.net/ja/SV/SV2a/088,0
+ja/SV2a-089,SV2a-089,ja,SV2a,ポケモンカード151,089,165,ベトベトン,Pokemon,89,https://assets.tcgdex.net/ja/SV/SV2a/089,0
+ja/SV2a-090,SV2a-090,ja,SV2a,ポケモンカード151,090,165,シェルダー,Pokemon,90,https://assets.tcgdex.net/ja/SV/SV2a/090,0
+ja/SV2a-091,SV2a-091,ja,SV2a,ポケモンカード151,091,165,パルシェン,Pokemon,91,https://assets.tcgdex.net/ja/SV/SV2a/091,0
+ja/SV2a-092,SV2a-092,ja,SV2a,ポケモンカード151,092,165,ゴース,Pokemon,92,https://assets.tcgdex.net/ja/SV/SV2a/092,0
+ja/SV2a-093,SV2a-093,ja,SV2a,ポケモンカード151,093,165,ゴースト,Pokemon,93,https://assets.tcgdex.net/ja/SV/SV2a/093,0
+ja/SV2a-094,SV2a-094,ja,SV2a,ポケモンカード151,094,165,ゲンガー,Pokemon,94,https://assets.tcgdex.net/ja/SV/SV2a/094,0
+ja/SV2a-095,SV2a-095,ja,SV2a,ポケモンカード151,095,165,イワーク,Pokemon,95,https://assets.tcgdex.net/ja/SV/SV2a/095,0
+ja/SV2a-096,SV2a-096,ja,SV2a,ポケモンカード151,096,165,スリープ,Pokemon,96,https://assets.tcgdex.net/ja/SV/SV2a/096,0
+ja/SV2a-097,SV2a-097,ja,SV2a,ポケモンカード151,097,165,スリーパー,Pokemon,97,https://assets.tcgdex.net/ja/SV/SV2a/097,0
+ja/SV2a-098,SV2a-098,ja,SV2a,ポケモンカード151,098,165,クラブ,Pokemon,98,https://assets.tcgdex.net/ja/SV/SV2a/098,0
+ja/SV2a-099,SV2a-099,ja,SV2a,ポケモンカード151,099,165,キングラー,Pokemon,99,https://assets.tcgdex.net/ja/SV/SV2a/099,0
+ja/SV2a-100,SV2a-100,ja,SV2a,ポケモンカード151,100,165,ビリリダマ,Pokemon,100,https://assets.tcgdex.net/ja/SV/SV2a/100,0
+ja/SV2a-101,SV2a-101,ja,SV2a,ポケモンカード151,101,165,マルマイン,Pokemon,101,https://assets.tcgdex.net/ja/SV/SV2a/101,0
+ja/SV2a-102,SV2a-102,ja,SV2a,ポケモンカード151,102,165,タマタマ,Pokemon,102,https://assets.tcgdex.net/ja/SV/SV2a/102,0
+ja/SV2a-103,SV2a-103,ja,SV2a,ポケモンカード151,103,165,ナッシー,Pokemon,103,https://assets.tcgdex.net/ja/SV/SV2a/103,0
+ja/SV2a-104,SV2a-104,ja,SV2a,ポケモンカード151,104,165,カラカラ,Pokemon,104,https://assets.tcgdex.net/ja/SV/SV2a/104,0
+ja/SV2a-105,SV2a-105,ja,SV2a,ポケモンカード151,105,165,ガラガラ,Pokemon,105,https://assets.tcgdex.net/ja/SV/SV2a/105,0
+ja/SV2a-106,SV2a-106,ja,SV2a,ポケモンカード151,106,165,サワムラー,Pokemon,106,https://assets.tcgdex.net/ja/SV/SV2a/106,0
+ja/SV2a-107,SV2a-107,ja,SV2a,ポケモンカード151,107,165,エビワラー,Pokemon,107,https://assets.tcgdex.net/ja/SV/SV2a/107,0
+ja/SV2a-108,SV2a-108,ja,SV2a,ポケモンカード151,108,165,ベロリンガ,Pokemon,108,https://assets.tcgdex.net/ja/SV/SV2a/108,0
+ja/SV2a-109,SV2a-109,ja,SV2a,ポケモンカード151,109,165,ドガース,Pokemon,109,https://assets.tcgdex.net/ja/SV/SV2a/109,0
+ja/SV2a-110,SV2a-110,ja,SV2a,ポケモンカード151,110,165,マタドガス,Pokemon,110,https://assets.tcgdex.net/ja/SV/SV2a/110,0
+ja/SV2a-111,SV2a-111,ja,SV2a,ポケモンカード151,111,165,サイホーン,Pokemon,111,https://assets.tcgdex.net/ja/SV/SV2a/111,0
+ja/SV2a-112,SV2a-112,ja,SV2a,ポケモンカード151,112,165,サイドン,Pokemon,112,https://assets.tcgdex.net/ja/SV/SV2a/112,0
+ja/SV2a-113,SV2a-113,ja,SV2a,ポケモンカード151,113,165,ラッキー,Pokemon,113,https://assets.tcgdex.net/ja/SV/SV2a/113,0
+ja/SV2a-114,SV2a-114,ja,SV2a,ポケモンカード151,114,165,モンジャラ,Pokemon,114,https://assets.tcgdex.net/ja/SV/SV2a/114,0
+ja/SV2a-115,SV2a-115,ja,SV2a,ポケモンカード151,115,165,ガルーラex,Pokemon,115,https://assets.tcgdex.net/ja/SV/SV2a/115,0
+ja/SV2a-116,SV2a-116,ja,SV2a,ポケモンカード151,116,165,タッツー,Pokemon,116,https://assets.tcgdex.net/ja/SV/SV2a/116,0
+ja/SV2a-117,SV2a-117,ja,SV2a,ポケモンカード151,117,165,シードラ,Pokemon,117,https://assets.tcgdex.net/ja/SV/SV2a/117,0
+ja/SV2a-118,SV2a-118,ja,SV2a,ポケモンカード151,118,165,トサキント,Pokemon,118,https://assets.tcgdex.net/ja/SV/SV2a/118,0
+ja/SV2a-119,SV2a-119,ja,SV2a,ポケモンカード151,119,165,アズマオウ,Pokemon,119,https://assets.tcgdex.net/ja/SV/SV2a/119,0
+ja/SV2a-120,SV2a-120,ja,SV2a,ポケモンカード151,120,165,ヒトデマン,Pokemon,120,https://assets.tcgdex.net/ja/SV/SV2a/120,0
+ja/SV2a-121,SV2a-121,ja,SV2a,ポケモンカード151,121,165,スターミー,Pokemon,121,https://assets.tcgdex.net/ja/SV/SV2a/121,0
+ja/SV2a-122,SV2a-122,ja,SV2a,ポケモンカード151,122,165,バリヤード,Pokemon,122,https://assets.tcgdex.net/ja/SV/SV2a/122,0
+ja/SV2a-123,SV2a-123,ja,SV2a,ポケモンカード151,123,165,ストライク,Pokemon,123,https://assets.tcgdex.net/ja/SV/SV2a/123,0
+ja/SV2a-124,SV2a-124,ja,SV2a,ポケモンカード151,124,165,ルージュラex,Pokemon,124,https://assets.tcgdex.net/ja/SV/SV2a/124,0
+ja/SV2a-125,SV2a-125,ja,SV2a,ポケモンカード151,125,165,エレブー,Pokemon,125,https://assets.tcgdex.net/ja/SV/SV2a/125,0
+ja/SV2a-126,SV2a-126,ja,SV2a,ポケモンカード151,126,165,ブーバー,Pokemon,126,https://assets.tcgdex.net/ja/SV/SV2a/126,0
+ja/SV2a-127,SV2a-127,ja,SV2a,ポケモンカード151,127,165,カイロス,Pokemon,127,https://assets.tcgdex.net/ja/SV/SV2a/127,0
+ja/SV2a-128,SV2a-128,ja,SV2a,ポケモンカード151,128,165,ケンタロス,Pokemon,128,https://assets.tcgdex.net/ja/SV/SV2a/128,0
+ja/SV2a-129,SV2a-129,ja,SV2a,ポケモンカード151,129,165,コイキング,Pokemon,129,https://assets.tcgdex.net/ja/SV/SV2a/129,0
+ja/SV2a-130,SV2a-130,ja,SV2a,ポケモンカード151,130,165,ギャラドス,Pokemon,130,https://assets.tcgdex.net/ja/SV/SV2a/130,0
+ja/SV2a-131,SV2a-131,ja,SV2a,ポケモンカード151,131,165,ラプラス,Pokemon,131,https://assets.tcgdex.net/ja/SV/SV2a/131,0
+ja/SV2a-132,SV2a-132,ja,SV2a,ポケモンカード151,132,165,メタモン,Pokemon,132,https://assets.tcgdex.net/ja/SV/SV2a/132,0
+ja/SV2a-133,SV2a-133,ja,SV2a,ポケモンカード151,133,165,イーブイ,Pokemon,133,https://assets.tcgdex.net/ja/SV/SV2a/133,0
+ja/SV2a-134,SV2a-134,ja,SV2a,ポケモンカード151,134,165,シャワーズ,Pokemon,134,https://assets.tcgdex.net/ja/SV/SV2a/134,0
+ja/SV2a-135,SV2a-135,ja,SV2a,ポケモンカード151,135,165,サンダース,Pokemon,135,https://assets.tcgdex.net/ja/SV/SV2a/135,0
+ja/SV2a-136,SV2a-136,ja,SV2a,ポケモンカード151,136,165,ブースター,Pokemon,136,https://assets.tcgdex.net/ja/SV/SV2a/136,0
+ja/SV2a-137,SV2a-137,ja,SV2a,ポケモンカード151,137,165,ポリゴン,Pokemon,137,https://assets.tcgdex.net/ja/SV/SV2a/137,0
+ja/SV2a-138,SV2a-138,ja,SV2a,ポケモンカード151,138,165,オムナイト,Pokemon,138,https://assets.tcgdex.net/ja/SV/SV2a/138,0
+ja/SV2a-139,SV2a-139,ja,SV2a,ポケモンカード151,139,165,オムスター,Pokemon,139,https://assets.tcgdex.net/ja/SV/SV2a/139,0
+ja/SV2a-140,SV2a-140,ja,SV2a,ポケモンカード151,140,165,カブト,Pokemon,140,https://assets.tcgdex.net/ja/SV/SV2a/140,0
+ja/SV2a-141,SV2a-141,ja,SV2a,ポケモンカード151,141,165,カブトプス,Pokemon,141,https://assets.tcgdex.net/ja/SV/SV2a/141,0
+ja/SV2a-142,SV2a-142,ja,SV2a,ポケモンカード151,142,165,プテラ,Pokemon,142,https://assets.tcgdex.net/ja/SV/SV2a/142,0
+ja/SV2a-143,SV2a-143,ja,SV2a,ポケモンカード151,143,165,カビゴン,Pokemon,143,https://assets.tcgdex.net/ja/SV/SV2a/143,0
+ja/SV2a-144,SV2a-144,ja,SV2a,ポケモンカード151,144,165,フリーザー,Pokemon,144,https://assets.tcgdex.net/ja/SV/SV2a/144,0
+ja/SV2a-145,SV2a-145,ja,SV2a,ポケモンカード151,145,165,サンダーex,Pokemon,145,https://assets.tcgdex.net/ja/SV/SV2a/145,0
+ja/SV2a-146,SV2a-146,ja,SV2a,ポケモンカード151,146,165,ファイヤー,Pokemon,146,https://assets.tcgdex.net/ja/SV/SV2a/146,0
+ja/SV2a-147,SV2a-147,ja,SV2a,ポケモンカード151,147,165,ミニリュウ,Pokemon,147,https://assets.tcgdex.net/ja/SV/SV2a/147,0
+ja/SV2a-148,SV2a-148,ja,SV2a,ポケモンカード151,148,165,ハクリュー,Pokemon,148,https://assets.tcgdex.net/ja/SV/SV2a/148,0
+ja/SV2a-149,SV2a-149,ja,SV2a,ポケモンカード151,149,165,カイリュー,Pokemon,149,https://assets.tcgdex.net/ja/SV/SV2a/149,0
+ja/SV2a-150,SV2a-150,ja,SV2a,ポケモンカード151,150,165,ミュウツー,Pokemon,150,https://assets.tcgdex.net/ja/SV/SV2a/150,0
+ja/SV2a-151,SV2a-151,ja,SV2a,ポケモンカード151,151,165,ミュウex,Pokemon,151,https://assets.tcgdex.net/ja/SV/SV2a/151,0
+ja/SV2a-152,SV2a-152,ja,SV2a,ポケモンカード151,152,165,エネルギーシール,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/152,0
+ja/SV2a-153,SV2a-153,ja,SV2a,ポケモンカード151,153,165,スナッチアーム,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/153,0
+ja/SV2a-154,SV2a-154,ja,SV2a,ポケモンカード151,154,165,古びたかいの化石,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/154,0
+ja/SV2a-155,SV2a-155,ja,SV2a,ポケモンカード151,155,165,古びたこうらの化石,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/155,0
+ja/SV2a-156,SV2a-156,ja,SV2a,ポケモンカード151,156,165,古びたひみつのコハク,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/156,0
+ja/SV2a-157,SV2a-157,ja,SV2a,ポケモンカード151,157,165,安全ゴーグル,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/157,0
+ja/SV2a-158,SV2a-158,ja,SV2a,ポケモンカード151,158,165,大きなふうせん,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/158,0
+ja/SV2a-159,SV2a-159,ja,SV2a,ポケモンカード151,159,165,ガチガチバンド,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/159,0
+ja/SV2a-160,SV2a-160,ja,SV2a,ポケモンカード151,160,165,たべのこし,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/160,0
+ja/SV2a-161,SV2a-161,ja,SV2a,ポケモンカード151,161,165,エリカの招待,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/161,0
+ja/SV2a-162,SV2a-162,ja,SV2a,ポケモンカード151,162,165,サカキのカリスマ,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/162,0
+ja/SV2a-163,SV2a-163,ja,SV2a,ポケモンカード151,163,165,ナナミの手助け,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/163,0
+ja/SV2a-164,SV2a-164,ja,SV2a,ポケモンカード151,164,165,マサキの転送,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/164,0
+ja/SV2a-165,SV2a-165,ja,SV2a,ポケモンカード151,165,165,サイクリングロード,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/165,0
+ja/SV2a-166,SV2a-166,ja,SV2a,ポケモンカード151,166,165,フシギダネ,Pokemon,1,https://assets.tcgdex.net/ja/SV/SV2a/166,0
+ja/SV2a-167,SV2a-167,ja,SV2a,ポケモンカード151,167,165,フシギソウ,Pokemon,2,https://assets.tcgdex.net/ja/SV/SV2a/167,0
+ja/SV2a-168,SV2a-168,ja,SV2a,ポケモンカード151,168,165,ヒトカゲ,Pokemon,4,https://assets.tcgdex.net/ja/SV/SV2a/168,0
+ja/SV2a-169,SV2a-169,ja,SV2a,ポケモンカード151,169,165,リザード,Pokemon,5,https://assets.tcgdex.net/ja/SV/SV2a/169,0
+ja/SV2a-170,SV2a-170,ja,SV2a,ポケモンカード151,170,165,ゼニガメ,Pokemon,7,https://assets.tcgdex.net/ja/SV/SV2a/170,0
+ja/SV2a-171,SV2a-171,ja,SV2a,ポケモンカード151,171,165,カメール,Pokemon,8,https://assets.tcgdex.net/ja/SV/SV2a/171,0
+ja/SV2a-172,SV2a-172,ja,SV2a,ポケモンカード151,172,165,キャタピー,Pokemon,10,https://assets.tcgdex.net/ja/SV/SV2a/172,0
+ja/SV2a-173,SV2a-173,ja,SV2a,ポケモンカード151,173,165,ピカチュウ,Pokemon,25,https://assets.tcgdex.net/ja/SV/SV2a/173,0
+ja/SV2a-174,SV2a-174,ja,SV2a,ポケモンカード151,174,165,ニドキング,Pokemon,34,https://assets.tcgdex.net/ja/SV/SV2a/174,0
+ja/SV2a-175,SV2a-175,ja,SV2a,ポケモンカード151,175,165,コダック,Pokemon,54,https://assets.tcgdex.net/ja/SV/SV2a/175,0
+ja/SV2a-176,SV2a-176,ja,SV2a,ポケモンカード151,176,165,ニョロゾ,Pokemon,61,https://assets.tcgdex.net/ja/SV/SV2a/176,0
+ja/SV2a-177,SV2a-177,ja,SV2a,ポケモンカード151,177,165,ゴーリキー,Pokemon,67,https://assets.tcgdex.net/ja/SV/SV2a/177,0
+ja/SV2a-178,SV2a-178,ja,SV2a,ポケモンカード151,178,165,モンジャラ,Pokemon,114,https://assets.tcgdex.net/ja/SV/SV2a/178,0
+ja/SV2a-179,SV2a-179,ja,SV2a,ポケモンカード151,179,165,バリヤード,Pokemon,122,https://assets.tcgdex.net/ja/SV/SV2a/179,0
+ja/SV2a-180,SV2a-180,ja,SV2a,ポケモンカード151,180,165,オムナイト,Pokemon,138,https://assets.tcgdex.net/ja/SV/SV2a/180,0
+ja/SV2a-181,SV2a-181,ja,SV2a,ポケモンカード151,181,165,カビゴン,Pokemon,143,https://assets.tcgdex.net/ja/SV/SV2a/181,0
+ja/SV2a-182,SV2a-182,ja,SV2a,ポケモンカード151,182,165,ハクリュー,Pokemon,148,https://assets.tcgdex.net/ja/SV/SV2a/182,0
+ja/SV2a-183,SV2a-183,ja,SV2a,ポケモンカード151,183,165,ミュウツー,Pokemon,150,https://assets.tcgdex.net/ja/SV/SV2a/183,0
+ja/SV2a-184,SV2a-184,ja,SV2a,ポケモンカード151,184,165,フシギバナex,Pokemon,3,https://assets.tcgdex.net/ja/SV/SV2a/184,0
+ja/SV2a-185,SV2a-185,ja,SV2a,ポケモンカード151,185,165,リザードンex,Pokemon,6,https://assets.tcgdex.net/ja/SV/SV2a/185,0
+ja/SV2a-186,SV2a-186,ja,SV2a,ポケモンカード151,186,165,カメックスex,Pokemon,9,https://assets.tcgdex.net/ja/SV/SV2a/186,0
+ja/SV2a-187,SV2a-187,ja,SV2a,ポケモンカード151,187,165,アーボックex,Pokemon,24,https://assets.tcgdex.net/ja/SV/SV2a/187,0
+ja/SV2a-188,SV2a-188,ja,SV2a,ポケモンカード151,188,165,キュウコンex,Pokemon,38,https://assets.tcgdex.net/ja/SV/SV2a/188,0
+ja/SV2a-189,SV2a-189,ja,SV2a,ポケモンカード151,189,165,プクリンex,Pokemon,40,https://assets.tcgdex.net/ja/SV/SV2a/189,0
+ja/SV2a-190,SV2a-190,ja,SV2a,ポケモンカード151,190,165,フーディンex,Pokemon,65,https://assets.tcgdex.net/ja/SV/SV2a/190,0
+ja/SV2a-191,SV2a-191,ja,SV2a,ポケモンカード151,191,165,ゴローニャex,Pokemon,76,https://assets.tcgdex.net/ja/SV/SV2a/191,0
+ja/SV2a-192,SV2a-192,ja,SV2a,ポケモンカード151,192,165,ガルーラex,Pokemon,115,https://assets.tcgdex.net/ja/SV/SV2a/192,0
+ja/SV2a-193,SV2a-193,ja,SV2a,ポケモンカード151,193,165,ルージュラex,Pokemon,124,https://assets.tcgdex.net/ja/SV/SV2a/193,0
+ja/SV2a-194,SV2a-194,ja,SV2a,ポケモンカード151,194,165,サンダーex,Pokemon,145,https://assets.tcgdex.net/ja/SV/SV2a/194,0
+ja/SV2a-195,SV2a-195,ja,SV2a,ポケモンカード151,195,165,ミュウex,Pokemon,151,https://assets.tcgdex.net/ja/SV/SV2a/195,0
+ja/SV2a-196,SV2a-196,ja,SV2a,ポケモンカード151,196,165,エリカの招待,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/196,0
+ja/SV2a-197,SV2a-197,ja,SV2a,ポケモンカード151,197,165,サカキのカリスマ,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/197,0
+ja/SV2a-198,SV2a-198,ja,SV2a,ポケモンカード151,198,165,ナナミの手助け,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/198,0
+ja/SV2a-199,SV2a-199,ja,SV2a,ポケモンカード151,199,165,マサキの転送,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/199,0
+ja/SV2a-200,SV2a-200,ja,SV2a,ポケモンカード151,200,165,フシギバナex,Pokemon,3,https://assets.tcgdex.net/ja/SV/SV2a/200,0
+ja/SV2a-201,SV2a-201,ja,SV2a,ポケモンカード151,201,165,リザードンex,Pokemon,6,https://assets.tcgdex.net/ja/SV/SV2a/201,0
+ja/SV2a-202,SV2a-202,ja,SV2a,ポケモンカード151,202,165,カメックスex,Pokemon,9,https://assets.tcgdex.net/ja/SV/SV2a/202,0
+ja/SV2a-203,SV2a-203,ja,SV2a,ポケモンカード151,203,165,フーディンex,Pokemon,65,https://assets.tcgdex.net/ja/SV/SV2a/203,0
+ja/SV2a-204,SV2a-204,ja,SV2a,ポケモンカード151,204,165,サンダーex,Pokemon,145,https://assets.tcgdex.net/ja/SV/SV2a/204,0
+ja/SV2a-205,SV2a-205,ja,SV2a,ポケモンカード151,205,165,ミュウex,Pokemon,151,https://assets.tcgdex.net/ja/SV/SV2a/205,0
+ja/SV2a-206,SV2a-206,ja,SV2a,ポケモンカード151,206,165,エリカの招待,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/206,0
+ja/SV2a-207,SV2a-207,ja,SV2a,ポケモンカード151,207,165,サカキのカリスマ,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/207,0
+ja/SV2a-208,SV2a-208,ja,SV2a,ポケモンカード151,208,165,ミュウex,Pokemon,151,https://assets.tcgdex.net/ja/SV/SV2a/208,0
+ja/SV2a-209,SV2a-209,ja,SV2a,ポケモンカード151,209,165,ポケモンいれかえ,Trainer,,https://assets.tcgdex.net/ja/SV/SV2a/209,0
+ja/SV2a-210,SV2a-210,ja,SV2a,ポケモンカード151,210,165,基本超エネルギー,Energy,,https://assets.tcgdex.net/ja/SV/SV2a/210,0
+en/me03-001,me03-001,en,me03,Perfect Order,001,88,Spinarak,Pokemon,167,https://assets.tcgdex.net/en/me/me03/001,0
+en/me03-002,me03-002,en,me03,Perfect Order,002,88,Ariados,Pokemon,168,https://assets.tcgdex.net/en/me/me03/002,0
+en/me03-003,me03-003,en,me03,Perfect Order,003,88,Shaymin,Pokemon,492,https://assets.tcgdex.net/en/me/me03/003,0
+en/me03-004,me03-004,en,me03,Perfect Order,004,88,Snivy,Pokemon,495,https://assets.tcgdex.net/en/me/me03/004,0
+en/me03-005,me03-005,en,me03,Perfect Order,005,88,Servine,Pokemon,496,https://assets.tcgdex.net/en/me/me03/005,0
+en/me03-006,me03-006,en,me03,Perfect Order,006,88,Serperior,Pokemon,497,https://assets.tcgdex.net/en/me/me03/006,0
+en/me03-007,me03-007,en,me03,Perfect Order,007,88,Scatterbug,Pokemon,664,https://assets.tcgdex.net/en/me/me03/007,0
+en/me03-008,me03-008,en,me03,Perfect Order,008,88,Spewpa,Pokemon,665,https://assets.tcgdex.net/en/me/me03/008,0
+en/me03-009,me03-009,en,me03,Perfect Order,009,88,Vivillon,Pokemon,666,https://assets.tcgdex.net/en/me/me03/009,0
+en/me03-010,me03-010,en,me03,Perfect Order,010,88,Rowlet,Pokemon,722,https://assets.tcgdex.net/en/me/me03/010,0
+en/me03-011,me03-011,en,me03,Perfect Order,011,88,Dartrix,Pokemon,723,https://assets.tcgdex.net/en/me/me03/011,0
+en/me03-012,me03-012,en,me03,Perfect Order,012,88,Decidueye ex,Pokemon,724,https://assets.tcgdex.net/en/me/me03/012,0
+en/me03-013,me03-013,en,me03,Perfect Order,013,88,Fletchinder,Pokemon,662,https://assets.tcgdex.net/en/me/me03/013,0
+en/me03-014,me03-014,en,me03,Perfect Order,014,88,Talonflame,Pokemon,663,https://assets.tcgdex.net/en/me/me03/014,0
+en/me03-015,me03-015,en,me03,Perfect Order,015,88,Salandit,Pokemon,757,https://assets.tcgdex.net/en/me/me03/015,0
+en/me03-016,me03-016,en,me03,Perfect Order,016,88,Salazzle ex,Pokemon,758,https://assets.tcgdex.net/en/me/me03/016,0
+en/me03-017,me03-017,en,me03,Perfect Order,017,88,Turtonator,Pokemon,776,https://assets.tcgdex.net/en/me/me03/017,0
+en/me03-018,me03-018,en,me03,Perfect Order,018,88,Seel,Pokemon,86,https://assets.tcgdex.net/en/me/me03/018,0
+en/me03-019,me03-019,en,me03,Perfect Order,019,88,Dewgong,Pokemon,87,https://assets.tcgdex.net/en/me/me03/019,0
+en/me03-020,me03-020,en,me03,Perfect Order,020,88,Staryu,Pokemon,120,https://assets.tcgdex.net/en/me/me03/020,0
+en/me03-021,me03-021,en,me03,Perfect Order,021,88,Mega Starmie ex,Pokemon,121,https://assets.tcgdex.net/en/me/me03/021,0
+en/me03-022,me03-022,en,me03,Perfect Order,022,88,Lapras ex,Pokemon,131,https://assets.tcgdex.net/en/me/me03/022,0
+en/me03-023,me03-023,en,me03,Perfect Order,023,88,Amaura,Pokemon,698,https://assets.tcgdex.net/en/me/me03/023,0
+en/me03-024,me03-024,en,me03,Perfect Order,024,88,Aurorus,Pokemon,699,https://assets.tcgdex.net/en/me/me03/024,0
+en/me03-025,me03-025,en,me03,Perfect Order,025,88,Volcanion,Pokemon,721,https://assets.tcgdex.net/en/me/me03/025,0
+en/me03-026,me03-026,en,me03,Perfect Order,026,88,Shinx,Pokemon,403,https://assets.tcgdex.net/en/me/me03/026,0
+en/me03-027,me03-027,en,me03,Perfect Order,027,88,Luxio,Pokemon,404,https://assets.tcgdex.net/en/me/me03/027,0
+en/me03-028,me03-028,en,me03,Perfect Order,028,88,Luxray,Pokemon,405,https://assets.tcgdex.net/en/me/me03/028,0
+en/me03-029,me03-029,en,me03,Perfect Order,029,88,Dedenne,Pokemon,702,https://assets.tcgdex.net/en/me/me03/029,0
+en/me03-030,me03-030,en,me03,Perfect Order,030,88,Clefairy,Pokemon,35,https://assets.tcgdex.net/en/me/me03/030,0
+en/me03-031,me03-031,en,me03,Perfect Order,031,88,Mega Clefable ex,Pokemon,36,https://assets.tcgdex.net/en/me/me03/031,0
+en/me03-032,me03-032,en,me03,Perfect Order,032,88,Mawile,Pokemon,303,https://assets.tcgdex.net/en/me/me03/032,0
+en/me03-033,me03-033,en,me03,Perfect Order,033,88,Espurr,Pokemon,677,https://assets.tcgdex.net/en/me/me03/033,0
+en/me03-034,me03-034,en,me03,Perfect Order,034,88,Meowstic,Pokemon,678,https://assets.tcgdex.net/en/me/me03/034,0
+en/me03-035,me03-035,en,me03,Perfect Order,035,88,Spritzee,Pokemon,682,https://assets.tcgdex.net/en/me/me03/035,0
+en/me03-036,me03-036,en,me03,Perfect Order,036,88,Aromatisse,Pokemon,683,https://assets.tcgdex.net/en/me/me03/036,0
+en/me03-037,me03-037,en,me03,Perfect Order,037,88,Nosepass,Pokemon,299,https://assets.tcgdex.net/en/me/me03/037,0
+en/me03-038,me03-038,en,me03,Perfect Order,038,88,Probopass,Pokemon,476,https://assets.tcgdex.net/en/me/me03/038,0
+en/me03-039,me03-039,en,me03,Perfect Order,039,88,Hippopotas,Pokemon,449,https://assets.tcgdex.net/en/me/me03/039,0
+en/me03-040,me03-040,en,me03,Perfect Order,040,88,Hippowdon,Pokemon,450,https://assets.tcgdex.net/en/me/me03/040,0
+en/me03-041,me03-041,en,me03,Perfect Order,041,88,Landorus,Pokemon,645,https://assets.tcgdex.net/en/me/me03/041,0
+en/me03-042,me03-042,en,me03,Perfect Order,042,88,Binacle,Pokemon,688,https://assets.tcgdex.net/en/me/me03/042,0
+en/me03-043,me03-043,en,me03,Perfect Order,043,88,Barbaracle,Pokemon,689,https://assets.tcgdex.net/en/me/me03/043,0
+en/me03-044,me03-044,en,me03,Perfect Order,044,88,Tyrunt,Pokemon,696,https://assets.tcgdex.net/en/me/me03/044,0
+en/me03-045,me03-045,en,me03,Perfect Order,045,88,Tyrantrum,Pokemon,697,https://assets.tcgdex.net/en/me/me03/045,0
+en/me03-046,me03-046,en,me03,Perfect Order,046,88,Hawlucha,Pokemon,701,https://assets.tcgdex.net/en/me/me03/046,0
+en/me03-047,me03-047,en,me03,Perfect Order,047,88,Mega Zygarde ex,Pokemon,718,https://assets.tcgdex.net/en/me/me03/047,0
+en/me03-048,me03-048,en,me03,Perfect Order,048,88,Gastly,Pokemon,92,https://assets.tcgdex.net/en/me/me03/048,0
+en/me03-049,me03-049,en,me03,Perfect Order,049,88,Haunter,Pokemon,93,https://assets.tcgdex.net/en/me/me03/049,0
+en/me03-050,me03-050,en,me03,Perfect Order,050,88,Gengar,Pokemon,94,https://assets.tcgdex.net/en/me/me03/050,0
+en/me03-051,me03-051,en,me03,Perfect Order,051,88,Skorupi,Pokemon,451,https://assets.tcgdex.net/en/me/me03/051,0
+en/me03-052,me03-052,en,me03,Perfect Order,052,88,Drapion,Pokemon,452,https://assets.tcgdex.net/en/me/me03/052,0
+en/me03-053,me03-053,en,me03,Perfect Order,053,88,Yveltal ex,Pokemon,717,https://assets.tcgdex.net/en/me/me03/053,0
+en/me03-054,me03-054,en,me03,Perfect Order,054,88,Chien-Pao,Pokemon,1002,https://assets.tcgdex.net/en/me/me03/054,0
+en/me03-055,me03-055,en,me03,Perfect Order,055,88,Mega Skarmory ex,Pokemon,227,https://assets.tcgdex.net/en/me/me03/055,0
+en/me03-056,me03-056,en,me03,Perfect Order,056,88,Honedge,Pokemon,679,https://assets.tcgdex.net/en/me/me03/056,0
+en/me03-057,me03-057,en,me03,Perfect Order,057,88,Doublade,Pokemon,680,https://assets.tcgdex.net/en/me/me03/057,0
+en/me03-058,me03-058,en,me03,Perfect Order,058,88,Aegislash,Pokemon,681,https://assets.tcgdex.net/en/me/me03/058,0
+en/me03-059,me03-059,en,me03,Perfect Order,059,88,Klefki,Pokemon,707,https://assets.tcgdex.net/en/me/me03/059,0
+en/me03-060,me03-060,en,me03,Perfect Order,060,88,Rattata,Pokemon,19,https://assets.tcgdex.net/en/me/me03/060,0
+en/me03-061,me03-061,en,me03,Perfect Order,061,88,Raticate,Pokemon,20,https://assets.tcgdex.net/en/me/me03/061,0
+en/me03-062,me03-062,en,me03,Perfect Order,062,88,Meowth ex,Pokemon,52,https://assets.tcgdex.net/en/me/me03/062,0
+en/me03-063,me03-063,en,me03,Perfect Order,063,88,Snorlax,Pokemon,143,https://assets.tcgdex.net/en/me/me03/063,0
+en/me03-064,me03-064,en,me03,Perfect Order,064,88,Bunnelby,Pokemon,659,https://assets.tcgdex.net/en/me/me03/064,0
+en/me03-065,me03-065,en,me03,Perfect Order,065,88,Diggersby,Pokemon,660,https://assets.tcgdex.net/en/me/me03/065,0
+en/me03-066,me03-066,en,me03,Perfect Order,066,88,Fletchling,Pokemon,661,https://assets.tcgdex.net/en/me/me03/066,0
+en/me03-067,me03-067,en,me03,Perfect Order,067,88,Furfrou,Pokemon,676,https://assets.tcgdex.net/en/me/me03/067,0
+en/me03-068,me03-068,en,me03,Perfect Order,068,88,Antique Jaw Fossil,Trainer,,https://assets.tcgdex.net/en/me/me03/068,0
+en/me03-069,me03-069,en,me03,Perfect Order,069,88,Antique Sail Fossil,Trainer,,https://assets.tcgdex.net/en/me/me03/069,0
+en/me03-070,me03-070,en,me03,Perfect Order,070,88,Core Memory,Trainer,,https://assets.tcgdex.net/en/me/me03/070,0
+en/me03-071,me03-071,en,me03,Perfect Order,071,88,Crushing Hammer,Trainer,,https://assets.tcgdex.net/en/me/me03/071,0
+en/me03-072,me03-072,en,me03,Perfect Order,072,88,Energy Search,Trainer,,https://assets.tcgdex.net/en/me/me03/072,0
+en/me03-073,me03-073,en,me03,Perfect Order,073,88,Energy Swatter,Trainer,,https://assets.tcgdex.net/en/me/me03/073,0
+en/me03-074,me03-074,en,me03,Perfect Order,074,88,Hole-Digging Shovel,Trainer,,https://assets.tcgdex.net/en/me/me03/074,0
+en/me03-075,me03-075,en,me03,Perfect Order,075,88,Jacinthe,Trainer,,https://assets.tcgdex.net/en/me/me03/075,0
+en/me03-076,me03-076,en,me03,Perfect Order,076,88,Judge,Trainer,,https://assets.tcgdex.net/en/me/me03/076,0
+en/me03-077,me03-077,en,me03,Perfect Order,077,88,Lumiose City,Trainer,,https://assets.tcgdex.net/en/me/me03/077,0
+en/me03-078,me03-078,en,me03,Perfect Order,078,88,Lumiose Galette,Trainer,,https://assets.tcgdex.net/en/me/me03/078,0
+en/me03-079,me03-079,en,me03,Perfect Order,079,88,Naveen,Trainer,,https://assets.tcgdex.net/en/me/me03/079,0
+en/me03-080,me03-080,en,me03,Perfect Order,080,88,Poké Ball,Trainer,,https://assets.tcgdex.net/en/me/me03/080,0
+en/me03-081,me03-081,en,me03,Perfect Order,081,88,Poké Pad,Trainer,,https://assets.tcgdex.net/en/me/me03/081,0
+en/me03-082,me03-082,en,me03,Perfect Order,082,88,Pokémon Catcher,Trainer,,https://assets.tcgdex.net/en/me/me03/082,0
+en/me03-083,me03-083,en,me03,Perfect Order,083,88,Potion,Trainer,,https://assets.tcgdex.net/en/me/me03/083,0
+en/me03-084,me03-084,en,me03,Perfect Order,084,88,Rosa's Encouragement,Trainer,,https://assets.tcgdex.net/en/me/me03/084,0
+en/me03-085,me03-085,en,me03,Perfect Order,085,88,Tarragon,Trainer,,https://assets.tcgdex.net/en/me/me03/085,0
+en/me03-086,me03-086,en,me03,Perfect Order,086,88,Growing Grass Energy,Energy,,https://assets.tcgdex.net/en/me/me03/086,0
+en/me03-087,me03-087,en,me03,Perfect Order,087,88,Rocky Fighting Energy,Energy,,https://assets.tcgdex.net/en/me/me03/087,0
+en/me03-088,me03-088,en,me03,Perfect Order,088,88,Telepathic Psychic Energy,Energy,,https://assets.tcgdex.net/en/me/me03/088,0
+en/me03-089,me03-089,en,me03,Perfect Order,089,88,Spewpa,Pokemon,665,https://assets.tcgdex.net/en/me/me03/089,0
+en/me03-090,me03-090,en,me03,Perfect Order,090,88,Rowlet,Pokemon,722,https://assets.tcgdex.net/en/me/me03/090,0
+en/me03-091,me03-091,en,me03,Perfect Order,091,88,Talonflame,Pokemon,663,https://assets.tcgdex.net/en/me/me03/091,0
+en/me03-092,me03-092,en,me03,Perfect Order,092,88,Aurorus,Pokemon,699,https://assets.tcgdex.net/en/me/me03/092,0
+en/me03-093,me03-093,en,me03,Perfect Order,093,88,Dedenne,Pokemon,702,https://assets.tcgdex.net/en/me/me03/093,0
+en/me03-094,me03-094,en,me03,Perfect Order,094,88,Clefairy,Pokemon,35,https://assets.tcgdex.net/en/me/me03/094,0
+en/me03-095,me03-095,en,me03,Perfect Order,095,88,Espurr,Pokemon,677,https://assets.tcgdex.net/en/me/me03/095,0
+en/me03-096,me03-096,en,me03,Perfect Order,096,88,Probopass,Pokemon,476,https://assets.tcgdex.net/en/me/me03/096,0
+en/me03-097,me03-097,en,me03,Perfect Order,097,88,Drapion,Pokemon,452,https://assets.tcgdex.net/en/me/me03/097,0
+en/me03-098,me03-098,en,me03,Perfect Order,098,88,Doublade,Pokemon,680,https://assets.tcgdex.net/en/me/me03/098,0
+en/me03-099,me03-099,en,me03,Perfect Order,099,88,Raticate,Pokemon,20,https://assets.tcgdex.net/en/me/me03/099,0
+en/me03-100,me03-100,en,me03,Perfect Order,100,88,Decidueye ex,Pokemon,724,https://assets.tcgdex.net/en/me/me03/100,0
+en/me03-101,me03-101,en,me03,Perfect Order,101,88,Salazzle ex,Pokemon,758,https://assets.tcgdex.net/en/me/me03/101,0
+en/me03-102,me03-102,en,me03,Perfect Order,102,88,Mega Starmie ex,Pokemon,121,https://assets.tcgdex.net/en/me/me03/102,0
+en/me03-103,me03-103,en,me03,Perfect Order,103,88,Mega Clefable ex,Pokemon,36,https://assets.tcgdex.net/en/me/me03/103,0
+en/me03-104,me03-104,en,me03,Perfect Order,104,88,Mega Zygarde ex,Pokemon,718,https://assets.tcgdex.net/en/me/me03/104,0
+en/me03-105,me03-105,en,me03,Perfect Order,105,88,Yveltal ex,Pokemon,717,https://assets.tcgdex.net/en/me/me03/105,0
+en/me03-106,me03-106,en,me03,Perfect Order,106,88,Mega Skarmory ex,Pokemon,227,https://assets.tcgdex.net/en/me/me03/106,0
+en/me03-107,me03-107,en,me03,Perfect Order,107,88,Meowth ex,Pokemon,52,https://assets.tcgdex.net/en/me/me03/107,0
+en/me03-108,me03-108,en,me03,Perfect Order,108,88,Energy Recycler,Trainer,,https://assets.tcgdex.net/en/me/me03/108,0
+en/me03-109,me03-109,en,me03,Perfect Order,109,88,Forest of Vitality,Trainer,,https://assets.tcgdex.net/en/me/me03/109,0
+en/me03-110,me03-110,en,me03,Perfect Order,110,88,Jacinthe,Trainer,,https://assets.tcgdex.net/en/me/me03/110,0
+en/me03-111,me03-111,en,me03,Perfect Order,111,88,Lumiose City,Trainer,,https://assets.tcgdex.net/en/me/me03/111,0
+en/me03-112,me03-112,en,me03,Perfect Order,112,88,Naveen,Trainer,,https://assets.tcgdex.net/en/me/me03/112,0
+en/me03-113,me03-113,en,me03,Perfect Order,113,88,Poké Pad,Trainer,,https://assets.tcgdex.net/en/me/me03/113,0
+en/me03-114,me03-114,en,me03,Perfect Order,114,88,Rosa's Encouragement,Trainer,,https://assets.tcgdex.net/en/me/me03/114,0
+en/me03-115,me03-115,en,me03,Perfect Order,115,88,Sacred Ash,Trainer,,https://assets.tcgdex.net/en/me/me03/115,0
+en/me03-116,me03-116,en,me03,Perfect Order,116,88,Tarragon,Trainer,,https://assets.tcgdex.net/en/me/me03/116,0
+en/me03-117,me03-117,en,me03,Perfect Order,117,88,Wondrous Patch,Trainer,,https://assets.tcgdex.net/en/me/me03/117,0
+en/me03-118,me03-118,en,me03,Perfect Order,118,88,Mega Starmie ex,Pokemon,121,https://assets.tcgdex.net/en/me/me03/118,0
+en/me03-119,me03-119,en,me03,Perfect Order,119,88,Mega Clefable ex,Pokemon,36,https://assets.tcgdex.net/en/me/me03/119,0
+en/me03-120,me03-120,en,me03,Perfect Order,120,88,Mega Zygarde ex,Pokemon,718,https://assets.tcgdex.net/en/me/me03/120,0
+en/me03-121,me03-121,en,me03,Perfect Order,121,88,Meowth ex,Pokemon,52,https://assets.tcgdex.net/en/me/me03/121,0
+en/me03-122,me03-122,en,me03,Perfect Order,122,88,Jacinthe,Trainer,,https://assets.tcgdex.net/en/me/me03/122,0
+en/me03-123,me03-123,en,me03,Perfect Order,123,88,Rosa's Encouragement,Trainer,,https://assets.tcgdex.net/en/me/me03/123,0
+en/me03-124,me03-124,en,me03,Perfect Order,124,88,Mega Zygarde ex,Pokemon,718,https://assets.tcgdex.net/en/me/me03/124,0
+en/me04-001,me04-001,en,me04,Chaos Rising,001,86,Weedle,Pokemon,13,https://assets.tcgdex.net/en/me/me04/001,0
+en/me04-002,me04-002,en,me04,Chaos Rising,002,86,Kakuna,Pokemon,14,https://assets.tcgdex.net/en/me/me04/002,0
+en/me04-003,me04-003,en,me04,Chaos Rising,003,86,Beedrill ex,Pokemon,15,https://assets.tcgdex.net/en/me/me04/003,0
+en/me04-004,me04-004,en,me04,Chaos Rising,004,86,Carnivine,Pokemon,455,https://assets.tcgdex.net/en/me/me04/004,0
+en/me04-005,me04-005,en,me04,Chaos Rising,005,86,Chespin,Pokemon,650,https://assets.tcgdex.net/en/me/me04/005,0
+en/me04-006,me04-006,en,me04,Chaos Rising,006,86,Quilladin,Pokemon,651,https://assets.tcgdex.net/en/me/me04/006,0
+en/me04-007,me04-007,en,me04,Chaos Rising,007,86,Chesnaught,Pokemon,652,https://assets.tcgdex.net/en/me/me04/007,0
+en/me04-008,me04-008,en,me04,Chaos Rising,008,86,Vulpix,Pokemon,37,https://assets.tcgdex.net/en/me/me04/008,0
+en/me04-009,me04-009,en,me04,Chaos Rising,009,86,Ninetales,Pokemon,38,https://assets.tcgdex.net/en/me/me04/009,0
+en/me04-010,me04-010,en,me04,Chaos Rising,010,86,Ho-Oh,Pokemon,250,https://assets.tcgdex.net/en/me/me04/010,0
+en/me04-011,me04-011,en,me04,Chaos Rising,011,86,Fennekin,Pokemon,653,https://assets.tcgdex.net/en/me/me04/011,0
+en/me04-012,me04-012,en,me04,Chaos Rising,012,86,Braixen,Pokemon,654,https://assets.tcgdex.net/en/me/me04/012,0
+en/me04-013,me04-013,en,me04,Chaos Rising,013,86,Delphox,Pokemon,655,https://assets.tcgdex.net/en/me/me04/013,0
+en/me04-014,me04-014,en,me04,Chaos Rising,014,86,Litleo,Pokemon,667,https://assets.tcgdex.net/en/me/me04/014,0
+en/me04-015,me04-015,en,me04,Chaos Rising,015,86,Mega Pyroar ex,Pokemon,668,https://assets.tcgdex.net/en/me/me04/015,0
+en/me04-016,me04-016,en,me04,Chaos Rising,016,86,Remoraid,Pokemon,223,https://assets.tcgdex.net/en/me/me04/016,0
+en/me04-017,me04-017,en,me04,Chaos Rising,017,86,Octillery,Pokemon,224,https://assets.tcgdex.net/en/me/me04/017,0
+en/me04-018,me04-018,en,me04,Chaos Rising,018,86,Delibird,Pokemon,225,https://assets.tcgdex.net/en/me/me04/018,0
+en/me04-019,me04-019,en,me04,Chaos Rising,019,86,Keldeo,Pokemon,647,https://assets.tcgdex.net/en/me/me04/019,0
+en/me04-020,me04-020,en,me04,Chaos Rising,020,86,Froakie,Pokemon,656,https://assets.tcgdex.net/en/me/me04/020,0
+en/me04-021,me04-021,en,me04,Chaos Rising,021,86,Frogadier,Pokemon,657,https://assets.tcgdex.net/en/me/me04/021,0
+en/me04-022,me04-022,en,me04,Chaos Rising,022,86,Mega Greninja ex,Pokemon,658,https://assets.tcgdex.net/en/me/me04/022,0
+en/me04-023,me04-023,en,me04,Chaos Rising,023,86,Bergmite,Pokemon,712,https://assets.tcgdex.net/en/me/me04/023,0
+en/me04-024,me04-024,en,me04,Chaos Rising,024,86,Avalugg,Pokemon,713,https://assets.tcgdex.net/en/me/me04/024,0
+en/me04-025,me04-025,en,me04,Chaos Rising,025,86,Wimpod,Pokemon,767,https://assets.tcgdex.net/en/me/me04/025,0
+en/me04-026,me04-026,en,me04,Chaos Rising,026,86,Golisopod,Pokemon,768,https://assets.tcgdex.net/en/me/me04/026,0
+en/me04-027,me04-027,en,me04,Chaos Rising,027,86,Mareep,Pokemon,179,https://assets.tcgdex.net/en/me/me04/027,0
+en/me04-028,me04-028,en,me04,Chaos Rising,028,86,Flaaffy,Pokemon,180,https://assets.tcgdex.net/en/me/me04/028,0
+en/me04-029,me04-029,en,me04,Chaos Rising,029,86,Ampharos,Pokemon,181,https://assets.tcgdex.net/en/me/me04/029,0
+en/me04-030,me04-030,en,me04,Chaos Rising,030,86,Emolga,Pokemon,587,https://assets.tcgdex.net/en/me/me04/030,0
+en/me04-031,me04-031,en,me04,Chaos Rising,031,86,Deoxys,Pokemon,386,https://assets.tcgdex.net/en/me/me04/031,0
+en/me04-032,me04-032,en,me04,Chaos Rising,032,86,Deoxys,Pokemon,386,https://assets.tcgdex.net/en/me/me04/032,0
+en/me04-033,me04-033,en,me04,Chaos Rising,033,86,Deoxys,Pokemon,386,https://assets.tcgdex.net/en/me/me04/033,0
+en/me04-034,me04-034,en,me04,Chaos Rising,034,86,Deoxys,Pokemon,386,https://assets.tcgdex.net/en/me/me04/034,0
+en/me04-035,me04-035,en,me04,Chaos Rising,035,86,Mega Floette ex,Pokemon,670,https://assets.tcgdex.net/en/me/me04/035,0
+en/me04-036,me04-036,en,me04,Chaos Rising,036,86,Espurr,Pokemon,677,https://assets.tcgdex.net/en/me/me04/036,0
+en/me04-037,me04-037,en,me04,Chaos Rising,037,86,Meowstic,Pokemon,678,https://assets.tcgdex.net/en/me/me04/037,0
+en/me04-038,me04-038,en,me04,Chaos Rising,038,86,Phantump,Pokemon,708,https://assets.tcgdex.net/en/me/me04/038,0
+en/me04-039,me04-039,en,me04,Chaos Rising,039,86,Trevenant,Pokemon,709,https://assets.tcgdex.net/en/me/me04/039,0
+en/me04-040,me04-040,en,me04,Chaos Rising,040,86,Pumpkaboo,Pokemon,710,https://assets.tcgdex.net/en/me/me04/040,0
+en/me04-041,me04-041,en,me04,Chaos Rising,041,86,Gourgeist ex,Pokemon,711,https://assets.tcgdex.net/en/me/me04/041,0
+en/me04-042,me04-042,en,me04,Chaos Rising,042,86,Xerneas,Pokemon,716,https://assets.tcgdex.net/en/me/me04/042,0
+en/me04-043,me04-043,en,me04,Chaos Rising,043,86,Sudowoodo,Pokemon,185,https://assets.tcgdex.net/en/me/me04/043,0
+en/me04-044,me04-044,en,me04,Chaos Rising,044,86,Phanpy,Pokemon,231,https://assets.tcgdex.net/en/me/me04/044,0
+en/me04-045,me04-045,en,me04,Chaos Rising,045,86,Donphan,Pokemon,232,https://assets.tcgdex.net/en/me/me04/045,0
+en/me04-046,me04-046,en,me04,Chaos Rising,046,86,Baltoy,Pokemon,343,https://assets.tcgdex.net/en/me/me04/046,0
+en/me04-047,me04-047,en,me04,Chaos Rising,047,86,Claydol,Pokemon,344,https://assets.tcgdex.net/en/me/me04/047,0
+en/me04-048,me04-048,en,me04,Chaos Rising,048,86,Mega Gallade ex,Pokemon,475,https://assets.tcgdex.net/en/me/me04/048,0
+en/me04-049,me04-049,en,me04,Chaos Rising,049,86,Zubat,Pokemon,41,https://assets.tcgdex.net/en/me/me04/049,0
+en/me04-050,me04-050,en,me04,Chaos Rising,050,86,Golbat,Pokemon,42,https://assets.tcgdex.net/en/me/me04/050,0
+en/me04-051,me04-051,en,me04,Chaos Rising,051,86,Crobat,Pokemon,169,https://assets.tcgdex.net/en/me/me04/051,0
+en/me04-052,me04-052,en,me04,Chaos Rising,052,86,Qwilfish,Pokemon,211,https://assets.tcgdex.net/en/me/me04/052,0
+en/me04-053,me04-053,en,me04,Chaos Rising,053,86,Stunky,Pokemon,434,https://assets.tcgdex.net/en/me/me04/053,0
+en/me04-054,me04-054,en,me04,Chaos Rising,054,86,Skuntank,Pokemon,435,https://assets.tcgdex.net/en/me/me04/054,0
+en/me04-055,me04-055,en,me04,Chaos Rising,055,86,Krookodile ex,Pokemon,553,https://assets.tcgdex.net/en/me/me04/055,0
+en/me04-056,me04-056,en,me04,Chaos Rising,056,86,Trubbish,Pokemon,568,https://assets.tcgdex.net/en/me/me04/056,0
+en/me04-057,me04-057,en,me04,Chaos Rising,057,86,Garbodor,Pokemon,569,https://assets.tcgdex.net/en/me/me04/057,0
+en/me04-058,me04-058,en,me04,Chaos Rising,058,86,Skrelp,Pokemon,690,https://assets.tcgdex.net/en/me/me04/058,0
+en/me04-059,me04-059,en,me04,Chaos Rising,059,86,Beldum,Pokemon,374,https://assets.tcgdex.net/en/me/me04/059,0
+en/me04-060,me04-060,en,me04,Chaos Rising,060,86,Metang,Pokemon,375,https://assets.tcgdex.net/en/me/me04/060,0
+en/me04-061,me04-061,en,me04,Chaos Rising,061,86,Metagross,Pokemon,376,https://assets.tcgdex.net/en/me/me04/061,0
+en/me04-062,me04-062,en,me04,Chaos Rising,062,86,Ferroseed,Pokemon,597,https://assets.tcgdex.net/en/me/me04/062,0
+en/me04-063,me04-063,en,me04,Chaos Rising,063,86,Ferrothorn,Pokemon,598,https://assets.tcgdex.net/en/me/me04/063,0
+en/me04-064,me04-064,en,me04,Chaos Rising,064,86,Cobalion ex,Pokemon,638,https://assets.tcgdex.net/en/me/me04/064,0
+en/me04-065,me04-065,en,me04,Chaos Rising,065,86,Mega Dragalge ex,Pokemon,691,https://assets.tcgdex.net/en/me/me04/065,0
+en/me04-066,me04-066,en,me04,Chaos Rising,066,86,Goomy,Pokemon,704,https://assets.tcgdex.net/en/me/me04/066,0
+en/me04-067,me04-067,en,me04,Chaos Rising,067,86,Sliggoo,Pokemon,705,https://assets.tcgdex.net/en/me/me04/067,0
+en/me04-068,me04-068,en,me04,Chaos Rising,068,86,Goodra,Pokemon,706,https://assets.tcgdex.net/en/me/me04/068,0
+en/me04-069,me04-069,en,me04,Chaos Rising,069,86,Tauros,Pokemon,128,https://assets.tcgdex.net/en/me/me04/069,0
+en/me04-070,me04-070,en,me04,Chaos Rising,070,86,Patrat,Pokemon,504,https://assets.tcgdex.net/en/me/me04/070,0
+en/me04-071,me04-071,en,me04,Chaos Rising,071,86,Watchog,Pokemon,505,https://assets.tcgdex.net/en/me/me04/071,0
+en/me04-072,me04-072,en,me04,Chaos Rising,072,86,Minccino,Pokemon,572,https://assets.tcgdex.net/en/me/me04/072,0
+en/me04-073,me04-073,en,me04,Chaos Rising,073,86,Cinccino ex,Pokemon,573,https://assets.tcgdex.net/en/me/me04/073,0
+en/me04-074,me04-074,en,me04,Chaos Rising,074,86,Adversity Policy,Trainer,,https://assets.tcgdex.net/en/me/me04/074,0
+en/me04-075,me04-075,en,me04,Chaos Rising,075,86,Ange Floette,Trainer,,https://assets.tcgdex.net/en/me/me04/075,0
+en/me04-076,me04-076,en,me04,Chaos Rising,076,86,AZ's Tranquility,Trainer,,https://assets.tcgdex.net/en/me/me04/076,0
+en/me04-077,me04-077,en,me04,Chaos Rising,077,86,Emma,Trainer,,https://assets.tcgdex.net/en/me/me04/077,0
+en/me04-078,me04-078,en,me04,Chaos Rising,078,86,Great Haul Net,Trainer,,https://assets.tcgdex.net/en/me/me04/078,0
+en/me04-079,me04-079,en,me04,Chaos Rising,079,86,Philippe,Trainer,,https://assets.tcgdex.net/en/me/me04/079,0
+en/me04-080,me04-080,en,me04,Chaos Rising,080,86,Prism Tower,Trainer,,https://assets.tcgdex.net/en/me/me04/080,0
+en/me04-081,me04-081,en,me04,Chaos Rising,081,86,Roxie's Performance,Trainer,,https://assets.tcgdex.net/en/me/me04/081,0
+en/me04-082,me04-082,en,me04,Chaos Rising,082,86,Special Red Card,Trainer,,https://assets.tcgdex.net/en/me/me04/082,0
+en/me04-083,me04-083,en,me04,Chaos Rising,083,86,Transformation Tome,Trainer,,https://assets.tcgdex.net/en/me/me04/083,0
+en/me04-084,me04-084,en,me04,Chaos Rising,084,86,Bubbly Water Energy,Energy,,https://assets.tcgdex.net/en/me/me04/084,0
+en/me04-085,me04-085,en,me04,Chaos Rising,085,86,Magnetic Metal Energy,Energy,,https://assets.tcgdex.net/en/me/me04/085,0
+en/me04-086,me04-086,en,me04,Chaos Rising,086,86,Nitro Fire Energy,Energy,,https://assets.tcgdex.net/en/me/me04/086,0
+en/me04-087,me04-087,en,me04,Chaos Rising,087,86,Chespin,Pokemon,650,https://assets.tcgdex.net/en/me/me04/087,0
+en/me04-088,me04-088,en,me04,Chaos Rising,088,86,Froakie,Pokemon,656,https://assets.tcgdex.net/en/me/me04/088,0
+en/me04-089,me04-089,en,me04,Chaos Rising,089,86,Frogadier,Pokemon,657,https://assets.tcgdex.net/en/me/me04/089,0
+en/me04-090,me04-090,en,me04,Chaos Rising,090,86,Ampharos,Pokemon,181,https://assets.tcgdex.net/en/me/me04/090,0
+en/me04-091,me04-091,en,me04,Chaos Rising,091,86,Xerneas,Pokemon,716,https://assets.tcgdex.net/en/me/me04/091,0
+en/me04-092,me04-092,en,me04,Chaos Rising,092,86,Claydol,Pokemon,344,https://assets.tcgdex.net/en/me/me04/092,0
+en/me04-093,me04-093,en,me04,Chaos Rising,093,86,Crobat,Pokemon,169,https://assets.tcgdex.net/en/me/me04/093,0
+en/me04-094,me04-094,en,me04,Chaos Rising,094,86,Metang,Pokemon,375,https://assets.tcgdex.net/en/me/me04/094,0
+en/me04-095,me04-095,en,me04,Chaos Rising,095,86,Sliggoo,Pokemon,705,https://assets.tcgdex.net/en/me/me04/095,0
+en/me04-096,me04-096,en,me04,Chaos Rising,096,86,Tauros,Pokemon,128,https://assets.tcgdex.net/en/me/me04/096,0
+en/me04-097,me04-097,en,me04,Chaos Rising,097,86,Watchog,Pokemon,505,https://assets.tcgdex.net/en/me/me04/097,0
+en/me04-098,me04-098,en,me04,Chaos Rising,098,86,Beedrill ex,Pokemon,15,https://assets.tcgdex.net/en/me/me04/098,0
+en/me04-099,me04-099,en,me04,Chaos Rising,099,86,Mega Pyroar ex,Pokemon,668,https://assets.tcgdex.net/en/me/me04/099,0
+en/me04-100,me04-100,en,me04,Chaos Rising,100,86,Mega Greninja ex,Pokemon,658,https://assets.tcgdex.net/en/me/me04/100,0
+en/me04-101,me04-101,en,me04,Chaos Rising,101,86,Mega Floette ex,Pokemon,670,https://assets.tcgdex.net/en/me/me04/101,0
+en/me04-102,me04-102,en,me04,Chaos Rising,102,86,Gourgeist ex,Pokemon,711,https://assets.tcgdex.net/en/me/me04/102,0
+en/me04-103,me04-103,en,me04,Chaos Rising,103,86,Cobalion ex,Pokemon,638,https://assets.tcgdex.net/en/me/me04/103,0
+en/me04-104,me04-104,en,me04,Chaos Rising,104,86,Mega Dragalge ex,Pokemon,691,https://assets.tcgdex.net/en/me/me04/104,0
+en/me04-105,me04-105,en,me04,Chaos Rising,105,86,Cinccino ex,Pokemon,573,https://assets.tcgdex.net/en/me/me04/105,0
+en/me04-106,me04-106,en,me04,Chaos Rising,106,86,AZ's Tranquility,Trainer,,https://assets.tcgdex.net/en/me/me04/106,0
+en/me04-107,me04-107,en,me04,Chaos Rising,107,86,Emma,Trainer,,https://assets.tcgdex.net/en/me/me04/107,0
+en/me04-108,me04-108,en,me04,Chaos Rising,108,86,Energy Retrieval,Trainer,,https://assets.tcgdex.net/en/me/me04/108,0
+en/me04-109,me04-109,en,me04,Chaos Rising,109,86,Jumbo Ice Cream,Trainer,,https://assets.tcgdex.net/en/me/me04/109,0
+en/me04-110,me04-110,en,me04,Chaos Rising,110,86,Philippe,Trainer,,https://assets.tcgdex.net/en/me/me04/110,0
+en/me04-111,me04-111,en,me04,Chaos Rising,111,86,Prism Tower,Trainer,,https://assets.tcgdex.net/en/me/me04/111,0
+en/me04-112,me04-112,en,me04,Chaos Rising,112,86,Roxie's Performance,Trainer,,https://assets.tcgdex.net/en/me/me04/112,0
+en/me04-113,me04-113,en,me04,Chaos Rising,113,86,Special Red Card,Trainer,,https://assets.tcgdex.net/en/me/me04/113,0
+en/me04-114,me04-114,en,me04,Chaos Rising,114,86,Surfing Beach,Trainer,,https://assets.tcgdex.net/en/me/me04/114,0
+en/me04-115,me04-115,en,me04,Chaos Rising,115,86,Tool Scrapper,Trainer,,https://assets.tcgdex.net/en/me/me04/115,0
+en/me04-116,me04-116,en,me04,Chaos Rising,116,86,Mega Greninja ex,Pokemon,658,https://assets.tcgdex.net/en/me/me04/116,0
+en/me04-117,me04-117,en,me04,Chaos Rising,117,86,Mega Floette ex,Pokemon,670,https://assets.tcgdex.net/en/me/me04/117,0
+en/me04-118,me04-118,en,me04,Chaos Rising,118,86,Mega Dragalge ex,Pokemon,691,https://assets.tcgdex.net/en/me/me04/118,0
+en/me04-119,me04-119,en,me04,Chaos Rising,119,86,Cinccino ex,Pokemon,573,https://assets.tcgdex.net/en/me/me04/119,0
+en/me04-120,me04-120,en,me04,Chaos Rising,120,86,AZ's Tranquility,Trainer,,https://assets.tcgdex.net/en/me/me04/120,0
+en/me04-121,me04-121,en,me04,Chaos Rising,121,86,Roxie's Performance,Trainer,,https://assets.tcgdex.net/en/me/me04/121,0
+en/me04-122,me04-122,en,me04,Chaos Rising,122,86,Mega Greninja ex,Pokemon,658,https://assets.tcgdex.net/en/me/me04/122,0
+de/30th-001,30th-001,de,30th,30 Jahre,001,128,Owei,Pokémon,102,https://assets.tcgdex.net/de/me/30th/001,1
+de/30th-002,30th-002,de,30th,30 Jahre,002,128,Alola-Kokowei,Pokémon,103,https://assets.tcgdex.net/de/me/30th/002,1
+de/30th-003,30th-003,de,30th,30 Jahre,003,128,Volbeat,Pokémon,313,https://assets.tcgdex.net/de/me/30th/003,1
+de/30th-004,30th-004,de,30th,30 Jahre,004,128,Illumise,Pokémon,314,https://assets.tcgdex.net/de/me/30th/004,1
+de/30th-005,30th-005,de,30th,30 Jahre,005,128,Tropius,Pokémon,357,https://assets.tcgdex.net/de/me/30th/005,1
+de/30th-006,30th-006,de,30th,30 Jahre,006,128,Kikugi,Pokémon,420,https://assets.tcgdex.net/de/me/30th/006,1
+de/30th-007,30th-007,de,30th,30 Jahre,007,128,Kinoso,Pokémon,421,https://assets.tcgdex.net/de/me/30th/007,1
+de/30th-008,30th-008,de,30th,30 Jahre,008,128,Vivillon,Pokémon,666,https://assets.tcgdex.net/de/me/30th/008,1
+de/30th-009,30th-009,de,30th,30 Jahre,009,128,Vulpix,Pokémon,37,https://assets.tcgdex.net/de/me/30th/009,1
+de/30th-010,30th-010,de,30th,30 Jahre,010,128,Vulnona,Pokémon,38,https://assets.tcgdex.net/de/me/30th/010,1
+de/30th-011,30th-011,de,30th,30 Jahre,011,128,Lavados,Pokémon,146,https://assets.tcgdex.net/de/me/30th/011,1
+de/30th-012,30th-012,de,30th,30 Jahre,012,128,Ho-Oh,Pokémon,250,https://assets.tcgdex.net/de/me/30th/012,1
+de/30th-013,30th-013,de,30th,30 Jahre,013,128,Victini,Pokémon,494,https://assets.tcgdex.net/de/me/30th/013,1
+de/30th-014,30th-014,de,30th,30 Jahre,014,128,Reshiram,Pokémon,643,https://assets.tcgdex.net/de/me/30th/014,1
+de/30th-015,30th-015,de,30th,30 Jahre,015,128,Krokel-ex,Pokémon,909,https://assets.tcgdex.net/de/me/30th/015,1
+de/30th-016,30th-016,de,30th,30 Jahre,016,128,Flegmon,Pokémon,79,https://assets.tcgdex.net/de/me/30th/016,1
+de/30th-017,30th-017,de,30th,30 Jahre,017,128,Lapras,Pokémon,131,https://assets.tcgdex.net/de/me/30th/017,1
+de/30th-018,30th-018,de,30th,30 Jahre,018,128,Arktos,Pokémon,144,https://assets.tcgdex.net/de/me/30th/018,1
+de/30th-019,30th-019,de,30th,30 Jahre,019,128,Kyogre,Pokémon,382,https://assets.tcgdex.net/de/me/30th/019,1
+de/30th-020,30th-020,de,30th,30 Jahre,020,128,Palkia,Pokémon,484,https://assets.tcgdex.net/de/me/30th/020,1
+de/30th-021,30th-021,de,30th,30 Jahre,021,128,Quajutsu-ex,Pokémon,658,https://assets.tcgdex.net/de/me/30th/021,1
+de/30th-022,30th-022,de,30th,30 Jahre,022,128,Lusardin,Pokémon,746,https://assets.tcgdex.net/de/me/30th/022,1
+de/30th-023,30th-023,de,30th,30 Jahre,023,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/023,1
+de/30th-024,30th-024,de,30th,30 Jahre,024,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/024,1
+de/30th-025,30th-025,de,30th,30 Jahre,025,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/025,1
+de/30th-026,30th-026,de,30th,30 Jahre,026,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/026,1
+de/30th-027,30th-027,de,30th,30 Jahre,027,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/027,1
+de/30th-028,30th-028,de,30th,30 Jahre,028,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/028,1
+de/30th-029,30th-029,de,30th,30 Jahre,029,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/029,1
+de/30th-030,30th-030,de,30th,30 Jahre,030,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/030,1
+de/30th-031,30th-031,de,30th,30 Jahre,031,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/031,1
+de/30th-032,30th-032,de,30th,30 Jahre,032,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/032,1
+de/30th-033,30th-033,de,30th,30 Jahre,033,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/033,1
+de/30th-034,30th-034,de,30th,30 Jahre,034,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/034,1
+de/30th-035,30th-035,de,30th,30 Jahre,035,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/035,1
+de/30th-036,30th-036,de,30th,30 Jahre,036,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/036,1
+de/30th-037,30th-037,de,30th,30 Jahre,037,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/037,1
+de/30th-038,30th-038,de,30th,30 Jahre,038,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/038,1
+de/30th-039,30th-039,de,30th,30 Jahre,039,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/039,1
+de/30th-040,30th-040,de,30th,30 Jahre,040,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/040,1
+de/30th-041,30th-041,de,30th,30 Jahre,041,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/041,1
+de/30th-042,30th-042,de,30th,30 Jahre,042,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/042,1
+de/30th-043,30th-043,de,30th,30 Jahre,043,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/043,1
+de/30th-044,30th-044,de,30th,30 Jahre,044,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/044,1
+de/30th-045,30th-045,de,30th,30 Jahre,045,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/045,1
+de/30th-046,30th-046,de,30th,30 Jahre,046,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/046,1
+de/30th-047,30th-047,de,30th,30 Jahre,047,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/047,1
+de/30th-048,30th-048,de,30th,30 Jahre,048,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/048,1
+de/30th-049,30th-049,de,30th,30 Jahre,049,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/049,1
+de/30th-050,30th-050,de,30th,30 Jahre,050,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/050,1
+de/30th-051,30th-051,de,30th,30 Jahre,051,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/051,1
+de/30th-052,30th-052,de,30th,30 Jahre,052,128,Pikachu,Pokémon,25,https://assets.tcgdex.net/de/me/30th/052,1
+de/30th-053,30th-053,de,30th,30 Jahre,053,128,Pikachu-ex,Pokémon,25,https://assets.tcgdex.net/de/me/30th/053,1
+de/30th-054,30th-054,de,30th,30 Jahre,054,128,Pikachu-ex,Pokémon,25,https://assets.tcgdex.net/de/me/30th/054,1
+de/30th-055,30th-055,de,30th,30 Jahre,055,128,Zapdos,Pokémon,145,https://assets.tcgdex.net/de/me/30th/055,1
+de/30th-056,30th-056,de,30th,30 Jahre,056,128,Zekrom,Pokémon,644,https://assets.tcgdex.net/de/me/30th/056,1
+de/30th-057,30th-057,de,30th,30 Jahre,057,128,Zeraora,Pokémon,807,https://assets.tcgdex.net/de/me/30th/057,1
+de/30th-058,30th-058,de,30th,30 Jahre,058,128,Toxel,Pokémon,848,https://assets.tcgdex.net/de/me/30th/058,1
+de/30th-059,30th-059,de,30th,30 Jahre,059,128,Riffex,Pokémon,849,https://assets.tcgdex.net/de/me/30th/059,1
+de/30th-060,30th-060,de,30th,30 Jahre,060,128,Riffex,Pokémon,849,https://assets.tcgdex.net/de/me/30th/060,1
+de/30th-061,30th-061,de,30th,30 Jahre,061,128,Morpeko,Pokémon,877,https://assets.tcgdex.net/de/me/30th/061,1
+de/30th-062,30th-062,de,30th,30 Jahre,062,128,Miraidon,Pokémon,1008,https://assets.tcgdex.net/de/me/30th/062,1
+de/30th-063,30th-063,de,30th,30 Jahre,063,128,Mewtu,Pokémon,150,https://assets.tcgdex.net/de/me/30th/063,1
+de/30th-064,30th-064,de,30th,30 Jahre,064,128,Mewtu-ex,Pokémon,150,https://assets.tcgdex.net/de/me/30th/064,1
+de/30th-065,30th-065,de,30th,30 Jahre,065,128,Mew,Pokémon,151,https://assets.tcgdex.net/de/me/30th/065,1
+de/30th-066,30th-066,de,30th,30 Jahre,066,128,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/me/30th/066,1
+de/30th-067,30th-067,de,30th,30 Jahre,067,128,Marill,Pokémon,183,https://assets.tcgdex.net/de/me/30th/067,1
+de/30th-068,30th-068,de,30th,30 Jahre,068,128,Azumarill,Pokémon,184,https://assets.tcgdex.net/de/me/30th/068,1
+de/30th-069,30th-069,de,30th,30 Jahre,069,128,Psiana,Pokémon,196,https://assets.tcgdex.net/de/me/30th/069,1
+de/30th-070,30th-070,de,30th,30 Jahre,070,128,Psiana-ex,Pokémon,196,https://assets.tcgdex.net/de/me/30th/070,1
+de/30th-071,30th-071,de,30th,30 Jahre,071,128,Feelinara-ex,Pokémon,700,https://assets.tcgdex.net/de/me/30th/071,1
+de/30th-072,30th-072,de,30th,30 Jahre,072,128,Icognito,Pokémon,201,https://assets.tcgdex.net/de/me/30th/072,1
+de/30th-073,30th-073,de,30th,30 Jahre,073,128,Driftlon,Pokémon,425,https://assets.tcgdex.net/de/me/30th/073,1
+de/30th-074,30th-074,de,30th,30 Jahre,074,128,Cresselia,Pokémon,488,https://assets.tcgdex.net/de/me/30th/074,1
+de/30th-075,30th-075,de,30th,30 Jahre,075,128,Skelabra,Pokémon,609,https://assets.tcgdex.net/de/me/30th/075,1
+de/30th-076,30th-076,de,30th,30 Jahre,076,128,Xerneas,Pokémon,716,https://assets.tcgdex.net/de/me/30th/076,1
+de/30th-077,30th-077,de,30th,30 Jahre,077,128,Curelei,Pokémon,764,https://assets.tcgdex.net/de/me/30th/077,1
+de/30th-078,30th-078,de,30th,30 Jahre,078,128,Cosmog,Pokémon,789,https://assets.tcgdex.net/de/me/30th/078,1
+de/30th-079,30th-079,de,30th,30 Jahre,079,128,Cosmovum,Pokémon,790,https://assets.tcgdex.net/de/me/30th/079,1
+de/30th-080,30th-080,de,30th,30 Jahre,080,128,Lunala,Pokémon,792,https://assets.tcgdex.net/de/me/30th/080,1
+de/30th-081,30th-081,de,30th,30 Jahre,081,128,Gierspenst,Pokémon,999,https://assets.tcgdex.net/de/me/30th/081,1
+de/30th-082,30th-082,de,30th,30 Jahre,082,128,Groudon,Pokémon,383,https://assets.tcgdex.net/de/me/30th/082,1
+de/30th-083,30th-083,de,30th,30 Jahre,083,128,Lucario,Pokémon,448,https://assets.tcgdex.net/de/me/30th/083,1
+de/30th-084,30th-084,de,30th,30 Jahre,084,128,Branawarz,Pokémon,537,https://assets.tcgdex.net/de/me/30th/084,1
+de/30th-085,30th-085,de,30th,30 Jahre,085,128,Wolwerock,Pokémon,745,https://assets.tcgdex.net/de/me/30th/085,1
+de/30th-086,30th-086,de,30th,30 Jahre,086,128,Koraidon,Pokémon,1007,https://assets.tcgdex.net/de/me/30th/086,1
+de/30th-087,30th-087,de,30th,30 Jahre,087,128,Nidoran♀,Pokémon,29,https://assets.tcgdex.net/de/me/30th/087,1
+de/30th-088,30th-088,de,30th,30 Jahre,088,128,Nidorina,Pokémon,30,https://assets.tcgdex.net/de/me/30th/088,1
+de/30th-089,30th-089,de,30th,30 Jahre,089,128,Alola-Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/089,1
+de/30th-090,30th-090,de,30th,30 Jahre,090,128,Gengar-ex,Pokémon,94,https://assets.tcgdex.net/de/me/30th/090,1
+de/30th-091,30th-091,de,30th,30 Jahre,091,128,Nachtara,Pokémon,197,https://assets.tcgdex.net/de/me/30th/091,1
+de/30th-092,30th-092,de,30th,30 Jahre,092,128,Nachtara-ex,Pokémon,197,https://assets.tcgdex.net/de/me/30th/092,1
+de/30th-093,30th-093,de,30th,30 Jahre,093,128,Kramurx,Pokémon,198,https://assets.tcgdex.net/de/me/30th/093,1
+de/30th-094,30th-094,de,30th,30 Jahre,094,128,Zurrokex,Pokémon,559,https://assets.tcgdex.net/de/me/30th/094,1
+de/30th-095,30th-095,de,30th,30 Jahre,095,128,Zorua,Pokémon,570,https://assets.tcgdex.net/de/me/30th/095,1
+de/30th-096,30th-096,de,30th,30 Jahre,096,128,Zoroark,Pokémon,571,https://assets.tcgdex.net/de/me/30th/096,1
+de/30th-097,30th-097,de,30th,30 Jahre,097,128,Kapuno,Pokémon,633,https://assets.tcgdex.net/de/me/30th/097,1
+de/30th-098,30th-098,de,30th,30 Jahre,098,128,Duodino,Pokémon,634,https://assets.tcgdex.net/de/me/30th/098,1
+de/30th-099,30th-099,de,30th,30 Jahre,099,128,Trikephalo,Pokémon,635,https://assets.tcgdex.net/de/me/30th/099,1
+de/30th-100,30th-100,de,30th,30 Jahre,100,128,Yveltal,Pokémon,717,https://assets.tcgdex.net/de/me/30th/100,1
+de/30th-101,30th-101,de,30th,30 Jahre,101,128,Galar-Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/101,1
+de/30th-102,30th-102,de,30th,30 Jahre,102,128,Jirachi-ex,Pokémon,385,https://assets.tcgdex.net/de/me/30th/102,1
+de/30th-103,30th-103,de,30th,30 Jahre,103,128,Dialga,Pokémon,483,https://assets.tcgdex.net/de/me/30th/103,1
+de/30th-104,30th-104,de,30th,30 Jahre,104,128,Tentantel,Pokémon,598,https://assets.tcgdex.net/de/me/30th/104,1
+de/30th-105,30th-105,de,30th,30 Jahre,105,128,Solgaleo,Pokémon,791,https://assets.tcgdex.net/de/me/30th/105,1
+de/30th-106,30th-106,de,30th,30 Jahre,106,128,Zacian,Pokémon,888,https://assets.tcgdex.net/de/me/30th/106,1
+de/30th-107,30th-107,de,30th,30 Jahre,107,128,Zamazenta,Pokémon,889,https://assets.tcgdex.net/de/me/30th/107,1
+de/30th-108,30th-108,de,30th,30 Jahre,108,128,Monetigo,Pokémon,1000,https://assets.tcgdex.net/de/me/30th/108,1
+de/30th-109,30th-109,de,30th,30 Jahre,109,128,Brutalanda-ex,Pokémon,373,https://assets.tcgdex.net/de/me/30th/109,1
+de/30th-110,30th-110,de,30th,30 Jahre,110,128,Miniras,Pokémon,782,https://assets.tcgdex.net/de/me/30th/110,1
+de/30th-111,30th-111,de,30th,30 Jahre,111,128,Mediras,Pokémon,783,https://assets.tcgdex.net/de/me/30th/111,1
+de/30th-112,30th-112,de,30th,30 Jahre,112,128,Grandiras,Pokémon,784,https://assets.tcgdex.net/de/me/30th/112,1
+de/30th-113,30th-113,de,30th,30 Jahre,113,128,Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/113,1
+de/30th-114,30th-114,de,30th,30 Jahre,114,128,Kangama,Pokémon,115,https://assets.tcgdex.net/de/me/30th/114,1
+de/30th-115,30th-115,de,30th,30 Jahre,115,128,Ditto,Pokémon,132,https://assets.tcgdex.net/de/me/30th/115,1
+de/30th-116,30th-116,de,30th,30 Jahre,116,128,Evoli,Pokémon,133,https://assets.tcgdex.net/de/me/30th/116,1
+de/30th-117,30th-117,de,30th,30 Jahre,117,128,Evoli,Pokémon,133,https://assets.tcgdex.net/de/me/30th/117,1
+de/30th-118,30th-118,de,30th,30 Jahre,118,128,Evoli,Pokémon,133,https://assets.tcgdex.net/de/me/30th/118,1
+de/30th-119,30th-119,de,30th,30 Jahre,119,128,Relaxo,Pokémon,143,https://assets.tcgdex.net/de/me/30th/119,1
+de/30th-120,30th-120,de,30th,30 Jahre,120,128,Fluffeluff,Pokémon,174,https://assets.tcgdex.net/de/me/30th/120,1
+de/30th-121,30th-121,de,30th,30 Jahre,121,128,Lugia,Pokémon,249,https://assets.tcgdex.net/de/me/30th/121,1
+de/30th-122,30th-122,de,30th,30 Jahre,122,128,Hisui-Zorua,Pokémon,570,https://assets.tcgdex.net/de/me/30th/122,1
+de/30th-123,30th-123,de,30th,30 Jahre,123,128,Hisui-Zoroark,Pokémon,571,https://assets.tcgdex.net/de/me/30th/123,1
+de/30th-124,30th-124,de,30th,30 Jahre,124,128,Meteno,Pokémon,774,https://assets.tcgdex.net/de/me/30th/124,1
+de/30th-125,30th-125,de,30th,30 Jahre,125,128,Famieps,Pokémon,925,https://assets.tcgdex.net/de/me/30th/125,1
+de/30th-126,30th-126,de,30th,30 Jahre,126,128,Poképad,Trainer,,https://assets.tcgdex.net/de/me/30th/126,1
+de/30th-127,30th-127,de,30th,30 Jahre,127,128,Tausch,Trainer,,https://assets.tcgdex.net/de/me/30th/127,1
+de/30th-128,30th-128,de,30th,30 Jahre,128,128,Hyperball,Trainer,,https://assets.tcgdex.net/de/me/30th/128,1
+de/30th-129,30th-129,de,30th,30 Jahre,129,128,Alola-Kokowei,Pokémon,103,https://assets.tcgdex.net/de/me/30th/129,1
+de/30th-130,30th-130,de,30th,30 Jahre,130,128,Lavados,Pokémon,146,https://assets.tcgdex.net/de/me/30th/130,1
+de/30th-131,30th-131,de,30th,30 Jahre,131,128,Lapras,Pokémon,131,https://assets.tcgdex.net/de/me/30th/131,1
+de/30th-132,30th-132,de,30th,30 Jahre,132,128,Arktos,Pokémon,144,https://assets.tcgdex.net/de/me/30th/132,1
+de/30th-133,30th-133,de,30th,30 Jahre,133,128,Zapdos,Pokémon,145,https://assets.tcgdex.net/de/me/30th/133,1
+de/30th-134,30th-134,de,30th,30 Jahre,134,128,Riffex,Pokémon,849,https://assets.tcgdex.net/de/me/30th/134,1
+de/30th-135,30th-135,de,30th,30 Jahre,135,128,Morpeko,Pokémon,877,https://assets.tcgdex.net/de/me/30th/135,1
+de/30th-136,30th-136,de,30th,30 Jahre,136,128,Driftlon,Pokémon,425,https://assets.tcgdex.net/de/me/30th/136,1
+de/30th-137,30th-137,de,30th,30 Jahre,137,128,Skelabra,Pokémon,609,https://assets.tcgdex.net/de/me/30th/137,1
+de/30th-138,30th-138,de,30th,30 Jahre,138,128,Wolwerock,Pokémon,745,https://assets.tcgdex.net/de/me/30th/138,1
+de/30th-139,30th-139,de,30th,30 Jahre,139,128,Alola-Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/139,1
+de/30th-140,30th-140,de,30th,30 Jahre,140,128,Zurrokex,Pokémon,559,https://assets.tcgdex.net/de/me/30th/140,1
+de/30th-141,30th-141,de,30th,30 Jahre,141,128,Galar-Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/141,1
+de/30th-142,30th-142,de,30th,30 Jahre,142,128,Monetigo,Pokémon,1000,https://assets.tcgdex.net/de/me/30th/142,1
+de/30th-143,30th-143,de,30th,30 Jahre,143,128,Grandiras,Pokémon,784,https://assets.tcgdex.net/de/me/30th/143,1
+de/30th-144,30th-144,de,30th,30 Jahre,144,128,Mauzi,Pokémon,52,https://assets.tcgdex.net/de/me/30th/144,1
+de/30th-145,30th-145,de,30th,30 Jahre,145,128,Hisui-Zorua,Pokémon,570,https://assets.tcgdex.net/de/me/30th/145,1
+de/30th-146,30th-146,de,30th,30 Jahre,146,128,Famieps,Pokémon,925,https://assets.tcgdex.net/de/me/30th/146,1
+de/30th-147,30th-147,de,30th,30 Jahre,147,128,Krokel-ex,Pokémon,909,https://assets.tcgdex.net/de/me/30th/147,1
+de/30th-148,30th-148,de,30th,30 Jahre,148,128,Quajutsu-ex,Pokémon,658,https://assets.tcgdex.net/de/me/30th/148,1
+de/30th-149,30th-149,de,30th,30 Jahre,149,128,Pikachu-ex,Pokémon,25,https://assets.tcgdex.net/de/me/30th/149,1
+de/30th-150,30th-150,de,30th,30 Jahre,150,128,Pikachu-ex,Pokémon,25,https://assets.tcgdex.net/de/me/30th/150,1
+de/30th-151,30th-151,de,30th,30 Jahre,151,128,Mewtu-ex,Pokémon,150,https://assets.tcgdex.net/de/me/30th/151,1
+de/30th-152,30th-152,de,30th,30 Jahre,152,128,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/me/30th/152,1
+de/30th-153,30th-153,de,30th,30 Jahre,153,128,Feelinara-ex,Pokémon,700,https://assets.tcgdex.net/de/me/30th/153,1
+de/30th-154,30th-154,de,30th,30 Jahre,154,128,Gengar-ex,Pokémon,94,https://assets.tcgdex.net/de/me/30th/154,1
+de/30th-155,30th-155,de,30th,30 Jahre,155,128,Jirachi-ex,Pokémon,385,https://assets.tcgdex.net/de/me/30th/155,1
+de/30th-156,30th-156,de,30th,30 Jahre,156,128,Brutalanda-ex,Pokémon,373,https://assets.tcgdex.net/de/me/30th/156,1
+de/30th-157,30th-157,de,30th,30 Jahre,157,128,Mewtu-ex,Pokémon,150,https://assets.tcgdex.net/de/me/30th/157,1
+de/30th-158,30th-158,de,30th,30 Jahre,158,128,Mew-ex,Pokémon,151,https://assets.tcgdex.net/de/me/30th/158,1
