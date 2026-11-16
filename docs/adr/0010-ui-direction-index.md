@@ -14,7 +14,7 @@ Direction **C, Index**:
 - Each set is a grid with one slot per card, filled with the card's energy color when owned, so missing cards show at a glance.
 - The palette is cool and light with ink-blue text; energy colors are used only for data. The typeface is Schibsted Grotesk.
 
-From direction **B, Slab**: the collections screen opens with the collection's total value and its weekly change, and each set shows its value.
+From direction **B, Slab**: the collections screen opens with the collection's total value and its weekly change, and each set shows its value. The weekly change is **free**: it uses the daily price snapshots that are stored anyway, while charts and full history stay Pro (ADR 0007).
 
 ## Alternatives considered
 
