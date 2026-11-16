@@ -12,6 +12,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.FileNotFoundException
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -32,9 +33,13 @@ class RealPhotoTest {
         val dir = context.getExternalFilesDir("realphotos")
         val labelsFile = File(dir, "labels.json")
         assumeTrue("no real photos in $dir", labelsFile.exists())
-        val engine = runCatching { RecognitionEngine.load(context) }.getOrNull()
-        assumeTrue("recognition assets missing", engine != null)
-        engine!!
+        // Only missing assets skip the test; present but broken assets (bad model, dim mismatch) must fail it.
+        val engine = try {
+            RecognitionEngine.load(context)
+        } catch (e: FileNotFoundException) {
+            assumeTrue("recognition assets missing: ${e.message}", false)
+            return
+        }
         val labels = JSONObject(labelsFile.readText())
         val kinds = if (engine.hasLearnedDetector) DetectorKind.entries else listOf(DetectorKind.CLASSIC)
         // Each detector once with every language, once German only (the photos are German prints).

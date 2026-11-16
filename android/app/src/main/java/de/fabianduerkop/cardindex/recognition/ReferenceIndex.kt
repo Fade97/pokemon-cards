@@ -33,6 +33,8 @@ data class Match(val index: Int, val card: RefCard, val similarity: Float)
 class ReferenceIndex(val cards: List<RefCard>, private val vectors: FloatArray, val dim: Int) {
     init {
         require(vectors.size == cards.size * dim) { "index has ${vectors.size / dim} rows, cards.json ${cards.size}" }
+        // RecognitionResult.margin compares the two best candidates.
+        require(cards.size >= 2) { "index needs at least 2 cards, has ${cards.size}" }
     }
 
     val size: Int get() = cards.size

@@ -7,42 +7,21 @@
 import { runNightlyImport } from "./nightly";
 import { getPrices, isCardId, MAX_BATCH } from "./prices";
 
-/** Prices change once a day, so clients and the edge may reuse a single-card answer for an hour. */
+/** Prices change once a day, so clients may reuse a single-card answer for an hour (the Worker itself does not cache). */
 const CACHE_ONE_CARD = "public, max-age=3600";
+
+/** Generous for 100 ids of ~20 characters; bigger bodies are not read at all. */
+const MAX_BODY_BYTES = 16 * 1024;
 
 export default {
   async fetch(request, env): Promise<Response> {
-    const { pathname } = new URL(request.url);
-
-    if (pathname === "/health") {
-      if (request.method !== "GET") return methodNotAllowed("GET");
-      await env.DB.prepare("SELECT 1").first();
-      return json({ ok: true });
+    try {
+      return await route(request, env);
+    } catch (e) {
+      // Keep the API contract (JSON errors) instead of Cloudflare's HTML error page.
+      console.error("unhandled", e);
+      return error(500, "internal error");
     }
-
-    if (pathname === "/v1/prices") {
-      if (request.method !== "POST") return methodNotAllowed("POST");
-      const ids = await readIds(request);
-      if (typeof ids === "string") return error(400, ids);
-      const prices = await getPrices(env.DB, ids);
-      return json({
-        prices: Object.fromEntries(prices),
-        missing: ids.filter((id) => !prices.has(id)),
-      });
-    }
-
-    const single = pathname.match(/^\/v1\/prices\/([^/]+)$/);
-    if (single) {
-      if (request.method !== "GET") return methodNotAllowed("GET");
-      // Valid IDs need no percent-decoding, so the raw path segment is checked as is.
-      const id = single[1]!;
-      if (!isCardId(id)) return error(400, "invalid card id");
-      const price = (await getPrices(env.DB, [id])).get(id);
-      if (!price) return error(404, "unknown card");
-      return json(price, { "Cache-Control": CACHE_ONE_CARD });
-    }
-
-    return error(404, "not found");
   },
 
   async scheduled(_controller, env, ctx): Promise<void> {
@@ -50,20 +29,82 @@ export default {
   },
 } satisfies ExportedHandler<Env>;
 
-/** Parses `{ "ids": [...] }`, dropping duplicates. Returns an error message for bad input. */
-async function readIds(request: Request): Promise<string[] | string> {
+async function route(request: Request, env: Env): Promise<Response> {
+  const { pathname } = new URL(request.url);
+
+  if (pathname === "/health") {
+    if (request.method !== "GET") return methodNotAllowed("GET");
+    await env.DB.prepare("SELECT 1").first();
+    return json({ ok: true });
+  }
+
+  if (pathname === "/v1/prices") {
+    if (request.method !== "POST") return methodNotAllowed("POST");
+    const ids = await readIds(request);
+    if (ids instanceof Response) return ids;
+    const prices = await getPrices(env.DB, ids);
+    return json({
+      prices: Object.fromEntries(prices),
+      missing: ids.filter((id) => !prices.has(id)),
+    });
+  }
+
+  const single = pathname.match(/^\/v1\/prices\/([^/]+)$/);
+  if (single) {
+    if (request.method !== "GET") return methodNotAllowed("GET");
+    // Valid IDs need no percent-decoding, so the raw path segment is checked as is.
+    const id = single[1]!;
+    if (!isCardId(id)) return error(400, "invalid card id");
+    const price = (await getPrices(env.DB, [id])).get(id);
+    if (!price) return error(404, "unknown card");
+    return json(price, { "Cache-Control": CACHE_ONE_CARD });
+  }
+
+  return error(404, "not found");
+}
+
+/** Parses `{ "ids": [...] }`, dropping duplicates. Returns the error response for bad input. */
+async function readIds(request: Request): Promise<string[] | Response> {
+  const text = await readText(request, MAX_BODY_BYTES);
+  if (text === null) return error(413, "body too large");
   let body: unknown;
   try {
-    body = await request.json();
+    body = JSON.parse(text);
   } catch {
-    return "body must be JSON";
+    return error(400, "body must be JSON");
   }
   const ids = (body as { ids?: unknown } | null)?.ids;
-  if (!Array.isArray(ids) || ids.length === 0) return "ids must be a non-empty array";
-  if (!ids.every(isCardId)) return "invalid card id";
-  const unique = [...new Set(ids)];
-  if (unique.length > MAX_BATCH) return `at most ${MAX_BATCH} ids per request`;
-  return unique;
+  if (!Array.isArray(ids) || ids.length === 0) return error(400, "ids must be a non-empty array");
+  // Counted before dedupe, so a client cannot make the Worker validate an unbounded list.
+  if (ids.length > MAX_BATCH) return error(400, `at most ${MAX_BATCH} ids per request`);
+  if (!ids.every(isCardId)) return error(400, "invalid card id");
+  return [...new Set(ids)];
+}
+
+/** The body as text, or null once it exceeds `limit` bytes; stops reading at the limit. */
+async function readText(request: Request, limit: number): Promise<string | null> {
+  if (Number(request.headers.get("Content-Length") ?? 0) > limit) return null;
+  if (!request.body) return "";
+  const reader = request.body.getReader();
+  const chunks: Uint8Array[] = [];
+  let size = 0;
+  for (;;) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    size += value.byteLength;
+    if (size > limit) {
+      await reader.cancel();
+      return null;
+    }
+    chunks.push(value);
+  }
+  const bytes = new Uint8Array(size);
+  let offset = 0;
+  for (const c of chunks) {
+    bytes.set(c, offset);
+    offset += c.byteLength;
+  }
+  return new TextDecoder().decode(bytes);
 }
 
 function json(data: unknown, headers: Record<string, string> = {}, status = 200): Response {

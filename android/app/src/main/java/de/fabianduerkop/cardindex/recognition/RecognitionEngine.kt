@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.recognition
 import android.content.Context
 import android.graphics.Bitmap
 import android.os.SystemClock
+import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.core.graphics.createBitmap
 import com.google.android.gms.tasks.Tasks
@@ -21,6 +22,7 @@ import org.opencv.imgproc.Imgproc
 import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.TimeUnit
 
 /** How long each step took, in milliseconds. */
 data class Timings(val detect: Long, val embed: Long, val knn: Long, val ocr: Long, val total: Long)
@@ -125,38 +127,43 @@ class RecognitionEngine private constructor(
         val t0 = t1 - detectMs
         var quad = detection?.quad ?: CardDetector.centerCropFallback(bgr.cols(), bgr.rows())
 
-        var crop = CardDetector.rectify(bgr, quad)
-        val rotated = Mat().also { Core.rotate(crop, it, Core.ROTATE_180) }
-        val e0 = embedder.embed(crop)
-        val e1 = embedder.embed(rotated)
-        val t2 = SystemClock.elapsedRealtime()
+        val crop = CardDetector.rectify(bgr, quad)
+        val rotated = Mat()
+        val flipped: Boolean
+        val candidates: List<Match>
+        val cropBitmap: Bitmap
+        val t2: Long
+        try {
+            Core.rotate(crop, rotated, Core.ROTATE_180)
+            val e0 = embedder.embed(crop)
+            val e1 = embedder.embed(rotated)
+            t2 = SystemClock.elapsedRealtime()
 
-        // The detector cannot tell an upside-down card: keep the orientation with the better best match.
-        val s0 = index.similarities(e0, languages)
-        val s1 = index.similarities(e1, languages)
-        val flipped = s1.max() > s0.max()
-        val sims = if (flipped) s1 else s0
-        if (flipped) {
-            quad = quad.roll(2)
+            // The detector cannot tell an upside-down card: keep the orientation with the better best match.
+            val s0 = index.similarities(e0, languages)
+            val s1 = index.similarities(e1, languages)
+            flipped = s1.max() > s0.max()
+            candidates = index.topK(if (flipped) s1 else s0, 5)
+            cropBitmap = toBitmap(if (flipped) rotated else crop)
+        } finally {
             crop.release()
-            crop = rotated
-        } else {
             rotated.release()
         }
-        val candidates = index.topK(sims, 5)
+        if (flipped) quad = quad.roll(2)
         val t3 = SystemClock.elapsedRealtime()
 
         var reading: NumberReading? = null
         var ocrText: String? = null
         if (readNumber) {
-            val lines = readNumberStrip(bgr, quad)
+            // OCR only reranks: if it fails or hangs, the embedding candidates still stand.
+            val lines = runCatching { readNumberStrip(bgr, quad) }
+                .onFailure { Log.w(TAG, "number OCR failed", it) }
+                .getOrDefault(emptyList())
             ocrText = lines.joinToString(" | ").ifEmpty { null }
             reading = parseCollectorNumber(lines)
         }
         val t4 = SystemClock.elapsedRealtime()
 
-        val cropBitmap = toBitmap(crop)
-        crop.release()
         return RecognitionResult(
             frameWidth = bgr.cols(),
             frameHeight = bgr.rows(),
@@ -178,12 +185,20 @@ class RecognitionEngine private constructor(
      */
     private fun readNumberStrip(bgr: Mat, quad: Quad): List<String> {
         val big = CardDetector.rectify(bgr, quad, 630, 880)
-        val strip = Mat(big, Rect(0, (0.905 * 880).toInt(), (0.50 * 630).toInt(), (0.99 * 880).toInt() - (0.905 * 880).toInt()))
-        val up = Mat().also { Imgproc.resize(strip, it, Size(), 2.0, 2.0, Imgproc.INTER_CUBIC) }
-        big.release()
-        val bitmap = toBitmap(up)
-        up.release()
-        val text = Tasks.await(textRecognizer.process(InputImage.fromBitmap(bitmap, 0)))
+        val up = Mat()
+        val bitmap = try {
+            val strip = Mat(big, Rect(0, (0.905 * 880).toInt(), (0.50 * 630).toInt(), (0.99 * 880).toInt() - (0.905 * 880).toInt()))
+            try {
+                Imgproc.resize(strip, up, Size(), 2.0, 2.0, Imgproc.INTER_CUBIC)
+            } finally {
+                strip.release()
+            }
+            toBitmap(up)
+        } finally {
+            big.release()
+            up.release()
+        }
+        val text = Tasks.await(textRecognizer.process(InputImage.fromBitmap(bitmap, 0)), OCR_TIMEOUT_S, TimeUnit.SECONDS)
         return text.textBlocks.flatMap { b -> b.lines.map { it.text } }
     }
 
@@ -195,6 +210,10 @@ class RecognitionEngine private constructor(
 
     companion object {
         const val ASSET_DIR = "recognition"
+        private const val TAG = "RecognitionEngine"
+
+        /** Upper bound for one number OCR, so a stuck ML Kit task cannot block the recognition worker. */
+        private const val OCR_TIMEOUT_S = 5L
 
         /** Loads OpenCV, the model and the index from `assets/recognition/` (built by ml/app_assets.py). */
         @WorkerThread

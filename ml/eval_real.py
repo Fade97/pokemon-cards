@@ -129,15 +129,16 @@ def step_review(photos: list[Path], work: Path):
             print(f"skip {p.name}: run label + pipeline first")
             continue
         lk, pk = L["match"]["key"], P["top5_reranked"][0]
-        if lk is not None and lk == pk:
-            labels[p.name] = {"key": lk, "status": "auto"}
-            continue
+        # A stored human choice always wins; model agreement only labels photos nobody reviewed yet.
         c = choices.get(p.name)
         if c:
             if c["choice"] in ("not_in_scope", "unclear"):
                 labels[p.name] = {"key": None, "status": c["choice"]}
             else:
                 labels[p.name] = {"key": c["choice"], "status": "reviewed"}
+        elif lk is not None and lk == pk:
+            labels[p.name] = {"key": lk, "status": "auto"}
+            continue
         else:
             labels[p.name] = {"key": None, "status": "pending"}
         review.append((p, L, P))

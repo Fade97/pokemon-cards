@@ -140,6 +140,17 @@ describe("POST /v1/prices", () => {
     const notJson = await call("/v1/prices", { method: "POST", body: "{" });
     expect(notJson.status).toBe(400);
   });
+
+  it("counts ids before dropping duplicates", async () => {
+    expect((await postIds(Array(101).fill("sv03.5-025"))).status).toBe(400);
+  });
+
+  it("rejects bodies over 16 KiB without parsing them", async () => {
+    const big = JSON.stringify({ ids: ["sv03.5-025"], pad: "x".repeat(16 * 1024) });
+    const res = await call("/v1/prices", { method: "POST", body: big });
+    expect(res.status).toBe(413);
+    expect(await res.json()).toEqual({ error: "body too large" });
+  });
 });
 
 it("returns 404 for other paths", async () => {
