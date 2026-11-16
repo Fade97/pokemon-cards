@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Index more screens</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Schibsted+Grotesk:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{
+  --page:#E6ECF3; --surface:#F7F9FC; --raised:#FFFFFF; --ink:#14233D; --muted:#56657E;
+  --line:#D3DCE7; --empty:#E3E9F1; --action:#2346A6; --action-ink:#FFFFFF; --warn:#9A5A00;
+  /* energy fills, tuned so their slot numbers reach 4.5:1 (white on the dark ones, ink on lightning/colorless/trainer) */
+  --grass:#40813C; --fire:#CD4321; --water:#3274C6; --lightning:#E2AE1C; --psychic:#9555BF;
+  --fighting:#A66239; --dark:#3B4055; --colorless:#A8A196; --trainer:#8C96A6;
+  --r-lg:22px; --r-md:12px; --r-sm:7px;
+}
+*{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
+body{background:var(--page);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,sans-serif;
+  line-height:1.4;padding:40px 16px 32px}
+.num,.cand .n,.row-n{font-variant-numeric:tabular-nums}
+button,input,textarea{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:3px solid var(--action);outline-offset:2px}
+.intro{max-width:1520px;margin:0 auto 32px;display:flex;flex-wrap:wrap;gap:8px 40px;align-items:baseline}
+.intro h1{font-size:44px;font-weight:800;letter-spacing:-.03em;line-height:1}
+.intro h1 small{display:block;font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-top:8px}
+.intro p{max-width:56ch;color:var(--muted);font-size:17px}
+.intro b{color:var(--ink)}
+.row{display:flex;gap:40px 28px;justify-content:center;flex-wrap:wrap;max-width:1560px;margin:0 auto}
+figure{display:flex;flex-direction:column;gap:12px;width:360px;max-width:100%}
+figcaption{font-size:14px;color:var(--muted);padding-left:6px}
+figcaption b{color:var(--ink);font-weight:700;margin-right:6px}
+.phone{width:360px;max-width:100%;height:780px;background:var(--surface);border-radius:40px;border:10px solid #1C2638;
+  overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 30px 60px -30px rgba(20,35,61,.45)}
+.status{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600}
+.scroll{flex:1;overflow-y:auto;padding:4px 18px 18px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:2px 0 10px;gap:8px;min-height:48px}
+.top h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.ghost{background:none;border:0;color:var(--action);font-weight:600;font-size:15px;min-height:44px;padding:0 6px}
+/* bottom navigation: real buttons, 58px targets, Material 3 indicator */
+.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:6px 4px 2px}
+.nav button{flex:1;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;font-size:12px;font-weight:600;color:var(--muted);border-radius:var(--r-md)}
+.nav .ic{width:56px;height:30px;border-radius:15px;display:grid;place-items:center}
+.nav [aria-current=page]{color:var(--ink);font-weight:700}
+.nav [aria-current=page] .ic{background:#D9E2F3}
+/* top app bar with a back arrow (pushed screens) */
+.appbar{display:flex;align-items:center;gap:2px;min-height:56px;margin:0 -12px 6px}
+.appbar h2{flex:1;min-width:0;font-size:20px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .ghost{padding:0 12px}
+.appbar .qpos{margin-right:12px}
+.icon-btn{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:none;border:0;color:var(--ink)}
+.icon-btn:hover{background:#E6ECF4}
+.icon-btn svg,.nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* gesture navigation inset: content ends above the home indicator */
+.phone{padding-bottom:18px}
+.gesture{position:absolute;left:0;right:0;bottom:0;height:18px;display:grid;place-items:center;pointer-events:none;z-index:6}
+.gesture::after{content:"";width:110px;height:4px;border-radius:2px;background:var(--ink);opacity:.6}
+.phone.cam{background:var(--surface)}.phone.cam .status{background:#101722}
+/* placeholder card face */
+.card{border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px;color:#fff;aspect-ratio:63/88;position:relative;overflow:hidden}
+.card .nm{display:flex;justify-content:space-between;font-weight:700;font-size:13px}
+.card .art{flex:1;border-radius:4px;background:rgba(255,255,255,.22);position:relative;overflow:hidden}
+.card .art::after{content:"";position:absolute;width:62%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.35);left:20%;top:16%}
+.card .tx{height:28%;border-radius:4px;background:rgba(255,255,255,.88)}
+.card .no{font-size:10px;font-weight:600;align-self:flex-start;background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px}
+.fire{background:var(--fire)}.grass{background:var(--grass)}.lightning{background:var(--lightning)}.psychic{background:var(--psychic)}
+.num{font-weight:800;letter-spacing:-.045em;line-height:.9;font-size:72px}
+.num span{color:var(--muted);font-weight:500}
+.num.mid{font-size:44px}
+h3{font-size:15px;font-weight:700;margin:16px 0 7px}
+/* chips: 36px visual, 44px hit area */
+.chips{display:flex;flex-wrap:wrap;gap:8px 6px}
+.chip{position:relative;min-height:36px;border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:0 11px;font-size:14px;font-weight:600}
+.chip::before{content:"";position:absolute;inset:-5px -1px}
+.chip.sm{padding:0 10px;font-size:13px}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.foot{flex:none;padding:12px 18px 16px;border-top:1px solid var(--line);background:var(--raised);display:flex;gap:10px}
+.primary{flex:1;min-height:48px;background:var(--action);color:var(--action-ink);border:0;border-radius:var(--r-md);padding:0 14px;font-weight:700;font-size:16px}
+.primary:disabled{background:#A9B5CB;cursor:not-allowed}
+.secondary{min-height:48px;background:none;border:1.5px solid var(--line);border-radius:var(--r-md);padding:0 16px;font-weight:600}
+.lede{font-size:15px;color:var(--muted);max-width:34ch}
+.hint{font-size:13px;color:var(--muted);margin-top:8px}
+.slots{display:grid;grid-template-columns:repeat(15,1fr);gap:2px}
+.slots i{aspect-ratio:1;border-radius:3px;background:var(--empty)}
+/* 1 onboarding */
+.packs{display:flex;flex-direction:column;border-top:1px solid var(--line)}
+.pack{display:grid;grid-template-columns:40px 1fr auto 22px;align-items:center;gap:10px;min-height:48px;background:none;border:0;border-bottom:1px solid var(--line);padding:6px 2px;text-align:left}
+.pack .code{font-weight:800;font-size:15px;letter-spacing:-.01em}
+.pack .lang{font-weight:600}
+.pack .sz{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
+.pack .box{width:20px;height:20px;border-radius:5px;border:1.5px solid #9FB0C8;display:grid;place-items:center}
+.pack[aria-pressed=true] .box{background:var(--action);border-color:var(--action)}
+.pack[aria-pressed=true] .box::after{content:"";width:9px;height:5px;border:2.5px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
+.pack:disabled{cursor:default;color:var(--muted)}
+.pack:disabled .code{color:var(--muted)}
+.pack:disabled .box{display:none}
+.pack:disabled .sz{grid-column:3/5;font-style:italic}
+.device{display:flex;gap:10px;align-items:flex-start;background:#EEF2FC;border-radius:var(--r-md);padding:10px 12px;font-size:13px;color:var(--ink);margin-top:14px}
+.device i{flex:none;width:8px;height:8px;margin-top:6px;border-radius:50%;background:var(--action)}
+/* 2 empty state */
+.empty{flex:1;display:flex;flex-direction:column;justify-content:center;padding:0 26px;gap:12px}
+.ghostgrid{width:100%;margin-bottom:18px}
+.ghostgrid i{background:none;border:1.5px dashed #B4C1D3}
+.ghostgrid i.lit{background:var(--grass);border:0}
+.empty h2{font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1}
+.stack{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.stack .primary{flex:none}
+.link{background:none;border:0;color:var(--action);font-weight:600;min-height:44px;text-align:center}
+/* 3 no match: non-blocking banner, camera keeps scanning */
+.cam{background:#101722;color:#E8EEF7}
+.view{flex:1;position:relative;overflow:hidden;background:radial-gradient(120% 70% at 50% 45%,#2B3446 0%,#151C28 70%)}
+.table{position:absolute;inset:auto -10% -6% -10%;height:46%;background:#3A3027;transform:perspective(500px) rotateX(28deg);opacity:.75}
+.scan-card{position:absolute;width:106px;left:127px;top:128px;transform:rotate(3deg);filter:saturate(.9) brightness(.92)}
+.scan-card.glare::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 52%,transparent 68%)}
+.frame{position:absolute;left:118px;top:118px;width:124px;height:168px;transform:rotate(3deg);border-radius:12px;border:3px dashed #F2B64C}
+.read{position:absolute;left:0;right:0;top:46px;text-align:center}
+.read .num{font-size:54px;color:#fff}
+.read .num span{color:#A3B2C8}
+.read p{font-size:14px;color:#C2CDDD;margin-top:6px}
+.pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
+.auto{position:absolute;top:12px;left:16px;background:rgba(255,255,255,.12)}
+.auto i{width:8px;height:8px;border-radius:50%;background:#62D27A}
+@media (prefers-reduced-motion:no-preference){.auto i{animation:blink 1.6s ease-in-out infinite}}
+@keyframes blink{50%{opacity:.3}}
+.banner{position:absolute;left:12px;right:12px;bottom:12px;background:var(--raised);color:var(--ink);border-radius:var(--r-md);border-left:5px solid #F2B64C;padding:12px 14px 6px;box-shadow:0 14px 30px -12px rgba(0,0,0,.6)}
+.banner b{display:block;font-size:16px}
+.banner p{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.bacts{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.bacts .primary{flex:none;min-height:44px;font-size:14px;padding:0 14px}
+.bacts .link{padding:0 8px;font-size:14px}
+.tray{flex:none;background:var(--surface);color:var(--ink);border-radius:20px 20px 0 0;padding:14px 18px 16px}
+.counts{display:flex;justify-content:space-between;align-items:center}
+.counts strong{font-size:34px;font-weight:800;letter-spacing:-.03em}
+.counts strong small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:4px}
+.review-btn{min-height:44px;border:0;border-radius:999px;padding:0 16px;background:#FFF1D6;color:var(--warn);font-weight:700;font-size:14px}
+.done{width:100%;min-height:48px;margin-top:10px;background:var(--ink);color:#fff;border:0;border-radius:var(--r-md);font-weight:700;font-size:16px}
+.state{display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px;margin-top:10px}
+.state>span{font-size:13px;font-weight:700;color:var(--ink);margin-right:4px}
+/* 4 search */
+.field{display:flex;align-items:center;gap:8px;background:var(--raised);border:1.5px solid var(--line);border-radius:var(--r-md);padding:0 12px}
+.field:focus-within{border-color:var(--action)}
+.field input{flex:1;border:0;background:none;padding:12px 0;font-size:16px;font-weight:600;outline:none;min-width:0}
+.field .clear{background:none;border:0;color:var(--muted);font-size:14px;font-weight:600;min-height:44px;padding:0 6px}
+.filters{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
+.results{list-style:none;padding:0;margin-top:10px}
+.res{display:grid;grid-template-columns:78px 1fr auto;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
+.row-n{font-size:19px;font-weight:800;letter-spacing:-.03em}
+.res .t{font-size:13px;color:var(--muted);min-width:0}
+.res .t b{display:block;font-size:15px;color:var(--ink)}
+.res .own{display:inline-block;margin-left:4px;font-size:12px;font-weight:700;color:#1F7A3A}
+.res .addb{position:relative;min-height:36px;border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:0 14px;font-weight:700;font-size:14px;color:var(--action)}
+.res .addb::before{content:"";position:absolute;inset:-5px -4px}
+.count{font-size:13px;color:var(--muted);margin-top:12px}
+.noresult{font-size:14px;color:var(--muted);padding:16px 0}
+/* 5 set detail */
+.sethead{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:12px}
+.sethead .num{font-size:52px}
+.sethead p{font-size:14px;color:var(--muted)}
+.sethead .v{text-align:right;font-weight:700;font-size:17px}
+.sethead .v p{font-size:12.5px;font-weight:500;max-width:17ch;margin-left:auto;line-height:1.3}
+.slang{margin:-2px 0 2px}
+/* set-detail sheet: peek bar by default, expands on tap, can be dismissed */
+.ssheet{z-index:5;padding:0 0 18px}
+.peek{display:flex;align-items:center;gap:2px;padding:6px 6px 2px 4px}
+.pk{flex:1;min-width:0;min-height:56px;display:flex;align-items:center;gap:10px;background:none;border:0;border-radius:var(--r-md);text-align:left;padding:4px 6px 4px 12px;font-size:15px;color:var(--ink)}
+.pk .pt{flex:1;min-width:0;line-height:1.3}
+.pk .pt b{display:block;font-weight:800;font-variant-numeric:tabular-nums}
+.pk .pt span{display:block;font-size:14px;color:var(--muted)}
+.pk .grab{display:none;margin:0 auto}
+.pk svg,.peek svg{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ssheet.open .pk .pt{display:none}
+.ssheet.open .pk .grab{display:block}
+.ssheet.open .pk .chev{transform:rotate(180deg)}
+@media (prefers-reduced-motion:no-preference){.pk .chev{transition:transform .15s}}
+.ssheet .full{padding:2px 18px 6px}
+.ssheet:not(.open) .full{display:none}
+.sd .scroll{padding-bottom:18px}
+.sd.has-peek .scroll{padding-bottom:96px}
+.sd.has-open .scroll{padding-bottom:300px}
+/* compact grid: every slot is a 34px button; owned = filled + check, missing = dashed outline */
+.big{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px;margin-top:12px}
+.big button{position:relative;aspect-ratio:1;min-height:44px;border:1.5px solid transparent;border-radius:6px;padding:0 0 4px 6px;display:flex;align-items:flex-end;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;background:none}
+.big button.lt{color:var(--ink)}
+.big button.own::after{content:"";position:absolute;right:6px;top:8px;width:9px;height:5px;border:2px solid currentColor;border-top:0;border-right:0;transform:rotate(-45deg)}
+.big button.miss{border:1.5px dashed #6F7E96;color:#4B5A73;background:transparent}
+.big button.sel{outline:3px solid var(--ink);outline-offset:1px}
+.big button.off{opacity:.2}
+.miss-list{list-style:none;padding:0;margin-top:6px}
+.setbar{display:flex;flex-direction:column;gap:10px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--raised);overflow:hidden}
+.seg button{flex:1;min-height:44px;border:0;background:none;padding:0 9px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.item .seg{margin:10px 0 2px}
+.item .seg button{font-size:13px}
+.cards{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.sd.v-cards .big{display:none}.sd.v-cards .cards{display:grid}
+.mini{border-radius:6px;padding:4px;display:flex;flex-direction:column;gap:3px;aspect-ratio:63/88;color:#fff;position:relative;overflow:hidden;border:0;text-align:left}
+.mini .nm{position:relative;z-index:1;font-size:8.5px;font-weight:700;line-height:1.2;overflow-wrap:anywhere;min-height:13px;background:rgba(20,35,61,.72);border-radius:3px;padding:0 3px;align-self:flex-start;max-width:100%}
+.mini .nm:empty{background:none}
+.mini .art{flex:1;border-radius:3px;background:rgba(255,255,255,.24);position:relative;overflow:hidden}
+.mini .art::after{content:"";position:absolute;width:64%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.4);left:18%;top:14%}
+.mini .no{position:relative;z-index:1;font-size:9px;font-weight:700;background:rgba(20,35,61,.78);border-radius:3px;padding:0 4px;align-self:flex-start;font-variant-numeric:tabular-nums}
+.mini .tag{position:absolute;z-index:1;right:4px;bottom:4px;font-size:8.5px;font-weight:700;background:var(--ink);color:#fff;border-radius:3px;padding:0 4px}
+.mini.miss{filter:grayscale(1)}
+.mini.miss::after{content:"";position:absolute;inset:0;border:2px dashed var(--ink);border-radius:6px;background:rgba(247,249,252,.38)}
+.mini.sel{outline:3px solid var(--ink);outline-offset:2px}
+.sd.f-owned .cards .mini.miss,.sd.f-missing .cards .mini:not(.miss){display:none}
+.miss-list li{display:grid;grid-template-columns:52px 1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
+.miss-list .row-n{font-size:15px}
+.miss-list span:last-child{font-weight:700}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--raised);border-radius:22px 22px 0 0;padding:10px 18px 36px;box-shadow:0 -14px 40px -12px rgba(20,35,61,.35)}
+.grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
+.sheet .sh{display:flex;gap:14px;align-items:flex-start}
+.sheet .card{width:74px;flex:none;padding:5px;gap:3px}
+.sheet .card .nm{font-size:9px;white-space:nowrap;overflow:hidden}
+.sheet .card .no{font-size:8px}
+.sheet .num{font-size:40px}
+.sheet h2{font-size:19px;font-weight:700;margin-top:6px}
+.sheet p{font-size:13px;color:var(--muted)}
+.sheet .pr{font-size:15px;color:var(--ink);font-weight:700;margin-top:4px}
+.sheet .pair{display:flex;gap:10px;margin-top:14px}
+.sheet .pair .secondary{padding:0 14px}
+/* 6 custom collection */
+.total{padding:4px 0 16px;border-bottom:1px solid var(--line)}
+.total p{font-size:14px;color:var(--muted)}
+.total .num{font-size:44px;margin:2px 0;font-variant-numeric:proportional-nums;letter-spacing:-.03em}
+.total .sum{color:var(--ink);font-weight:600}
+.up{color:#1F7A3A;font-weight:600;margin-left:4px}
+.sortbar{display:flex;align-items:center;gap:8px;margin:14px 0 4px;font-size:13px;color:var(--muted);font-weight:600;white-space:nowrap}
+.sortbar .chips{flex-wrap:nowrap}
+.copies{list-style:none;padding:0}
+.copy{display:grid;grid-template-columns:78px 1fr auto;gap:10px;align-items:center;padding:11px 0;border-bottom:1px solid var(--line)}
+.copy .t{font-size:13px;color:var(--muted)}.copy .t b{display:block;font-size:15px;color:var(--ink)}
+.copy .p{text-align:right;font-weight:700;font-size:15px}
+.copy .p small{display:block;font-weight:500;font-size:12px;color:var(--muted)}
+/* 7 new collection sheet */
+.behind{flex:1;padding:4px 18px;filter:blur(1.5px);opacity:.55}
+.scrim{position:absolute;inset:0;background:rgba(20,35,61,.42)}
+.sheet.tall{top:150px;display:flex;flex-direction:column;padding-bottom:18px}
+.sheet.tall .body{flex:1;overflow-y:auto}
+.sheet.tall h2{font-size:22px;margin:0 0 4px}
+label{display:block;font-size:14px;font-weight:700;margin:16px 0 6px}
+label small{font-weight:500;color:var(--muted)}
+.input{width:100%;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:12px;font-size:16px}
+.input:focus{border-color:var(--action);outline:none;box-shadow:0 0 0 3px rgba(35,70,166,.18)}
+textarea.input{resize:none;height:76px;font-size:15px}
+.sources{display:flex;flex-direction:column;gap:6px}
+.src{display:grid;grid-template-columns:1fr 22px;align-items:center;gap:10px;text-align:left;background:var(--surface);border:1.5px solid var(--line);border-radius:var(--r-md);padding:10px 12px}
+.src b{display:block;font-size:15px}.src span{font-size:13px;color:var(--muted)}
+.src .box{width:20px;height:20px;border-radius:50%;border:1.5px solid #9FB0C8}
+.src[aria-pressed=true]{border-color:var(--action);background:#EEF2FC}
+.src[aria-pressed=true] .box{border:6px solid var(--action)}
+.sheet .foot{margin:0 -18px;}
+/* 8 settings */
+.group{margin-top:18px}
+.group h3{margin:0 0 6px;font-size:13px;color:var(--muted)}
+.list{background:var(--raised);border:1px solid var(--line);border-radius:var(--r-md);padding:0 12px}
+.item{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:11px 0;border-bottom:1px solid var(--line);font-size:15px}
+.item:last-child{border-bottom:0}
+.item small{display:block;font-size:13px;color:var(--muted);font-weight:400;line-height:1.35;margin-top:2px}
+.item b{font-weight:600}
+.item .val{color:var(--muted);font-size:14px;white-space:nowrap}
+.item .act{color:var(--action);font-weight:700;font-size:14px;white-space:nowrap}
+button.item{width:100%;min-height:52px;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+button.item:last-child{border-bottom:0}
+/* switch: 46x28 track inside a 62x44 hit area */
+.switch{flex:none;box-sizing:content-box;width:46px;height:28px;border-radius:22px;border:8px solid transparent;background-color:#8C9AB0;background-clip:padding-box;position:relative;padding:0;margin:-8px -8px -8px 0}
+.switch::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch[aria-checked=true]{background-color:var(--action)}
+.switch[aria-checked=true]::after{transform:translateX(18px)}
+.upd{color:var(--warn)}
+.pv{display:block;margin-top:8px;font-size:13px;font-weight:600;color:var(--ink)}
+.about{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.45}
+.note{max-width:1520px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted)}
+@media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
+@media (max-width:420px){.intro h1{font-size:34px}.phone{height:740px}}
+</style>
+</head>
+<body>
+<header class="intro">
+  <h1>Index: more screens<small>Direction C, working title “Setlist”</small></h1>
+  <p>The rest of the first release: <b>setup, empty and error states, search, a full set, your own collections and settings</b>, using the same numbers-first catalogue look.</p>
+</header>
+
+<main class="row">
+<!-- 1 Onboarding -->
+<figure><div class="phone">
+  <div class="status"><span>9:02</span><span>100%</span></div>
+  <div class="scroll">
+    <div class="top"><h2>Which cards do you have?</h2></div>
+    <p class="lede">Pick the languages printed on your cards. You can add more later in settings.</p>
+    <div class="device"><i></i><span>Cards are recognized on your phone. Photos are only shared if you turn on Contribute scans in settings.</span></div>
+    <h3>Card languages</h3>
+    <div class="packs" id="packs">
+      <button class="pack" aria-pressed="true" data-mb="38"><span class="code">EN</span><span class="lang">English</span><span class="sz">38 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="true" data-mb="38"><span class="code">DE</span><span class="lang">Deutsch</span><span class="sz">38 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="37"><span class="code">FR</span><span class="lang">Français</span><span class="sz">37 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="33"><span class="code">IT</span><span class="lang">Italiano</span><span class="sz">33 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="33"><span class="code">ES</span><span class="lang">Español</span><span class="sz">33 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="31"><span class="code">PT</span><span class="lang">Português</span><span class="sz">31 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="24"><span class="code">NL</span><span class="lang">Nederlands</span><span class="sz">24 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="22"><span class="code">PL</span><span class="lang">Polski</span><span class="sz">22 MB</span><span class="box"></span></button>
+      <button class="pack" aria-pressed="false" data-mb="41"><span class="code">JP</span><span class="lang">日本語</span><span class="sz">41 MB</span><span class="box"></span></button>
+      <button class="pack" disabled><span class="code">KO</span><span class="lang">한국어</span><span class="sz">Coming later</span><span class="box"></span></button>
+      <button class="pack" disabled><span class="code">ZH</span><span class="lang">中文</span><span class="sz">Coming later</span><span class="box"></span></button>
+    </div>
+  </div>
+  <div class="foot"><button class="primary" id="dl">Download 2 packs (76 MB)</button></div>
+</div><figcaption><b>Language packs</b>Only the languages you pick are downloaded; the button sums them up.</figcaption></figure>
+
+<!-- 2 Empty state -->
+<figure><div class="phone">
+  <div class="status"><span>9:04</span><span>99%</span></div>
+  <div class="empty">
+    <div class="slots ghostgrid" id="ghost" aria-hidden="true"></div>
+    <h2>Scan your first card</h2>
+    <p class="lede">Hold a card in front of the camera and it is added by its number. Photos are only shared if you turn on Contribute scans.</p>
+    <div class="stack">
+      <button class="primary">Allow camera</button>
+      <button class="link">Add a card by search instead</button>
+    </div>
+  </div>
+  <nav class="nav" aria-label="Main"><button aria-current="page"><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
+</div><figcaption><b>First scan</b>One clear job and a way around it for people who don't want the camera.</figcaption></figure>
+
+<!-- 3 No match (non-blocking) -->
+<figure><div class="phone cam" id="nomatch">
+  <div class="status"><span>9:11</span><span>97%</span></div>
+  <div class="view" aria-label="Camera viewfinder, still scanning">
+    <span class="pill auto"><i></i>Scanning</span>
+    <div class="read"><div class="num" id="nm-num">151<span>/165</span></div><p id="nm-read">Not in your installed packs</p></div>
+    <div class="table"></div>
+    <div class="card psychic scan-card" id="nm-card" aria-hidden="true"><div class="nm"><span id="nm-name">ミュウex</span><span>180</span></div><div class="art"></div><div class="tx"></div><div class="no" id="nm-no">151/165</div></div>
+    <div class="frame" aria-hidden="true"></div>
+    <div class="banner" role="status" id="nm-banner">
+      <b id="nm-title">Looks like a Japanese card</b>
+      <p id="nm-text">Install the Japanese pack to recognize it. The camera keeps scanning meanwhile.</p>
+      <div class="bacts" id="nm-acts"></div>
+    </div>
+  </div>
+  <div class="tray">
+    <div class="counts"><strong>23<small>scanned</small></strong><button class="review-btn">3 to review</button></div>
+    <button class="done">Finish scanning</button>
+  </div>
+  <nav class="nav" aria-label="Main"><button aria-current="page"><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
+</div><figcaption><b>No match</b>The camera keeps scanning; a banner says why this card wasn't found and offers the fix.
+  <div class="chips state" id="nm-state" role="group" aria-label="Sample state"><span aria-hidden="true">Sample state</span><button class="chip sm" aria-pressed="true" data-v="pack">Pack missing</button><button class="chip sm" aria-pressed="false" data-v="glare">Glare</button><button class="chip sm" aria-pressed="false" data-v="unknown">Unknown card</button></div>
+</figcaption></figure>
+
+<!-- 4 Search -->
+<figure><div class="phone">
+  <div class="status"><span>9:20</span><span>95%</span></div>
+  <div class="scroll">
+    <div class="top"><h2>Search</h2></div>
+    <div class="field"><input id="sq" value="glurak" aria-label="Search cards by name or number" autocomplete="off"><button class="clear" id="sclear">Clear</button></div>
+    <div class="filters">
+      <div class="chips" id="slang" data-multi>
+        <button class="chip sm" aria-pressed="true" data-v="all">All languages</button><button class="chip sm" aria-pressed="false" data-v="DE">DE</button><button class="chip sm" aria-pressed="false" data-v="EN">EN</button><button class="chip sm" aria-pressed="false" data-v="JP">JP</button>
+      </div>
+      <div class="chips" id="sset">
+        <button class="chip sm" aria-pressed="true" data-v="all">All sets</button><button class="chip sm" aria-pressed="false" data-v="151">151</button><button class="chip sm" aria-pressed="false" data-v="SV2a">SV2a</button><button class="chip sm" aria-pressed="false" data-v="Obsidian Flames">Obsidian Flames</button>
+      </div>
+    </div>
+    <p class="count" id="scount"></p>
+    <ul class="results" id="sres"></ul>
+  </div>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button><i></i>Collections</button><button aria-current="page"><i></i>Search</button><button><i></i>Settings</button></nav>
+</div><figcaption><b>Search</b>Names match across languages, so “glurak” also finds Charizard. Try typing.</figcaption></figure>
+
+<!-- 5 Set detail -->
+<figure><div class="phone sd" data-view="compact">
+  <div class="status"><span>9:31</span><span>93%</span></div>
+  <div class="scroll">
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
+    <div class="sethead">
+      <div><p data-k="langtxt">English and German cards</p><div class="num" data-k="count">87<span>/165</span></div></div>
+      <div class="v"><span data-k="value">612,30 €</span><p>Cardmarket trend, all languages</p></div>
+    </div>
+    <div class="chips slang" role="group" aria-label="Card language"><button class="chip sm" aria-pressed="true" data-l="all">All languages</button><button class="chip sm" aria-pressed="false" data-l="EN">EN</button><button class="chip sm" aria-pressed="false" data-l="DE">DE</button></div>
+    <div class="setbar">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
+      <div class="chips sfilter">
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned" data-k="nown">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing" data-k="nmiss">Missing 78</button>
+      </div>
+    </div>
+    <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
+    <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
+    <h3 data-k="misshead">Missing 78 cards</h3>
+    <ul class="miss-list" data-k="misslist"></ul>
+  </div>
+</div><figcaption><b>Set detail</b>Compact view: every slot is numbered. Pick a language, filter to what's missing, tap a slot. The card shows as a bar you can open or close.</figcaption></figure>
+
+<!-- 5b Set detail, card view -->
+<figure><div class="phone sd" data-view="cards">
+  <div class="status"><span>9:32</span><span>93%</span></div>
+  <div class="scroll">
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
+    <div class="sethead">
+      <div><p data-k="langtxt">English and German cards</p><div class="num" data-k="count">87<span>/165</span></div></div>
+      <div class="v"><span data-k="value">612,30 €</span><p>Cardmarket trend, all languages</p></div>
+    </div>
+    <div class="chips slang" role="group" aria-label="Card language"><button class="chip sm" aria-pressed="true" data-l="all">All languages</button><button class="chip sm" aria-pressed="false" data-l="EN">EN</button><button class="chip sm" aria-pressed="false" data-l="DE">DE</button></div>
+    <div class="setbar">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
+      <div class="chips sfilter">
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned" data-k="nown">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing" data-k="nmiss">Missing 78</button>
+      </div>
+    </div>
+    <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
+    <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
+  </div>
+</div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white. Tap a card to see it in the bar.</figcaption></figure>
+
+<!-- 6 Custom collection -->
+<figure><div class="phone">
+  <div class="status"><span>9:40</span><span>92%</span></div>
+  <div class="scroll">
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>Trade binder</h2><button class="ghost">Edit</button></div>
+    <div class="total">
+      <p>Collection value, Cardmarket trend, all languages</p>
+      <div class="num">212,00 €</div>
+      <p class="sum">36 cards <span class="up">+3,40 € this week</span></p>
+    </div>
+    <div class="sortbar">Sort by <div class="chips" data-group><button class="chip sm" aria-pressed="true">Value</button><button class="chip sm" aria-pressed="false">Number</button><button class="chip sm" aria-pressed="false">Newest</button></div></div>
+    <ul class="copies">
+      <li class="copy"><span class="row-n">006/165</span><span class="t"><b>Glurak ex</b>151, Holo, NM</span><span class="p">38,90 €<small>German</small></span></li>
+      <li class="copy"><span class="row-n">151/165</span><span class="t"><b>Mew ex</b>151, Holo, NM</span><span class="p">17,60 €<small>English</small></span></li>
+      <li class="copy"><span class="row-n">161/131</span><span class="t"><b>Evoli ex</b>Prismatic Evolutions, Holo, LP</span><span class="p">14,20 €<small>German</small></span></li>
+      <li class="copy"><span class="row-n">025/165</span><span class="t"><b>ピカチュウ</b>SV2a, Normal, NM</span><span class="p">6,50 €<small>Japanese</small></span></li>
+      <li class="copy"><span class="row-n">057/191</span><span class="t"><b>Pikachu ex</b>Surging Sparks, Holo, NM</span><span class="p">5,90 €<small>English</small></span></li>
+      <li class="copy"><span class="row-n">003/165</span><span class="t"><b>Bisaflor ex</b>151, Holo, MP</span><span class="p">3,20 €<small>German</small></span></li>
+      <li class="copy"><span class="row-n">025/165</span><span class="t"><b>Pikachu</b>151, Reverse holo, NM</span><span class="p">1,10 €<small>German</small></span></li>
+    </ul>
+  </div>
+</div><figcaption><b>Your collection</b>Same value header as all cards, then copies sorted by what they're worth.</figcaption></figure>
+
+<!-- 7 New collection -->
+<figure><div class="phone">
+  <div class="status"><span>9:44</span><span>92%</span></div>
+  <div class="behind" aria-hidden="true">
+    <div class="top"><h2>Collections</h2></div>
+    <div class="total"><p>Collection value, Cardmarket trend, all languages</p><div class="num">1.284,60 €</div><p class="sum">All cards, 412 copies</p></div>
+  </div>
+  <div class="scrim"></div>
+  <div class="sheet tall" role="dialog" aria-label="New collection">
+    <div class="grab"></div>
+    <div class="body">
+      <h2>New collection</h2>
+      <p class="hint" style="margin-top:0">For binders, trade piles or anything you want to keep together.</p>
+      <label for="cname">Name</label>
+      <input id="cname" class="input" placeholder="e.g. Fire binder">
+      <label for="cdesc">Description <small>(optional)</small></label>
+      <textarea id="cdesc" class="input" placeholder="What goes in here?"></textarea>
+      <label>Add cards from</label>
+      <div class="sources" data-group>
+        <button class="src" aria-pressed="true"><span><b>Scan</b><span>Scan straight into this collection</span></span><span class="box"></span></button>
+        <button class="src" aria-pressed="false"><span><b>Search</b><span>Pick cards by name or number</span></span><span class="box"></span></button>
+        <button class="src" aria-pressed="false"><span><b>Existing collection</b><span>Move or copy cards you already have</span></span><span class="box"></span></button>
+      </div>
+    </div>
+    <div class="foot"><button class="secondary">Cancel</button><button class="primary" id="create" disabled>Create collection</button></div>
+  </div>
+</div><figcaption><b>New collection</b>Create stays disabled until there's a name. Type one to try it.</figcaption></figure>
+
+<!-- 8 Settings -->
+<figure><div class="phone">
+  <div class="status"><span>9:50</span><span>91%</span></div>
+  <div class="scroll">
+    <div class="top"><h2>Settings</h2></div>
+    <section class="group">
+      <h3>Prices</h3>
+      <div class="list">
+        <div class="item" style="display:block"><b>Main price</b>
+          <div class="seg" id="psrc" role="group" aria-label="Main price"><button aria-pressed="true" data-v="cm">Cardmarket, EUR</button><button aria-pressed="false" data-v="tcg">TCGplayer, USD</button></div>
+          <small id="pnote">Cardmarket prices mix all card languages. A German card often sells for less than an English one.</small>
+          <span class="pv" id="pv" aria-live="polite">Example: Glurak ex shows 38,90 € (Cardmarket trend)</span>
+        </div>
+      </div>
+    </section>
+    <section class="group">
+      <h3>Language packs</h3>
+      <div class="list">
+        <button class="item"><span><b>English, German</b><small>Installed, 76 MB</small></span><span class="act">Add language</span></button>
+        <button class="item"><span><b class="upd">Update available</b><small>Surging Sparks, 2.1 MB</small></span><span class="act">Update</span></button>
+      </div>
+    </section>
+    <section class="group">
+      <h3>Help improve recognition</h3>
+      <div class="list">
+        <div class="item"><span><b>Contribute scans</b><small>Shares only the cropped card image and its name, with no location or device data. Released as public domain (CC0).</small></span><button class="switch" role="switch" aria-checked="false" aria-label="Contribute scans" id="contrib"></button></div>
+      </div>
+    </section>
+    <section class="group">
+      <h3>Backup</h3>
+      <div class="list">
+        <button class="item"><b>Export collection</b><span class="val">JSON or CSV</span></button>
+        <button class="item"><b>Import collection</b><span class="val">From a backup file</span></button>
+      </div>
+    </section>
+    <section class="group">
+      <h3>About</h3>
+      <div class="list">
+        <button class="item"><b>Open-source licenses</b><span class="val">GPLv3 app</span></button>
+      </div>
+      <p class="about">Not affiliated with, endorsed or sponsored by Nintendo, Creatures, GAME FREAK or The Pokémon Company. Card names belong to their owners.</p>
+    </section>
+  </div>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button aria-current="page"><i></i>Settings</button></nav>
+</div><figcaption><b>Settings</b>Price source, packs, opt-in contributions, backup and the legal note.</figcaption></figure>
+</main>
+<p class="note">Sample data. Card faces are placeholders, not real artwork.</p>
+
+<script>
+const $=id=>document.getElementById(id);
+// shared: icons for nav and app bars, gesture inset on every phone
+const ICON={
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  up:'<path d="m6 15 6-6 6 6"/>',
+  scan:'<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.5" y="7.5" width="7" height="9" rx="1"/>',
+  collections:'<rect x="8" y="3.5" width="11" height="15" rx="1.5"/><path d="M5 7.5v11a2 2 0 0 0 2 2h8.5"/>',
+  search:'<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/><circle cx="12" cy="12" r="6.3"/>'};
+const svg=p=>`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${p}</svg>`;
+document.querySelectorAll('.nav button').forEach(b=>{const name=b.textContent.trim().toLowerCase();b.querySelector('i')?.remove();
+  b.insertAdjacentHTML('afterbegin',`<span class="ic">${svg(ICON[name])}</span>`);});
+document.querySelectorAll('[data-icon]').forEach(b=>b.innerHTML=svg(ICON[b.dataset.icon]));
+document.querySelectorAll('.phone').forEach(p=>p.insertAdjacentHTML('beforeend','<div class="gesture" aria-hidden="true"></div>'));
+
+// generic single-select groups
+document.querySelectorAll('[data-group]').forEach(g=>g.addEventListener('click',e=>{
+  const b=e.target.closest('button');if(!b)return;
+  g.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+}));
+// 1 language packs
+const packs=$('packs');
+function sumPacks(){
+  const on=[...packs.querySelectorAll('.pack[aria-pressed=true]')];
+  const mb=on.reduce((s,p)=>s+ +p.dataset.mb,0);
+  const n=on.length;
+  $('dl').disabled=!n;
+  $('dl').textContent=n?`Download ${n} pack${n>1?'s':''} (${mb} MB)`:'Pick at least one language';
+}
+packs.addEventListener('click',e=>{const b=e.target.closest('.pack');if(!b||b.disabled)return;
+  b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');sumPacks();});
+sumPacks();
+// 2 ghost grid: one lit slot
+for(let n=1;n<=60;n++){const i=document.createElement('i');if(n===1)i.className='lit';$('ghost').appendChild(i);}
+// 4 search
+const CARDS=[
+  {n:'006/165',name:'Glurak ex',set:'151',lang:'DE',own:2,alias:'charizard'},
+  {n:'006/165',name:'Charizard ex',set:'151',lang:'EN',own:0,alias:'glurak'},
+  {n:'199/165',name:'Glurak ex',set:'151',lang:'DE',own:0,alias:'charizard'},
+  {n:'006/165',name:'リザードンex',set:'SV2a',lang:'JP',own:0,alias:'glurak charizard lizardon'},
+  {n:'125/197',name:'Glurak ex',set:'Obsidian Flames',lang:'DE',own:1,alias:'charizard'},
+  {n:'223/197',name:'Charizard ex',set:'Obsidian Flames',lang:'EN',own:0,alias:'glurak'},
+  {n:'004/165',name:'Glumanda',set:'151',lang:'DE',own:3,alias:'charmander'},
+  {n:'005/165',name:'Glutexo',set:'151',lang:'DE',own:0,alias:'charmeleon'},
+  {n:'025/165',name:'Pikachu',set:'151',lang:'DE',own:1,alias:''},
+  {n:'151/165',name:'Mew ex',set:'151',lang:'EN',own:1,alias:''},
+  {n:'001/165',name:'Bisasam',set:'151',lang:'DE',own:1,alias:'bulbasaur'},
+];
+function picked(id){return [...$(id).querySelectorAll('[aria-pressed=true]')].map(b=>b.dataset.v);}
+function search(){
+  const q=$('sq').value.trim().toLowerCase(), langs=picked('slang'), sets=picked('sset');
+  const hits=CARDS.filter(c=>(!q||(c.name+' '+c.alias+' '+c.n).toLowerCase().includes(q))
+    &&(langs.includes('all')||langs.includes(c.lang))&&(sets.includes('all')||sets.includes(c.set)));
+  $('scount').textContent=q?`${hits.length} card${hits.length===1?'':'s'} for “${$('sq').value.trim()}”`:`${hits.length} cards`;
+  $('sres').innerHTML=hits.length?hits.map(c=>`<li class="res"><span class="row-n">${c.n}</span><span class="t"><b>${c.name}</b>${c.set}, ${c.lang}${c.own?`<span class="own">${c.own} owned</span>`:''}</span><button class="addb" aria-label="Add ${c.name} ${c.n}">Add</button></li>`).join('')
+    :'<li class="noresult">No cards match. Check the spelling or try the card number, like 006.</li>';
+}
+$('sq').addEventListener('input',search);
+$('sclear').onclick=()=>{$('sq').value='';$('sq').focus();search();};
+// language chips: multi, "all" exclusive
+$('slang').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  const all=$('slang').querySelector('[data-v=all]');
+  if(b===all){$('slang').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===all));}
+  else{b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')!=='true');
+    const any=$('slang').querySelector('[aria-pressed=true]:not([data-v=all])');all.setAttribute('aria-pressed',!any);}
+  search();});
+$('sset').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $('sset').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));search();});
+search();
+// 5 set grid (same ownership and type data as c-index.html)
+const R=[[3,'grass'],[6,'fire'],[9,'water'],[15,'grass'],[22,'colorless'],[24,'grass'],[26,'lightning'],[28,'fighting'],[34,'psychic'],[36,'colorless'],[38,'fire'],[40,'colorless'],[45,'grass'],[47,'grass'],[49,'grass'],[51,'fighting'],[53,'colorless'],[55,'water'],[57,'fighting'],[59,'fire'],[62,'water'],[65,'psychic'],[68,'fighting'],[71,'grass'],[73,'water'],[76,'fighting'],[78,'fire'],[80,'water'],[82,'lightning'],[85,'colorless'],[87,'water'],[89,'psychic'],[91,'water'],[94,'psychic'],[95,'fighting'],[97,'psychic'],[99,'water'],[101,'lightning'],[103,'grass'],[105,'fighting'],[107,'fighting'],[108,'colorless'],[110,'psychic'],[112,'fighting'],[113,'colorless'],[114,'grass'],[115,'colorless'],[121,'water'],[122,'psychic'],[123,'grass'],[124,'psychic'],[125,'lightning'],[126,'fire'],[127,'grass'],[128,'colorless'],[131,'water'],[132,'colorless'],[136,'colorless'],[137,'colorless'],[141,'fighting'],[142,'colorless'],[143,'colorless'],[144,'water'],[145,'lightning'],[146,'fire'],[149,'colorless'],[151,'psychic'],[165,'trainer']];
+const typeOf=n=>R.find(r=>n<=r[0])[1];
+const col=t=>`var(--${t})`;
+const owned=n=>[1,6,25,151].includes(n)||((n*37)%100)<52;
+const NAMES={1:'Bisasam',2:'Bisaknosp',3:'Bisaflor ex',4:'Glumanda',5:'Glutexo',6:'Glurak ex',7:'Schiggy',8:'Schillok',9:'Turtok ex',10:'Raupy',13:'Hornliu',16:'Taubsi',19:'Rattfratz',23:'Rettan',24:'Arbok ex',25:'Pikachu',26:'Raichu',35:'Piepi',39:'Pummeluff',52:'Mauzi',54:'Enton',58:'Fukano',63:'Abra',65:'Simsala ex',74:'Kleinstein',92:'Nebulak',94:'Gengar',115:'Kangama ex',124:'Rossana ex',129:'Karpador',130:'Garados',133:'Evoli',143:'Relaxo',145:'Zapdos ex',150:'Mewtu',151:'Mew ex'};
+const LIGHT=['lightning','colorless','trainer'];
+// one price table for every place a card price appears (sample data)
+const PRICE={1:0.35,3:3.20,6:38.90,9:4.10,24:2.40,25:0.90,65:3.60,115:2.90,124:3.10,145:4.80,151:17.60};
+const priceVal=n=>PRICE[n]??((n*7)%11)*0.05+0.10;
+const eur=v=>v.toFixed(2).replace('.',',')+' €';
+const price=n=>eur(priceVal(n));
+// owned copies per language, derived deterministically: EN 52, DE 61, together 87
+const OWNED=[];for(let n=1;n<=165;n++)if(owned(n))OWNED.push(n);
+const LANGS={};OWNED.forEach((n,r)=>{const p=(r*31)%OWNED.length;LANGS[n]=p<26?['EN','DE']:p<52?['EN']:['DE'];});
+const ownedIn=(n,l)=>l==='all'?owned(n):!!(LANGS[n]&&LANGS[n].includes(l));
+const SETVAL={all:'612,30 €',EN:'268,90 €',DE:'343,40 €'};
+const LANGTXT={all:'English and German cards',EN:'English cards',DE:'German cards'};
+const LNAME={EN:'English',DE:'German'};
+const nm=n=>NAMES[n]||'Card '+String(n).padStart(3,'0');
+let sheetSeq=0;
+document.querySelectorAll('.sd').forEach(ph=>{
+  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards'),k=x=>ph.querySelector(`[data-k=${x}]`);
+  const st={lang:'all',filter:'all',sel:ph.dataset.view==='compact'?24:null,open:false};
+  // sheet, built once per phone
+  const fid='setsheet'+(++sheetSeq);
+  ph.insertAdjacentHTML('beforeend',`<div class="sheet ssheet" role="region" aria-label="Selected card" hidden>
+    <div class="peek"><button class="pk" aria-expanded="false" aria-controls="${fid}"><span class="grab" aria-hidden="true"></span><span class="pt"></span><span class="chev">${svg(ICON.up)}</span></button><button class="icon-btn" data-close aria-label="Close card">${svg(ICON.close)}</button></div>
+    <div class="full" id="${fid}">
+      <div class="sh">
+        <div class="card" data-s="face" aria-hidden="true"><div class="nm"><span data-s="fname"></span></div><div class="art"></div><div class="tx"></div><div class="no" data-s="fno"></div></div>
+        <div><div class="num" data-s="num"></div><h2 data-s="name"></h2><p data-s="own"></p><p class="pr"><span data-s="price"></span> <span style="font-weight:500;color:var(--muted)">trend, all languages</span></p></div>
+      </div>
+      <div class="pair"><button class="secondary">Open on Cardmarket</button><button class="primary">Add copy</button></div>
+    </div></div>`);
+  const sheet=ph.querySelector('.ssheet'),s_=x=>sheet.querySelector(`[data-s=${x}]`),pk=sheet.querySelector('.pk');
+  const slotBtns=[],miniBtns=[];
+  for(let n=1;n<=165;n++){
+    const i=document.createElement('button');i.textContent=String(n).padStart(3,'0');
+    i.onclick=()=>{st.sel=n;st.open=false;paint();};big.appendChild(i);slotBtns.push(i);
+    const c=document.createElement('button');c.onclick=()=>{st.sel=n;st.open=false;paint();};cards.appendChild(c);miniBtns.push(c);}
+  function paintSheet(){
+    const n=st.sel;sheet.hidden=n==null;
+    ph.classList.toggle('has-peek',n!=null&&!st.open);ph.classList.toggle('has-open',n!=null&&st.open);
+    if(n==null)return;
+    const no=String(n).padStart(3,'0'),t=typeOf(n),own=ownedIn(n,st.lang),langs=LANGS[n]||[];
+    sheet.classList.toggle('open',st.open);pk.setAttribute('aria-expanded',st.open);
+    pk.setAttribute('aria-label',st.open?'Collapse card':`${no}/165 ${nm(n)}, ${own?'owned':'missing'}, ${price(n)}. Show card`);
+    sheet.querySelector('.pt').innerHTML=`<b>${no}/165 ${nm(n)}</b><span>${own?'Owned':'Missing'}, ${price(n)}</span>`;
+    s_('face').style.background=col(t);s_('face').style.color=LIGHT.includes(t)?'var(--ink)':'#fff';
+    s_('fname').textContent=nm(n);s_('fno').textContent=no+'/165';
+    s_('num').innerHTML=`${no}<span>/165</span>`;s_('name').textContent=nm(n);
+    s_('own').textContent=langs.length?`You have it in ${langs.map(l=>LNAME[l]).join(' and ')}`:'Not in your collection yet';
+    s_('price').textContent=price(n);}
+  function paint(){
+    const L=st.lang,f=st.filter;let nOwn=0;const miss=[];
+    for(let n=1;n<=165;n++){
+      const own=ownedIn(n,L),t=typeOf(n),no=String(n).padStart(3,'0'),label=`${no} ${NAMES[n]||''}`.trim()+`, ${own?'owned':'missing'}`;
+      own?nOwn++:miss.push(n);
+      const out=(f==='owned'&&!own)||(f==='missing'&&own),sel=st.sel===n;
+      const i=slotBtns[n-1];
+      i.className=(own?'own'+(LIGHT.includes(t)?' lt':''):'miss')+(sel?' sel':'')+(out?' off':'');
+      i.style.background=own?col(t):'';i.setAttribute('aria-label',label);
+      sel?i.setAttribute('aria-pressed','true'):i.removeAttribute('aria-pressed');
+      i.tabIndex=out?-1:0;out?i.setAttribute('aria-hidden','true'):i.removeAttribute('aria-hidden');
+      const c=miniBtns[n-1];c.className='mini'+(own?'':' miss')+(sel?' sel':'');c.style.background=col(t);
+      c.setAttribute('aria-label',label);c.hidden=out;
+      c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>${own?'':'<span class="tag">Missing</span>'}`;}
+    k('count').innerHTML=`${nOwn}<span>/165</span>`;k('value').textContent=SETVAL[L];k('langtxt').textContent=LANGTXT[L];
+    k('nown').textContent=`Owned ${nOwn}`;k('nmiss').textContent=`Missing ${165-nOwn}`;
+    big.setAttribute('aria-label',`151: ${nOwn} of 165 owned`);
+    if(k('misslist')){
+      const sum=miss.reduce((a,n)=>a+priceVal(n),0);
+      k('misshead').textContent=`Missing ${miss.length} cards, about ${Math.round(sum)} € to complete`;
+      k('misslist').innerHTML=miss.slice().sort((a,b)=>priceVal(b)-priceVal(a)).slice(0,4)
+        .map(n=>`<li><span class="row-n">${String(n).padStart(3,'0')}</span><span>${nm(n)}</span><span>${price(n)}</span></li>`).join('');}
+    paintSheet();}
+  pk.onclick=()=>{st.open=!st.open;paintSheet();};
+  sheet.querySelector('[data-close]').onclick=()=>{const n=st.sel;st.sel=null;st.open=false;paint();
+    const back=(ph.classList.contains('v-cards')?miniBtns:slotBtns)[n-1];if(back&&!back.hidden&&back.tabIndex!==-1)back.focus();};
+  sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){if(st.open){st.open=false;paintSheet();pk.focus();}else sheet.querySelector('[data-close]').click();}});
+  const setView=v=>{ph.classList.toggle('v-cards',v==='cards');
+    ph.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));};
+  setView(ph.dataset.view);
+  ph.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setView(b.dataset.view);});
+  const f=ph.querySelector('.sfilter');
+  f.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    f.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    st.filter=b.dataset.v;ph.classList.remove('f-owned','f-missing');if(st.filter!=='all')ph.classList.add('f-'+st.filter);paint();});
+  const lg=ph.querySelector('.slang');
+  lg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    lg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.lang=b.dataset.l;paint();});
+  paint();
+});
+// 3 no match: three sample causes
+const NM={
+  pack:{num:'151<span>/165</span>',read:'Not in your installed packs',type:'psychic',name:'ミュウex',no:'151/165',fx:'',
+    title:'Looks like a Japanese card',text:'Install the Japanese pack to recognize it. The camera keeps scanning meanwhile.',
+    acts:'<button class="primary">Install Japanese pack (41 MB)</button><button class="link">Not now</button>'},
+  glare:{num:'0??<span>/165</span>',read:'Glare covers the number',type:'lightning',name:'Pikachu',no:'0??/165',fx:'glare',
+    title:'Number hidden by glare',text:'Tilt the card away from the light. It is added as soon as the number is readable.',
+    acts:'<button class="link">Send to Review instead</button>'},
+  unknown:{num:'???',read:'No card with this number in your packs',type:'fire',name:'Promo',no:'SVP 101',fx:'',
+    title:'Card not found',text:'It may be a promo or a set newer than your packs. Search for it by name.',
+    acts:'<button class="primary">Search manually</button><button class="link">Skip this card</button>'}};
+function nmState(v){const d=NM[v];$('nm-num').innerHTML=d.num;$('nm-read').textContent=d.read;
+  $('nm-card').className=`card ${d.type} scan-card ${d.fx}`;$('nm-name').textContent=d.name;$('nm-no').textContent=d.no;
+  $('nm-title').textContent=d.title;$('nm-text').textContent=d.text;$('nm-acts').innerHTML=d.acts;}
+$('nm-state').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $('nm-state').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));nmState(b.dataset.v);});
+nmState('pack');
+// 7 create enabled by name
+$('cname').addEventListener('input',e=>$('create').disabled=!e.target.value.trim());
+// 8 price source: the switch changes the example price
+$('psrc').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $('psrc').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const cm=b.dataset.v==='cm';
+  $('pv').textContent=cm?'Example: Glurak ex shows 38,90 € (Cardmarket trend)':'Example: Glurak ex shows $44.10 (TCGplayer market)';
+  $('pnote').textContent=cm?'Cardmarket prices mix all card languages. A German card often sells for less than an English one.':'TCGplayer prices are US market prices for English cards.';});
+// 8 switch
+$('contrib').onclick=e=>e.currentTarget.setAttribute('aria-checked',e.currentTarget.getAttribute('aria-checked')!=='true');
+</script>
+</body>
+</html>

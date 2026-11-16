@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Casebook mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Barlow:wght@400;500;600&family=Barlow+Condensed:wght@500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --ground:#D5DDE5; --ground-2:#C6D0DA; --ink:#15212C; --ink-2:#4A5967; --ink-3:#6E7C89;
+  --acrylic:rgba(255,255,255,.62); --acrylic-edge:#A9B6C2; --acrylic-hi:rgba(255,255,255,.9);
+  --label:#F2B200; --label-ink:#1A1A12; --ok:#1F7A55;
+  --fire:#E8693A; --grass:#5BA84C; --electric:#E9C531; --psychic:#A86BC9;
+  --cond:'Barlow Condensed',sans-serif; --text:'Barlow',sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--ground);color:var(--ink);font:400 15px/1.45 var(--text);
+  background-image:radial-gradient(1200px 600px at 20% -10%,#E6ECF1,transparent),linear-gradient(var(--ground),var(--ground-2))}
+button{font:inherit;color:inherit;cursor:pointer}
+:focus-visible{outline:3px solid #1E4FD8;outline-offset:2px}
+.page{max-width:1600px;margin:0 auto;padding:40px 16px 32px}
+header.intro{max-width:760px;margin:0 0 36px}
+.intro h1{font:700 44px/1 var(--cond);margin:0 0 10px;letter-spacing:-.01em}
+.intro h1 small{font:500 20px var(--cond);color:var(--ink-3);margin-left:10px}
+.intro p{margin:0;color:var(--ink-2);font-size:17px;max-width:64ch}
+.phones{display:flex;flex-wrap:wrap;gap:36px 28px;justify-content:center}
+figure{margin:0;width:min(360px,100%)}
+figcaption{font:600 17px var(--cond);color:var(--ink-2);margin:0 0 10px 6px}
+.phone{width:100%;height:780px;border-radius:30px;background:#1C2731;padding:8px;box-shadow:0 30px 60px -30px rgba(21,33,44,.55)}
+.screen{height:100%;border-radius:23px;overflow:hidden;background:#E4EAF0;position:relative;display:flex;flex-direction:column}
+.status{display:flex;justify-content:space-between;font:600 13px var(--cond);padding:10px 18px 4px;color:var(--ink-2)}
+.dark .status{color:#C9D3DC}
+.bar{display:flex;align-items:center;justify-content:space-between;padding:6px 16px 10px}
+.bar h2{font:700 26px/1 var(--cond);margin:0}
+.scroll{flex:1;overflow:auto;padding:0 16px 16px}
+/* Slab */
+.slab{background:var(--acrylic);border:1.5px solid var(--acrylic-edge);border-radius:6px;padding:6px;
+  box-shadow:inset 0 1px 0 var(--acrylic-hi),inset 0 0 0 4px rgba(255,255,255,.35)}
+.slab-label{background:var(--label);color:var(--label-ink);border-radius:3px;padding:6px 8px;display:grid;grid-template-columns:1fr auto;gap:0 10px;font-family:var(--cond);line-height:1.15}
+.slab-label .n{font-weight:700;font-size:17px}
+.slab-label .s{font-weight:500;font-size:13px}
+.slab-label .v{font-weight:700;font-size:18px;text-align:right;align-self:center;grid-row:span 2}
+.slab-window{margin-top:6px;border-radius:3px;background:linear-gradient(160deg,rgba(255,255,255,.7),rgba(220,229,237,.5));padding:10px;display:grid;place-items:center}
+/* Card face placeholder */
+.cf{--t:var(--fire);width:150px;aspect-ratio:63/88;border-radius:7px;background:#F4E8B8;padding:5px;box-shadow:0 2px 6px rgba(0,0,0,.25);position:relative}
+.cf-in{height:100%;border-radius:4px;background:linear-gradient(180deg,color-mix(in srgb,var(--t) 70%,#fff),var(--t));padding:5px 6px;display:flex;flex-direction:column;gap:4px;font:600 9px/1 var(--text);color:#1b1b1b}
+.cf-top{display:flex;justify-content:space-between}
+.cf-art{flex:0 0 46%;border-radius:2px;background:radial-gradient(circle at 60% 55%,rgba(255,255,255,.85) 0 18%,transparent 19%),radial-gradient(ellipse at 35% 40%,color-mix(in srgb,var(--t) 40%,#222) 0 30%,transparent 31%),linear-gradient(135deg,#fff8,#0002),color-mix(in srgb,var(--t) 55%,#fff);border:2px solid #E7D58E}
+.cf-lines{flex:1;display:flex;flex-direction:column;gap:5px;padding-top:3px}
+.cf-lines i{display:block;height:4px;border-radius:2px;background:rgba(0,0,0,.18)}
+.cf-lines i:nth-child(2){width:70%}
+.cf-num{font-size:7px;align-self:flex-end}
+.cf.sm{width:62px;padding:2px;border-radius:4px}.cf.sm .cf-in{padding:3px;gap:2px;font-size:5px}
+.cf.sm .cf-lines i{height:2px}
+.grass{--t:var(--grass)}.electric{--t:var(--electric)}.psychic{--t:var(--psychic)}
+/* Chips */
+.group{margin:14px 0 0}
+.group h3{font:600 16px var(--cond);margin:0 0 6px;color:var(--ink-2)}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{border:1.5px solid var(--acrylic-edge);background:var(--acrylic);border-radius:4px;padding:5px 10px;font:600 15px var(--cond)}
+.chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
+.primary{display:block;width:100%;border:0;border-radius:5px;background:var(--ink);color:#fff;font:700 19px var(--cond);padding:13px}
+.ghost{border:1.5px solid var(--acrylic-edge);background:var(--acrylic);border-radius:5px;font:600 16px var(--cond);padding:9px 12px}
+/* Scan */
+.dark{background:#0F171E}
+.viewfinder{flex:1;position:relative;overflow:hidden;
+  background:radial-gradient(ellipse at 50% 45%,#3B3328 0,#211D18 55%,#141210 100%)}
+.viewfinder::after{content:"";position:absolute;inset:0;background:repeating-linear-gradient(95deg,rgba(255,255,255,.025) 0 2px,transparent 2px 9px)}
+.scan-top{position:absolute;top:8px;left:12px;right:12px;display:flex;justify-content:space-between;align-items:center;z-index:2;color:#fff}
+.pill{background:rgba(15,23,30,.72);border-radius:999px;padding:6px 12px;font:600 15px var(--cond);color:#fff;border:0}
+.count{font:700 30px/1 var(--cond);color:#fff;text-shadow:0 1px 4px #000}
+.count small{font-size:15px;font-weight:500;margin-left:4px;color:#C9D3DC}
+.encase{position:absolute;left:50%;top:47%;transform:translate(-50%,-50%) rotate(-4deg);z-index:1;width:196px;
+  border:2px solid rgba(255,255,255,.9);border-radius:7px;padding:5px;background:rgba(220,232,242,.12);
+  box-shadow:0 0 0 999px rgba(8,12,16,.35);animation:encase 1.6s ease-out both}
+.encase .slab-label{opacity:.95}
+.encase .slab-window{background:transparent;padding:8px 0 4px}
+.encase .cf{width:168px;transform:rotate(1deg)}
+@keyframes encase{0%{border-color:transparent;background:transparent}60%{border-color:rgba(255,255,255,.9)}100%{}}
+.tray{background:#E4EAF0;padding:10px 14px 16px;display:grid;gap:10px}
+.last{display:grid;grid-template-columns:auto 1fr auto;gap:10px;align-items:center}
+.last .slab{padding:3px}
+.last p{margin:0;font-size:13px;color:var(--ink-3)}
+.last strong{display:block;font:700 18px/1.1 var(--cond);color:var(--ink)}
+.review-btn{display:flex;justify-content:space-between;align-items:center;border:0;border-radius:5px;background:var(--label);color:var(--label-ink);padding:11px 14px;font:700 18px var(--cond)}
+/* Review */
+.crop{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;margin-top:4px}
+.crop .cf{width:110px;filter:blur(.6px) saturate(.85);transform:rotate(-2deg)}
+.crop .glare{position:absolute;inset:0;background:linear-gradient(120deg,transparent 30%,rgba(255,255,255,.65) 42%,transparent 55%);border-radius:7px}
+.crop p{margin:0;color:var(--ink-2);font-size:14px}
+.cands{display:grid;gap:6px}
+.cand{display:grid;grid-template-columns:1fr auto;align-items:center;text-align:left;border:1.5px solid var(--acrylic-edge);background:var(--acrylic);border-radius:5px;padding:4px}
+.cand .slab-label{background:transparent;padding:4px 6px}
+.cand .pct{font:600 15px var(--cond);color:var(--ink-3);padding-right:8px}
+.cand[aria-pressed=true]{border-color:var(--ink);box-shadow:inset 0 0 0 1.5px var(--ink)}
+.cand[aria-pressed=true]{background:var(--label);border-color:var(--ink)}
+.cand[aria-pressed=true] .pct{color:var(--label-ink)}
+.qty{display:flex;align-items:center;gap:0;border:1.5px solid var(--acrylic-edge);border-radius:5px;width:max-content;background:var(--acrylic)}
+.qty button{border:0;background:none;width:40px;height:36px;font:700 20px var(--cond)}
+.qty output{min-width:30px;text-align:center;font:700 19px var(--cond)}
+.foot{padding:12px 16px 16px;background:#E4EAF0;border-top:1px solid #CBD5DE}
+/* Collections */
+.total{margin:4px 0 14px}
+.total .v{font:700 52px/0.95 var(--cond);letter-spacing:-.01em}
+.total p{margin:2px 0 0;color:var(--ink-2)}
+.total .up{color:var(--ok);font-weight:600}
+.setrow{display:block;width:100%;text-align:left;border:0;background:none;padding:0;margin:0 0 9px}
+.setrow .slab-label{border-radius:4px 4px 0 0}
+.meter{height:6px;background:var(--acrylic);border:1.5px solid var(--acrylic-edge);border-top:0;border-radius:0 0 4px 4px;overflow:hidden}
+.meter i{display:block;height:100%;background:var(--ink)}
+.sec{font:600 16px var(--cond);color:var(--ink-2);margin:16px 0 8px}
+.custom .slab-label{background:#fff;border:1.5px dashed var(--acrylic-edge)}
+/* Detail */
+.hero{display:flex;justify-content:center;margin:2px 0 14px}
+.hero .slab{width:250px}
+.hero .cf{width:178px}
+.prices{display:grid;grid-template-columns:1fr auto;gap:2px 12px;align-items:end;padding-bottom:12px;border-bottom:1.5px solid #CBD5DE}
+.prices .big{font:700 40px/1 var(--cond)}
+.prices .lbl{color:var(--ink-2);font-size:14px}
+.prices .usd{font:600 20px var(--cond);text-align:right}
+.link{display:inline-block;margin:10px 0 2px;color:#1E4FD8;font-weight:600;text-decoration:underline;text-underline-offset:3px}
+.copies{list-style:none;margin:0;padding:0}
+.copies li{display:grid;grid-template-columns:1fr auto;padding:9px 0;border-bottom:1px solid #CFD8E0}
+.copies b{font:700 17px var(--cond)}
+.copies span{font-size:13px;color:var(--ink-3)}
+.copies .pp{text-align:right;font:600 16px var(--cond)}
+footer{text-align:center;color:var(--ink-3);font-size:13px;margin-top:28px}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div class="page">
+<header class="intro">
+  <h1>Casebook <small>Direction B: Slab</small></h1>
+  <p>Every card sits in a clear case with a printed label, and that label carries the facts a collector checks first: name, set, number, variant, condition and value. The app reads like a shelf of graded cards, and the collection's worth leads.</p>
+</header>
+
+<div class="phones">
+
+<!-- 1 Live scan -->
+<figure>
+<figcaption>Live scan</figcaption>
+<div class="phone"><div class="screen dark">
+  <div class="status"><span>9:41</span><span>5G 82%</span></div>
+  <div class="viewfinder">
+    <div class="scan-top">
+      <button class="pill" aria-pressed="true">Auto scan on</button>
+      <div class="count">23<small>scanned</small></div>
+    </div>
+    <div class="encase" aria-label="Detected card">
+      <div class="slab-label"><span class="n">Matching</span><span class="v">94%</span><span class="s">Reading number 151/165</span></div>
+      <div class="slab-window"><div class="cf psychic"><div class="cf-in"><div class="cf-top"><span>Mew ex</span><span>180 HP</span></div><div class="cf-art"></div><div class="cf-lines"><i></i><i></i><i></i></div><span class="cf-num">151/165</span></div></div></div>
+    </div>
+  </div>
+  <div class="tray">
+    <div class="last">
+      <div class="slab"><div class="cf sm electric"><div class="cf-in"><div class="cf-top"><span>Pikachu</span><span>60</span></div><div class="cf-art"></div><div class="cf-lines"><i></i><i></i></div></div></div></div>
+      <div><p>Added just now</p><strong>Pikachu, 151 025/165</strong><p>English, Normal, NM</p></div>
+      <strong style="font:700 20px var(--cond)">€0.40</strong>
+    </div>
+    <button class="review-btn"><span>3 to review</span><span>Review now</span></button>
+  </div>
+</div></div>
+</figure>
+
+<!-- 2 Review queue -->
+<figure>
+<figcaption>Review queue</figcaption>
+<div class="phone"><div class="screen">
+  <div class="status"><span>9:42</span><span>5G 82%</span></div>
+  <div class="bar"><h2>Review</h2><span style="font:600 17px var(--cond);color:var(--ink-2)"><span id="qpos">1</span> of 3</span></div>
+  <div class="scroll">
+    <div class="crop">
+      <div style="position:relative"><div class="cf fire"><div class="cf-in"><div class="cf-top"><span>Glu…</span><span>330</span></div><div class="cf-art"></div><div class="cf-lines"><i></i><i></i><i></i></div><span class="cf-num">0?6/165</span></div></div><span class="glare"></span></div>
+      <p>Glare covered the collector number. Pick the card that matches your photo.</p>
+    </div>
+    <div class="group"><h3>Which card is it?</h3>
+      <div class="cands" data-group="single">
+        <button class="cand" aria-pressed="true"><div class="slab-label"><span class="n">Glurak ex</span><span class="s">151, 006/165, German</span></div><span class="pct">92%</span></button>
+        <button class="cand" aria-pressed="false"><div class="slab-label"><span class="n">Glurak ex</span><span class="s">151, 199/165, German</span></div><span class="pct">71%</span></button>
+        <button class="cand" aria-pressed="false"><div class="slab-label"><span class="n">Charizard ex</span><span class="s">151, 006/165, English</span></div><span class="pct">64%</span></button>
+      </div>
+    </div>
+    <div class="group"><h3>Variant</h3><div class="chips" data-group="single">
+      <button class="chip" aria-pressed="false">Normal</button><button class="chip" aria-pressed="true">Holo</button><button class="chip" aria-pressed="false">Reverse holo</button><button class="chip" aria-pressed="false">1st edition</button></div></div>
+    <div class="group"><h3>Condition</h3><div class="chips" data-group="single">
+      <button class="chip" aria-pressed="true">NM</button><button class="chip" aria-pressed="false">LP</button><button class="chip" aria-pressed="false">MP</button><button class="chip" aria-pressed="false">HP</button><button class="chip" aria-pressed="false">Poor</button></div></div>
+    <div class="group"><h3>Quantity</h3><div class="qty"><button aria-label="Fewer" data-q="-1">−</button><output id="qty">1</output><button aria-label="More" data-q="1">+</button></div></div>
+  </div>
+  <div class="foot"><button class="primary" id="confirm">Confirm and next</button></div>
+</div></div>
+</figure>
+
+<!-- 3 Collections -->
+<figure>
+<figcaption>Collections</figcaption>
+<div class="phone"><div class="screen">
+  <div class="status"><span>9:44</span><span>5G 81%</span></div>
+  <div class="bar"><h2>Collections</h2><button class="ghost">New</button></div>
+  <div class="scroll">
+    <div class="total"><div class="v">€1,284.60</div><p>All cards, 412 copies <span class="up">+€18.20 this week</span></p></div>
+    <div class="chips" data-group="multi" aria-label="Languages">
+      <button class="chip" aria-pressed="true">EN</button><button class="chip" aria-pressed="true">DE</button><button class="chip" aria-pressed="false">FR</button><button class="chip" aria-pressed="false">IT</button><button class="chip" aria-pressed="true">JP</button>
+    </div>
+    <div class="sec">Sets</div>
+    <button class="setrow"><div class="slab-label"><span class="n">151</span><span class="v">€612.30</span><span class="s">87 of 165</span></div><div class="meter"><i style="width:53%"></i></div></button>
+    <button class="setrow"><div class="slab-label"><span class="n">Prismatic Evolutions</span><span class="v">€238.10</span><span class="s">41 of 131</span></div><div class="meter"><i style="width:31%"></i></div></button>
+    <button class="setrow"><div class="slab-label"><span class="n">Surging Sparks</span><span class="v">€96.75</span><span class="s">58 of 191</span></div><div class="meter"><i style="width:30%"></i></div></button>
+    <button class="setrow"><div class="slab-label"><span class="n">Pitch Black</span><span class="v">€41.20</span><span class="s">19 of 86</span></div><div class="meter"><i style="width:22%"></i></div></button>
+    <button class="setrow"><div class="slab-label"><span class="n">SV2a, Japanese</span><span class="v">€188.40</span><span class="s">64 of 165</span></div><div class="meter"><i style="width:39%"></i></div></button>
+    <div class="sec">Your collections</div>
+    <button class="setrow custom"><div class="slab-label"><span class="n">Trade binder</span><span class="v">€107.85</span><span class="s">36 cards</span></div></button>
+  </div>
+</div></div>
+</figure>
+
+<!-- 4 Card detail -->
+<figure>
+<figcaption>Card detail</figcaption>
+<div class="phone"><div class="screen">
+  <div class="status"><span>9:45</span><span>5G 81%</span></div>
+  <div class="bar"><button class="ghost" aria-label="Back">Back</button><span style="font:600 16px var(--cond);color:var(--ink-2)">151</span></div>
+  <div class="scroll">
+    <div class="hero"><div class="slab">
+      <div class="slab-label"><span class="n">Glurak ex</span><span class="v">NM</span><span class="s">151, 006/165, German, Holo</span></div>
+      <div class="slab-window"><div class="cf fire"><div class="cf-in"><div class="cf-top"><span>Glurak ex</span><span>330 HP</span></div><div class="cf-art"></div><div class="cf-lines"><i></i><i></i><i></i></div><span class="cf-num">006/165</span></div></div></div>
+    </div></div>
+    <div class="prices">
+      <div class="big">€42.80</div><div class="usd">$51.20</div>
+      <div class="lbl">Cardmarket trend, all languages</div><div class="lbl" style="text-align:right">TCGplayer market</div>
+    </div>
+    <a class="link" href="#">Open on Cardmarket (German offers)</a>
+    <div class="sec">Your copies</div>
+    <ul class="copies">
+      <li><div><b>Holo, NM</b><br><span>Bought 12 Mar 2026</span></div><div class="pp">€38.00</div></li>
+      <li><div><b>Holo, LP</b><br><span>Bought 2 Aug 2026</span></div><div class="pp">€29.50</div></li>
+    </ul>
+    <button class="ghost" style="width:100%;margin-top:12px">Add copy</button>
+  </div>
+</div></div>
+</figure>
+
+</div>
+<footer>Sample data. Prices and card faces are placeholders.</footer>
+</div>
+<script>
+document.querySelectorAll('[data-group]').forEach(g=>{
+  g.addEventListener('click',e=>{
+    const b=e.target.closest('button'); if(!b||!g.contains(b))return;
+    if(g.dataset.group==='single'){g.querySelectorAll(':scope > button').forEach(x=>x.setAttribute('aria-pressed','false'));b.setAttribute('aria-pressed','true')}
+    else b.setAttribute('aria-pressed',b.getAttribute('aria-pressed')==='true'?'false':'true');
+  });
+});
+const qty=document.getElementById('qty');
+document.querySelectorAll('[data-q]').forEach(b=>b.addEventListener('click',()=>{qty.value=Math.max(1,+qty.value+ +b.dataset.q)}));
+let pos=1;const qp=document.getElementById('qpos'),cf=document.getElementById('confirm');
+cf.addEventListener('click',()=>{if(pos<3){pos++;qp.textContent=pos;qty.value=1}else{cf.textContent='All reviewed';cf.disabled=true}});
+</script>
+</body>
+</html>
