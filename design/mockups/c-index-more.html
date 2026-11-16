@@ -11,8 +11,9 @@
 :root{
   --page:#E6ECF3; --surface:#F7F9FC; --raised:#FFFFFF; --ink:#14233D; --muted:#56657E;
   --line:#D3DCE7; --empty:#E3E9F1; --action:#2346A6; --action-ink:#FFFFFF; --warn:#9A5A00;
-  --grass:#4C9A48; --fire:#DD4F2C; --water:#3478CC; --lightning:#E2AE1C; --psychic:#9555BF;
-  --fighting:#A9643A; --dark:#3B4055; --colorless:#A8A196;
+  /* energy fills, tuned so their slot numbers reach 4.5:1 (white on the dark ones, ink on lightning/colorless/trainer) */
+  --grass:#40813C; --fire:#CD4321; --water:#3274C6; --lightning:#E2AE1C; --psychic:#9555BF;
+  --fighting:#A66239; --dark:#3B4055; --colorless:#A8A196; --trainer:#8C96A6;
   --r-lg:22px; --r-md:12px; --r-sm:7px;
 }
 *{box-sizing:border-box;margin:0}
@@ -35,40 +36,43 @@ figcaption b{color:var(--ink);font-weight:700;margin-right:6px}
   overflow:hidden;display:flex;flex-direction:column;position:relative;box-shadow:0 30px 60px -30px rgba(20,35,61,.45)}
 .status{height:30px;flex:none;display:flex;justify-content:space-between;align-items:center;padding:0 22px;font-size:12px;font-weight:600}
 .scroll{flex:1;overflow-y:auto;padding:4px 18px 18px}
-.top{display:flex;justify-content:space-between;align-items:center;padding:6px 0 14px;gap:8px}
+.top{display:flex;justify-content:space-between;align-items:center;padding:2px 0 10px;gap:8px;min-height:48px}
 .top h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
-.ghost{background:none;border:0;color:var(--action);font-weight:600;font-size:15px;padding:6px 4px}
-.nav{flex:none;display:flex;justify-content:space-around;border-top:1px solid var(--line);background:var(--raised);padding:10px 0 14px;font-size:12px;color:var(--muted)}
-.nav span{display:flex;flex-direction:column;align-items:center;gap:4px}
+.ghost{background:none;border:0;color:var(--action);font-weight:600;font-size:15px;min-height:44px;padding:0 6px}
+/* bottom navigation: real buttons, 48px targets */
+.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:2px 4px 8px}
+.nav button{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:none;border:0;font-size:12px;color:var(--muted);border-radius:var(--r-md)}
 .nav i{width:22px;height:5px;border-radius:3px;background:var(--line)}
-.nav .on{color:var(--ink);font-weight:700}.nav .on i{background:var(--ink)}
+.nav [aria-current=page]{color:var(--ink);font-weight:700}.nav [aria-current=page] i{background:var(--ink)}
 /* placeholder card face */
 .card{border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px;color:#fff;aspect-ratio:63/88;position:relative;overflow:hidden}
 .card .nm{display:flex;justify-content:space-between;font-weight:700;font-size:13px}
 .card .art{flex:1;border-radius:4px;background:rgba(255,255,255,.22);position:relative;overflow:hidden}
 .card .art::after{content:"";position:absolute;width:62%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.35);left:20%;top:16%}
 .card .tx{height:28%;border-radius:4px;background:rgba(255,255,255,.88)}
-.card .no{font-size:10px;font-weight:600;align-self:flex-start;background:rgba(0,0,0,.25);padding:1px 5px;border-radius:4px}
+.card .no{font-size:10px;font-weight:600;align-self:flex-start;background:rgba(0,0,0,.35);padding:1px 5px;border-radius:4px}
 .fire{background:var(--fire)}.grass{background:var(--grass)}.lightning{background:var(--lightning)}.psychic{background:var(--psychic)}
 .num{font-weight:800;letter-spacing:-.045em;line-height:.9;font-size:72px}
 .num span{color:var(--muted);font-weight:500}
 .num.mid{font-size:44px}
 h3{font-size:15px;font-weight:700;margin:16px 0 7px}
-.chips{display:flex;flex-wrap:wrap;gap:6px}
-.chip{border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:7px 11px;font-size:14px;font-weight:600}
-.chip.sm{padding:5px 10px;font-size:13px}
+/* chips: 36px visual, 44px hit area */
+.chips{display:flex;flex-wrap:wrap;gap:8px 6px}
+.chip{position:relative;min-height:36px;border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:0 11px;font-size:14px;font-weight:600}
+.chip::before{content:"";position:absolute;inset:-5px -1px}
+.chip.sm{padding:0 10px;font-size:13px}
 .chip[aria-pressed=true]{background:var(--ink);border-color:var(--ink);color:#fff}
 .foot{flex:none;padding:12px 18px 16px;border-top:1px solid var(--line);background:var(--raised);display:flex;gap:10px}
-.primary{flex:1;background:var(--action);color:var(--action-ink);border:0;border-radius:var(--r-md);padding:14px;font-weight:700;font-size:16px}
+.primary{flex:1;min-height:48px;background:var(--action);color:var(--action-ink);border:0;border-radius:var(--r-md);padding:0 14px;font-weight:700;font-size:16px}
 .primary:disabled{background:#A9B5CB;cursor:not-allowed}
-.secondary{background:none;border:1.5px solid var(--line);border-radius:var(--r-md);padding:14px 16px;font-weight:600}
+.secondary{min-height:48px;background:none;border:1.5px solid var(--line);border-radius:var(--r-md);padding:0 16px;font-weight:600}
 .lede{font-size:15px;color:var(--muted);max-width:34ch}
 .hint{font-size:13px;color:var(--muted);margin-top:8px}
 .slots{display:grid;grid-template-columns:repeat(15,1fr);gap:2px}
 .slots i{aspect-ratio:1;border-radius:3px;background:var(--empty)}
 /* 1 onboarding */
 .packs{display:flex;flex-direction:column;border-top:1px solid var(--line)}
-.pack{display:grid;grid-template-columns:40px 1fr auto 22px;align-items:center;gap:10px;background:none;border:0;border-bottom:1px solid var(--line);padding:10px 2px;text-align:left}
+.pack{display:grid;grid-template-columns:40px 1fr auto 22px;align-items:center;gap:10px;min-height:48px;background:none;border:0;border-bottom:1px solid var(--line);padding:6px 2px;text-align:left}
 .pack .code{font-weight:800;font-size:15px;letter-spacing:-.01em}
 .pack .lang{font-weight:600}
 .pack .sz{font-size:13px;color:var(--muted);font-variant-numeric:tabular-nums}
@@ -76,7 +80,7 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .pack[aria-pressed=true] .box{background:var(--action);border-color:var(--action)}
 .pack[aria-pressed=true] .box::after{content:"";width:9px;height:5px;border:2.5px solid #fff;border-top:0;border-right:0;transform:rotate(-45deg) translate(1px,-1px)}
 .pack:disabled{cursor:default;color:var(--muted)}
-.pack:disabled .code{color:#9AA7BB}
+.pack:disabled .code{color:var(--muted)}
 .pack:disabled .box{display:none}
 .pack:disabled .sz{grid-column:3/5;font-style:italic}
 .device{display:flex;gap:10px;align-items:flex-start;background:#EEF2FC;border-radius:var(--r-md);padding:10px 12px;font-size:13px;color:var(--ink);margin-top:14px}
@@ -89,39 +93,51 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .empty h2{font-size:28px;font-weight:800;letter-spacing:-.025em;line-height:1.1}
 .stack{display:flex;flex-direction:column;gap:10px;margin-top:10px}
 .stack .primary{flex:none}
-.link{background:none;border:0;color:var(--action);font-weight:600;padding:8px 0;text-align:center}
-/* 3 no match */
+.link{background:none;border:0;color:var(--action);font-weight:600;min-height:44px;text-align:center}
+/* 3 no match: non-blocking banner, camera keeps scanning */
 .cam{background:#101722;color:#E8EEF7}
 .view{flex:1;position:relative;overflow:hidden;background:radial-gradient(120% 70% at 50% 45%,#2B3446 0%,#151C28 70%)}
 .table{position:absolute;inset:auto -10% -6% -10%;height:46%;background:#3A3027;transform:perspective(500px) rotateX(28deg);opacity:.75}
-.scan-card{position:absolute;width:150px;left:105px;top:150px;transform:rotate(3deg);filter:saturate(.9) brightness(.92)}
-.frame{position:absolute;left:94px;top:138px;width:174px;height:236px;transform:rotate(3deg);border-radius:12px;border:3px dashed #F2B64C}
-.read{position:absolute;left:0;right:0;top:50px;text-align:center}
-.read .num{font-size:58px;color:#fff}
-.read .num span{color:#8FA0BA}
-.read p{font-size:14px;color:#AEBBD0;margin-top:6px}
+.scan-card{position:absolute;width:124px;left:118px;top:132px;transform:rotate(3deg);filter:saturate(.9) brightness(.92)}
+.scan-card.glare::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 52%,transparent 68%)}
+.frame{position:absolute;left:108px;top:122px;width:144px;height:194px;transform:rotate(3deg);border-radius:12px;border:3px dashed #F2B64C}
+.read{position:absolute;left:0;right:0;top:46px;text-align:center}
+.read .num{font-size:54px;color:#fff}
+.read .num span{color:#A3B2C8}
+.read p{font-size:14px;color:#C2CDDD;margin-top:6px}
 .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 12px;font-size:13px;font-weight:600}
 .auto{position:absolute;top:12px;left:16px;background:rgba(255,255,255,.12)}
-.auto i{width:8px;height:8px;border-radius:50%;background:#F2B64C}
-.tray{flex:none;background:var(--surface);color:var(--ink);border-radius:20px 20px 0 0;padding:18px 18px 18px}
-.tray h2{font-size:20px;font-weight:700;letter-spacing:-.01em}
-.tray p{font-size:14px;color:var(--muted);margin:4px 0 14px}
-.tray .stack{margin-top:0}
-.tray .pair{display:flex;gap:10px}
-.tray .pair .secondary{flex:1;padding:12px}
+.auto i{width:8px;height:8px;border-radius:50%;background:#62D27A}
+@media (prefers-reduced-motion:no-preference){.auto i{animation:blink 1.6s ease-in-out infinite}}
+@keyframes blink{50%{opacity:.3}}
+.banner{position:absolute;left:12px;right:12px;bottom:12px;background:var(--raised);color:var(--ink);border-radius:var(--r-md);border-left:5px solid #F2B64C;padding:12px 14px 6px;box-shadow:0 14px 30px -12px rgba(0,0,0,.6)}
+.banner b{display:block;font-size:16px}
+.banner p{font-size:13.5px;color:var(--muted);margin-top:2px;line-height:1.4}
+.bacts{display:flex;align-items:center;gap:6px;margin-top:6px;flex-wrap:wrap}
+.bacts .primary{flex:none;min-height:44px;font-size:14px;padding:0 14px}
+.bacts .link{padding:0 8px;font-size:14px}
+.tray{flex:none;background:var(--surface);color:var(--ink);border-radius:20px 20px 0 0;padding:14px 18px 16px}
+.counts{display:flex;justify-content:space-between;align-items:center}
+.counts strong{font-size:34px;font-weight:800;letter-spacing:-.03em}
+.counts strong small{font-size:15px;font-weight:500;color:var(--muted);letter-spacing:0;margin-left:4px}
+.review-btn{min-height:44px;border:0;border-radius:999px;padding:0 16px;background:#FFF1D6;color:var(--warn);font-weight:700;font-size:14px}
+.done{width:100%;min-height:48px;margin-top:10px;background:var(--ink);color:#fff;border:0;border-radius:var(--r-md);font-weight:700;font-size:16px}
+.state{display:flex;flex-wrap:wrap;align-items:center;gap:8px 6px;margin-top:10px}
+.state>span{font-size:13px;font-weight:700;color:var(--ink);margin-right:4px}
 /* 4 search */
 .field{display:flex;align-items:center;gap:8px;background:var(--raised);border:1.5px solid var(--line);border-radius:var(--r-md);padding:0 12px}
 .field:focus-within{border-color:var(--action)}
 .field input{flex:1;border:0;background:none;padding:12px 0;font-size:16px;font-weight:600;outline:none;min-width:0}
-.field .clear{background:none;border:0;color:var(--muted);font-size:14px;font-weight:600;padding:4px}
-.filters{display:flex;flex-direction:column;gap:6px;margin:12px 0 4px}
+.field .clear{background:none;border:0;color:var(--muted);font-size:14px;font-weight:600;min-height:44px;padding:0 6px}
+.filters{display:flex;flex-direction:column;gap:8px;margin:12px 0 4px}
 .results{list-style:none;padding:0;margin-top:10px}
 .res{display:grid;grid-template-columns:78px 1fr auto;align-items:center;gap:10px;padding:11px 0;border-bottom:1px solid var(--line)}
 .row-n{font-size:19px;font-weight:800;letter-spacing:-.03em}
 .res .t{font-size:13px;color:var(--muted);min-width:0}
 .res .t b{display:block;font-size:15px;color:var(--ink)}
 .res .own{display:inline-block;margin-left:4px;font-size:12px;font-weight:700;color:#1F7A3A}
-.res .addb{border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:6px 12px;font-weight:700;font-size:14px;color:var(--action)}
+.res .addb{position:relative;min-height:36px;border:1.5px solid var(--line);background:var(--raised);border-radius:var(--r-sm);padding:0 14px;font-weight:700;font-size:14px;color:var(--action)}
+.res .addb::before{content:"";position:absolute;inset:-5px -4px}
 .count{font-size:13px;color:var(--muted);margin-top:12px}
 .noresult{font-size:14px;color:var(--muted);padding:16px 0}
 /* 5 set detail */
@@ -129,26 +145,33 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .sethead .num{font-size:52px}
 .sethead p{font-size:14px;color:var(--muted)}
 .sethead .v{text-align:right;font-weight:700;font-size:17px}
-.big{grid-template-columns:repeat(11,1fr);gap:3px;margin-top:12px}
-.big i{border-radius:4px;font-style:normal;font-size:8.5px;font-weight:700;display:grid;place-items:end start;padding:2px 3px;color:rgba(255,255,255,.92);font-variant-numeric:tabular-nums}
-.big i.miss{color:#8A97AB}
-.big i.sel{outline:2.5px solid var(--ink);outline-offset:1px;background:#fff;color:var(--ink)}
-.big.f-owned i.miss{opacity:.25}
-.big.f-missing i:not(.miss){opacity:.18}
+/* compact grid: every slot is a 34px button; owned = filled + check, missing = dashed outline */
+.big{grid-template-columns:repeat(8,1fr);gap:4px;margin-top:12px}
+.big button{position:relative;aspect-ratio:1;min-height:32px;border:1.5px solid transparent;border-radius:5px;padding:0 0 3px 4px;display:flex;align-items:flex-end;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;background:none}
+.big button.lt{color:var(--ink)}
+.big button.own::after{content:"";position:absolute;right:5px;top:6px;width:8px;height:4px;border:2px solid currentColor;border-top:0;border-right:0;transform:rotate(-45deg)}
+.big button.miss{border:1.5px dashed #6F7E96;color:#4B5A73;background:transparent}
+.big button.sel{outline:3px solid var(--ink);outline-offset:1px}
+.big button.off{opacity:.2}
 .miss-list{list-style:none;padding:0;margin-top:6px}
 .setbar{display:flex;flex-direction:column;gap:10px}
-.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--raised);padding:2px}
-.seg button{flex:1;border:0;background:none;border-radius:5px;padding:6px 9px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--raised);overflow:hidden}
+.seg button{flex:1;min-height:44px;border:0;background:none;padding:0 9px;font-size:14px;font-weight:600;color:var(--muted)}
 .seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.item .seg{margin:10px 0 2px}
+.item .seg button{font-size:13px}
 .cards{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
 .sd.v-cards .big{display:none}.sd.v-cards .cards{display:grid}
 .mini{border-radius:6px;padding:4px;display:flex;flex-direction:column;gap:3px;aspect-ratio:63/88;color:#fff;position:relative;overflow:hidden;border:0;text-align:left}
-.mini .nm{font-size:8px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:10px}
+.mini .nm{position:relative;z-index:1;font-size:8.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px;background:rgba(20,35,61,.72);border-radius:3px;padding:0 3px;align-self:flex-start;max-width:100%}
+.mini .nm:empty{background:none}
 .mini .art{flex:1;border-radius:3px;background:rgba(255,255,255,.24);position:relative;overflow:hidden}
 .mini .art::after{content:"";position:absolute;width:64%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.4);left:18%;top:14%}
-.mini .no{font-size:8.5px;font-weight:700;background:rgba(0,0,0,.28);border-radius:3px;padding:0 4px;align-self:flex-start;font-variant-numeric:tabular-nums}
-.mini.miss{filter:grayscale(1) contrast(.9);opacity:.72}
-.mini.sel{outline:2.5px solid var(--ink);outline-offset:2px}
+.mini .no{position:relative;z-index:1;font-size:9px;font-weight:700;background:rgba(20,35,61,.78);border-radius:3px;padding:0 4px;align-self:flex-start;font-variant-numeric:tabular-nums}
+.mini .tag{position:absolute;z-index:1;right:4px;bottom:4px;font-size:8.5px;font-weight:700;background:var(--ink);color:#fff;border-radius:3px;padding:0 4px}
+.mini.miss{filter:grayscale(1)}
+.mini.miss::after{content:"";position:absolute;inset:0;border:2px dashed var(--ink);border-radius:6px;background:rgba(247,249,252,.38)}
+.mini.sel{outline:3px solid var(--ink);outline-offset:2px}
 .sd.f-owned .cards .mini.miss,.sd.f-missing .cards .mini:not(.miss){display:none}
 .miss-list li{display:grid;grid-template-columns:52px 1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .miss-list .row-n{font-size:15px}
@@ -164,8 +187,7 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .sheet p{font-size:13px;color:var(--muted)}
 .sheet .pr{font-size:15px;color:var(--ink);font-weight:700;margin-top:4px}
 .sheet .pair{display:flex;gap:10px;margin-top:14px}
-.sheet .pair .secondary{padding:12px 14px}
-.sheet .pair .primary{padding:12px}
+.sheet .pair .secondary{padding:0 14px}
 /* 6 custom collection */
 .total{padding:4px 0 16px;border-bottom:1px solid var(--line)}
 .total p{font-size:14px;color:var(--muted)}
@@ -206,14 +228,13 @@ textarea.input{resize:none;height:76px;font-size:15px}
 .item small{display:block;font-size:13px;color:var(--muted);font-weight:400;line-height:1.35;margin-top:2px}
 .item b{font-weight:600}
 .item .val{color:var(--muted);font-size:14px;white-space:nowrap}
-.item .act{background:none;border:0;color:var(--action);font-weight:700;font-size:14px;padding:4px 0;white-space:nowrap}
-.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r-sm);overflow:hidden;margin:10px 0 2px}
-.seg button{flex:1;border:0;background:var(--raised);padding:8px 6px;font-size:13px;font-weight:600}
-.seg button+button{border-left:1.5px solid var(--line)}
-.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
-.switch{flex:none;width:46px;height:28px;border-radius:14px;border:0;background:#C3CDDB;position:relative;padding:0}
+.item .act{color:var(--action);font-weight:700;font-size:14px;white-space:nowrap}
+button.item{width:100%;min-height:52px;background:none;border:0;border-bottom:1px solid var(--line);text-align:left;cursor:pointer}
+button.item:last-child{border-bottom:0}
+/* switch: 46x28 track inside a 62x44 hit area */
+.switch{flex:none;box-sizing:content-box;width:46px;height:28px;border-radius:22px;border:8px solid transparent;background-color:#8C9AB0;background-clip:padding-box;position:relative;padding:0;margin:-8px -8px -8px 0}
 .switch::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
-.switch[aria-checked=true]{background:var(--action)}
+.switch[aria-checked=true]{background-color:var(--action)}
 .switch[aria-checked=true]::after{transform:translateX(18px)}
 .upd{color:var(--warn)}
 .about{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.45}
@@ -266,28 +287,31 @@ textarea.input{resize:none;height:76px;font-size:15px}
       <button class="link">Add a card by search instead</button>
     </div>
   </div>
-  <nav class="nav"><span class="on"><i></i>Scan</span><span><i></i>Collections</span><span><i></i>Search</span><span><i></i>Settings</span></nav>
+  <nav class="nav" aria-label="Main"><button aria-current="page"><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>First scan</b>One clear job and a way around it for people who don't want the camera.</figcaption></figure>
 
-<!-- 3 No match -->
-<figure><div class="phone cam">
+<!-- 3 No match (non-blocking) -->
+<figure><div class="phone cam" id="nomatch">
   <div class="status"><span>9:11</span><span>97%</span></div>
-  <div class="view" aria-label="Camera viewfinder">
-    <span class="pill auto"><i></i>No match yet</span>
-    <div class="read"><div class="num">???<span>/165</span></div><p>Number not found in your packs</p></div>
+  <div class="view" aria-label="Camera viewfinder, still scanning">
+    <span class="pill auto"><i></i>Scanning</span>
+    <div class="read"><div class="num" id="nm-num">151<span>/165</span></div><p id="nm-read">Not in your installed packs</p></div>
     <div class="table"></div>
-    <div class="card psychic scan-card" aria-hidden="true"><div class="nm"><span>ミュウex</span><span>180</span></div><div class="art"></div><div class="tx"></div><div class="no">151/165</div></div>
+    <div class="card psychic scan-card" id="nm-card" aria-hidden="true"><div class="nm"><span id="nm-name">ミュウex</span><span>180</span></div><div class="art"></div><div class="tx"></div><div class="no" id="nm-no">151/165</div></div>
     <div class="frame" aria-hidden="true"></div>
-  </div>
-  <div class="tray">
-    <h2>This looks like a Japanese card</h2>
-    <p>Japanese cards need their own pack. Install it to recognize this card and the rest of your Japanese sets.</p>
-    <div class="stack">
-      <button class="primary">Install the Japanese pack (41 MB)</button>
-      <div class="pair"><button class="secondary">Search manually</button><button class="secondary">Skip</button></div>
+    <div class="banner" role="status" id="nm-banner">
+      <b id="nm-title">Looks like a Japanese card</b>
+      <p id="nm-text">Install the Japanese pack to recognize it. The camera keeps scanning meanwhile.</p>
+      <div class="bacts" id="nm-acts"></div>
     </div>
   </div>
-</div><figcaption><b>No match</b>Says why the card wasn't found and offers the one fix that helps.</figcaption></figure>
+  <div class="tray">
+    <div class="counts"><strong>23<small>scanned</small></strong><button class="review-btn">3 to review</button></div>
+    <button class="done">Finish scanning</button>
+  </div>
+</div><figcaption><b>No match</b>The camera keeps scanning; a banner says why this card wasn't found and offers the fix.
+  <div class="chips state" id="nm-state" role="group" aria-label="Sample state"><span aria-hidden="true">Sample state</span><button class="chip sm" aria-pressed="true" data-v="pack">Pack missing</button><button class="chip sm" aria-pressed="false" data-v="glare">Glare</button><button class="chip sm" aria-pressed="false" data-v="unknown">Unknown card</button></div>
+</figcaption></figure>
 
 <!-- 4 Search -->
 <figure><div class="phone">
@@ -306,7 +330,7 @@ textarea.input{resize:none;height:76px;font-size:15px}
     <p class="count" id="scount"></p>
     <ul class="results" id="sres"></ul>
   </div>
-  <nav class="nav"><span><i></i>Scan</span><span><i></i>Collections</span><span class="on"><i></i>Search</span><span><i></i>Settings</span></nav>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button><i></i>Collections</button><button aria-current="page"><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Search</b>Names match across languages, so “glurak” also finds Charizard. Try typing.</figcaption></figure>
 
 <!-- 5 Set detail -->
@@ -324,7 +348,7 @@ textarea.input{resize:none;height:76px;font-size:15px}
         <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
       </div>
     </div>
-    <div class="slots big" aria-label="151: 87 of 165 owned"></div>
+    <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
     <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
     <h3>Missing 78 cards, about 46 € to complete</h3>
     <ul class="miss-list">
@@ -334,11 +358,11 @@ textarea.input{resize:none;height:76px;font-size:15px}
       <li><span class="row-n">024</span><span>Arbok ex</span><span>2,40 €</span></li>
     </ul>
   </div>
-  <div class="sheet" aria-label="Selected card">
+  <div class="sheet" role="region" aria-label="Selected card" aria-live="polite">
     <div class="grab"></div>
     <div class="sh">
-      <div class="card" style="background:var(--dark)" aria-hidden="true"><div class="nm"><span>Arbok ex</span><span>270</span></div><div class="art"></div><div class="tx"></div><div class="no">024/165</div></div>
-      <div><div class="num">024<span>/165</span></div><h2>Arbok ex</h2><p>Not in your collection yet</p><p class="pr">2,40 € <span style="font-weight:500;color:var(--muted)">trend, all languages</span></p></div>
+      <div class="card" data-k="face" style="background:var(--grass)" aria-hidden="true"><div class="nm"><span data-k="fname">Arbok ex</span></div><div class="art"></div><div class="tx"></div><div class="no" data-k="fno">024/165</div></div>
+      <div><div class="num" data-k="num">024<span>/165</span></div><h2 data-k="name">Arbok ex</h2><p data-k="own">Not in your collection yet</p><p class="pr"><span data-k="price">2,40 €</span> <span style="font-weight:500;color:var(--muted)">trend, all languages</span></p></div>
     </div>
     <div class="pair"><button class="secondary">Open on Cardmarket</button><button class="primary">Add copy</button></div>
   </div>
@@ -359,10 +383,10 @@ textarea.input{resize:none;height:76px;font-size:15px}
         <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
       </div>
     </div>
-    <div class="slots big" aria-label="151: 87 of 165 owned"></div>
+    <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
     <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
   </div>
-  <nav class="nav"><span><i></i>Scan</span><span class="on"><i></i>Collections</span><span><i></i>Search</span><span><i></i>Settings</span></nav>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button aria-current="page"><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white, so you know what to look for.</figcaption></figure>
 
 <!-- 6 Custom collection -->
@@ -386,7 +410,7 @@ textarea.input{resize:none;height:76px;font-size:15px}
       <li class="copy"><span class="row-n">025/165</span><span class="t"><b>Pikachu</b>151, Reverse holo, NM</span><span class="p">1,10 €<small>German</small></span></li>
     </ul>
   </div>
-  <nav class="nav"><span><i></i>Scan</span><span class="on"><i></i>Collections</span><span><i></i>Search</span><span><i></i>Settings</span></nav>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button aria-current="page"><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Your collection</b>Same value header as all cards, then copies sorted by what they're worth.</figcaption></figure>
 
 <!-- 7 New collection -->
@@ -434,8 +458,8 @@ textarea.input{resize:none;height:76px;font-size:15px}
     <section class="group">
       <h3>Language packs</h3>
       <div class="list">
-        <div class="item"><span><b>English, German</b><small>Installed, 76 MB</small></span><button class="act">Add language</button></div>
-        <div class="item"><span><b class="upd">Update available</b><small>Surging Sparks, 2.1 MB</small></span><button class="act">Update</button></div>
+        <button class="item"><span><b>English, German</b><small>Installed, 76 MB</small></span><span class="act">Add language</span></button>
+        <button class="item"><span><b class="upd">Update available</b><small>Surging Sparks, 2.1 MB</small></span><span class="act">Update</span></button>
       </div>
     </section>
     <section class="group">
@@ -447,19 +471,19 @@ textarea.input{resize:none;height:76px;font-size:15px}
     <section class="group">
       <h3>Backup</h3>
       <div class="list">
-        <div class="item"><b>Export collection</b><span class="val">JSON or CSV</span></div>
-        <div class="item"><b>Import collection</b><span class="val">From a backup file</span></div>
+        <button class="item"><b>Export collection</b><span class="val">JSON or CSV</span></button>
+        <button class="item"><b>Import collection</b><span class="val">From a backup file</span></button>
       </div>
     </section>
     <section class="group">
       <h3>About</h3>
       <div class="list">
-        <div class="item"><b>Open-source licenses</b><span class="val">GPLv3 app</span></div>
+        <button class="item"><b>Open-source licenses</b><span class="val">GPLv3 app</span></button>
       </div>
       <p class="about">Not affiliated with, endorsed or sponsored by Nintendo, Creatures, GAME FREAK or The Pokémon Company. Card names belong to their owners.</p>
     </section>
   </div>
-  <nav class="nav"><span><i></i>Scan</span><span><i></i>Collections</span><span><i></i>Search</span><span class="on"><i></i>Settings</span></nav>
+  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button aria-current="page"><i></i>Settings</button></nav>
 </div><figcaption><b>Settings</b>Price source, packs, opt-in contributions, backup and the legal note.</figcaption></figure>
 </main>
 <p class="note">Sample data. Card faces are placeholders, not real artwork.</p>
@@ -523,21 +547,33 @@ search();
 // 5 set grid (same ownership and type data as c-index.html)
 const R=[[3,'grass'],[6,'fire'],[9,'water'],[15,'grass'],[22,'colorless'],[24,'grass'],[26,'lightning'],[28,'fighting'],[34,'psychic'],[36,'colorless'],[38,'fire'],[40,'colorless'],[45,'grass'],[47,'grass'],[49,'grass'],[51,'fighting'],[53,'colorless'],[55,'water'],[57,'fighting'],[59,'fire'],[62,'water'],[65,'psychic'],[68,'fighting'],[71,'grass'],[73,'water'],[76,'fighting'],[78,'fire'],[80,'water'],[82,'lightning'],[85,'colorless'],[87,'water'],[89,'psychic'],[91,'water'],[94,'psychic'],[95,'fighting'],[97,'psychic'],[99,'water'],[101,'lightning'],[103,'grass'],[105,'fighting'],[107,'fighting'],[108,'colorless'],[110,'psychic'],[112,'fighting'],[113,'colorless'],[114,'grass'],[115,'colorless'],[121,'water'],[122,'psychic'],[123,'grass'],[124,'psychic'],[125,'lightning'],[126,'fire'],[127,'grass'],[128,'colorless'],[131,'water'],[132,'colorless'],[136,'colorless'],[137,'colorless'],[141,'fighting'],[142,'colorless'],[143,'colorless'],[144,'water'],[145,'lightning'],[146,'fire'],[149,'colorless'],[151,'psychic'],[165,'trainer']];
 const typeOf=n=>R.find(r=>n<=r[0])[1];
-const col=t=>t==='trainer'?'#8C96A6':`var(--${t})`;
+const col=t=>`var(--${t})`;
 const owned=n=>[1,6,25,151].includes(n)||((n*37)%100)<52;
 const NAMES={1:'Bisasam',2:'Bisaknosp',3:'Bisaflor ex',4:'Glumanda',5:'Glutexo',6:'Glurak ex',7:'Schiggy',8:'Schillok',9:'Turtok ex',10:'Raupy',13:'Hornliu',16:'Taubsi',19:'Rattfratz',23:'Rettan',24:'Arbok ex',25:'Pikachu',26:'Raichu',35:'Piepi',39:'Pummeluff',52:'Mauzi',54:'Enton',58:'Fukano',63:'Abra',65:'Simsala ex',74:'Kleinstein',92:'Nebulak',94:'Gengar',115:'Kangama ex',124:'Rossana ex',129:'Karpador',130:'Garados',133:'Evoli',143:'Relaxo',145:'Zapdos ex',150:'Mewtu',151:'Mew ex'};
+const LIGHT=['lightning','colorless','trainer'];
+const price=n=>((n*7)%23*0.35+0.2).toFixed(2).replace('.',',')+' €';
 document.querySelectorAll('.sd').forEach(ph=>{
-  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards');
-  for(let n=1;n<=165;n++){const no=String(n).padStart(3,'0'),own=owned(n),t=typeOf(n);
-    const i=document.createElement('i');i.textContent=no;
-    if(own)i.style.background=col(t);else i.className='miss';
-    if(n===24&&ph.dataset.view==='compact')i.classList.add('sel');
+  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards'),sheet=ph.querySelector('.sheet');
+  const show=n=>{if(!sheet)return;const no=String(n).padStart(3,'0'),t=typeOf(n),k=x=>sheet.querySelector(`[data-k=${x}]`);
+    k('face').style.background=col(t);k('face').style.color=LIGHT.includes(t)?'var(--ink)':'#fff';
+    k('fname').textContent=NAMES[n]||'Card '+no;k('fno').textContent=no+'/165';
+    k('num').innerHTML=`${no}<span>/165</span>`;k('name').textContent=NAMES[n]||'Card '+no;
+    k('own').textContent=owned(n)?'In your collection':'Not in your collection yet';k('price').textContent=price(n);};
+  for(let n=1;n<=165;n++){const no=String(n).padStart(3,'0'),own=owned(n),t=typeOf(n),label=`${no} ${NAMES[n]||''}`.trim();
+    const i=document.createElement('button');i.textContent=no;i.dataset.n=n;
+    i.className=own?'own'+(LIGHT.includes(t)?' lt':''):'miss';
+    if(own)i.style.background=col(t);
+    i.setAttribute('aria-label',`${label}, ${own?'owned':'missing'}`);
+    if(n===24&&ph.dataset.view==='compact'){i.classList.add('sel');i.setAttribute('aria-pressed','true');}
+    i.onclick=()=>{big.querySelectorAll('.sel').forEach(x=>{x.classList.remove('sel');x.removeAttribute('aria-pressed');});
+      i.classList.add('sel');i.setAttribute('aria-pressed','true');show(n);};
     big.appendChild(i);
     const c=document.createElement('button');c.className='mini'+(own?'':' miss');c.style.background=col(t);
-    c.setAttribute('aria-label',`${no} ${NAMES[n]||''} ${own?'owned':'missing'}`);
-    c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>`;
-    c.onclick=()=>{cards.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');};
+    c.setAttribute('aria-label',`${label}, ${own?'owned':'missing'}`);
+    c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>${own?'':'<span class="tag">Missing</span>'}`;
+    c.onclick=()=>{cards.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');show(n);};
     cards.appendChild(c);}
+  if(sheet)show(24);
   const setView=v=>{ph.classList.toggle('v-cards',v==='cards');
     ph.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));};
   setView(ph.dataset.view);
@@ -545,9 +581,28 @@ document.querySelectorAll('.sd').forEach(ph=>{
   const f=ph.querySelector('.sfilter');
   f.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     f.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-    ph.classList.remove('f-owned','f-missing');big.className='slots big';
-    if(b.dataset.v!=='all'){ph.classList.add('f-'+b.dataset.v);big.classList.add('f-'+b.dataset.v);}});
+    const v=b.dataset.v;ph.classList.remove('f-owned','f-missing');if(v!=='all')ph.classList.add('f-'+v);
+    // compact grid keeps every position; filtered-out slots fade and leave the tab order
+    big.querySelectorAll('button').forEach(x=>{const out=(v==='owned'&&x.classList.contains('miss'))||(v==='missing'&&x.classList.contains('own'));
+      x.classList.toggle('off',out);x.tabIndex=out?-1:0;out?x.setAttribute('aria-hidden','true'):x.removeAttribute('aria-hidden');});});
 });
+// 3 no match: three sample causes
+const NM={
+  pack:{num:'151<span>/165</span>',read:'Not in your installed packs',type:'psychic',name:'ミュウex',no:'151/165',fx:'',
+    title:'Looks like a Japanese card',text:'Install the Japanese pack to recognize it. The camera keeps scanning meanwhile.',
+    acts:'<button class="primary">Install Japanese pack (41 MB)</button><button class="link">Not now</button>'},
+  glare:{num:'0??<span>/165</span>',read:'Glare covers the number',type:'lightning',name:'Pikachu',no:'0??/165',fx:'glare',
+    title:'Number hidden by glare',text:'Tilt the card away from the light. It is added as soon as the number is readable.',
+    acts:'<button class="link">Send to Review instead</button>'},
+  unknown:{num:'???',read:'No card with this number in your packs',type:'fire',name:'Promo',no:'SVP 101',fx:'',
+    title:'Card not found',text:'It may be a promo or a set newer than your packs. Search for it by name.',
+    acts:'<button class="primary">Search manually</button><button class="link">Skip this card</button>'}};
+function nmState(v){const d=NM[v];$('nm-num').innerHTML=d.num;$('nm-read').textContent=d.read;
+  $('nm-card').className=`card ${d.type} scan-card ${d.fx}`;$('nm-name').textContent=d.name;$('nm-no').textContent=d.no;
+  $('nm-title').textContent=d.title;$('nm-text').textContent=d.text;$('nm-acts').innerHTML=d.acts;}
+$('nm-state').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $('nm-state').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));nmState(b.dataset.v);});
+nmState('pack');
 // 7 create enabled by name
 $('cname').addEventListener('input',e=>$('create').disabled=!e.target.value.trim());
 // 8 switch
