@@ -17,6 +17,7 @@ android {
         targetSdk = 36
         versionCode = 1
         versionName = "0.1.0"
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
@@ -24,6 +25,8 @@ android {
             // Own package, so a debug build installs next to a release build.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            // OpenCV ships ~180 MB of native code for four ABIs; debug builds need only phones and the emulator.
+            ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         }
         release {
             isMinifyEnabled = true
@@ -72,6 +75,9 @@ dependencies {
     implementation(libs.mlkit.text.recognition.latin)
     implementation(libs.mlkit.text.recognition.japanese)
     implementation(libs.litert)
+    implementation(libs.opencv)
+    implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp)
 
     implementation(libs.kotlinx.coroutines.android)
 
@@ -81,4 +87,8 @@ dependencies {
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+
+    androidTestImplementation(libs.junit)
+    androidTestImplementation(libs.androidx.test.runner)
+    androidTestImplementation(libs.androidx.test.ext.junit)
 }

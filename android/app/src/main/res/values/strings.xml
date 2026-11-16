@@ -7,8 +7,6 @@
     <string name="nav_search">Search</string>
     <string name="nav_settings">Settings</string>
 
-    <string name="scan_placeholder">Point the camera at a card. It is recognized on the device and its collector number shows here.</string>
-    <string name="scan_sample_caption">Glurak ex, 151, German</string>
     <string name="collections_value_label">Collection value, Cardmarket trend, all languages</string>
     <plurals name="collections_summary">
         <item quantity="one">All cards, %1$d copy</item>
@@ -24,4 +22,51 @@
     <string name="search_placeholder">Search every card in your installed language packs by name, set or collector number.</string>
     <string name="settings_placeholder">Language packs, price source and currency, data export and open-source licenses will live here.</string>
     <string name="collector_number_description">Number %1$s of %2$s</string>
+
+    <!-- Recognition lab (Scan tab, test build for the recognition model) -->
+    <string name="scan_camera_rationale">The lab needs the camera to recognize cards. Pictures stay on this device.</string>
+    <string name="scan_camera_allow">Allow camera</string>
+    <string name="scan_lab_assets_missing">The recognition model isn\'t in this build (%1$s). Build the assets with ml/app_assets.py and rebuild the app.</string>
+    <string name="scan_lab_loading">Loading model…</string>
+    <string name="scan_lab_working">Recognizing photo…</string>
+    <string name="scan_lab_photo">Photo</string>
+    <string name="scan_lab_paused">Paused</string>
+    <string name="scan_lab_status">%1$d cards (%2$d unseen) · %3$.1f fps</string>
+    <string name="scan_lab_hint">Place one card inside the dashed frame, flat and filling most of it.</string>
+    <string name="scan_lab_crop">Rectified card as the model sees it</string>
+    <string name="scan_lab_set">%1$s · %2$s</string>
+    <string name="scan_lab_set_unseen">%1$s · %2$s · set not trained</string>
+    <string name="scan_lab_scores">%1$.2f · lead %2$.2f · %3$s</string>
+    <string name="scan_lab_stable">stable</string>
+    <string name="scan_lab_identified">identified</string>
+    <string name="scan_lab_below_min">no match</string>
+    <string name="scan_lab_ocr_none">Number not read (%1$s)</string>
+    <string name="scan_lab_ocr_agrees">Number read %1$s, matches</string>
+    <string name="scan_lab_ocr_differs">Number read %1$s, differs from best match</string>
+    <string name="scan_lab_timings">Detect %1$d · embed %2$d · kNN %3$d · OCR %4$d · total %5$d ms · %6$d×%7$d</string>
+    <string name="scan_lab_outline_found">outline score %1$.2f</string>
+    <string name="scan_lab_outline_fallback">no outline, centre box used</string>
+    <string name="scan_lab_flipped"> · upside down</string>
+    <string name="scan_lab_capture">Photo</string>
+    <string name="scan_lab_pause">Pause</string>
+    <string name="scan_lab_resume">Resume</string>
+    <string name="scan_lab_back_to_live">Camera</string>
+    <string name="scan_lab_gallery">Gallery</string>
+    <string name="scan_lab_ocr">Read number</string>
+    <string name="scan_lab_save">Save photos</string>
+    <string name="scan_lab_torch">Light</string>
+    <string name="scan_lab_gate_none">Looking for a card</string>
+    <string name="scan_lab_gate_low">Outline unsure (score %1$.2f): place one card in the frame, filling most of it</string>
+    <string name="scan_lab_gate_moving">Hold still</string>
+    <string name="scan_lab_no_match">No match (best %1$.2f, needs %2$.2f)</string>
+    <string name="scan_lab_min_similarity">Min. similarity %1$.2f</string>
+    <string name="scan_lab_details">Details</string>
+    <string name="scan_lab_less">Less</string>
+    <string name="scan_lab_torch_off">Light ✓</string>
+    <string name="scan_lab_languages">Languages</string>
+    <string name="scan_lab_detector">Outline</string>
+    <string name="scan_lab_detector_learned">Learned</string>
+    <string name="scan_lab_detector_classic">Classic</string>
+    <string name="scan_lab_min_score">Min. outline score %1$.2f</string>
+    <string name="scan_lab_saved">Saved to %1$s</string>
 </resources>
