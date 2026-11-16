@@ -115,3 +115,8 @@ All results are cached per file, so re-runs only process new photos. For a dry r
 `eval_real.py make-dryrun --photos <dir> --n 30`, then `eval_real.py all --photos <dir>`. On such a folder,
 `eval_real.py truthcheck --photos <dir>` measures the labeler's accuracy and how often both sources are wrong
 the same way.
+
+### Android test app
+
+`app_assets.py` builds the model, index and card list for the recognition lab in the app, and `app_parity.py` writes
+reference results for its parity test. See [`android/README.md`](../android/README.md#recognition-lab-scan-tab).
