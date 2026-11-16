@@ -136,6 +136,20 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .big.f-owned i.miss{opacity:.25}
 .big.f-missing i:not(.miss){opacity:.18}
 .miss-list{list-style:none;padding:0;margin-top:6px}
+.setbar{display:flex;flex-direction:column;gap:10px}
+.seg{display:flex;border:1.5px solid var(--line);border-radius:var(--r-sm);background:var(--raised);padding:2px}
+.seg button{flex:1;border:0;background:none;border-radius:5px;padding:6px 9px;font-size:14px;font-weight:600;color:var(--muted)}
+.seg button[aria-pressed=true]{background:var(--ink);color:#fff}
+.cards{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
+.sd.v-cards .big{display:none}.sd.v-cards .cards{display:grid}
+.mini{border-radius:6px;padding:4px;display:flex;flex-direction:column;gap:3px;aspect-ratio:63/88;color:#fff;position:relative;overflow:hidden;border:0;text-align:left}
+.mini .nm{font-size:8px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:10px}
+.mini .art{flex:1;border-radius:3px;background:rgba(255,255,255,.24);position:relative;overflow:hidden}
+.mini .art::after{content:"";position:absolute;width:64%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.4);left:18%;top:14%}
+.mini .no{font-size:8.5px;font-weight:700;background:rgba(0,0,0,.28);border-radius:3px;padding:0 4px;align-self:flex-start;font-variant-numeric:tabular-nums}
+.mini.miss{filter:grayscale(1) contrast(.9);opacity:.72}
+.mini.sel{outline:2.5px solid var(--ink);outline-offset:2px}
+.sd.f-owned .cards .mini.miss,.sd.f-missing .cards .mini:not(.miss){display:none}
 .miss-list li{display:grid;grid-template-columns:52px 1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .miss-list .row-n{font-size:15px}
 .miss-list span:last-child{font-weight:700}
@@ -296,7 +310,7 @@ textarea.input{resize:none;height:76px;font-size:15px}
 </div><figcaption><b>Search</b>Names match across languages, so “glurak” also finds Charizard. Try typing.</figcaption></figure>
 
 <!-- 5 Set detail -->
-<figure><div class="phone">
+<figure><div class="phone sd" data-view="compact">
   <div class="status"><span>9:31</span><span>93%</span></div>
   <div class="scroll" style="padding-bottom:230px">
     <div class="top"><button class="ghost">Collections</button><button class="ghost">Share</button></div>
@@ -304,10 +318,14 @@ textarea.input{resize:none;height:76px;font-size:15px}
       <div><p>151, English and German</p><div class="num">87<span>/165</span></div></div>
       <div class="v">612,30 €<p>Cardmarket trend</p></div>
     </div>
-    <div class="chips" id="sfilter">
-      <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
+    <div class="setbar">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
+      <div class="chips sfilter">
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
+      </div>
     </div>
-    <div class="slots big" id="gbig" aria-label="151: 87 of 165 owned"></div>
+    <div class="slots big" aria-label="151: 87 of 165 owned"></div>
+    <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
     <h3>Missing 78 cards, about 46 € to complete</h3>
     <ul class="miss-list">
       <li><span class="row-n">145</span><span>Zapdos ex</span><span>4,80 €</span></li>
@@ -324,7 +342,28 @@ textarea.input{resize:none;height:76px;font-size:15px}
     </div>
     <div class="pair"><button class="secondary">Open on Cardmarket</button><button class="primary">Add copy</button></div>
   </div>
-</div><figcaption><b>Set detail</b>Every slot is numbered; filter to see only what's missing, tap a slot for the card.</figcaption></figure>
+</div><figcaption><b>Set detail</b>Compact view: every slot is numbered. Switch to Cards to see the art; filter to see only what's missing.</figcaption></figure>
+
+<!-- 5b Set detail, card view -->
+<figure><div class="phone sd" data-view="cards">
+  <div class="status"><span>9:32</span><span>93%</span></div>
+  <div class="scroll">
+    <div class="top"><button class="ghost">Collections</button><button class="ghost">Share</button></div>
+    <div class="sethead">
+      <div><p>151, English and German</p><div class="num">87<span>/165</span></div></div>
+      <div class="v">612,30 €<p>Cardmarket trend</p></div>
+    </div>
+    <div class="setbar">
+      <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
+      <div class="chips sfilter">
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
+      </div>
+    </div>
+    <div class="slots big" aria-label="151: 87 of 165 owned"></div>
+    <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
+  </div>
+  <nav class="nav"><span><i></i>Scan</span><span class="on"><i></i>Collections</span><span><i></i>Search</span><span><i></i>Settings</span></nav>
+</div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white, so you know what to look for.</figcaption></figure>
 
 <!-- 6 Custom collection -->
 <figure><div class="phone">
@@ -486,13 +525,29 @@ const R=[[3,'grass'],[6,'fire'],[9,'water'],[15,'grass'],[22,'colorless'],[24,'g
 const typeOf=n=>R.find(r=>n<=r[0])[1];
 const col=t=>t==='trainer'?'#8C96A6':`var(--${t})`;
 const owned=n=>[1,6,25,151].includes(n)||((n*37)%100)<52;
-for(let n=1;n<=165;n++){const i=document.createElement('i');i.textContent=String(n).padStart(3,'0');
-  if(owned(n))i.style.background=col(typeOf(n));else i.className='miss';
-  if(n===24)i.classList.add('sel');
-  $('gbig').appendChild(i);}
-$('sfilter').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  $('sfilter').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-  $('gbig').className='slots big'+(b.dataset.v==='all'?'':' f-'+b.dataset.v);});
+const NAMES={1:'Bisasam',2:'Bisaknosp',3:'Bisaflor ex',4:'Glumanda',5:'Glutexo',6:'Glurak ex',7:'Schiggy',8:'Schillok',9:'Turtok ex',10:'Raupy',13:'Hornliu',16:'Taubsi',19:'Rattfratz',23:'Rettan',24:'Arbok ex',25:'Pikachu',26:'Raichu',35:'Piepi',39:'Pummeluff',52:'Mauzi',54:'Enton',58:'Fukano',63:'Abra',65:'Simsala ex',74:'Kleinstein',92:'Nebulak',94:'Gengar',115:'Kangama ex',124:'Rossana ex',129:'Karpador',130:'Garados',133:'Evoli',143:'Relaxo',145:'Zapdos ex',150:'Mewtu',151:'Mew ex'};
+document.querySelectorAll('.sd').forEach(ph=>{
+  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards');
+  for(let n=1;n<=165;n++){const no=String(n).padStart(3,'0'),own=owned(n),t=typeOf(n);
+    const i=document.createElement('i');i.textContent=no;
+    if(own)i.style.background=col(t);else i.className='miss';
+    if(n===24&&ph.dataset.view==='compact')i.classList.add('sel');
+    big.appendChild(i);
+    const c=document.createElement('button');c.className='mini'+(own?'':' miss');c.style.background=col(t);
+    c.setAttribute('aria-label',`${no} ${NAMES[n]||''} ${own?'owned':'missing'}`);
+    c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>`;
+    c.onclick=()=>{cards.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');};
+    cards.appendChild(c);}
+  const setView=v=>{ph.classList.toggle('v-cards',v==='cards');
+    ph.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));};
+  setView(ph.dataset.view);
+  ph.querySelector('.seg').addEventListener('click',e=>{const b=e.target.closest('button');if(b)setView(b.dataset.view);});
+  const f=ph.querySelector('.sfilter');
+  f.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    f.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+    ph.classList.remove('f-owned','f-missing');big.className='slots big';
+    if(b.dataset.v!=='all'){ph.classList.add('f-'+b.dataset.v);big.classList.add('f-'+b.dataset.v);}});
+});
 // 7 create enabled by name
 $('cname').addEventListener('input',e=>$('create').disabled=!e.target.value.trim());
 // 8 switch
