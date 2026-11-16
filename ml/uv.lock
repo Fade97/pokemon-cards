@@ -24,6 +24,26 @@ wheels = [
 ]
 
 [[package]]
+name = "ai-edge-litert"
+version = "2.3.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "backports-strenum" },
+    { name = "flatbuffers" },
+    { name = "ml-dtypes" },
+    { name = "numpy" },
+    { name = "protobuf" },
+    { name = "tqdm" },
+    { name = "typing-extensions" },
+]
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/6f/12/86fe17e7069ae792c6e21c523151b34fc03b29a886340e760feaf40237dc/ai_edge_litert-2.3.0-cp312-cp312-macosx_12_0_arm64.whl", hash = "sha256:2cd92f02fc9616755670027c5b020bfee5c72ae50cf5d33e92465a863b705a8b", size = 12825324, upload-time = "2026-10-06T23:09:56.476Z" },
+    { url = "https://files.pythonhosted.org/packages/77/89/2bdb0260c4182358c0948316109a3850c37aa15b87665f4b12fb51ea706c/ai_edge_litert-2.3.0-cp312-cp312-manylinux_2_27_aarch64.whl", hash = "sha256:9891611b23a87cc2ace60e4b5ee9a2ee6f0fb7f395f009470961ae6e6310e1b8", size = 14380093, upload-time = "2026-10-06T22:53:23.168Z" },
+    { url = "https://files.pythonhosted.org/packages/94/db/defacfb96eb7ddf6145dc6bc0b0c64bc221364e413662ef8216bae8258e8/ai_edge_litert-2.3.0-cp312-cp312-manylinux_2_27_x86_64.whl", hash = "sha256:dc9f56c23e0dcf182b6c35f23fbb102ed048296588882b806d5eff7654c04c88", size = 21781762, upload-time = "2026-10-06T23:36:25.261Z" },
+    { url = "https://files.pythonhosted.org/packages/3e/f6/529d465a222282252226d272325d85bcbcf33e618eb3fc241d18f1a645a5/ai_edge_litert-2.3.0-cp312-cp312-win_amd64.whl", hash = "sha256:b33b039667da6c57815f88d4709c1b31890375fa2cd35f165a3bf9dfd36f23a3", size = 20670680, upload-time = "2026-10-06T23:00:25.792Z" },
+]
+
+[[package]]
 name = "annotated-doc"
 version = "0.0.6"
 source = { registry = "https://pypi.org/simple" }
@@ -52,6 +72,15 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/a1/98/7e457a3b014976887a050561955c0b76e1e7e2d6e27b78ecef2ef80518f2/anyio-4.16.0.tar.gz", hash = "sha256:59bb03251907983d1603d27c3087ddb1e93299ea2163adcdba37899a4fb12ffb", size = 310971, upload-time = "2026-11-01T11:20:07.282Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/a9/16/7757fb84c819accc7d7e9af5291b261e4abb8627ee040f99e7d35ef2457a/anyio-4.16.0-py3-none-any.whl", hash = "sha256:c66ae634e0b8228396b801741beb3294326d4b6102f7bba4041c0dfb58c29026", size = 134521, upload-time = "2026-11-01T11:20:05.59Z" },
+]
+
+[[package]]
+name = "backports-strenum"
+version = "1.3.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/35/c7/2ed54c32fed313591ffb21edbd48db71e68827d43a61938e5a0bc2b6ec91/backports_strenum-1.3.1.tar.gz", hash = "sha256:77c52407342898497714f0596e86188bb7084f89063226f4ba66863482f42414", size = 7257, upload-time = "2023-12-09T14:36:40.937Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/d6/50/56cf20e2ee5127b603b81d5a69580a1a325083e2b921aa8f067da83927c0/backports_strenum-1.3.1-py3-none-any.whl", hash = "sha256:cdcfe36dc897e2615dc793b7d3097f54d359918fc448754a517e6f23044ccf83", size = 8304, upload-time = "2023-12-09T14:36:39.905Z" },
 ]
 
 [[package]]
@@ -100,6 +129,9 @@ labeler = [
     { name = "huggingface-hub" },
     { name = "transformers" },
 ]
+litert = [
+    { name = "ai-edge-litert" },
+]
 ocr = [
     { name = "easyocr" },
 ]
@@ -107,6 +139,7 @@ ocr = [
 [package.metadata]
 requires-dist = [
     { name = "accelerate", marker = "extra == 'labeler'" },
+    { name = "ai-edge-litert", marker = "extra == 'litert'", specifier = ">=2.3" },
     { name = "bitsandbytes", marker = "extra == 'labeler'", specifier = ">=0.45" },
     { name = "easyocr", marker = "extra == 'ocr'" },
     { name = "faiss-cpu", specifier = ">=1.8" },
@@ -127,7 +160,7 @@ requires-dist = [
     { name = "tqdm" },
     { name = "transformers", marker = "extra == 'labeler'", specifier = ">=4.57" },
 ]
-provides-extras = ["ocr", "labeler"]
+provides-extras = ["ocr", "labeler", "litert"]
 
 [[package]]
 name = "certifi"

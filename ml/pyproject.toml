@@ -28,6 +28,8 @@ dependencies = [
 ocr = ["easyocr"]
 # independent VLM labeler for real photos
 labeler = ["transformers>=4.57", "accelerate", "bitsandbytes>=0.45", "huggingface_hub"]
+# run exported .tflite models on Windows (app-faithful real-photo evaluation)
+litert = ["ai-edge-litert>=2.3"]
 
 [tool.uv]
 package = false

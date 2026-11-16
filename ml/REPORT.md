@@ -144,8 +144,8 @@ the remaining errors are bad crops, and language twins share the number.
 
 ## Real photos
 
-`D:\AI\pokemon-cards-data\real-photos\` is **empty**, so there are no real-photo numbers yet. The flow is ready
-and was tested end to end:
+First real-photo results are in [Real photos (2026-11-16)](#real-photos-2026-11-16) below. This section describes
+the auto-labelling flow; when it was written, the photo folder was still empty. The flow was tested end to end:
 
 - **Auto-labelling** (`eval_real.py`): a local VLM (Qwen3-VL-4B-Instruct, 4-bit NF4, ~3.2 GB VRAM, ~13–15 s per
   photo here) reads the name, collector number and language from the **raw photo**. `labeler.py` matches that
@@ -201,6 +201,144 @@ and was tested end to end:
 - Three `de/30th` cards have no CDN image, and JP coverage on TCGdex is incomplete (DESIGN.md).
 - The tooling depends on WSL for export (`litert-converter`), and EasyOCR and the CUDA stack are Windows-specific
   installs.
+
+## Real photos (2026-11-16)
+
+**Read this with the sample size in mind:** 34 phone photos (Galaxy S25 Ultra), 29 of them labelled by hand:
+- 21 German "30 Jahre" (`de/30th`) cards, mostly in binder pockets or sleeves under warm indoor light. 7 of these
+  are Pikachu cards whose number was unreadable, so they are scored at name level.
+- 8 German "Wachsendes Chaos" (`de/me04`) cards lying on fabric.
+- Not scored: the 4 photos with two cards side by side, plus 1 more unlabelled photo.
+
+One photo more or less moves a rate by 3–12 pp, so treat the numbers below as a direction, not an estimate.
+`eval_real_manual.py` reproduces the Android test app exactly: resize to 2048 px, centred card guide (63:88 at
+78 % of the height, plus 7 % margin), detector inside the guide, `.tflite` w8 embedding (both 180°
+orientations), kNN over the full 1,274-card gallery (870 trained cards plus the holdouts `de/30th`, `de/me04`,
+`de/me03`). With the old model and the classic detector it reproduces the app's numbers closely: 17 vs. 16 top-1
+on 30th, identical on me04.
+
+### What changed
+
+1. **Embedding `mnv3_256_real`**: fine-tuned from `mnv3_256` for 10 epochs (18.5 min, ~255 samples/s, the GPU
+   was shared) with realistic augmentation in `real_aug.py`:
+   - white balance 2700–7500 K, partly uncorrected
+   - exposure changes, low-light shot and chroma noise, phone denoise plus sharpening
+   - holo rainbow sheen on the art, reverse-holo sparkle
+   - broad sleeve glare and reflections, a translucent sleeve edge, black pocket backgrounds
+   - imprecise crops: dark margins of 0–12 % per side, corner jitter up to 5 %, partial crops (8 %)
+   - same 870 classes, ArcFace
+2. **Learned corner detector `corners_mnv3`**: MobileNetV3-Large features → FPN-lite → 4 corner heatmaps at
+   stride 4 → soft-argmax inside the model. 3.1 M parameters, 34 min training.
+   - Trained on GPU-synthetic guide-area scenes (`corner_scenes.py`): black 3×3 binder pages with neighbouring
+     cards in pockets, a penny sleeve or toploader, loose cards on fabric or table with neighbours side by side
+     or on top, fingers, perspective, glare and the camera effects above.
+   - The label is always the **card edge**, never the sleeve or pocket.
+   - I/O is documented in the README.
+
+### Real photos: old/new embedding × classic/learned detector
+
+Columns: top-1 and top-5 exact; shown = top-1 similarity ≥ 0.5, given as shown / correct / wrong.
+
+| Embedding + detector | 30th top-1 | 30th top-5 | 30th shown | 30th median sim (correct) | me04 DE top-1 | me04 DE top-5 | me04 shown | me04 artwork-level top-1 (EN or DE) |
+|---|---|---|---|---|---|---|---|---|
+| old `mnv3_256` + classic (current app) | 17/21 | 19/21 | 11 / 11 / 0 | 0.57 | 4/8 | 5/8 | 4 / 4 / 0 | 6/8 |
+| old + learned | 17/21 | 20/21 | 14 / 14 / 0 | 0.63 | **8/8** | 8/8 | 8 / 8 / 0 | 8/8 |
+| new `mnv3_256_real` + classic | **21/21** | 21/21 | 15 / 15 / 0 | 0.56 | 5/8 | 5/8 | 4 / 4 / 0 | 5/8 |
+| **new + learned** | **21/21** | **21/21** | **19 / 19 / 0** | **0.65** | 7/8 | **8/8** | 8 / 7 / **1** | **8/8** |
+
+**Similarity distribution** (`results/real_manual_matrix.json`):
+
+- **New + learned, 30th:** correct matches 0.38–0.79 (median 0.65), no wrong matches at all.
+- **Old + classic, 30th:** correct 0.38–0.83 (median 0.57), wrong 0.36–0.50.
+- **The one wrong match of new + learned:** a German me04 card matched its **English twin**
+  (`en/me04:014`) at **0.87**. That is a confident language error, and no threshold can catch it.
+
+**Threshold sweep for new + learned** (shown / wrong, out of 29):
+
+| Threshold | 0.35 | 0.40 | 0.45 | 0.50 | 0.55 | 0.60 |
+|---|---|---|---|---|---|---|
+| Shown / wrong | 29 / 1 | 28 / 1 | 27 / 1 | 27 / 1 | 23 / 1 | 21 / 1 |
+
+### Language twins (de/me04 vs. the trained en/me04)
+
+The German and English me04 prints differ more than the first app test suggested. With only the EN twin in the
+index, the German Chespin/Igamaro photos reached 0.28–0.40. With `de/me04` indexed, the same model matches them
+at 0.70–0.73. The EN twin does **not** stand in for the DE print, so every language a user scans needs its own
+index entries (that fits the language packs of ADR 0003).
+
+With both prints in the gallery, the model mostly picks the right language without ever having trained on
+`de/me04`:
+- **Synthetic, new model + learned detector:** 98.2 % exact. 11 of 610 images (1.8 %) pick the EN twin.
+- **Real photos:** 7/8 exact, 8/8 at artwork level.
+
+The remaining errors are confident (0.87 above). They need a rule, not a threshold. See the recommendation.
+
+### Synthetic test sets: does the realistic augmentation cost accuracy?
+
+No. Top-1 (top-5), full gallery, collector-number rerank simulated:
+
+| | Trained sets (870 gallery) | Unseen 30th (1,274 gallery) | Twin de/me04 exact (artwork level) |
+|---|---|---|---|
+| old + classic detector | 94.6 % (95.3) | 94.2 % (95.4) | 90.2 % (94.3) |
+| new + classic detector | 94.8 % (95.3) | 94.3 % (95.3) | 88.9 % (94.4) |
+| old + learned detector | **100.0 %** (100.0) | 99.9 % (100.0) | 97.5 % (100.0) |
+| new + learned detector | **100.0 %** (100.0) | 99.9 % (100.0) | **98.2 %** (100.0) |
+
+The learned detector removes almost all of the earlier synthetic errors, which were bad quads. It was trained on
+the GPU renderer and tested on the independent CPU/OpenCV renderer, though both are synthetic.
+
+On the hard GPU binder, sleeve and loose scenes (2,000 fixed scenes, unseen cards included):
+
+| Detector | Mean corner error | Median corner error | IoU ≥ 0.9 | IoU ≥ 0.8 |
+|---|---|---|---|---|
+| learned (PyTorch) | 2.2 % of card height | 0.49 % | 79 % | 95.7 % |
+| learned (w8) | — | 0.67 % | — | — |
+| classic | 33 % | 20 % | 16 % | 31 % |
+
+The classic detector also finds a card in only 85 % of these scenes. Adding the German twin sets to the gallery
+lowers the trained EN sets slightly (EN 94.0 → 90.8 % with the classic detector), because the language twins now
+compete.
+
+### Exported files
+
+| File | Size | Parity with PyTorch |
+|---|---|---|
+| `mnv3_256_real_w8.tflite` | 5.0 MB | cosine mean 0.968; top-1 on the subset 94.3 vs. 95.0 % for float32 |
+| `mnv3_256_real_f32.tflite` | 18.2 MB | cosine 1.0000 |
+| `corners_mnv3_w8.tflite` | 3.5 MB | mean coordinate difference 0.50 px; max 31 px on one of 2,000 scenes; median corner error 0.67 vs. 0.49 % |
+| `corners_mnv3_f32.tflite` | 12.6 MB | max difference 0.005 px |
+
+The detector input is 1×256×192×3 and the output 1×4×3. On x86 it takes 9 ms (w8) or 4 ms (f32) with 4 threads;
+phone latency is not measured yet. The index for 1,274 cards × 256 is 637 KB in float16.
+
+### Recommendation
+
+1. **Ship the new embedding and the learned detector together.** On real photos that is 21/21 on 30th and 8/8 at
+   artwork level on me04, versus 17/21 and 6/8 today. Use the w8 files (5.0 + 3.5 MB). Keep the classic detector
+   only as a fallback when the detector's mean `conf` is below ~0.08–0.10.
+2. **Threshold: lower it to 0.45** (from 0.5). On this sample, 0.45 and 0.5 show the same photos. With the new
+   models no non-language wrong match scored above 0.35, while correct matches go down to 0.38. 0.45 keeps a
+   margin from the old model's wrong matches (up to 0.50). Revisit it with more photos; 0.40 would show one more
+   photo here.
+3. **Language rule.** When the top-2 are the same card (same `card_id`) in different languages and their
+   similarities are within ~0.05, do not decide by similarity:
+   - prefer the language of the user's installed pack, or
+   - send the scan to the review queue with a language chip.
+
+   Better still, keep only the user's languages in the gallery (ADR 0003). Then the EN/DE confusion cannot occur
+   for a DE-only user.
+4. **Two cards in the guide** (4 photos, not scored) are not handled. The detector returns one card, so the app
+   should ask the user to centre one card.
+
+### Open risks
+
+- **29 scored photos** from one phone, one binder and one room. Untested: other phones, daylight, toploaders and
+  graded slabs, worn cards, other sets, and Japanese cards in real photos.
+- **Language twins:** confident wrong-language matches still occur (1/8 real, 1.8 % synthetic). This needs the
+  language rule above.
+- **Int8-weight embedding:** it loses ~0.7 pp top-1 against float32 on the synthetic subset. Check on the phone
+  whether float16 is affordable.
+- **Phone latency** of the detector (target ≤ 30 ms) and of the embedding has not been measured on the device.
 
 ## Reproduce
 

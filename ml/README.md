@@ -12,11 +12,11 @@ holds only code, `manifest.csv` (ids, numbers, names, image URLs), and small res
 
 ```powershell
 cd ml
-uv sync --extra ocr --extra labeler   # torch CUDA 13.0 wheels, timm, OpenCV, Kornia, EasyOCR, transformers
+uv sync --extra ocr --extra labeler --extra litert   # torch CUDA 13.0 wheels, timm, OpenCV, Kornia, ...
 ```
 
-`ocr` (EasyOCR) and `labeler` (transformers + bitsandbytes for the VLM) are optional. The core steps don't need
-them.
+`ocr` (EasyOCR), `labeler` (transformers + bitsandbytes for the VLM) and `litert` (runs exported `.tflite` files on
+Windows) are optional. The core steps don't need them.
 
 ## Steps
 
@@ -30,6 +30,10 @@ them.
 | 6 | `uv run python evaluate.py --run mnv3_256 --ocr-every 5` | Test-set top-1/top-5 by set and language, error categories, the rerank with simulated OCR (20 % unreadable, 5 % wrong digit), and the rerank with real OCR (EasyOCR). Writes `results/eval_<run>.json`. |
 | 7 | see below | Exports to LiteRT (float32 and int8), then checks cosine similarity against PyTorch and top-1. Writes `results/export_<run>.json`. |
 | 8 | `uv run python eval_real.py all` | Evaluates real photos with auto-labelling (see below). |
+| 9 | `uv run python train.py --run mnv3_256_real --realistic --init mnv3_256 --epochs 10 --lr 5e-4` | Fine-tunes the embedding with the real-photo effects of `real_aug.py` (white balance 2700–7500 K, low light + phone ISP, holo sheen, broad sleeve glare, pocket margins, imprecise and partial crops). |
+| 10 | `uv run python train_corners.py --run corners_mnv3` | Trains the learned corner detector on GPU-synthetic scenes (`corner_scenes.py`: binder pages, sleeves, toploaders, loose cards, fingers). Also scores the classic detector on the same fixed test scenes. |
+| 11 | `uv run --extra litert python eval_real_manual.py --all` | Real photos with manual labels: old/new embedding × classic/learned detector, exactly as the Android test app runs it (guide crop, `.tflite` w8). |
+| 12 | `uv run --extra litert python evaluate.py --run mnv3_256_real [--detector learned]` | Synthetic test sets incl. the language-twin case `de/me04`; `--detector learned` crops with the corner model. |
 
 `trainset.py` is the older CPU pre-render of training crops. It is kept for reference, but training no longer
 uses it.
@@ -45,6 +49,47 @@ wsl -d Ubuntu -- ~/cardindex-export/.venv/bin/python /mnt/d/AI/pokemon-cards/ml/
 
 The model takes NHWC float32 RGB in [0, 1] (`1×224×224×3`: the rectified card squashed to a square) and returns
 the L2-normalized embedding. ImageNet normalization is built into the model.
+
+```powershell
+wsl -d Ubuntu -- ~/cardindex-export/.venv/bin/python /mnt/d/AI/pokemon-cards/ml/export_corners.py --run corners_mnv3
+```
+
+### Learned corner detector: exact I/O
+
+Files: `<data>/export/corners_mnv3_w8.tflite` (3.5 MB, int8 weights, float activations; recommended) and
+`corners_mnv3_f32.tflite` (12.6 MB). Builtin ops only (conv, depthwise conv, hard-swish, nearest resize, softmax,
+batch matmul, reshape), no custom ops.
+
+**Input**: one tensor `float32 [1, 256, 192, 3]`, **NHWC**, RGB, values in **[0, 1]** (no mean/std on the app side:
+ImageNet normalization is inside the model).
+
+1. Take the camera frame. The prototype resizes it so the long side is 2048 px, but any size works.
+2. Cut out the **guide area** exactly like the app does: guide height `gh = 0.78 × frame height`,
+   `gw = gh × 63/88`, centred, then add a margin of 7 % of `gw` on the left and right and 7 % of `gh` on the top
+   and bottom, and clip to the frame. The result is roughly 0.716 : 1, portrait.
+3. Resize the guide crop to **192 wide × 256 high, stretched, no letterbox, no padding**. Use area or bilinear
+   resampling. The aspect ratio changes slightly from 0.716 to 0.75, and the model was trained with exactly this
+   stretch.
+
+**Output**: one tensor `float32 [1, 4, 3]`. Each row is one corner in this order: **0 = top-left, 1 = top-right,
+2 = bottom-right, 3 = bottom-left**, as seen in the image with the card upright (portrait, long side vertical).
+For a card lying upside down, "top-left" is still the corner at the top left of the image, so let the embedding
+step try both 180° orientations, as the pipeline does. Each row holds:
+
+- `x`, `y`: soft-argmax position, normalized to **[0, 1] of the 192×256 input**. That is the same as [0, 1] of the
+  guide crop, because the resize is a plain stretch. Map back with `X = guideLeft + x × guideWidth` and
+  `Y = guideTop + y × guideHeight`.
+- `conf`: peak probability of that corner's 64×48 heatmap (0..1), not calibrated. Use the mean over the 4 corners
+  as a "card present" signal:
+  - synthetic scenes without a card: median 0.008, 95th percentile 0.079, max 0.17
+  - synthetic scenes with a card: 5th percentile 0.13, median 0.18
+  - the 29 real photos: 0.10 to 0.18, median 0.14
+
+  A threshold of about 0.08 to 0.10 (mean of the 4 corners) works as "no card found". It is a soft signal, not a
+  guarantee.
+
+The label the detector learned is the **card's printed edge**, not the sleeve, toploader or pocket edge. Then
+rectify the quad to 63:88 (the prototype uses 252×352) and feed the embedding model as before.
 
 ### Real photos: auto-labelling and review
 
@@ -70,3 +115,8 @@ All results are cached per file, so re-runs only process new photos. For a dry r
 `eval_real.py make-dryrun --photos <dir> --n 30`, then `eval_real.py all --photos <dir>`. On such a folder,
 `eval_real.py truthcheck --photos <dir>` measures the labeler's accuracy and how often both sources are wrong
 the same way.
+
+### Android test app
+
+`app_assets.py` builds the model, index and card list for the recognition lab in the app, and `app_parity.py` writes
+reference results for its parity test. See [`android/README.md`](../android/README.md#recognition-lab-scan-tab).

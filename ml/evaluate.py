@@ -46,11 +46,30 @@ def real_ocr(name, labels, truth, scores, cards, every, ocr):
             "top1_after_rerank": float((rr[:, 0] == truth[sub]).mean())}
 
 
+def learned_crops(name: str, key2i: dict):
+    """Synthetic test frames (3:4 portrait, like the model input) -> learned corners -> rectified crops."""
+    from detect import rectify
+    from eval_real_manual import LearnedDetector
+    det = LearnedDetector()
+    labels = json.loads((SYNTH_DIR / name / "labels.json").read_text())
+    crops = []
+    for l in labels:
+        img = cv2.imread(str(SYNTH_DIR / name / l["file"]))
+        q, _ = det(img)
+        crops.append(rectify(img, q))
+    return crops, np.array([key2i[l["key"]] for l in labels])
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", required=True)
     ap.add_argument("--ocr-every", type=int, default=0, help="run EasyOCR on every n-th test image (0 = off)")
+    ap.add_argument("--detector", choices=["classic", "learned"], default="classic",
+                    help="crops from detect.py (classic) or from the learned corner model (.tflite w8, whole frame)")
     args = ap.parse_args()
+    global load_crops
+    if args.detector == "learned":
+        load_crops = learned_crops
     dev = device()
     cards = load_manifest(include_holdout=True)
     n_trained = sum(not c.holdout for c in cards)
@@ -62,6 +81,19 @@ def main():
     s_test = embed_arrays(model, [preprocess(c) for c in test], dev) @ R.T
     s_unseen = embed_arrays(model, [preprocess(c) for c in unseen], dev) @ R.T
     res = {"run": args.run, **full_report(s_test, t_test, s_unseen, t_unseen, cards, n_trained)}
+    # language twin never trained on: German de/me04 vs. the full gallery that also holds the trained en/me04
+    if (SYNTH_DIR / "testdeme04" / "labels.json").exists():
+        twin, t_twin = load_crops("testdeme04", key2i)
+        s_twin = embed_arrays(model, [preprocess(c) for c in twin], dev) @ R.T
+        tk = topk_scores(s_twin, 5)
+        r = evaluate(tk, t_twin, cards)
+        rng = np.random.default_rng(7)
+        from metrics import simulate_ocr
+        rr = rerank(tk, None, cards, [simulate_ocr(cards[i], rng) for i in t_twin])
+        r["top1_after_rerank"] = float((rr[:, 0] == t_twin).mean())
+        r["artwork_level_top1"] = float(np.mean([cards[p].card_id == cards[t].card_id for p, t in zip(tk[:, 0], t_twin)]))
+        r.pop("by_group", None)
+        res["twin_de_me04_in_full"] = r
 
     ck = torch.load(CKPT_DIR / f"{args.run}.pt", map_location="cpu", weights_only=False)
     if ck["classes"] == [c.key for c in cards[:n_trained]]:
@@ -85,7 +117,8 @@ def main():
              for k, v in res.items()}
     print(json.dumps(short, indent=1))
     RESULTS_DIR.mkdir(exist_ok=True)
-    (RESULTS_DIR / f"eval_{args.run}.json").write_text(json.dumps(res, indent=2))
+    suffix = "" if args.detector == "classic" else "_learned_detector"
+    (RESULTS_DIR / f"eval_{args.run}{suffix}.json").write_text(json.dumps(res, indent=2))
 
 
 if __name__ == "__main__":
