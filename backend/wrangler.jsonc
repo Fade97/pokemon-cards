@@ -1,0 +1,30 @@
+// Price API, nightly import and language-pack storage (ADR 0005).
+// Resource names use the working title; they change with the final app name (#15).
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "pokemon-cards-api",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-11-01",
+  "observability": { "enabled": true },
+
+  // Nightly import (#4). The Cardmarket price guide and TCGCSV both refresh once a day.
+  "triggers": { "crons": ["30 4 * * *"] },
+
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pokemon-cards",
+      // Placeholder until the database is created with `wrangler d1 create pokemon-cards`.
+      // Local dev and tests ignore it.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
+  "r2_buckets": [
+    // Language packs: model, reference index, card DB and deltas (ADR 0003, #5).
+    { "binding": "PACKS", "bucket_name": "pokemon-cards-packs" },
+    // Daily price snapshots, kept from day one for Pro history (ADR 0004, #4).
+    { "binding": "SNAPSHOTS", "bucket_name": "pokemon-cards-snapshots" }
+  ]
+}
