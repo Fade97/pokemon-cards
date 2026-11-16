@@ -24,12 +24,15 @@ REVIEW_DIR = DATA_DIR / "review"
 # Card aspect ratio 63 x 88 mm. Rectified crops use this size.
 CARD_W, CARD_H = 252, 352
 
+# (lang, set id, holdout). Holdout sets are never used for training (no augmentation, no ArcFace class);
+# they test whether a new set can be supported by only adding its embeddings to the index.
 SETS = [
-    ("en", "sv03.5"),
-    ("de", "sv03.5"),
-    ("ja", "SV2a"),
-    ("en", "me03"),
-    ("en", "me04"),
+    ("en", "sv03.5", False),
+    ("de", "sv03.5", False),
+    ("ja", "SV2a", False),
+    ("en", "me03", False),
+    ("en", "me04", False),
+    ("de", "30th", True),   # "30 Jahre", released 2026-09-16, unseen
 ]
 
 
@@ -46,6 +49,7 @@ class Card:
     category: str     # Pokemon / Trainer / Energy (in the card's language)
     dex_ids: tuple    # national dex numbers, empty for trainers/energy
     image_url: str
+    holdout: bool = False  # True = unseen set, never used in training
 
     @property
     def ref_path(self) -> Path:
@@ -56,15 +60,21 @@ class Card:
         return f"{self.lang}/{self.set_id}"
 
 
-def load_manifest() -> list[Card]:
+def load_manifest(include_holdout: bool = False) -> list[Card]:
+    """Cards of the trained sets (870); with include_holdout=True also the unseen sets (1,031).
+
+    Trained cards always come first, so the indices of the 870-card gallery stay the same.
+    """
     with open(MANIFEST, encoding="utf-8", newline="") as f:
         rows = list(csv.DictReader(f))
-    return [
+    cards = [
         Card(r["key"], r["card_id"], r["lang"], r["set_id"], r["set_name"], r["local_id"],
              int(r["official"]), r["name"], r["category"],
-             tuple(int(x) for x in r["dex_ids"].split(";") if x), r["image_url"])
+             tuple(int(x) for x in r["dex_ids"].split(";") if x), r["image_url"], r.get("holdout", "0") == "1")
         for r in rows
     ]
+    cards.sort(key=lambda c: c.holdout)  # stable: trained sets first
+    return cards if include_holdout else [c for c in cards if not c.holdout]
 
 
 def number_key(local_id: str) -> str:

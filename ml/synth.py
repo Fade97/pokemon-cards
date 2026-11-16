@@ -241,10 +241,14 @@ def main():
     ap.add_argument("--seed", type=int, default=20261116)
     ap.add_argument("--name", default="test")
     ap.add_argument("--workers", type=int, default=8)
+    ap.add_argument("--groups", nargs="*", default=None,
+                    help="only these card groups, e.g. de/30th (holdout sets included); default: trained sets")
     args = ap.parse_args()
     out_dir = SYNTH_DIR / args.name
     out_dir.mkdir(parents=True, exist_ok=True)
-    cards = load_manifest()
+    cards = load_manifest(include_holdout=bool(args.groups))
+    if args.groups:
+        cards = [c for c in cards if c.group in args.groups]
     jobs = []
     for ci, c in enumerate(cards):
         for k in range(args.per_card):

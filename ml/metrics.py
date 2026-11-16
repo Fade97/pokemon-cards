@@ -92,3 +92,40 @@ def rerank(topk: np.ndarray, sims: np.ndarray, cards: list[Card], numbers: list[
             rest = [c for c in cand if c not in match]
             out[i, :k] = match + rest
     return out
+
+
+def topk_scores(scores: np.ndarray, k: int = 5) -> np.ndarray:
+    """Indices of the k highest scores per row (similarity, or negative distance)."""
+    part = np.argpartition(-scores, k, axis=1)[:, :k]
+    order = np.argsort(-np.take_along_axis(scores, part, 1), axis=1)
+    return np.take_along_axis(part, order, 1)
+
+
+def full_report(s_test: np.ndarray, t_test: np.ndarray, s_unseen: np.ndarray, t_unseen: np.ndarray,
+                cards_full: list[Card], n_trained: int, seed: int = 7) -> dict:
+    """Three views on one model. Scores are [queries, len(cards_full)]; trained cards come first in cards_full.
+
+    main            trained-set test images vs. the 870-card gallery (the headline numbers)
+    trained_in_full trained-set test images vs. the full gallery incl. the unseen set (does adding it hurt?)
+    unseen_in_full  unseen-set test images vs. the full gallery (new set via index only, no retraining)
+    Each view also gets the simulated collector-number rerank (20 % unreadable, 5 % wrong digit).
+    """
+    out = {}
+    views = {"main": (s_test[:, :n_trained], t_test, cards_full[:n_trained]),
+             "trained_in_full": (s_test, t_test, cards_full),
+             "unseen_in_full": (s_unseen, t_unseen, cards_full)}
+    for name, (s, t, cards) in views.items():
+        if len(t) == 0:
+            continue
+        topk = topk_scores(s, 5)
+        r = evaluate(topk, t, cards)
+        rng = np.random.default_rng(seed)
+        nums = [simulate_ocr(cards[i], rng) for i in t]
+        rr = rerank(topk, None, cards, nums)
+        r["top1_after_rerank"] = float((rr[:, 0] == t).mean())
+        r["top1_after_rerank_by_lang"] = {
+            lg: float((rr[[cards[i].lang == lg for i in t], 0] == t[[cards[i].lang == lg for i in t]]).mean())
+            for lg in sorted({cards[i].lang for i in t})}
+        out[name] = r
+    out["gallery_sizes"] = {"main": n_trained, "full": len(cards_full)}
+    return out
