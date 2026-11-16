@@ -43,6 +43,8 @@ class Card:
     local_id: str     # collector number as printed (without total)
     official: int     # printed set total, e.g. 165
     name: str
+    category: str     # Pokemon / Trainer / Energy (in the card's language)
+    dex_ids: tuple    # national dex numbers, empty for trainers/energy
     image_url: str
 
     @property
@@ -59,7 +61,8 @@ def load_manifest() -> list[Card]:
         rows = list(csv.DictReader(f))
     return [
         Card(r["key"], r["card_id"], r["lang"], r["set_id"], r["set_name"], r["local_id"],
-             int(r["official"]), r["name"], r["image_url"])
+             int(r["official"]), r["name"], r["category"],
+             tuple(int(x) for x in r["dex_ids"].split(";") if x), r["image_url"])
         for r in rows
     ]
 

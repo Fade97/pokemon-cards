@@ -33,6 +33,16 @@ def get_set(lang: str, set_id: str) -> dict:
     return json.loads(path.read_text(encoding="utf-8"))
 
 
+def get_card(card: Card) -> dict:
+    path = API_CACHE / card.lang / "cards" / f"{card.card_id}.json"
+    if not path.exists():
+        r = session.get(f"{API}/{card.lang}/cards/{card.card_id}", timeout=30)
+        r.raise_for_status()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(r.text, encoding="utf-8")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
 def download(card: Card) -> str:
     dst = card.ref_path
     if dst.exists() and dst.stat().st_size > 0:
@@ -65,18 +75,23 @@ def main() -> None:
             if not c.get("image"):
                 continue
             cards.append(Card(f"{lang}/{c['id']}", c["id"], lang, set_id, s["name"], c["localId"],
-                              official, c["name"], c["image"]))
+                              official, c["name"], "", (), c["image"]))
     print(f"{len(cards)} cards with images")
 
     with ThreadPoolExecutor(max_workers=min(args.workers, 4)) as ex:
         res = list(tqdm(ex.map(download, cards), total=len(cards), desc="images"))
     print({k: res.count(k) for k in set(res)})
+    with ThreadPoolExecutor(max_workers=min(args.workers, 4)) as ex:
+        details = list(tqdm(ex.map(get_card, cards), total=len(cards), desc="card details"))
 
     with open(MANIFEST, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
-        w.writerow(["key", "card_id", "lang", "set_id", "set_name", "local_id", "official", "name", "image_url"])
-        for c in cards:
-            w.writerow([c.key, c.card_id, c.lang, c.set_id, c.set_name, c.local_id, c.official, c.name, c.image_url])
+        w.writerow(["key", "card_id", "lang", "set_id", "set_name", "local_id", "official", "name", "category",
+                    "dex_ids", "image_url"])
+        for c, d in zip(cards, details):
+            dex = ";".join(str(x) for x in d.get("dexId") or [])
+            w.writerow([c.key, c.card_id, c.lang, c.set_id, c.set_name, c.local_id, c.official, c.name,
+                        d.get("category", ""), dex, c.image_url])
     print(f"wrote {MANIFEST}")
 
 
