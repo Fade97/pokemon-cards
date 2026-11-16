@@ -20,13 +20,19 @@ dependencies = [
     "onnx",
     "onnxruntime",
     "onnxscript",
+    "kornia>=0.8",
 ]
 
 [project.optional-dependencies]
+# real OCR for the collector number (pipeline side)
 ocr = ["easyocr"]
+# independent VLM labeler for real photos
+labeler = ["transformers>=4.57", "accelerate", "bitsandbytes>=0.45", "huggingface_hub"]
 
 [tool.uv]
 package = false
+# easyocr pulls opencv-python-headless, which clashes with opencv-python (both ship the cv2 package).
+override-dependencies = ["opencv-python-headless; sys_platform == 'never'"]
 
 [tool.uv.sources]
 torch = { index = "pytorch-cu130" }
