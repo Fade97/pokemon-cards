@@ -1,0 +1,2298 @@
+{
+  "mnv3_256+classic": {
+    "embedder": "mnv3_256 (w8 .tflite)",
+    "detector": "classic",
+    "gallery": 1274,
+    "threshold": 0.5,
+    "groups": {
+      "de/30th": {
+        "n": 21,
+        "top1": 17,
+        "top5": 19,
+        "shown@0.5": 11,
+        "shown_correct": 11,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.377,
+          0.572,
+          0.825
+        ],
+        "sim_wrong_min_med_max": [
+          0.362,
+          0.406,
+          0.499
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 21,
+            "correct": 17,
+            "wrong": 4
+          },
+          "0.35": {
+            "shown": 21,
+            "correct": 17,
+            "wrong": 4
+          },
+          "0.40": {
+            "shown": 17,
+            "correct": 15,
+            "wrong": 2
+          },
+          "0.45": {
+            "shown": 15,
+            "correct": 14,
+            "wrong": 1
+          },
+          "0.50": {
+            "shown": 11,
+            "correct": 11,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 9,
+            "correct": 9,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 5,
+            "correct": 5,
+            "wrong": 0
+          }
+        },
+        "name_level_photos": 7
+      },
+      "de/me04 (twin)": {
+        "n": 8,
+        "top1": 4,
+        "top5": 5,
+        "shown@0.5": 4,
+        "shown_correct": 4,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.511,
+          0.664,
+          0.724
+        ],
+        "sim_wrong_min_med_max": [
+          0.301,
+          0.389,
+          0.429
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 4,
+            "wrong": 4
+          },
+          "0.35": {
+            "shown": 7,
+            "correct": 4,
+            "wrong": 3
+          },
+          "0.40": {
+            "shown": 6,
+            "correct": 4,
+            "wrong": 2
+          },
+          "0.45": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 3,
+            "correct": 3,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 3,
+            "correct": 3,
+            "wrong": 0
+          }
+        }
+      },
+      "de/me04 (twin) artwork level (EN or DE accepted)": {
+        "n": 8,
+        "top1": 6,
+        "top5": 6,
+        "shown@0.5": 4,
+        "shown_correct": 4,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.355,
+          0.569,
+          0.724
+        ],
+        "sim_wrong_min_med_max": [
+          0.301,
+          0.362,
+          0.422
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 6,
+            "wrong": 2
+          },
+          "0.35": {
+            "shown": 7,
+            "correct": 6,
+            "wrong": 1
+          },
+          "0.40": {
+            "shown": 6,
+            "correct": 5,
+            "wrong": 1
+          },
+          "0.45": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 3,
+            "correct": 3,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 3,
+            "correct": 3,
+            "wrong": 0
+          }
+        }
+      }
+    },
+    "all": {
+      "n": 29,
+      "top1": 21,
+      "top5": 24,
+      "shown@0.5": 15,
+      "shown_correct": 15,
+      "shown_wrong": 0,
+      "sim_correct_min_med_max": [
+        0.377,
+        0.581,
+        0.825
+      ],
+      "sim_wrong_min_med_max": [
+        0.301,
+        0.399,
+        0.499
+      ],
+      "threshold_sweep": {
+        "0.30": {
+          "shown": 29,
+          "correct": 21,
+          "wrong": 8
+        },
+        "0.35": {
+          "shown": 28,
+          "correct": 21,
+          "wrong": 7
+        },
+        "0.40": {
+          "shown": 23,
+          "correct": 19,
+          "wrong": 4
+        },
+        "0.45": {
+          "shown": 19,
+          "correct": 18,
+          "wrong": 1
+        },
+        "0.50": {
+          "shown": 15,
+          "correct": 15,
+          "wrong": 0
+        },
+        "0.55": {
+          "shown": 12,
+          "correct": 12,
+          "wrong": 0
+        },
+        "0.60": {
+          "shown": 8,
+          "correct": 8,
+          "wrong": 0
+        }
+      }
+    },
+    "photos": [
+      {
+        "file": "card-1794855606337.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.8248756527900696,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856543975.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:002",
+        "sim": 0.5724323987960815,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856560432.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7657209038734436,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856666802.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7526779174804688,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857897824.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "en/me03:107",
+        "sim": 0.3751640319824219,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": false,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857916655.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:017",
+        "sim": 0.529137909412384,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857929421.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "en/sv03.5:146",
+        "sim": 0.49865761399269104,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": false,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857958390.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:030",
+        "sim": 0.4284350275993347,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857982012.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:021",
+        "sim": 0.7278218865394592,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858181018.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "en/sv03.5:012",
+        "sim": 0.362169474363327,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858317000.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:054",
+        "sim": 0.493037611246109,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858328280.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:053",
+        "sim": 0.5941826105117798,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858339767.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:063",
+        "sim": 0.5282355546951294,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858346272.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:059",
+        "sim": 0.3888712525367737,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858354327.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/sv03.5:016",
+        "sim": 0.43619051575660706,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858383591.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.4969923496246338,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858392193.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.5813069939613342,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858418889.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:023",
+        "sim": 0.49970096349716187,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858425726.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:029",
+        "sim": 0.5985324382781982,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858442317.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:029",
+        "sim": 0.6028188467025757,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858447521.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:028",
+        "sim": 0.37745338678359985,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858479640.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.5105023980140686,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858497605.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.7237250804901123,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858518904.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:111",
+        "sim": 0.30141541361808777,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858534723.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.6994540691375732,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858574151.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.6280148029327393,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858581740.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "en/me04:016",
+        "sim": 0.35535621643066406,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858586447.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "en/sv03.5:176",
+        "sim": 0.42195260524749756,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858592823.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "en/me04:016",
+        "sim": 0.4291554093360901,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      }
+    ]
+  },
+  "mnv3_256+learned": {
+    "embedder": "mnv3_256 (w8 .tflite)",
+    "detector": "learned",
+    "gallery": 1274,
+    "threshold": 0.5,
+    "groups": {
+      "de/30th": {
+        "n": 21,
+        "top1": 17,
+        "top5": 20,
+        "shown@0.5": 14,
+        "shown_correct": 14,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.368,
+          0.626,
+          0.737
+        ],
+        "sim_wrong_min_med_max": [
+          0.361,
+          0.41,
+          0.471
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 21,
+            "correct": 17,
+            "wrong": 4
+          },
+          "0.35": {
+            "shown": 21,
+            "correct": 17,
+            "wrong": 4
+          },
+          "0.40": {
+            "shown": 18,
+            "correct": 16,
+            "wrong": 2
+          },
+          "0.45": {
+            "shown": 17,
+            "correct": 16,
+            "wrong": 1
+          },
+          "0.50": {
+            "shown": 14,
+            "correct": 14,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 12,
+            "correct": 12,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 10,
+            "correct": 10,
+            "wrong": 0
+          }
+        },
+        "name_level_photos": 7
+      },
+      "de/me04 (twin)": {
+        "n": 8,
+        "top1": 8,
+        "top5": 8,
+        "shown@0.5": 8,
+        "shown_correct": 8,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.672,
+          0.776,
+          0.886
+        ],
+        "sim_wrong_min_med_max": null,
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.35": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          }
+        }
+      },
+      "de/me04 (twin) artwork level (EN or DE accepted)": {
+        "n": 8,
+        "top1": 8,
+        "top5": 8,
+        "shown@0.5": 8,
+        "shown_correct": 8,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.672,
+          0.776,
+          0.886
+        ],
+        "sim_wrong_min_med_max": null,
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.35": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          }
+        }
+      }
+    },
+    "all": {
+      "n": 29,
+      "top1": 25,
+      "top5": 28,
+      "shown@0.5": 22,
+      "shown_correct": 22,
+      "shown_wrong": 0,
+      "sim_correct_min_med_max": [
+        0.368,
+        0.672,
+        0.886
+      ],
+      "sim_wrong_min_med_max": [
+        0.361,
+        0.41,
+        0.471
+      ],
+      "threshold_sweep": {
+        "0.30": {
+          "shown": 29,
+          "correct": 25,
+          "wrong": 4
+        },
+        "0.35": {
+          "shown": 29,
+          "correct": 25,
+          "wrong": 4
+        },
+        "0.40": {
+          "shown": 26,
+          "correct": 24,
+          "wrong": 2
+        },
+        "0.45": {
+          "shown": 25,
+          "correct": 24,
+          "wrong": 1
+        },
+        "0.50": {
+          "shown": 22,
+          "correct": 22,
+          "wrong": 0
+        },
+        "0.55": {
+          "shown": 20,
+          "correct": 20,
+          "wrong": 0
+        },
+        "0.60": {
+          "shown": 18,
+          "correct": 18,
+          "wrong": 0
+        }
+      }
+    },
+    "photos": [
+      {
+        "file": "card-1794855606337.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.6823868751525879,
+        "detector_conf": 0.1480361968278885,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856543975.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:002",
+        "sim": 0.6633083820343018,
+        "detector_conf": 0.1441892832517624,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856560432.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7357518672943115,
+        "detector_conf": 0.14240488409996033,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856666802.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7365787625312805,
+        "detector_conf": 0.14830340445041656,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857897824.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "en/me03:107",
+        "sim": 0.3613850772380829,
+        "detector_conf": 0.135921910405159,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": false,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857916655.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:017",
+        "sim": 0.7116321325302124,
+        "detector_conf": 0.13884396851062775,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857929421.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:014",
+        "sim": 0.5496947765350342,
+        "detector_conf": 0.14559052884578705,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857958390.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:024",
+        "sim": 0.4853805899620056,
+        "detector_conf": 0.12803924083709717,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857982012.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:021",
+        "sim": 0.6952217221260071,
+        "detector_conf": 0.10509674996137619,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858181018.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/me03:071",
+        "sim": 0.3837626874446869,
+        "detector_conf": 0.1284317970275879,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858317000.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:155",
+        "sim": 0.435427725315094,
+        "detector_conf": 0.13777190446853638,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": false,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858328280.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:053",
+        "sim": 0.61639803647995,
+        "detector_conf": 0.11597813665866852,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858339767.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:063",
+        "sim": 0.6262580156326294,
+        "detector_conf": 0.13116350769996643,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858346272.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:059",
+        "sim": 0.6618661284446716,
+        "detector_conf": 0.1480068862438202,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858354327.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/sv03.5:016",
+        "sim": 0.47138500213623047,
+        "detector_conf": 0.15841299295425415,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": false,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858383591.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.4980289340019226,
+        "detector_conf": 0.1222086027264595,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858392193.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.6438453793525696,
+        "detector_conf": 0.11149617284536362,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858418889.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:023",
+        "sim": 0.533177375793457,
+        "detector_conf": 0.10381419956684113,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858425726.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:039",
+        "sim": 0.3675975799560547,
+        "detector_conf": 0.10775146633386612,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858442317.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:029",
+        "sim": 0.5885491967201233,
+        "detector_conf": 0.11935169994831085,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858447521.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:028",
+        "sim": 0.5918938517570496,
+        "detector_conf": 0.12084637582302094,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858479640.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.6720237731933594,
+        "detector_conf": 0.16110315918922424,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858497605.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.6734694242477417,
+        "detector_conf": 0.16070005297660828,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858518904.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.7397359609603882,
+        "detector_conf": 0.15510761737823486,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858534723.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.7548527717590332,
+        "detector_conf": 0.17907896637916565,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858574151.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.8338587284088135,
+        "detector_conf": 0.14896351099014282,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858581740.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:014",
+        "sim": 0.8856997489929199,
+        "detector_conf": 0.15598641335964203,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858586447.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.7983236312866211,
+        "detector_conf": 0.1604572981595993,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858592823.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.796539306640625,
+        "detector_conf": 0.13508102297782898,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      }
+    ]
+  },
+  "mnv3_256_real+classic": {
+    "embedder": "mnv3_256_real (w8 .tflite)",
+    "detector": "classic",
+    "gallery": 1274,
+    "threshold": 0.5,
+    "groups": {
+      "de/30th": {
+        "n": 21,
+        "top1": 21,
+        "top5": 21,
+        "shown@0.5": 15,
+        "shown_correct": 15,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.316,
+          0.563,
+          0.787
+        ],
+        "sim_wrong_min_med_max": null,
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 21,
+            "correct": 21,
+            "wrong": 0
+          },
+          "0.35": {
+            "shown": 18,
+            "correct": 18,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 18,
+            "correct": 18,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 17,
+            "correct": 17,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 15,
+            "correct": 15,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 12,
+            "correct": 12,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          }
+        },
+        "name_level_photos": 7
+      },
+      "de/me04 (twin)": {
+        "n": 8,
+        "top1": 5,
+        "top5": 5,
+        "shown@0.5": 4,
+        "shown_correct": 4,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.44,
+          0.642,
+          0.707
+        ],
+        "sim_wrong_min_med_max": [
+          0.262,
+          0.308,
+          0.347
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 7,
+            "correct": 5,
+            "wrong": 2
+          },
+          "0.35": {
+            "shown": 5,
+            "correct": 5,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 5,
+            "correct": 5,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          }
+        }
+      },
+      "de/me04 (twin) artwork level (EN or DE accepted)": {
+        "n": 8,
+        "top1": 5,
+        "top5": 5,
+        "shown@0.5": 4,
+        "shown_correct": 4,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.44,
+          0.642,
+          0.707
+        ],
+        "sim_wrong_min_med_max": [
+          0.262,
+          0.308,
+          0.347
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 7,
+            "correct": 5,
+            "wrong": 2
+          },
+          "0.35": {
+            "shown": 5,
+            "correct": 5,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 5,
+            "correct": 5,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 4,
+            "correct": 4,
+            "wrong": 0
+          }
+        }
+      }
+    },
+    "all": {
+      "n": 29,
+      "top1": 26,
+      "top5": 26,
+      "shown@0.5": 19,
+      "shown_correct": 19,
+      "shown_wrong": 0,
+      "sim_correct_min_med_max": [
+        0.316,
+        0.569,
+        0.787
+      ],
+      "sim_wrong_min_med_max": [
+        0.262,
+        0.308,
+        0.347
+      ],
+      "threshold_sweep": {
+        "0.30": {
+          "shown": 28,
+          "correct": 26,
+          "wrong": 2
+        },
+        "0.35": {
+          "shown": 23,
+          "correct": 23,
+          "wrong": 0
+        },
+        "0.40": {
+          "shown": 23,
+          "correct": 23,
+          "wrong": 0
+        },
+        "0.45": {
+          "shown": 21,
+          "correct": 21,
+          "wrong": 0
+        },
+        "0.50": {
+          "shown": 19,
+          "correct": 19,
+          "wrong": 0
+        },
+        "0.55": {
+          "shown": 16,
+          "correct": 16,
+          "wrong": 0
+        },
+        "0.60": {
+          "shown": 12,
+          "correct": 12,
+          "wrong": 0
+        }
+      }
+    },
+    "photos": [
+      {
+        "file": "card-1794855606337.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7870535850524902,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856543975.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:002",
+        "sim": 0.664918065071106,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856560432.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7838879823684692,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856666802.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7491364479064941,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857897824.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:025",
+        "sim": 0.521192729473114,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857916655.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:017",
+        "sim": 0.49518251419067383,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857929421.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:014",
+        "sim": 0.5626829862594604,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857958390.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:024",
+        "sim": 0.3160932958126068,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857982012.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:021",
+        "sim": 0.6992138624191284,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858181018.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:045",
+        "sim": 0.3479609489440918,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858317000.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:054",
+        "sim": 0.5161467790603638,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858328280.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:053",
+        "sim": 0.4397347867488861,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858339767.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:063",
+        "sim": 0.5352716445922852,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858346272.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:059",
+        "sim": 0.625669002532959,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858354327.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:061",
+        "sim": 0.5722719430923462,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858383591.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.49515944719314575,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858392193.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.566335916519165,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858418889.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:025",
+        "sim": 0.5550591349601746,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858425726.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:029",
+        "sim": 0.6505270004272461,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858442317.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:025",
+        "sim": 0.6144021153450012,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858447521.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:028",
+        "sim": 0.3457772135734558,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858479640.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.6213419437408447,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858497605.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.7067501544952393,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858518904.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/sv03.5:013",
+        "sim": 0.30793657898902893,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858534723.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.6416115760803223,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858574151.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.6812819242477417,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858581740.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/30th:014",
+        "sim": 0.34687507152557373,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858586447.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/sv03.5:138",
+        "sim": 0.262026309967041,
+        "detector_conf": null,
+        "ok_exact": false,
+        "top5_exact": false,
+        "ok_art": false,
+        "top5_art": false
+      },
+      {
+        "file": "card-1794858592823.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.43953990936279297,
+        "detector_conf": null,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      }
+    ]
+  },
+  "mnv3_256_real+learned": {
+    "embedder": "mnv3_256_real (w8 .tflite)",
+    "detector": "learned",
+    "gallery": 1274,
+    "threshold": 0.5,
+    "groups": {
+      "de/30th": {
+        "n": 21,
+        "top1": 21,
+        "top5": 21,
+        "shown@0.5": 19,
+        "shown_correct": 19,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.384,
+          0.65,
+          0.789
+        ],
+        "sim_wrong_min_med_max": null,
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 21,
+            "correct": 21,
+            "wrong": 0
+          },
+          "0.35": {
+            "shown": 21,
+            "correct": 21,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 20,
+            "correct": 20,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 19,
+            "correct": 19,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 19,
+            "correct": 19,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 16,
+            "correct": 16,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 14,
+            "correct": 14,
+            "wrong": 0
+          }
+        },
+        "name_level_photos": 7
+      },
+      "de/me04 (twin)": {
+        "n": 8,
+        "top1": 7,
+        "top5": 8,
+        "shown@0.5": 8,
+        "shown_correct": 7,
+        "shown_wrong": 1,
+        "sim_correct_min_med_max": [
+          0.519,
+          0.756,
+          0.879
+        ],
+        "sim_wrong_min_med_max": [
+          0.869,
+          0.869,
+          0.869
+        ],
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 7,
+            "wrong": 1
+          },
+          "0.35": {
+            "shown": 8,
+            "correct": 7,
+            "wrong": 1
+          },
+          "0.40": {
+            "shown": 8,
+            "correct": 7,
+            "wrong": 1
+          },
+          "0.45": {
+            "shown": 8,
+            "correct": 7,
+            "wrong": 1
+          },
+          "0.50": {
+            "shown": 8,
+            "correct": 7,
+            "wrong": 1
+          },
+          "0.55": {
+            "shown": 7,
+            "correct": 6,
+            "wrong": 1
+          },
+          "0.60": {
+            "shown": 7,
+            "correct": 6,
+            "wrong": 1
+          }
+        }
+      },
+      "de/me04 (twin) artwork level (EN or DE accepted)": {
+        "n": 8,
+        "top1": 8,
+        "top5": 8,
+        "shown@0.5": 8,
+        "shown_correct": 8,
+        "shown_wrong": 0,
+        "sim_correct_min_med_max": [
+          0.519,
+          0.782,
+          0.879
+        ],
+        "sim_wrong_min_med_max": null,
+        "threshold_sweep": {
+          "0.30": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.35": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.40": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.45": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.50": {
+            "shown": 8,
+            "correct": 8,
+            "wrong": 0
+          },
+          "0.55": {
+            "shown": 7,
+            "correct": 7,
+            "wrong": 0
+          },
+          "0.60": {
+            "shown": 7,
+            "correct": 7,
+            "wrong": 0
+          }
+        }
+      }
+    },
+    "all": {
+      "n": 29,
+      "top1": 28,
+      "top5": 29,
+      "shown@0.5": 27,
+      "shown_correct": 26,
+      "shown_wrong": 1,
+      "sim_correct_min_med_max": [
+        0.384,
+        0.669,
+        0.879
+      ],
+      "sim_wrong_min_med_max": [
+        0.869,
+        0.869,
+        0.869
+      ],
+      "threshold_sweep": {
+        "0.30": {
+          "shown": 29,
+          "correct": 28,
+          "wrong": 1
+        },
+        "0.35": {
+          "shown": 29,
+          "correct": 28,
+          "wrong": 1
+        },
+        "0.40": {
+          "shown": 28,
+          "correct": 27,
+          "wrong": 1
+        },
+        "0.45": {
+          "shown": 27,
+          "correct": 26,
+          "wrong": 1
+        },
+        "0.50": {
+          "shown": 27,
+          "correct": 26,
+          "wrong": 1
+        },
+        "0.55": {
+          "shown": 23,
+          "correct": 22,
+          "wrong": 1
+        },
+        "0.60": {
+          "shown": 21,
+          "correct": 20,
+          "wrong": 1
+        }
+      }
+    },
+    "photos": [
+      {
+        "file": "card-1794855606337.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7304716110229492,
+        "detector_conf": 0.1480361968278885,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856543975.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:002",
+        "sim": 0.698394775390625,
+        "detector_conf": 0.1441892832517624,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856560432.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7891790866851807,
+        "detector_conf": 0.14240488409996033,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794856666802.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:008",
+        "sim": 0.7582190036773682,
+        "detector_conf": 0.14830340445041656,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857897824.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:025",
+        "sim": 0.6675866842269897,
+        "detector_conf": 0.135921910405159,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857916655.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:017",
+        "sim": 0.5829132199287415,
+        "detector_conf": 0.13884396851062775,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857929421.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:014",
+        "sim": 0.6706727743148804,
+        "detector_conf": 0.14559052884578705,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857958390.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:024",
+        "sim": 0.5029295086860657,
+        "detector_conf": 0.12803924083709717,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794857982012.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:021",
+        "sim": 0.7151758670806885,
+        "detector_conf": 0.10509674996137619,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858181018.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:045",
+        "sim": 0.42076414823532104,
+        "detector_conf": 0.1284317970275879,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858317000.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:054",
+        "sim": 0.5254076719284058,
+        "detector_conf": 0.13777190446853638,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858328280.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:053",
+        "sim": 0.5028185844421387,
+        "detector_conf": 0.11597813665866852,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858339767.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:063",
+        "sim": 0.7164363265037537,
+        "detector_conf": 0.13116350769996643,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858346272.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:059",
+        "sim": 0.6109038591384888,
+        "detector_conf": 0.1480068862438202,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858354327.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:061",
+        "sim": 0.6363024711608887,
+        "detector_conf": 0.15841299295425415,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858383591.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.5529139041900635,
+        "detector_conf": 0.1222086027264595,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858392193.jpg",
+        "group": "de/30th",
+        "name_level": false,
+        "top1": "de/30th:138",
+        "sim": 0.6063020825386047,
+        "detector_conf": 0.11149617284536362,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858418889.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:034",
+        "sim": 0.6496844291687012,
+        "detector_conf": 0.10381419956684113,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858425726.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:041",
+        "sim": 0.3839181065559387,
+        "detector_conf": 0.10775146633386612,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858442317.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:029",
+        "sim": 0.7412712574005127,
+        "detector_conf": 0.11935169994831085,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858447521.jpg",
+        "group": "de/30th",
+        "name_level": true,
+        "top1": "de/30th:028",
+        "sim": 0.7709610462188721,
+        "detector_conf": 0.12084637582302094,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858479640.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.8074842691421509,
+        "detector_conf": 0.16110315918922424,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858497605.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.5185876488685608,
+        "detector_conf": 0.16070005297660828,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858518904.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.604167103767395,
+        "detector_conf": 0.15510761737823486,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858534723.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:005",
+        "sim": 0.7562381029129028,
+        "detector_conf": 0.17907896637916565,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858574151.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.8358514308929443,
+        "detector_conf": 0.14896351099014282,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858581740.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "en/me04:014",
+        "sim": 0.8692435026168823,
+        "detector_conf": 0.15598641335964203,
+        "ok_exact": false,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858586447.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:001",
+        "sim": 0.7243266105651855,
+        "detector_conf": 0.1604572981595993,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      },
+      {
+        "file": "card-1794858592823.jpg",
+        "group": "de/me04 (twin)",
+        "name_level": false,
+        "top1": "de/me04:016",
+        "sim": 0.87904292345047,
+        "detector_conf": 0.13508102297782898,
+        "ok_exact": true,
+        "top5_exact": true,
+        "ok_art": true,
+        "top5_art": true
+      }
+    ]
+  }
+}
