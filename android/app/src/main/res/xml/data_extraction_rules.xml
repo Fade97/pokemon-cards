@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12 and higher. The collection database is backed up (local-first, ADR 0006). -->
+<!-- Android 12 and higher. The collection database goes into the user's own Android backup, never to an app server (ADR 0006). -->
 <data-extraction-rules>
     <cloud-backup>
         <include domain="database" path="." />

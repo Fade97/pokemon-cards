@@ -12,6 +12,7 @@ import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
+import java.io.FileNotFoundException
 import kotlin.math.abs
 
 /**
@@ -34,9 +35,13 @@ class RecognitionParityTest {
         val dir = context.getExternalFilesDir("parity")
         val expectedFile = File(dir, "expected.json")
         assumeTrue("no parity data in $dir", expectedFile.exists())
-        val engine = runCatching { RecognitionEngine.load(context) }.getOrNull()
-        assumeTrue("recognition assets missing", engine != null)
-        engine!!
+        // Only missing assets skip the test; present but broken assets (bad model, dim mismatch) must fail it.
+        val engine = try {
+            RecognitionEngine.load(context)
+        } catch (e: FileNotFoundException) {
+            assumeTrue("recognition assets missing: ${e.message}", false)
+            return
+        }
 
         val expected = JSONArray(expectedFile.readText())
         val rows = JSONArray()

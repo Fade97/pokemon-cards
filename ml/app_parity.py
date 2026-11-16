@@ -47,6 +47,8 @@ def main():
         crop = rectify(img, quad)
         sims = np.stack([index @ emb(to_input(crop)), index @ emb(to_input(cv2.rotate(crop, cv2.ROTATE_180)))], 1)
         flip = int(sims[:, 1].max() > sims[:, 0].max())
+        if flip:  # same corner order as pipeline.py and the app (Quad.roll(2))
+            quad = np.roll(np.asarray(quad), 2, 0)
         s = sims[:, flip]
         order = np.argsort(-s)[:5]
         rows.append({"file": png, "truth": lab["key"], "truthQuad": lab["quad"], "found": found,

@@ -13,8 +13,9 @@ room = "2.8.5"
 camerax = "1.6.2"
 mlkitTextRecognition = "16.0.1"
 litert = "2.3.2"
-# Same version as the Python prototype (ml/uv.lock), so the classic-CV detector gives the same results.
-opencv = "5.0.0"
+# Python prototype (ml/uv.lock) is on 5.0.0: 5.0.0's arm64 libc++_shared.so is not 16 KB aligned, and
+# opencv-python 5.1 is not on PyPI yet. Re-run RecognitionParityTest after changing either side; align when possible.
+opencv = "5.1.0"
 coil = "3.6.3"
 coroutines = "1.11.0"
 junit = "4.13.2"

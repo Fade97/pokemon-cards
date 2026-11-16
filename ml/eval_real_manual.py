@@ -22,7 +22,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from common import DATA_DIR, EXPORT_DIR, INDEX_DIR, REAL_DIR, RESULTS_DIR, load_manifest
+from common import DATA_DIR, EXPORT_DIR, INDEX_DIR, REAL_DIR, RESULTS_DIR, cached_index, load_manifest
 from detect import center_crop_fallback, detect, rectify
 
 LABELS = DATA_DIR / "real-photos-labels-manual.json"
@@ -62,28 +62,25 @@ class TFLite:
 class Embedder:
     def __init__(self, run: str, variant: str = "w8"):
         self.tag = f"{run}_{variant}"
-        self.m = TFLite(EXPORT_DIR / f"{run}_{variant}.tflite")
+        self.model_file = EXPORT_DIR / f"{run}_{variant}.tflite"
+        self.m = TFLite(self.model_file)
 
     def __call__(self, bgr):
         e = self.m(to_input(bgr))
         return e / np.linalg.norm(e)
 
     def index(self, cards):
-        path = INDEX_DIR / f"{self.tag}_tflite_full{len(cards)}.npy"
-        if path.exists():
-            return np.load(path)
         from synth import load_ref_rgba
-        R = np.stack([self(load_ref_rgba(str(c.ref_path))) for c in cards]).astype(np.float32)
-        INDEX_DIR.mkdir(parents=True, exist_ok=True)
-        np.save(path, R)
-        return R
+        return cached_index(INDEX_DIR / f"{self.tag}_tflite_full{len(cards)}.npy", self.model_file, cards,
+                            lambda: np.stack([self(load_ref_rgba(str(c.ref_path))) for c in cards]))
 
 
 class LearnedDetector:
     """Corner model on the guide crop: resize (no letterbox) to 192x256, RGB [0,1] -> [4,3] (x, y, conf)."""
 
     def __init__(self, run: str = "corners_mnv3", variant: str = "w8"):
-        self.m = TFLite(EXPORT_DIR / f"{run}_{variant}.tflite")
+        self.model_file = EXPORT_DIR / f"{run}_{variant}.tflite"
+        self.m = TFLite(self.model_file)
 
     def __call__(self, guide_bgr):
         h, w = guide_bgr.shape[:2]

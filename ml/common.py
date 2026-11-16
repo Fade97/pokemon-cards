@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import csv
+import hashlib
+import json
 import os
 from dataclasses import dataclass
 from pathlib import Path
@@ -88,3 +90,24 @@ def number_key(local_id: str) -> str:
 def device():
     import torch
     return torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+
+def cached_index(path: Path, model_file: Path, cards: list[Card], build):
+    """Loads the reference index at `path`, or builds and saves it with `build()`.
+
+    The cache is valid only for the same model file (size and mtime) and the same cards in the same order, recorded
+    in a sidecar `<path>.json`; a retrained model or a reordered manifest of equal length rebuilds it.
+    """
+    import numpy as np
+
+    st = model_file.stat()
+    stamp = {"model": model_file.name, "modelSize": st.st_size, "modelMtimeNs": st.st_mtime_ns,
+             "cards": hashlib.sha256("\n".join(c.key for c in cards).encode()).hexdigest()}
+    meta = path.with_name(path.name + ".json")
+    if path.exists() and meta.exists() and json.loads(meta.read_text()) == stamp:
+        return np.load(path)
+    R = np.asarray(build(), dtype=np.float32)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    np.save(path, R)
+    meta.write_text(json.dumps(stamp))
+    return R

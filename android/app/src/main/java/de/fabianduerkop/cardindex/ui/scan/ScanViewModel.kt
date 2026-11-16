@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.ui.scan
 import android.app.Application
 import android.content.ContentValues
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
 import android.graphics.Matrix
 import android.net.Uri
@@ -227,14 +228,28 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         )
     }
 
+    /** Decodes a gallery photo already shrunk towards [STILL_MAX_SIDE], so a 50 MP photo never sits in memory whole. */
     private fun decode(uri: Uri): Bitmap {
         val resolver = getApplication<Application>().contentResolver
         return if (Build.VERSION.SDK_INT >= 28) {
-            ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, _, _ ->
+            val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
                 decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE // OpenCV needs CPU-readable pixels
-            }.copy(Bitmap.Config.ARGB_8888, false)
+                val side = max(info.size.width, info.size.height)
+                if (side > STILL_MAX_SIDE) {
+                    val s = STILL_MAX_SIDE.toFloat() / side
+                    decoder.setTargetSize((info.size.width * s).roundToInt(), (info.size.height * s).roundToInt())
+                }
+            }
+            if (bitmap.config == Bitmap.Config.ARGB_8888) bitmap
+            else bitmap.copy(Bitmap.Config.ARGB_8888, false).also { bitmap.recycle() }
         } else {
-            resolver.openInputStream(uri).use { android.graphics.BitmapFactory.decodeStream(it) }
+            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+            resolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
+            var sample = 1
+            while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= STILL_MAX_SIDE) sample *= 2
+            val options = BitmapFactory.Options().apply { inSampleSize = sample }
+            resolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, options) }
+                ?: throw IllegalArgumentException("not an image: $uri")
         }
     }
 

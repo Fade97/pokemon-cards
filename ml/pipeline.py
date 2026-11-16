@@ -13,7 +13,7 @@ import cv2
 import numpy as np
 import torch
 
-from common import CKPT_DIR, INDEX_DIR, Card, device, load_manifest, number_key
+from common import CKPT_DIR, INDEX_DIR, Card, cached_index, device, load_manifest, number_key
 from detect import center_crop_fallback, detect, rectify
 from models import EmbeddingNet, embed_arrays, preprocess
 from synth import load_ref_rgba
@@ -44,15 +44,12 @@ def load_model(run: str, dev=None):
 
 
 def build_index(model, cards: list[Card], run: str, dev=None, cache=True) -> np.ndarray:
-    path = INDEX_DIR / f"{run}.npy"
-    if cache and path.exists():
-        R = np.load(path)
-        if len(R) == len(cards):
-            return R
-    R = embed_arrays(model, [preprocess(load_ref_rgba(str(c.ref_path))) for c in cards], dev or device())
-    INDEX_DIR.mkdir(parents=True, exist_ok=True)
-    np.save(path, R.astype(np.float32))
-    return R
+    def build():
+        return embed_arrays(model, [preprocess(load_ref_rgba(str(c.ref_path))) for c in cards], dev or device())
+
+    if not cache:
+        return build().astype(np.float32)
+    return cached_index(INDEX_DIR / f"{run}.npy", CKPT_DIR / f"{run}.pt", cards, build)
 
 
 class NumberOCR:
