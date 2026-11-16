@@ -17,6 +17,7 @@
   --r-lg:22px; --r-md:12px; --r-sm:7px;
 }
 *{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
 body{background:var(--page);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,sans-serif;
   line-height:1.4;padding:40px 16px 32px}
 .num,.cand .n,.qty output{font-variant-numeric:tabular-nums}
@@ -230,7 +231,8 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
 @media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
 .behind{flex:1;padding:4px 18px;filter:blur(1.5px);opacity:.6;overflow:hidden}
 .note{max-width:1520px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted)}
-@media (max-width:420px){.intro h1{font-size:34px}.phone{height:740px}}
+@media (max-width:420px){.intro h1{font-size:34px}.phone{height:740px}
+  .dhead .card{width:84px}.dhead .num{font-size:38px}.dhead h2{font-size:20px}}
 </style>
 </head>
 <body>
@@ -279,7 +281,7 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
   <div class="scroll">
     <div class="top"><h2>Collections</h2><button class="ghost">New</button></div>
     <div class="total">
-      <p>Collection value, Cardmarket trend</p>
+      <p>Collection value, Cardmarket trend, all languages</p>
       <div class="num">1.284,60 €</div>
       <p class="sum">All cards, 412 copies <span class="up">+18,20 € this week</span></p>
     </div>

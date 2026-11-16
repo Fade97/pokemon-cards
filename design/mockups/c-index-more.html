@@ -17,6 +17,7 @@
   --r-lg:22px; --r-md:12px; --r-sm:7px;
 }
 *{box-sizing:border-box;margin:0}
+[hidden]{display:none!important}
 body{background:var(--page);color:var(--ink);font-family:"Schibsted Grotesk",system-ui,sans-serif;
   line-height:1.4;padding:40px 16px 32px}
 .num,.cand .n,.row-n{font-variant-numeric:tabular-nums}
@@ -159,11 +160,31 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .sethead .num{font-size:52px}
 .sethead p{font-size:14px;color:var(--muted)}
 .sethead .v{text-align:right;font-weight:700;font-size:17px}
+.sethead .v p{font-size:12.5px;font-weight:500;max-width:17ch;margin-left:auto;line-height:1.3}
+.slang{margin:-2px 0 2px}
+/* set-detail sheet: peek bar by default, expands on tap, can be dismissed */
+.ssheet{z-index:5;padding:0 0 18px}
+.peek{display:flex;align-items:center;gap:2px;padding:6px 6px 2px 4px}
+.pk{flex:1;min-width:0;min-height:56px;display:flex;align-items:center;gap:10px;background:none;border:0;border-radius:var(--r-md);text-align:left;padding:4px 6px 4px 12px;font-size:15px;color:var(--ink)}
+.pk .pt{flex:1;min-width:0;line-height:1.3}
+.pk .pt b{display:block;font-weight:800;font-variant-numeric:tabular-nums}
+.pk .pt span{display:block;font-size:14px;color:var(--muted)}
+.pk .grab{display:none;margin:0 auto}
+.pk svg,.peek svg{width:24px;height:24px;flex:none;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+.ssheet.open .pk .pt{display:none}
+.ssheet.open .pk .grab{display:block}
+.ssheet.open .pk .chev{transform:rotate(180deg)}
+@media (prefers-reduced-motion:no-preference){.pk .chev{transition:transform .15s}}
+.ssheet .full{padding:2px 18px 6px}
+.ssheet:not(.open) .full{display:none}
+.sd .scroll{padding-bottom:18px}
+.sd.has-peek .scroll{padding-bottom:96px}
+.sd.has-open .scroll{padding-bottom:300px}
 /* compact grid: every slot is a 34px button; owned = filled + check, missing = dashed outline */
-.big{grid-template-columns:repeat(8,1fr);gap:4px;margin-top:12px}
-.big button{position:relative;aspect-ratio:1;min-height:32px;border:1.5px solid transparent;border-radius:5px;padding:0 0 3px 4px;display:flex;align-items:flex-end;font-size:11px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;background:none}
+.big{grid-template-columns:repeat(auto-fill,minmax(44px,1fr));gap:4px;margin-top:12px}
+.big button{position:relative;aspect-ratio:1;min-height:44px;border:1.5px solid transparent;border-radius:6px;padding:0 0 4px 6px;display:flex;align-items:flex-end;font-size:13px;font-weight:700;font-variant-numeric:tabular-nums;color:#fff;background:none}
 .big button.lt{color:var(--ink)}
-.big button.own::after{content:"";position:absolute;right:5px;top:6px;width:8px;height:4px;border:2px solid currentColor;border-top:0;border-right:0;transform:rotate(-45deg)}
+.big button.own::after{content:"";position:absolute;right:6px;top:8px;width:9px;height:5px;border:2px solid currentColor;border-top:0;border-right:0;transform:rotate(-45deg)}
 .big button.miss{border:1.5px dashed #6F7E96;color:#4B5A73;background:transparent}
 .big button.sel{outline:3px solid var(--ink);outline-offset:1px}
 .big button.off{opacity:.2}
@@ -177,7 +198,7 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .cards{display:none;grid-template-columns:repeat(4,1fr);gap:7px;margin-top:12px}
 .sd.v-cards .big{display:none}.sd.v-cards .cards{display:grid}
 .mini{border-radius:6px;padding:4px;display:flex;flex-direction:column;gap:3px;aspect-ratio:63/88;color:#fff;position:relative;overflow:hidden;border:0;text-align:left}
-.mini .nm{position:relative;z-index:1;font-size:8.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-height:13px;background:rgba(20,35,61,.72);border-radius:3px;padding:0 3px;align-self:flex-start;max-width:100%}
+.mini .nm{position:relative;z-index:1;font-size:8.5px;font-weight:700;line-height:1.2;overflow-wrap:anywhere;min-height:13px;background:rgba(20,35,61,.72);border-radius:3px;padding:0 3px;align-self:flex-start;max-width:100%}
 .mini .nm:empty{background:none}
 .mini .art{flex:1;border-radius:3px;background:rgba(255,255,255,.24);position:relative;overflow:hidden}
 .mini .art::after{content:"";position:absolute;width:64%;aspect-ratio:1;border-radius:46% 54% 40% 60%;background:rgba(255,255,255,.4);left:18%;top:14%}
@@ -352,37 +373,25 @@ button.item:last-child{border-bottom:0}
 <!-- 5 Set detail -->
 <figure><div class="phone sd" data-view="compact">
   <div class="status"><span>9:31</span><span>93%</span></div>
-  <div class="scroll" style="padding-bottom:230px">
+  <div class="scroll">
     <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
     <div class="sethead">
-      <div><p>English and German cards</p><div class="num">87<span>/165</span></div></div>
-      <div class="v">612,30 €<p>Cardmarket trend</p></div>
+      <div><p data-k="langtxt">English and German cards</p><div class="num" data-k="count">87<span>/165</span></div></div>
+      <div class="v"><span data-k="value">612,30 €</span><p>Cardmarket trend, all languages</p></div>
     </div>
+    <div class="chips slang" role="group" aria-label="Card language"><button class="chip sm" aria-pressed="true" data-l="all">All languages</button><button class="chip sm" aria-pressed="false" data-l="EN">EN</button><button class="chip sm" aria-pressed="false" data-l="DE">DE</button></div>
     <div class="setbar">
       <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
       <div class="chips sfilter">
-        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned" data-k="nown">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing" data-k="nmiss">Missing 78</button>
       </div>
     </div>
     <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
     <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
-    <h3>Missing 78 cards, about 46 € to complete</h3>
-    <ul class="miss-list">
-      <li><span class="row-n">145</span><span>Zapdos ex</span><span>4,80 €</span></li>
-      <li><span class="row-n">124</span><span>Rossana ex</span><span>3,10 €</span></li>
-      <li><span class="row-n">115</span><span>Kangama ex</span><span>2,90 €</span></li>
-      <li><span class="row-n">024</span><span>Arbok ex</span><span>2,40 €</span></li>
-    </ul>
+    <h3 data-k="misshead">Missing 78 cards</h3>
+    <ul class="miss-list" data-k="misslist"></ul>
   </div>
-  <div class="sheet" role="region" aria-label="Selected card" aria-live="polite">
-    <div class="grab"></div>
-    <div class="sh">
-      <div class="card" data-k="face" style="background:var(--grass)" aria-hidden="true"><div class="nm"><span data-k="fname">Arbok ex</span></div><div class="art"></div><div class="tx"></div><div class="no" data-k="fno">024/165</div></div>
-      <div><div class="num" data-k="num">024<span>/165</span></div><h2 data-k="name">Arbok ex</h2><p data-k="own">Not in your collection yet</p><p class="pr"><span data-k="price">2,40 €</span> <span style="font-weight:500;color:var(--muted)">trend, all languages</span></p></div>
-    </div>
-    <div class="pair"><button class="secondary">Open on Cardmarket</button><button class="primary">Add copy</button></div>
-  </div>
-</div><figcaption><b>Set detail</b>Compact view: every slot is numbered. Switch to Cards to see the art; filter to see only what's missing.</figcaption></figure>
+</div><figcaption><b>Set detail</b>Compact view: every slot is numbered. Pick a language, filter to what's missing, tap a slot. The card shows as a bar you can open or close.</figcaption></figure>
 
 <!-- 5b Set detail, card view -->
 <figure><div class="phone sd" data-view="cards">
@@ -390,19 +399,20 @@ button.item:last-child{border-bottom:0}
   <div class="scroll">
     <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
     <div class="sethead">
-      <div><p>English and German cards</p><div class="num">87<span>/165</span></div></div>
-      <div class="v">612,30 €<p>Cardmarket trend</p></div>
+      <div><p data-k="langtxt">English and German cards</p><div class="num" data-k="count">87<span>/165</span></div></div>
+      <div class="v"><span data-k="value">612,30 €</span><p>Cardmarket trend, all languages</p></div>
     </div>
+    <div class="chips slang" role="group" aria-label="Card language"><button class="chip sm" aria-pressed="true" data-l="all">All languages</button><button class="chip sm" aria-pressed="false" data-l="EN">EN</button><button class="chip sm" aria-pressed="false" data-l="DE">DE</button></div>
     <div class="setbar">
       <div class="seg" role="group" aria-label="View"><button aria-pressed="true" data-view="compact">Compact</button><button aria-pressed="false" data-view="cards">Cards</button></div>
       <div class="chips sfilter">
-        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing">Missing 78</button>
+        <button class="chip sm" aria-pressed="true" data-v="all">All</button><button class="chip sm" aria-pressed="false" data-v="owned" data-k="nown">Owned 87</button><button class="chip sm" aria-pressed="false" data-v="missing" data-k="nmiss">Missing 78</button>
       </div>
     </div>
     <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
     <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
   </div>
-</div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white, so you know what to look for.</figcaption></figure>
+</div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white. Tap a card to see it in the bar.</figcaption></figure>
 
 <!-- 6 Custom collection -->
 <figure><div class="phone">
@@ -410,7 +420,7 @@ button.item:last-child{border-bottom:0}
   <div class="scroll">
     <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>Trade binder</h2><button class="ghost">Edit</button></div>
     <div class="total">
-      <p>Collection value, Cardmarket trend</p>
+      <p>Collection value, Cardmarket trend, all languages</p>
       <div class="num">212,00 €</div>
       <p class="sum">36 cards <span class="up">+3,40 € this week</span></p>
     </div>
@@ -432,7 +442,7 @@ button.item:last-child{border-bottom:0}
   <div class="status"><span>9:44</span><span>92%</span></div>
   <div class="behind" aria-hidden="true">
     <div class="top"><h2>Collections</h2></div>
-    <div class="total"><p>Collection value, Cardmarket trend</p><div class="num">1.284,60 €</div><p class="sum">All cards, 412 copies</p></div>
+    <div class="total"><p>Collection value, Cardmarket trend, all languages</p><div class="num">1.284,60 €</div><p class="sum">All cards, 412 copies</p></div>
   </div>
   <div class="scrim"></div>
   <div class="sheet tall" role="dialog" aria-label="New collection">
@@ -508,6 +518,8 @@ const $=id=>document.getElementById(id);
 // shared: icons for nav and app bars, gesture inset on every phone
 const ICON={
   back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  close:'<path d="M6 6l12 12M18 6 6 18"/>',
+  up:'<path d="m6 15 6-6 6 6"/>',
   scan:'<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.5" y="7.5" width="7" height="9" rx="1"/>',
   collections:'<rect x="8" y="3.5" width="11" height="15" rx="1.5"/><path d="M5 7.5v11a2 2 0 0 0 2 2h8.5"/>',
   search:'<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
@@ -579,29 +591,80 @@ const col=t=>`var(--${t})`;
 const owned=n=>[1,6,25,151].includes(n)||((n*37)%100)<52;
 const NAMES={1:'Bisasam',2:'Bisaknosp',3:'Bisaflor ex',4:'Glumanda',5:'Glutexo',6:'Glurak ex',7:'Schiggy',8:'Schillok',9:'Turtok ex',10:'Raupy',13:'Hornliu',16:'Taubsi',19:'Rattfratz',23:'Rettan',24:'Arbok ex',25:'Pikachu',26:'Raichu',35:'Piepi',39:'Pummeluff',52:'Mauzi',54:'Enton',58:'Fukano',63:'Abra',65:'Simsala ex',74:'Kleinstein',92:'Nebulak',94:'Gengar',115:'Kangama ex',124:'Rossana ex',129:'Karpador',130:'Garados',133:'Evoli',143:'Relaxo',145:'Zapdos ex',150:'Mewtu',151:'Mew ex'};
 const LIGHT=['lightning','colorless','trainer'];
-const price=n=>((n*7)%23*0.35+0.2).toFixed(2).replace('.',',')+' €';
+// one price table for every place a card price appears (sample data)
+const PRICE={1:0.35,3:3.20,6:38.90,9:4.10,24:2.40,25:0.90,65:3.60,115:2.90,124:3.10,145:4.80,151:17.60};
+const priceVal=n=>PRICE[n]??((n*7)%11)*0.05+0.10;
+const eur=v=>v.toFixed(2).replace('.',',')+' €';
+const price=n=>eur(priceVal(n));
+// owned copies per language, derived deterministically: EN 52, DE 61, together 87
+const OWNED=[];for(let n=1;n<=165;n++)if(owned(n))OWNED.push(n);
+const LANGS={};OWNED.forEach((n,r)=>{const p=(r*31)%OWNED.length;LANGS[n]=p<26?['EN','DE']:p<52?['EN']:['DE'];});
+const ownedIn=(n,l)=>l==='all'?owned(n):!!(LANGS[n]&&LANGS[n].includes(l));
+const SETVAL={all:'612,30 €',EN:'268,90 €',DE:'343,40 €'};
+const LANGTXT={all:'English and German cards',EN:'English cards',DE:'German cards'};
+const LNAME={EN:'English',DE:'German'};
+const nm=n=>NAMES[n]||'Card '+String(n).padStart(3,'0');
+let sheetSeq=0;
 document.querySelectorAll('.sd').forEach(ph=>{
-  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards'),sheet=ph.querySelector('.sheet');
-  const show=n=>{if(!sheet)return;const no=String(n).padStart(3,'0'),t=typeOf(n),k=x=>sheet.querySelector(`[data-k=${x}]`);
-    k('face').style.background=col(t);k('face').style.color=LIGHT.includes(t)?'var(--ink)':'#fff';
-    k('fname').textContent=NAMES[n]||'Card '+no;k('fno').textContent=no+'/165';
-    k('num').innerHTML=`${no}<span>/165</span>`;k('name').textContent=NAMES[n]||'Card '+no;
-    k('own').textContent=owned(n)?'In your collection':'Not in your collection yet';k('price').textContent=price(n);};
-  for(let n=1;n<=165;n++){const no=String(n).padStart(3,'0'),own=owned(n),t=typeOf(n),label=`${no} ${NAMES[n]||''}`.trim();
-    const i=document.createElement('button');i.textContent=no;i.dataset.n=n;
-    i.className=own?'own'+(LIGHT.includes(t)?' lt':''):'miss';
-    if(own)i.style.background=col(t);
-    i.setAttribute('aria-label',`${label}, ${own?'owned':'missing'}`);
-    if(n===24&&ph.dataset.view==='compact'){i.classList.add('sel');i.setAttribute('aria-pressed','true');}
-    i.onclick=()=>{big.querySelectorAll('.sel').forEach(x=>{x.classList.remove('sel');x.removeAttribute('aria-pressed');});
-      i.classList.add('sel');i.setAttribute('aria-pressed','true');show(n);};
-    big.appendChild(i);
-    const c=document.createElement('button');c.className='mini'+(own?'':' miss');c.style.background=col(t);
-    c.setAttribute('aria-label',`${label}, ${own?'owned':'missing'}`);
-    c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>${own?'':'<span class="tag">Missing</span>'}`;
-    c.onclick=()=>{cards.querySelectorAll('.sel').forEach(x=>x.classList.remove('sel'));c.classList.add('sel');show(n);};
-    cards.appendChild(c);}
-  if(sheet)show(24);
+  const big=ph.querySelector('.big'),cards=ph.querySelector('.cards'),k=x=>ph.querySelector(`[data-k=${x}]`);
+  const st={lang:'all',filter:'all',sel:ph.dataset.view==='compact'?24:null,open:false};
+  // sheet, built once per phone
+  const fid='setsheet'+(++sheetSeq);
+  ph.insertAdjacentHTML('beforeend',`<div class="sheet ssheet" role="region" aria-label="Selected card" hidden>
+    <div class="peek"><button class="pk" aria-expanded="false" aria-controls="${fid}"><span class="grab" aria-hidden="true"></span><span class="pt"></span><span class="chev">${svg(ICON.up)}</span></button><button class="icon-btn" data-close aria-label="Close card">${svg(ICON.close)}</button></div>
+    <div class="full" id="${fid}">
+      <div class="sh">
+        <div class="card" data-s="face" aria-hidden="true"><div class="nm"><span data-s="fname"></span></div><div class="art"></div><div class="tx"></div><div class="no" data-s="fno"></div></div>
+        <div><div class="num" data-s="num"></div><h2 data-s="name"></h2><p data-s="own"></p><p class="pr"><span data-s="price"></span> <span style="font-weight:500;color:var(--muted)">trend, all languages</span></p></div>
+      </div>
+      <div class="pair"><button class="secondary">Open on Cardmarket</button><button class="primary">Add copy</button></div>
+    </div></div>`);
+  const sheet=ph.querySelector('.ssheet'),s_=x=>sheet.querySelector(`[data-s=${x}]`),pk=sheet.querySelector('.pk');
+  const slotBtns=[],miniBtns=[];
+  for(let n=1;n<=165;n++){
+    const i=document.createElement('button');i.textContent=String(n).padStart(3,'0');
+    i.onclick=()=>{st.sel=n;st.open=false;paint();};big.appendChild(i);slotBtns.push(i);
+    const c=document.createElement('button');c.onclick=()=>{st.sel=n;st.open=false;paint();};cards.appendChild(c);miniBtns.push(c);}
+  function paintSheet(){
+    const n=st.sel;sheet.hidden=n==null;
+    ph.classList.toggle('has-peek',n!=null&&!st.open);ph.classList.toggle('has-open',n!=null&&st.open);
+    if(n==null)return;
+    const no=String(n).padStart(3,'0'),t=typeOf(n),own=ownedIn(n,st.lang),langs=LANGS[n]||[];
+    sheet.classList.toggle('open',st.open);pk.setAttribute('aria-expanded',st.open);
+    pk.setAttribute('aria-label',st.open?'Collapse card':`${no}/165 ${nm(n)}, ${own?'owned':'missing'}, ${price(n)}. Show card`);
+    sheet.querySelector('.pt').innerHTML=`<b>${no}/165 ${nm(n)}</b><span>${own?'Owned':'Missing'}, ${price(n)}</span>`;
+    s_('face').style.background=col(t);s_('face').style.color=LIGHT.includes(t)?'var(--ink)':'#fff';
+    s_('fname').textContent=nm(n);s_('fno').textContent=no+'/165';
+    s_('num').innerHTML=`${no}<span>/165</span>`;s_('name').textContent=nm(n);
+    s_('own').textContent=langs.length?`You have it in ${langs.map(l=>LNAME[l]).join(' and ')}`:'Not in your collection yet';
+    s_('price').textContent=price(n);}
+  function paint(){
+    const L=st.lang,f=st.filter;let nOwn=0;const miss=[];
+    for(let n=1;n<=165;n++){
+      const own=ownedIn(n,L),t=typeOf(n),no=String(n).padStart(3,'0'),label=`${no} ${NAMES[n]||''}`.trim()+`, ${own?'owned':'missing'}`;
+      own?nOwn++:miss.push(n);
+      const out=(f==='owned'&&!own)||(f==='missing'&&own),sel=st.sel===n;
+      const i=slotBtns[n-1];
+      i.className=(own?'own'+(LIGHT.includes(t)?' lt':''):'miss')+(sel?' sel':'')+(out?' off':'');
+      i.style.background=own?col(t):'';i.setAttribute('aria-label',label);
+      sel?i.setAttribute('aria-pressed','true'):i.removeAttribute('aria-pressed');
+      i.tabIndex=out?-1:0;out?i.setAttribute('aria-hidden','true'):i.removeAttribute('aria-hidden');
+      const c=miniBtns[n-1];c.className='mini'+(own?'':' miss')+(sel?' sel':'');c.style.background=col(t);
+      c.setAttribute('aria-label',label);c.hidden=out;
+      c.innerHTML=`<span class="nm">${NAMES[n]||''}</span><span class="art"></span><span class="no">${no}</span>${own?'':'<span class="tag">Missing</span>'}`;}
+    k('count').innerHTML=`${nOwn}<span>/165</span>`;k('value').textContent=SETVAL[L];k('langtxt').textContent=LANGTXT[L];
+    k('nown').textContent=`Owned ${nOwn}`;k('nmiss').textContent=`Missing ${165-nOwn}`;
+    big.setAttribute('aria-label',`151: ${nOwn} of 165 owned`);
+    if(k('misslist')){
+      const sum=miss.reduce((a,n)=>a+priceVal(n),0);
+      k('misshead').textContent=`Missing ${miss.length} cards, about ${Math.round(sum)} € to complete`;
+      k('misslist').innerHTML=miss.slice().sort((a,b)=>priceVal(b)-priceVal(a)).slice(0,4)
+        .map(n=>`<li><span class="row-n">${String(n).padStart(3,'0')}</span><span>${nm(n)}</span><span>${price(n)}</span></li>`).join('');}
+    paintSheet();}
+  pk.onclick=()=>{st.open=!st.open;paintSheet();};
+  sheet.querySelector('[data-close]').onclick=()=>{const n=st.sel;st.sel=null;st.open=false;paint();
+    const back=(ph.classList.contains('v-cards')?miniBtns:slotBtns)[n-1];if(back&&!back.hidden&&back.tabIndex!==-1)back.focus();};
+  sheet.addEventListener('keydown',e=>{if(e.key==='Escape'){if(st.open){st.open=false;paintSheet();pk.focus();}else sheet.querySelector('[data-close]').click();}});
   const setView=v=>{ph.classList.toggle('v-cards',v==='cards');
     ph.querySelectorAll('.seg button').forEach(b=>b.setAttribute('aria-pressed',b.dataset.view===v));};
   setView(ph.dataset.view);
@@ -609,10 +672,11 @@ document.querySelectorAll('.sd').forEach(ph=>{
   const f=ph.querySelector('.sfilter');
   f.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
     f.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
-    const v=b.dataset.v;ph.classList.remove('f-owned','f-missing');if(v!=='all')ph.classList.add('f-'+v);
-    // compact grid keeps every position; filtered-out slots fade and leave the tab order
-    big.querySelectorAll('button').forEach(x=>{const out=(v==='owned'&&x.classList.contains('miss'))||(v==='missing'&&x.classList.contains('own'));
-      x.classList.toggle('off',out);x.tabIndex=out?-1:0;out?x.setAttribute('aria-hidden','true'):x.removeAttribute('aria-hidden');});});
+    st.filter=b.dataset.v;ph.classList.remove('f-owned','f-missing');if(st.filter!=='all')ph.classList.add('f-'+st.filter);paint();});
+  const lg=ph.querySelector('.slang');
+  lg.addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+    lg.querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));st.lang=b.dataset.l;paint();});
+  paint();
 });
 // 3 no match: three sample causes
 const NM={
