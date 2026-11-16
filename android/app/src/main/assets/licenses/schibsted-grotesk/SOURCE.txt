@@ -1,0 +1,5 @@
+Schibsted Grotesk, variable font (wght 400-900)
+File: res/font/schibsted_grotesk.ttf (renamed from SchibstedGrotesk[wght].ttf)
+Source: https://github.com/google/fonts/tree/main/ofl/schibstedgrotesk
+Upstream: https://github.com/schibsted/schibsted-grotesk (commit d485f61f105e1b3935f4d21dfb4d371359798603)
+License: SIL Open Font License 1.1, see OFL.txt in this folder.

@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">Card Index</string>
+
+    <string name="nav_scan">Scan</string>
+    <string name="nav_collections">Collections</string>
+    <string name="nav_search">Search</string>
+    <string name="nav_settings">Settings</string>
+
+    <string name="scan_placeholder">Point the camera at a card. It is recognized on the device and its collector number shows here.</string>
+    <string name="scan_sample_caption">Glurak ex, 151, German</string>
+    <string name="collections_value_label">Collection value, Cardmarket trend, all languages</string>
+    <plurals name="collections_summary">
+        <item quantity="one">All cards, %1$d copy</item>
+        <item quantity="other">All cards, %1$d copies</item>
+    </plurals>
+    <string name="collections_weekly_change">%1$s this week</string>
+    <string name="collections_placeholder">All Cards, a collection for each set you own cards from, and your own binders will be listed here.</string>
+    <!-- Spoken description of a set row; the quantity is the set total. -->
+    <plurals name="collections_set_row">
+        <item quantity="one">%1$s, %2$d of %3$d card, %4$s</item>
+        <item quantity="other">%1$s, %2$d of %3$d cards, %4$s</item>
+    </plurals>
+    <string name="search_placeholder">Search every card in your installed language packs by name, set or collector number.</string>
+    <string name="settings_placeholder">Language packs, price source and currency, data export and open-source licenses will live here.</string>
+    <string name="collector_number_description">Number %1$s of %2$s</string>
+</resources>
