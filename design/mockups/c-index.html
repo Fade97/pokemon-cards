@@ -40,11 +40,25 @@ figcaption b{color:var(--ink);font-weight:700;margin-right:6px}
 .top{display:flex;justify-content:space-between;align-items:center;padding:2px 0 10px;min-height:48px}
 .top h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
 .ghost{background:none;border:0;color:var(--action);font-weight:600;font-size:15px;min-height:44px;padding:0 6px}
-/* bottom navigation: real buttons, 48px targets */
-.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:2px 4px 8px}
-.nav button{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:none;border:0;font-size:12px;color:var(--muted);border-radius:var(--r-md)}
-.nav i{width:22px;height:5px;border-radius:3px;background:var(--line)}
-.nav [aria-current=page]{color:var(--ink);font-weight:700}.nav [aria-current=page] i{background:var(--ink)}
+/* bottom navigation: real buttons, 58px targets, Material 3 indicator */
+.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:6px 4px 2px}
+.nav button{flex:1;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;font-size:12px;font-weight:600;color:var(--muted);border-radius:var(--r-md)}
+.nav .ic{width:56px;height:30px;border-radius:15px;display:grid;place-items:center}
+.nav [aria-current=page]{color:var(--ink);font-weight:700}
+.nav [aria-current=page] .ic{background:#D9E2F3}
+/* top app bar with a back arrow (pushed screens) */
+.appbar{display:flex;align-items:center;gap:2px;min-height:56px;margin:0 -12px 6px}
+.appbar h2{flex:1;min-width:0;font-size:20px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .ghost{padding:0 12px}
+.appbar .qpos{margin-right:12px}
+.icon-btn{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:none;border:0;color:var(--ink)}
+.icon-btn:hover{background:#E6ECF4}
+.icon-btn svg,.nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* gesture navigation inset: content ends above the home indicator */
+.phone{padding-bottom:18px}
+.gesture{position:absolute;left:0;right:0;bottom:0;height:18px;display:grid;place-items:center;pointer-events:none;z-index:6}
+.gesture::after{content:"";width:110px;height:4px;border-radius:2px;background:var(--ink);opacity:.6}
+.phone.cam{background:var(--surface)}.phone.cam .status{background:#101722}
 /* placeholder card face (stands in for artwork) */
 .card{border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px;color:#fff;aspect-ratio:63/88;position:relative;overflow:hidden}
 .card .nm{display:flex;justify-content:space-between;font-weight:700;font-size:13px}
@@ -175,11 +189,46 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
 .price a{grid-column:1/-1;display:flex;align-items:center;min-height:44px;color:var(--action);font-weight:600;font-size:15px;margin-top:4px;text-decoration:none}
 .price a:hover{text-decoration:underline}
 .copies{list-style:none;padding:0}
-.copies li{display:grid;grid-template-columns:1fr auto;padding:11px 0;border-bottom:1px solid var(--line);font-size:14px;color:var(--muted)}
-.copies li b{display:block;color:var(--ink);font-size:15px}
-.copies li span:last-child{text-align:right}
-.copies li span:last-child b{display:block}
+.copies li{border-bottom:1px solid var(--line)}
+.copyrow{width:100%;display:grid;grid-template-columns:1fr auto;gap:10px;align-items:center;min-height:60px;padding:8px 6px;margin:0 -6px;width:calc(100% + 12px);background:none;border:0;text-align:left;font-size:13.5px;color:var(--muted);border-radius:var(--r-sm)}
+.copyrow:hover{background:#EEF2F8}
+.copyrow b{display:block;color:var(--ink);font-size:15px}
+.copyrow .p{text-align:right}
+.qn{font-variant-numeric:tabular-nums}
+.nocopy{padding:12px 0;font-size:14px;color:var(--muted)}
 .add{width:100%;min-height:48px;margin-top:14px;background:none;border:1.5px dashed #8C9AB0;border-radius:var(--r-md);font-weight:700;color:var(--action)}
+.h3row{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.h3row h3{margin:12px 0 6px}
+.explain{min-height:44px;margin:-6px -6px -6px 0;padding:0 6px;background:none;border:0;color:var(--action);font-weight:600;font-size:13px}
+.cond-help{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;font-size:13px;color:var(--muted);background:var(--surface);border:1px solid var(--line);border-radius:var(--r-sm);padding:8px 10px;margin-top:8px}
+.cond-help dt{font-weight:700;color:var(--ink)}
+.cond-help dd{margin:0}
+.cond-help[hidden]{display:none}
+/* add / edit copy sheet */
+.scrim{position:absolute;inset:0;background:rgba(20,35,61,.42);z-index:3}
+.scrim[hidden],.esheet[hidden]{display:none}
+.esheet{position:absolute;left:0;right:0;bottom:0;top:92px;z-index:4;background:var(--raised);border-radius:22px 22px 0 0;display:flex;flex-direction:column;box-shadow:0 -14px 40px -12px rgba(20,35,61,.35);padding-bottom:18px}
+.esheet .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:10px auto 4px;flex:none}
+.esheet .body{flex:1;overflow-y:auto;padding:4px 18px 12px}
+.esheet h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
+.esheet .who{font-size:14px;color:var(--muted)}.esheet .who b{color:var(--ink)}
+.fieldrow{display:flex;justify-content:space-between;align-items:center;gap:12px;min-height:48px;margin-top:10px}
+.fieldrow b{font-size:15px}
+.fieldrow small{display:block;font-size:13px;color:var(--muted);line-height:1.35}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.esheet label{display:block;font-size:14px;font-weight:700;margin:12px 0 6px}
+.input{width:100%;min-height:48px;border:1.5px solid var(--line);background:var(--surface);border-radius:var(--r-md);padding:0 12px;font:inherit;font-size:16px;color:var(--ink)}
+.input:focus{border-color:var(--action);outline:none;box-shadow:0 0 0 3px rgba(35,70,166,.25)}
+.money{position:relative}.money .input{padding-right:30px}
+.money span{position:absolute;right:12px;top:50%;transform:translateY(-50%);color:var(--muted);font-weight:600}
+.danger{min-height:44px;background:none;border:0;padding:0;margin-top:12px;color:#B3261E;font-weight:700;font-size:15px}
+.esheet .foot{padding:10px 18px 12px}
+.switch{flex:none;box-sizing:content-box;width:46px;height:28px;border-radius:22px;border:8px solid transparent;background-color:#6F7E96;background-clip:padding-box;position:relative;padding:0;margin:-8px -8px -8px 0}
+.switch::after{content:"";position:absolute;left:3px;top:3px;width:22px;height:22px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch[aria-checked=true]{background-color:var(--action)}
+.switch[aria-checked=true]::after{transform:translateX(18px)}
+@media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
+.behind{flex:1;padding:4px 18px;filter:blur(1.5px);opacity:.6;overflow:hidden}
 .note{max-width:1520px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted)}
 @media (max-width:420px){.intro h1{font-size:34px}.phone{height:740px}}
 </style>
@@ -210,6 +259,7 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
     </div>
     <button class="done">Finish scanning</button>
   </div>
+  <nav class="nav" aria-label="Main"><button aria-current="page"><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Live scan</b>No shutter: each card is added as soon as its number is read. Unsure cards go to Review without stopping the camera. Try Undo, Edit and “3 to review”.</figcaption></figure>
 
 <!-- 2 Review -->
@@ -254,10 +304,10 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
 </div><figcaption><b>Collections</b>Every set shows as numbered slots: filled when owned, outlined when missing. Tap a set to open it.</figcaption></figure>
 
 <!-- 4 Detail -->
-<figure><div class="phone">
+<figure><div class="phone" id="detailphone">
   <div class="status"><span>14:42</span><span>85%</span></div>
   <div class="scroll">
-    <div class="top"><button class="ghost">Back</button><button class="ghost">Share</button></div>
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to 151"></button><h2>151</h2><button class="ghost">Share</button></div>
     <div class="dhead">
       <div class="card fire" aria-hidden="true"><div class="nm"><span>Glurak ex</span><span>330</span></div><div class="art"></div><div class="tx"></div><div class="no">006/165</div></div>
       <div><div class="num">006<span>/165</span></div><h2>Glurak ex</h2><p>151, German print</p></div>
@@ -269,19 +319,53 @@ h3{font-size:14px;font-weight:700;margin:12px 0 6px}
       <span class="lbl">Cardmarket trend, all languages</span><span class="lbl">TCGplayer market</span>
       <a href="#">Open on Cardmarket (German offers)</a>
     </div>
-    <h3>Your copies</h3>
-    <ul class="copies">
-      <li><span><b>Holo, NM</b>Bought 12 Mar 2026</span><span><b>32,00 €</b>+6,90 €</span></li>
-      <li><span><b>Holo, LP</b>Bought 2 Aug 2025</span><span><b>24,50 €</b>+14,40 €</span></li>
-    </ul>
-    <button class="add">Add copy</button>
+    <h3 id="copyh">Your copies</h3>
+    <ul class="copies" id="copylist"></ul>
+    <button class="add" id="addcopy">Add copy</button>
+    <p class="sr-only" id="copylive" aria-live="polite"></p>
   </div>
-</div><figcaption><b>Card detail</b>The number comes first, then the price, then your copies.</figcaption></figure>
+  <div class="scrim" hidden></div>
+  <div class="esheet" role="dialog" aria-modal="true" hidden></div>
+</div><figcaption><b>Card detail</b>The number comes first, then the price, then your copies. Tap a copy to edit it, or add one.</figcaption></figure>
+
+<!-- 5 Edit copy -->
+<figure><div class="phone" id="editphone">
+  <div class="status"><span>14:43</span><span>85%</span></div>
+  <div class="behind" aria-hidden="true">
+    <div class="appbar"><span class="icon-btn" data-icon="back"></span><h2>151</h2></div>
+    <div class="dhead">
+      <div class="card fire"><div class="nm"><span>Glurak ex</span><span>330</span></div><div class="art"></div><div class="tx"></div><div class="no">006/165</div></div>
+      <div><div class="num">006<span>/165</span></div><h2>Glurak ex</h2><p>151, German print</p></div>
+    </div>
+  </div>
+  <div class="scrim"></div>
+  <div class="esheet" role="dialog" aria-label="Edit copy"></div>
+</div><figcaption><b>Edit copy</b>The same sheet adds a copy. Turn on Graded and the condition becomes grader and grade. Saving updates the card screen.</figcaption></figure>
 </main>
 <p class="note">Sample data. Card faces are placeholders, not real artwork.</p>
 
 <script>
 const $=id=>document.getElementById(id);
+// shared: icons for nav and app bars, gesture inset on every phone
+const ICON={
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  scan:'<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.5" y="7.5" width="7" height="9" rx="1"/>',
+  collections:'<rect x="8" y="3.5" width="11" height="15" rx="1.5"/><path d="M5 7.5v11a2 2 0 0 0 2 2h8.5"/>',
+  search:'<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/><circle cx="12" cy="12" r="6.3"/>'};
+const svg=p=>`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${p}</svg>`;
+document.querySelectorAll('.nav button').forEach(b=>{const name=b.textContent.trim().toLowerCase();b.querySelector('i')?.remove();
+  b.insertAdjacentHTML('afterbegin',`<span class="ic">${svg(ICON[name])}</span>`);});
+document.querySelectorAll('[data-icon]').forEach(b=>b.innerHTML=svg(ICON[b.dataset.icon]));
+document.querySelectorAll('.phone').forEach(p=>p.insertAdjacentHTML('beforeend','<div class="gesture" aria-hidden="true"></div>'));
+// condition abbreviations, explained on demand
+const CONDNAMES=[['NM','Near mint'],['LP','Lightly played'],['MP','Moderately played'],['HP','Heavily played'],['Poor','Damaged']];
+function condHelp(key){const id='condhelp-'+key;
+  return {btn:`<button class="explain" aria-expanded="false" aria-controls="${id}">What do these mean?</button>`,
+    dl:`<dl class="cond-help" id="${id}" hidden>${CONDNAMES.map(([a,b])=>`<dt>${a}</dt><dd>${b}</dd>`).join('')}</dl>`};}
+document.addEventListener('click',e=>{const b=e.target.closest('.explain');if(!b)return;
+  const d=document.getElementById(b.getAttribute('aria-controls'));const open=b.getAttribute('aria-expanded')!=='true';
+  b.setAttribute('aria-expanded',open);d.hidden=!open;b.textContent=open?'Hide explanation':'What do these mean?';});
 // pressed toggles via delegation, so re-rendered review content works too
 document.addEventListener('click',e=>{
   const b=e.target.closest('[data-group] button');if(!b)return;
@@ -313,14 +397,14 @@ const VARIANTS=['Normal','Holo','Reverse holo','1st edition'],CONDS=['NM','LP','
 function cardFace(it){return `<div class="card ${it.type} ${it.fx}" role="img" aria-label="Your photo of ${it.name}"><div class="nm"><span>${it.name}</span></div><div class="art"></div><div class="tx"></div><div class="no">${it.face}</div></div>`;}
 function renderItem(it,head,posText){
   $('rv').innerHTML=`
-    <div class="top"><h2>${head}</h2><span class="qpos">${posText}</span></div>
+    <div class="appbar"><button class="icon-btn" aria-label="Back to scanning">${svg(ICON.back)}</button><h2>${head}</h2><span class="qpos">${posText}</span></div>
     <div class="crop">${cardFace(it)}<div><div class="num mid">${it.no}<span>${it.tot}</span></div><p>${it.why}</p></div></div>
     <h3 id="h-match">${it.cands.length>1?'Best matches':'Card'}</h3>
     <div class="cands" data-group="cand" role="group" aria-labelledby="h-match">${it.cands.map((c,k)=>`<button class="cand" aria-pressed="${k===0}"><span class="n">${c[0]}</span><span class="t"><b>${c[1]}</b>${c[2]}</span><span class="m">${c[3]}</span></button>`).join('')}</div>
     <h3 id="h-var">Variant${it.checkVariant?'<span class="flag">Check this</span>':''}</h3>
     <div class="chips" data-group="variant" role="group" aria-labelledby="h-var">${VARIANTS.map(v=>`<button class="chip" aria-pressed="${v===it.variant}">${v}</button>`).join('')}</div>
-    <h3 id="h-cond">Condition</h3>
-    <div class="chips" data-group="cond" role="group" aria-labelledby="h-cond">${CONDS.map((c,k)=>`<button class="chip" aria-pressed="${k===0}">${c}</button>`).join('')}</div>`;
+    <div class="h3row"><h3 id="h-cond">Condition</h3>${condHelp('rv').btn}</div>
+    <div class="chips" data-group="cond" role="group" aria-labelledby="h-cond">${CONDS.map((c,k)=>`<button class="chip" aria-pressed="${k===0}">${c}</button>`).join('')}</div>${condHelp('rv').dl}`;
   q.value=1;$('qtyrow').hidden=false;$('skip').hidden=false;
 }
 function render(){
@@ -334,7 +418,7 @@ function render(){
     const it=QUEUE[pos];renderItem(it,'Review',`${pos+1} of ${QUEUE.length}`);
     $('rvlive').textContent=`Card ${pos+1} of ${QUEUE.length}: ${it.name}`;
   }else{
-    $('rv').innerHTML=`<div class="top"><h2>Review</h2><span class="qpos">${QUEUE.length} of ${QUEUE.length}</span></div><div class="donebox"><div class="tick" aria-hidden="true"></div>
+    $('rv').innerHTML=`<div class="appbar"><button class="icon-btn" aria-label="Back to scanning">${svg(ICON.back)}</button><h2>Review</h2><span class="qpos">${QUEUE.length} of ${QUEUE.length}</span></div><div class="donebox"><div class="tick" aria-hidden="true"></div>
       <h2>Review done</h2><p>All ${QUEUE.length} checked. ${added} added, ${skipped} skipped.</p>
       ${skipped?'<p style="margin-top:10px">Skipped cards wait in Review, so you can sort them out later.</p>':''}</div>`;
     $('qtyrow').hidden=true;$('skip').hidden=true;$('confirm').textContent='Back to scanning';
@@ -367,6 +451,79 @@ $('undo').onclick=()=>{
 };
 $('edit').onclick=()=>{mode='edit';render();$('toreview').onclick();};
 render();
+
+// ---------- copies: list, add and edit sheet ----------
+const COPIES=[
+  {qty:1,variant:'Holo',graded:false,cond:'NM',grader:'PSA',grade:'',price:'32,00',date:'2026-03-12',coll:'Trade binder'},
+  {qty:2,variant:'Holo',graded:false,cond:'LP',grader:'PSA',grade:'',price:'24,50',date:'2025-08-02',coll:'All cards only'},
+  {qty:1,variant:'Holo',graded:true,cond:'NM',grader:'PSA',grade:'9',price:'85,00',date:'2026-06-20',coll:'All cards only'}];
+const COLLS=['All cards only','Trade binder','Fire binder'],GRADERS=['PSA','CGC','BGS','Other'];
+const MON=['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const fmtDate=d=>{if(!d)return 'no purchase date';const [y,m,dd]=d.split('-');return `bought ${+dd} ${MON[m-1]} ${y}`;};
+const condText=c=>c.graded?`${c.grader} ${c.grade||'(no grade)'}`:c.cond;
+function renderCopies(){
+  const n=COPIES.reduce((s,c)=>s+c.qty,0);
+  $('copyh').textContent=`Your copies (${n})`;
+  $('copylist').innerHTML=COPIES.length?COPIES.map((c,k)=>`<li><button class="copyrow" data-k="${k}" aria-label="Edit copy: ${c.qty} times ${c.variant}, ${condText(c)}, ${c.coll}"><span><b><span class="qn">${c.qty}×</span> ${c.variant}, ${condText(c)}</b>${c.coll}, ${fmtDate(c.date)}</span><span class="p"><b>${c.price?c.price+' €':'–'}</b>${c.price?'paid each':'no price'}</span></button></li>`).join('')
+    :'<li class="nocopy">No copies yet. Add one to keep track of it.</li>';
+}
+let sid=0;
+const chip=(t,on)=>`<button class="chip" aria-pressed="${on}">${t}</button>`;
+function sheetHTML(mode,c){const i=++sid,h=condHelp('sheet'+i);
+  return `<div class="grab" aria-hidden="true"></div><div class="body">
+    <h2 id="st${i}">${mode==='add'?'Add copy':'Edit copy'}</h2>
+    <p class="who"><b>006/165 Glurak ex</b>, 151, German print</p>
+    <div class="fieldrow"><b id="ql${i}">Quantity</b><div class="qty"><button data-q="-1" aria-label="One less">−</button><output class="qv" aria-labelledby="ql${i}">${c.qty}</output><button data-q="1" aria-label="One more">+</button></div></div>
+    <h3 id="hv${i}">Variant</h3>
+    <div class="chips" data-group="v" data-f="variant" role="group" aria-labelledby="hv${i}">${VARIANTS.map(v=>chip(v,v===c.variant)).join('')}</div>
+    <div class="fieldrow"><span><b id="gl${i}">Graded</b><small>In a case from PSA, CGC, BGS or another grader</small></span><button class="switch" role="switch" data-f="graded" aria-checked="${c.graded}" aria-labelledby="gl${i}"></button></div>
+    <div class="ungraded" ${c.graded?'hidden':''}>
+      <div class="h3row"><h3 id="hc${i}">Condition</h3>${h.btn}</div>
+      <div class="chips" data-group="c" data-f="cond" role="group" aria-labelledby="hc${i}">${CONDS.map(x=>chip(x,x===c.cond)).join('')}</div>${h.dl}
+    </div>
+    <div class="gradedbox" ${c.graded?'':'hidden'}>
+      <h3 id="hg${i}">Grader</h3>
+      <div class="chips" data-group="g" data-f="grader" role="group" aria-labelledby="hg${i}">${GRADERS.map(x=>chip(x,x===c.grader)).join('')}</div>
+      <label for="gr${i}">Grade</label><input id="gr${i}" class="input" data-f="grade" inputmode="decimal" placeholder="e.g. 9" value="${c.grade}">
+    </div>
+    <div class="two">
+      <div><label for="pp${i}">Purchase price</label><div class="money"><input id="pp${i}" class="input" data-f="price" inputmode="decimal" placeholder="0,00" value="${c.price}"><span aria-hidden="true">€</span></div></div>
+      <div><label for="pd${i}">Bought on</label><input id="pd${i}" class="input" type="date" data-f="date" value="${c.date}"></div>
+    </div>
+    <h3 id="hl${i}">Collection</h3>
+    <div class="chips" data-group="l" data-f="coll" role="group" aria-labelledby="hl${i}">${COLLS.map(x=>chip(x,x===c.coll)).join('')}</div>
+    ${mode==='edit'?'<button class="danger" data-act="delete">Delete copy</button>':''}
+  </div>
+  <div class="foot"><div class="btns"><button class="secondary" data-act="cancel">Cancel</button><button class="primary" data-act="save">${mode==='add'?'Add copy':'Save changes'}</button></div></div>`;}
+const BLANK={qty:1,variant:'Holo',graded:false,cond:'NM',grader:'PSA',grade:'',price:'',date:'',coll:'All cards only'};
+function openSheet(host,mode,k,opener){
+  const sh=host.querySelector('.esheet'),scrim=host.querySelector('.scrim'),inline=host.id==='editphone';
+  const c=mode==='add'?{...BLANK}:{...COPIES[k]};
+  sh.innerHTML=sheetHTML(mode,c);sh.hidden=false;scrim.hidden=false;
+  sh.setAttribute('aria-labelledby',sh.querySelector('h2').id);sh.removeAttribute('aria-label');
+  const close=()=>{if(inline){openSheet(host,COPIES.length?'edit':'add',Math.min(1,COPIES.length-1));return;}
+    sh.hidden=true;scrim.hidden=true;sh.innerHTML='';(opener&&opener.isConnected?opener:$('addcopy')).focus();};
+  const finish=msg=>{renderCopies();$('copylive').textContent=msg;close();};
+  scrim.onclick=inline?null:close;
+  sh.onkeydown=e=>{if(e.key==='Escape'&&!inline)close();};
+  sh.onclick=e=>{const b=e.target.closest('button');if(!b)return;
+    if(b.dataset.q){const o=sh.querySelector('.qv');o.value=Math.max(1,+o.value+ +b.dataset.q);return;}
+    if(b.dataset.f==='graded'){const on=b.getAttribute('aria-checked')!=='true';b.setAttribute('aria-checked',on);
+      sh.querySelector('.ungraded').hidden=on;sh.querySelector('.gradedbox').hidden=!on;return;}
+    const act=b.dataset.act;if(!act)return;
+    if(act==='cancel'){close();return;}
+    if(act==='delete'){COPIES.splice(k,1);finish('Copy deleted');return;}
+    const f=x=>sh.querySelector(`[data-f=${x}]`),pick=x=>f(x).querySelector('[aria-pressed=true]').textContent;
+    const n={qty:+sh.querySelector('.qv').value,variant:pick('variant'),graded:f('graded').getAttribute('aria-checked')==='true',
+      cond:pick('cond'),grader:pick('grader'),grade:f('grade').value.trim(),price:f('price').value.trim(),date:f('date').value,coll:pick('coll')};
+    if(mode==='add')COPIES.push(n);else COPIES[k]=n;
+    finish(mode==='add'?'Copy added':'Changes saved');};
+  if(!inline)(sh.querySelector('.body button')||sh.querySelector('button')).focus();
+}
+$('copylist').onclick=e=>{const b=e.target.closest('.copyrow');if(b)openSheet($('detailphone'),'edit',+b.dataset.k,b);};
+$('addcopy').onclick=e=>openSheet($('detailphone'),'add',-1,e.currentTarget);
+renderCopies();
+openSheet($('editphone'),'edit',1);
 
 // ---------- slot grids ----------
 // approximate energy type per 151 slot (Kanto order), trainers grey

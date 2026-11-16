@@ -39,11 +39,25 @@ figcaption b{color:var(--ink);font-weight:700;margin-right:6px}
 .top{display:flex;justify-content:space-between;align-items:center;padding:2px 0 10px;gap:8px;min-height:48px}
 .top h2{font-size:22px;font-weight:700;letter-spacing:-.01em}
 .ghost{background:none;border:0;color:var(--action);font-weight:600;font-size:15px;min-height:44px;padding:0 6px}
-/* bottom navigation: real buttons, 48px targets */
-.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:2px 4px 8px}
-.nav button{flex:1;min-height:52px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:none;border:0;font-size:12px;color:var(--muted);border-radius:var(--r-md)}
-.nav i{width:22px;height:5px;border-radius:3px;background:var(--line)}
-.nav [aria-current=page]{color:var(--ink);font-weight:700}.nav [aria-current=page] i{background:var(--ink)}
+/* bottom navigation: real buttons, 58px targets, Material 3 indicator */
+.nav{flex:none;display:flex;border-top:1px solid var(--line);background:var(--raised);padding:6px 4px 2px}
+.nav button{flex:1;min-height:58px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;background:none;border:0;font-size:12px;font-weight:600;color:var(--muted);border-radius:var(--r-md)}
+.nav .ic{width:56px;height:30px;border-radius:15px;display:grid;place-items:center}
+.nav [aria-current=page]{color:var(--ink);font-weight:700}
+.nav [aria-current=page] .ic{background:#D9E2F3}
+/* top app bar with a back arrow (pushed screens) */
+.appbar{display:flex;align-items:center;gap:2px;min-height:56px;margin:0 -12px 6px}
+.appbar h2{flex:1;min-width:0;font-size:20px;font-weight:700;letter-spacing:-.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.appbar .ghost{padding:0 12px}
+.appbar .qpos{margin-right:12px}
+.icon-btn{flex:none;width:48px;height:48px;border-radius:50%;display:grid;place-items:center;background:none;border:0;color:var(--ink)}
+.icon-btn:hover{background:#E6ECF4}
+.icon-btn svg,.nav svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.9;stroke-linecap:round;stroke-linejoin:round}
+/* gesture navigation inset: content ends above the home indicator */
+.phone{padding-bottom:18px}
+.gesture{position:absolute;left:0;right:0;bottom:0;height:18px;display:grid;place-items:center;pointer-events:none;z-index:6}
+.gesture::after{content:"";width:110px;height:4px;border-radius:2px;background:var(--ink);opacity:.6}
+.phone.cam{background:var(--surface)}.phone.cam .status{background:#101722}
 /* placeholder card face */
 .card{border-radius:9px;padding:7px;display:flex;flex-direction:column;gap:5px;color:#fff;aspect-ratio:63/88;position:relative;overflow:hidden}
 .card .nm{display:flex;justify-content:space-between;font-weight:700;font-size:13px}
@@ -98,9 +112,9 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .cam{background:#101722;color:#E8EEF7}
 .view{flex:1;position:relative;overflow:hidden;background:radial-gradient(120% 70% at 50% 45%,#2B3446 0%,#151C28 70%)}
 .table{position:absolute;inset:auto -10% -6% -10%;height:46%;background:#3A3027;transform:perspective(500px) rotateX(28deg);opacity:.75}
-.scan-card{position:absolute;width:124px;left:118px;top:132px;transform:rotate(3deg);filter:saturate(.9) brightness(.92)}
+.scan-card{position:absolute;width:106px;left:127px;top:128px;transform:rotate(3deg);filter:saturate(.9) brightness(.92)}
 .scan-card.glare::after{content:"";position:absolute;inset:0;background:linear-gradient(115deg,transparent 35%,rgba(255,255,255,.9) 52%,transparent 68%)}
-.frame{position:absolute;left:108px;top:122px;width:144px;height:194px;transform:rotate(3deg);border-radius:12px;border:3px dashed #F2B64C}
+.frame{position:absolute;left:118px;top:118px;width:124px;height:168px;transform:rotate(3deg);border-radius:12px;border:3px dashed #F2B64C}
 .read{position:absolute;left:0;right:0;top:46px;text-align:center}
 .read .num{font-size:54px;color:#fff}
 .read .num span{color:#A3B2C8}
@@ -176,7 +190,7 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 .miss-list li{display:grid;grid-template-columns:52px 1fr auto;gap:8px;padding:9px 0;border-bottom:1px solid var(--line);font-size:14px}
 .miss-list .row-n{font-size:15px}
 .miss-list span:last-child{font-weight:700}
-.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--raised);border-radius:22px 22px 0 0;padding:10px 18px 18px;box-shadow:0 -14px 40px -12px rgba(20,35,61,.35)}
+.sheet{position:absolute;left:0;right:0;bottom:0;background:var(--raised);border-radius:22px 22px 0 0;padding:10px 18px 36px;box-shadow:0 -14px 40px -12px rgba(20,35,61,.35)}
 .grab{width:40px;height:5px;border-radius:3px;background:var(--line);margin:0 auto 12px}
 .sheet .sh{display:flex;gap:14px;align-items:flex-start}
 .sheet .card{width:74px;flex:none;padding:5px;gap:3px}
@@ -204,7 +218,7 @@ h3{font-size:15px;font-weight:700;margin:16px 0 7px}
 /* 7 new collection sheet */
 .behind{flex:1;padding:4px 18px;filter:blur(1.5px);opacity:.55}
 .scrim{position:absolute;inset:0;background:rgba(20,35,61,.42)}
-.sheet.tall{top:150px;display:flex;flex-direction:column;padding-bottom:0}
+.sheet.tall{top:150px;display:flex;flex-direction:column;padding-bottom:18px}
 .sheet.tall .body{flex:1;overflow-y:auto}
 .sheet.tall h2{font-size:22px;margin:0 0 4px}
 label{display:block;font-size:14px;font-weight:700;margin:16px 0 6px}
@@ -237,6 +251,7 @@ button.item:last-child{border-bottom:0}
 .switch[aria-checked=true]{background-color:var(--action)}
 .switch[aria-checked=true]::after{transform:translateX(18px)}
 .upd{color:var(--warn)}
+.pv{display:block;margin-top:8px;font-size:13px;font-weight:600;color:var(--ink)}
 .about{font-size:12px;color:var(--muted);margin-top:14px;line-height:1.45}
 .note{max-width:1520px;margin:28px auto 0;text-align:center;font-size:13px;color:var(--muted)}
 @media (prefers-reduced-motion:reduce){.switch::after{transition:none}}
@@ -256,7 +271,7 @@ button.item:last-child{border-bottom:0}
   <div class="scroll">
     <div class="top"><h2>Which cards do you have?</h2></div>
     <p class="lede">Pick the languages printed on your cards. You can add more later in settings.</p>
-    <div class="device"><i></i><span>Cards are recognized on your phone. Your photos never leave it.</span></div>
+    <div class="device"><i></i><span>Cards are recognized on your phone. Photos are only shared if you turn on Contribute scans in settings.</span></div>
     <h3>Card languages</h3>
     <div class="packs" id="packs">
       <button class="pack" aria-pressed="true" data-mb="38"><span class="code">EN</span><span class="lang">English</span><span class="sz">38 MB</span><span class="box"></span></button>
@@ -281,7 +296,7 @@ button.item:last-child{border-bottom:0}
   <div class="empty">
     <div class="slots ghostgrid" id="ghost" aria-hidden="true"></div>
     <h2>Scan your first card</h2>
-    <p class="lede">Hold a card in front of the camera and it is added by its number. Photos stay on your phone.</p>
+    <p class="lede">Hold a card in front of the camera and it is added by its number. Photos are only shared if you turn on Contribute scans.</p>
     <div class="stack">
       <button class="primary">Allow camera</button>
       <button class="link">Add a card by search instead</button>
@@ -309,6 +324,7 @@ button.item:last-child{border-bottom:0}
     <div class="counts"><strong>23<small>scanned</small></strong><button class="review-btn">3 to review</button></div>
     <button class="done">Finish scanning</button>
   </div>
+  <nav class="nav" aria-label="Main"><button aria-current="page"><i></i>Scan</button><button><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>No match</b>The camera keeps scanning; a banner says why this card wasn't found and offers the fix.
   <div class="chips state" id="nm-state" role="group" aria-label="Sample state"><span aria-hidden="true">Sample state</span><button class="chip sm" aria-pressed="true" data-v="pack">Pack missing</button><button class="chip sm" aria-pressed="false" data-v="glare">Glare</button><button class="chip sm" aria-pressed="false" data-v="unknown">Unknown card</button></div>
 </figcaption></figure>
@@ -337,9 +353,9 @@ button.item:last-child{border-bottom:0}
 <figure><div class="phone sd" data-view="compact">
   <div class="status"><span>9:31</span><span>93%</span></div>
   <div class="scroll" style="padding-bottom:230px">
-    <div class="top"><button class="ghost">Collections</button><button class="ghost">Share</button></div>
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
     <div class="sethead">
-      <div><p>151, English and German</p><div class="num">87<span>/165</span></div></div>
+      <div><p>English and German cards</p><div class="num">87<span>/165</span></div></div>
       <div class="v">612,30 €<p>Cardmarket trend</p></div>
     </div>
     <div class="setbar">
@@ -372,9 +388,9 @@ button.item:last-child{border-bottom:0}
 <figure><div class="phone sd" data-view="cards">
   <div class="status"><span>9:32</span><span>93%</span></div>
   <div class="scroll">
-    <div class="top"><button class="ghost">Collections</button><button class="ghost">Share</button></div>
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>151</h2><button class="ghost">Share</button></div>
     <div class="sethead">
-      <div><p>151, English and German</p><div class="num">87<span>/165</span></div></div>
+      <div><p>English and German cards</p><div class="num">87<span>/165</span></div></div>
       <div class="v">612,30 €<p>Cardmarket trend</p></div>
     </div>
     <div class="setbar">
@@ -386,16 +402,15 @@ button.item:last-child{border-bottom:0}
     <div class="slots big" role="group" aria-label="151: 87 of 165 owned"></div>
     <div class="cards" aria-label="151 cards, missing ones in black and white"></div>
   </div>
-  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button aria-current="page"><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Set detail, cards</b>The same set with card art. Missing cards stay in place in black and white, so you know what to look for.</figcaption></figure>
 
 <!-- 6 Custom collection -->
 <figure><div class="phone">
   <div class="status"><span>9:40</span><span>92%</span></div>
   <div class="scroll">
-    <div class="top"><button class="ghost">Collections</button><button class="ghost">Edit</button></div>
+    <div class="appbar"><button class="icon-btn" data-icon="back" aria-label="Back to collections"></button><h2>Trade binder</h2><button class="ghost">Edit</button></div>
     <div class="total">
-      <p>Trade binder</p>
+      <p>Collection value, Cardmarket trend</p>
       <div class="num">212,00 €</div>
       <p class="sum">36 cards <span class="up">+3,40 € this week</span></p>
     </div>
@@ -410,7 +425,6 @@ button.item:last-child{border-bottom:0}
       <li class="copy"><span class="row-n">025/165</span><span class="t"><b>Pikachu</b>151, Reverse holo, NM</span><span class="p">1,10 €<small>German</small></span></li>
     </ul>
   </div>
-  <nav class="nav" aria-label="Main"><button><i></i>Scan</button><button aria-current="page"><i></i>Collections</button><button><i></i>Search</button><button><i></i>Settings</button></nav>
 </div><figcaption><b>Your collection</b>Same value header as all cards, then copies sorted by what they're worth.</figcaption></figure>
 
 <!-- 7 New collection -->
@@ -450,8 +464,9 @@ button.item:last-child{border-bottom:0}
       <h3>Prices</h3>
       <div class="list">
         <div class="item" style="display:block"><b>Main price</b>
-          <div class="seg" data-group><button aria-pressed="true">Cardmarket, EUR</button><button aria-pressed="false">TCGplayer, USD</button></div>
-          <small>Cardmarket prices mix all card languages. A German card often sells for less than an English one.</small>
+          <div class="seg" id="psrc" role="group" aria-label="Main price"><button aria-pressed="true" data-v="cm">Cardmarket, EUR</button><button aria-pressed="false" data-v="tcg">TCGplayer, USD</button></div>
+          <small id="pnote">Cardmarket prices mix all card languages. A German card often sells for less than an English one.</small>
+          <span class="pv" id="pv" aria-live="polite">Example: Glurak ex shows 38,90 € (Cardmarket trend)</span>
         </div>
       </div>
     </section>
@@ -490,6 +505,19 @@ button.item:last-child{border-bottom:0}
 
 <script>
 const $=id=>document.getElementById(id);
+// shared: icons for nav and app bars, gesture inset on every phone
+const ICON={
+  back:'<path d="M19 12H5M11 6l-6 6 6 6"/>',
+  scan:'<path d="M4 8V5.5A1.5 1.5 0 0 1 5.5 4H8M16 4h2.5A1.5 1.5 0 0 1 20 5.5V8M20 16v2.5a1.5 1.5 0 0 1-1.5 1.5H16M8 20H5.5A1.5 1.5 0 0 1 4 18.5V16"/><rect x="8.5" y="7.5" width="7" height="9" rx="1"/>',
+  collections:'<rect x="8" y="3.5" width="11" height="15" rx="1.5"/><path d="M5 7.5v11a2 2 0 0 0 2 2h8.5"/>',
+  search:'<circle cx="10.5" cy="10.5" r="6"/><path d="m15 15 5 5"/>',
+  settings:'<circle cx="12" cy="12" r="3"/><path d="M12 3v2.5M12 18.5V21M3 12h2.5M18.5 12H21M5.6 5.6l1.8 1.8M16.6 16.6l1.8 1.8M5.6 18.4l1.8-1.8M16.6 7.4l1.8-1.8"/><circle cx="12" cy="12" r="6.3"/>'};
+const svg=p=>`<svg viewBox="0 0 24 24" aria-hidden="true" focusable="false">${p}</svg>`;
+document.querySelectorAll('.nav button').forEach(b=>{const name=b.textContent.trim().toLowerCase();b.querySelector('i')?.remove();
+  b.insertAdjacentHTML('afterbegin',`<span class="ic">${svg(ICON[name])}</span>`);});
+document.querySelectorAll('[data-icon]').forEach(b=>b.innerHTML=svg(ICON[b.dataset.icon]));
+document.querySelectorAll('.phone').forEach(p=>p.insertAdjacentHTML('beforeend','<div class="gesture" aria-hidden="true"></div>'));
+
 // generic single-select groups
 document.querySelectorAll('[data-group]').forEach(g=>g.addEventListener('click',e=>{
   const b=e.target.closest('button');if(!b)return;
@@ -605,6 +633,12 @@ $('nm-state').addEventListener('click',e=>{const b=e.target.closest('button');if
 nmState('pack');
 // 7 create enabled by name
 $('cname').addEventListener('input',e=>$('create').disabled=!e.target.value.trim());
+// 8 price source: the switch changes the example price
+$('psrc').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
+  $('psrc').querySelectorAll('button').forEach(x=>x.setAttribute('aria-pressed',x===b));
+  const cm=b.dataset.v==='cm';
+  $('pv').textContent=cm?'Example: Glurak ex shows 38,90 € (Cardmarket trend)':'Example: Glurak ex shows $44.10 (TCGplayer market)';
+  $('pnote').textContent=cm?'Cardmarket prices mix all card languages. A German card often sells for less than an English one.':'TCGplayer prices are US market prices for English cards.';});
 // 8 switch
 $('contrib').onclick=e=>e.currentTarget.setAttribute('aria-checked',e.currentTarget.getAttribute('aria-checked')!=='true');
 </script>
