@@ -1,0 +1,75 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Shared paths and helpers for the recognition prototype."""
+from __future__ import annotations
+
+import csv
+import os
+from dataclasses import dataclass
+from pathlib import Path
+
+ML_DIR = Path(__file__).resolve().parent
+DATA_DIR = Path(os.environ.get("CARDINDEX_DATA", r"D:\AI\pokemon-cards-data"))
+MANIFEST = ML_DIR / "manifest.csv"
+RESULTS_DIR = ML_DIR / "results"
+
+REF_DIR = DATA_DIR / "ref"            # reference images (high.png), one per card
+API_CACHE = DATA_DIR / "api"          # cached TCGdex JSON
+SYNTH_DIR = DATA_DIR / "synth"        # synthetic test set
+CKPT_DIR = DATA_DIR / "checkpoints"
+INDEX_DIR = DATA_DIR / "index"
+EXPORT_DIR = DATA_DIR / "export"
+REAL_DIR = DATA_DIR / "real-photos"
+REVIEW_DIR = DATA_DIR / "review"
+
+# Card aspect ratio 63 x 88 mm. Rectified crops use this size.
+CARD_W, CARD_H = 252, 352
+
+SETS = [
+    ("en", "sv03.5"),
+    ("de", "sv03.5"),
+    ("ja", "SV2a"),
+    ("en", "me03"),
+    ("en", "me04"),
+]
+
+
+@dataclass(frozen=True)
+class Card:
+    key: str          # unique: "<lang>/<card id>"
+    card_id: str      # TCGdex id, e.g. sv03.5-006
+    lang: str
+    set_id: str
+    set_name: str
+    local_id: str     # collector number as printed (without total)
+    official: int     # printed set total, e.g. 165
+    name: str
+    image_url: str
+
+    @property
+    def ref_path(self) -> Path:
+        return REF_DIR / self.lang / self.set_id / f"{self.local_id}.png"
+
+    @property
+    def group(self) -> str:
+        return f"{self.lang}/{self.set_id}"
+
+
+def load_manifest() -> list[Card]:
+    with open(MANIFEST, encoding="utf-8", newline="") as f:
+        rows = list(csv.DictReader(f))
+    return [
+        Card(r["key"], r["card_id"], r["lang"], r["set_id"], r["set_name"], r["local_id"],
+             int(r["official"]), r["name"], r["image_url"])
+        for r in rows
+    ]
+
+
+def number_key(local_id: str) -> str:
+    """Normalize a collector number for comparison ("006" -> "6", "TG01" stays)."""
+    s = local_id.strip().upper()
+    return s.lstrip("0") or "0" if s.isdigit() else s
+
+
+def device():
+    import torch
+    return torch.device("cuda" if torch.cuda.is_available() else "cpu")

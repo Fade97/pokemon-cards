@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+.venv/
+__pycache__/
+*.pyc
+# Card images, renders, checkpoints and indexes never go into the repo (art (c) TPC).
+*.png
+*.jpg
+*.jpeg
+*.webp
+*.pt
+*.pth
+*.tflite
+*.onnx
+*.npy
+*.faiss
+!results/*.png

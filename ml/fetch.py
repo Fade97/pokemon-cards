@@ -1,0 +1,84 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+"""Download TCGdex set lists and card images into the data dir and write ml/manifest.csv.
+
+Everything is cached: re-running only fetches what is missing. At most 4 parallel requests.
+"""
+from __future__ import annotations
+
+import argparse
+import csv
+import io
+import json
+from concurrent.futures import ThreadPoolExecutor
+
+import requests
+from PIL import Image
+from tqdm import tqdm
+
+from common import API_CACHE, MANIFEST, SETS, Card
+
+API = "https://api.tcgdex.net/v2"
+UA = {"User-Agent": "cardindex-ml-prototype/0.1 (open-source research)"}
+session = requests.Session()
+session.headers.update(UA)
+
+
+def get_set(lang: str, set_id: str) -> dict:
+    path = API_CACHE / lang / f"{set_id}.json"
+    if not path.exists():
+        r = session.get(f"{API}/{lang}/sets/{set_id}", timeout=30)
+        r.raise_for_status()
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(r.text, encoding="utf-8")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def download(card: Card) -> str:
+    dst = card.ref_path
+    if dst.exists() and dst.stat().st_size > 0:
+        return "cached"
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    tmp = dst.with_suffix(".part")
+    # high.png is missing for some cards on the CDN while high.webp exists; convert webp to png then.
+    r = session.get(card.image_url + "/high.png", timeout=60)
+    if r.status_code == 200:
+        tmp.write_bytes(r.content)
+        tmp.replace(dst)
+        return "png"
+    r = session.get(card.image_url + "/high.webp", timeout=60)
+    r.raise_for_status()
+    Image.open(io.BytesIO(r.content)).convert("RGBA").save(tmp, format="PNG")
+    tmp.replace(dst)
+    return "webp"
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--workers", type=int, default=4)
+    args = ap.parse_args()
+
+    cards: list[Card] = []
+    for lang, set_id in SETS:
+        s = get_set(lang, set_id)
+        official = int(s["cardCount"]["official"])
+        for c in s["cards"]:
+            if not c.get("image"):
+                continue
+            cards.append(Card(f"{lang}/{c['id']}", c["id"], lang, set_id, s["name"], c["localId"],
+                              official, c["name"], c["image"]))
+    print(f"{len(cards)} cards with images")
+
+    with ThreadPoolExecutor(max_workers=min(args.workers, 4)) as ex:
+        res = list(tqdm(ex.map(download, cards), total=len(cards), desc="images"))
+    print({k: res.count(k) for k in set(res)})
+
+    with open(MANIFEST, "w", encoding="utf-8", newline="") as f:
+        w = csv.writer(f)
+        w.writerow(["key", "card_id", "lang", "set_id", "set_name", "local_id", "official", "name", "image_url"])
+        for c in cards:
+            w.writerow([c.key, c.card_id, c.lang, c.set_id, c.set_name, c.local_id, c.official, c.name, c.image_url])
+    print(f"wrote {MANIFEST}")
+
+
+if __name__ == "__main__":
+    main()
