@@ -21,6 +21,7 @@ from kornia.filters import gaussian_blur2d, motion_blur
 from kornia.geometry.transform import get_perspective_transform, warp_perspective
 
 from models import INPUT, MEAN, STD
+from real_aug import broad_glare, exposure_and_noise, holo_sheen, phone_isp, white_balance
 from synth import background, load_ref_rgba
 
 REF_W, REF_H = 256, 352          # reference cards on the GPU (uint8 RGBA)
@@ -111,11 +112,18 @@ def augment(refs, idx, bg_pool, chunk: int = 64, **kw):
 
 @torch.no_grad()
 def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, strength: float = 1.0,
-                  jpeg: bool = True, return_frames: bool = False):
-    """refs[idx] -> normalized [B, 3, INPUT, INPUT] float model input (and optionally the frames)."""
+                  jpeg: bool = True, return_frames: bool = False, realistic: bool = False):
+    """refs[idx] -> normalized [B, 3, INPUT, INPUT] float model input (and optionally the frames).
+
+    realistic=True adds the effects seen in the first real photos (real_aug.py): holo sheen, dark binder-pocket
+    backgrounds, stronger sleeves, broad glare, white balance 2700-7500 K, low light + phone ISP, and much less
+    precise crops (dark margins up to 12 % per side, corner jitter up to ~5 %, partial crops).
+    """
     dev = refs.device
     b = idx.shape[0]
     card = refs[idx].float() / 255  # [B,4,H,W] RGBA
+    if realistic:
+        card = holo_sheen(card)
     quad = random_quads(b, dev)
     M = get_perspective_transform(_corners(REF_W, REF_H, dev, b), quad)
     warped = warp_perspective(card, M, (FRAME_H, FRAME_W), mode="bilinear", padding_mode="zeros",
@@ -132,6 +140,9 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
     bg = torch.where(flip[:, None, None, None], bg.flip(-1), bg)
     bg = bg * _rand(b, 0.7, 1.2, dev)[:, None, None, None] * (1 + 0.15 * torch.randn(b, 3, 1, 1, device=dev))
     bg = bg.clamp(0, 1)
+    if realistic:  # black binder page / pocket behind the card
+        pocket = (torch.rand(b, device=dev) < 0.35)[:, None, None, None]
+        bg = torch.where(pocket, bg * _rand(b, 0.04, 0.15, dev)[:, None, None, None], bg)
 
     # soft drop shadow
     sh = F.interpolate(gaussian_blur2d(F.avg_pool2d(alpha, 4), (9, 9), _rand(b, 0.7, 2.0, dev)[:, None].expand(b, 2)),
@@ -144,14 +155,21 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
     xx, yy = _grid(b, dev)
     center = quad.mean(1)
     # sleeve: slightly larger quad, milky tint
-    s_on = (torch.rand(b, device=dev) < 0.5 * strength)[:, None, None, None]
-    sq = center[:, None] + (quad - center[:, None]) * _rand(b, 1.02, 1.06, dev)[:, None, None]
+    s_on = (torch.rand(b, device=dev) < (0.7 if realistic else 0.5) * strength)[:, None, None, None]
+    scale = _rand(b, 1.02, 1.10 if realistic else 1.06, dev)[:, None, None]
+    sq = center[:, None] + (quad - center[:, None]) * scale
     ones = torch.ones(b, 1, 8, 8, device=dev)
     sm = _up(warp_perspective(ones, get_perspective_transform(_corners(8, 8, dev, b), sq / 2),
                               (FRAME_H // 2, FRAME_W // 2), align_corners=True))
     tint = _rand(b, 0.85, 1.0, dev)[:, None, None, None]
-    sa = _rand(b, 0.06, 0.18, dev)[:, None, None, None]
+    sa = _rand(b, 0.06, 0.25 if realistic else 0.18, dev)[:, None, None, None]
     img = torch.where(s_on, img * (1 - sm * sa) + tint * sm * sa, img)
+    if realistic:  # bright, translucent sleeve / pocket edge
+        sq2 = center[:, None] + (quad - center[:, None]) * (scale - 0.012)
+        inner = _up(warp_perspective(ones, get_perspective_transform(_corners(8, 8, dev, b), sq2 / 2),
+                                     (FRAME_H // 2, FRAME_W // 2), align_corners=True))
+        ring = (sm - inner).clamp(0, 1)
+        img = torch.where(s_on, img + ring * _rand(b, 0.1, 0.5, dev)[:, None, None, None], img)
 
     # glare blob(s) + specular streak, additive
     g_on = (torch.rand(b, device=dev) < 0.6 * strength).float()[:, None, None]
@@ -165,6 +183,9 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
     dist = dist + _rand(b, -85, 85, dev)[:, None, None]
     streak = torch.exp(-0.5 * (dist / _rand(b, 4, 20, dev)[:, None, None]) ** 2) * _rand(b, 0.15, 0.5, dev)[:, None, None]
     img = img + _up(glare + streak * st_on)
+    if realistic:
+        img = 1.6 * img / (1 + 0.6 * img)  # highlight roll-off like a camera tone curve, keeps detail under glare
+        img = broad_glare(img.clamp(0, 1), center)
 
     # thumb: skin-coloured ellipse on one card edge
     t_on = (torch.rand(b, device=dev) < 0.3 * strength)[:, None, None, None]
@@ -184,6 +205,9 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
     m = img.mean((1, 2, 3), keepdim=True)
     img = ((img - m) * _rand(b, 0.75, 1.15, dev)[:, None, None, None] + m + _rand(b, -0.08, 0.08, dev)[:, None, None, None])
     img = img.clamp(0, 1)
+    if realistic:
+        img = white_balance(img)
+        img = exposure_and_noise(img)
 
     # blur: motion for ~30 %, defocus (gaussian, per-sample sigma) for ~30 %
     r = torch.rand(b, device=dev)
@@ -198,12 +222,16 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
 
     # sensor noise
     img = (img + torch.randn_like(img) * _rand(b, 0.005, 0.04 * strength + 0.01, dev)[:, None, None, None]).clamp(0, 1)
+    if realistic:
+        img = phone_isp(img)
 
     # re-rectify with residual detection error (corner noise + occasional inner-frame / sleeve-edge crop)
     diag = (quad[:, 2] - quad[:, 0]).norm(dim=-1)
     jq = quad + torch.randn(b, 4, 2, device=dev) * (0.012 * diag)[:, None, None]
     sc = torch.where(torch.rand(b, device=dev) < 0.25, _rand(b, 0.92, 1.05, dev), torch.ones(b, device=dev))
     jq = center[:, None] + (jq - center[:, None]) * sc[:, None, None]
+    if realistic:
+        jq = imprecise_crop(jq, quad, dev)
     Minv = get_perspective_transform(jq, _corners(INPUT, INPUT, dev, b))
     crop = warp_perspective(img, Minv, (INPUT, INPUT), mode="bilinear", padding_mode="border", align_corners=True)
     if jpeg:  # JPEG artifacts on the 224 crop: ~6x cheaper than on the frame, similar effect
@@ -216,11 +244,32 @@ def augment_batch(refs: torch.Tensor, idx: torch.Tensor, bg_pool: torch.Tensor, 
     return (x, img, crop) if return_frames else x
 
 
-def save_grid(path, refs, bg_pool, n=32, seed=0):
+def imprecise_crop(jq, quad, dev):
+    """Crop errors seen with sleeves and binder pockets: dark margins 0-12 % per side (the quad caught the pocket
+    edge), corner jitter up to ~5 % of the card size, and occasional partial crops (one side cut 15-40 %)."""
+    b = jq.shape[0]
+    u = ((quad[:, 1] - quad[:, 0]) + (quad[:, 2] - quad[:, 3])) / 2  # card width vector
+    v = ((quad[:, 3] - quad[:, 0]) + (quad[:, 2] - quad[:, 1])) / 2  # card height vector
+    m = torch.rand(b, 4, device=dev) * 0.12 * (torch.rand(b, 1, device=dev) < 0.45)  # left, top, right, bottom
+    part = torch.rand(b, device=dev) < 0.08
+    side = torch.randint(0, 4, (b,), device=dev)
+    m[torch.arange(b, device=dev)[part], side[part]] = -_rand(int(part.sum()), 0.15, 0.4, dev)
+    ml, mt, mr, mb = (m[:, i:i + 1] for i in range(4))
+    q = jq.clone()
+    q[:, 0] += -ml * u - mt * v
+    q[:, 1] += mr * u - mt * v
+    q[:, 2] += mr * u + mb * v
+    q[:, 3] += -ml * u + mb * v
+    size = (u.norm(dim=-1) + v.norm(dim=-1)) / 2
+    jit = (torch.randn(b, 4, 2, device=dev) * 0.02).clamp(-0.05, 0.05) * size[:, None, None]
+    return q + jit * (torch.rand(b, 1, 1, device=dev) < 0.5)
+
+
+def save_grid(path, refs, bg_pool, n=32, seed=0, realistic=False):
     """Visual check: top half frames, bottom half the matching rectified model inputs."""
     torch.manual_seed(seed)
     idx = torch.randint(0, refs.shape[0], (n,), device=refs.device)
-    _, frames, crops = augment_batch(refs, idx, bg_pool, return_frames=True)
+    _, frames, crops = augment_batch(refs, idx, bg_pool, return_frames=True, realistic=realistic)
     f = F.interpolate(frames, size=(208, 160), mode="area")
     c = F.interpolate(crops, size=(208, 160), mode="area")
     rows = []

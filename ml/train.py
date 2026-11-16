@@ -108,6 +108,8 @@ def main():
     ap.add_argument("--batch", type=int, default=0, help="0 = pick from free VRAM")
     ap.add_argument("--lr", type=float, default=1e-3)
     ap.add_argument("--holdout", nargs="*", default=[], help="card groups to exclude from training, e.g. en/me04")
+    ap.add_argument("--realistic", action="store_true", help="add the real-photo effects of real_aug.py")
+    ap.add_argument("--init", default=None, help="start from this run's checkpoint (fine-tune)")
     args = ap.parse_args()
     torch.backends.cudnn.benchmark = os.environ.get("CARDINDEX_CUDNN_BENCH", "1") == "1"
     dev = device()
@@ -123,11 +125,17 @@ def main():
     cls_map[train_classes] = torch.arange(len(train_classes), device=dev)
     refs = gpu_aug.load_refs(cards, dev)
     bg_pool = gpu_aug.make_bg_pool(64, dev)
-    gpu_aug.save_grid(DATA_DIR / f"aug_grid_{args.run}.png", refs, bg_pool)
+    gpu_aug.save_grid(DATA_DIR / f"aug_grid_{args.run}.png", refs, bg_pool, realistic=args.realistic)
 
     # no channels_last: with BatchNorm in train mode it is ~10x slower on this torch 2.14/cu130 build
     model = EmbeddingNet(args.backbone, args.dim).to(dev)
     arc = ArcFace(args.dim, len(train_classes)).to(dev)
+    if args.init:
+        ck0 = torch.load(CKPT_DIR / f"{args.init}.pt", map_location="cpu", weights_only=False)
+        assert ck0["classes"] == [cards[int(i)].key for i in train_classes] and ck0["dim"] == args.dim
+        model.load_state_dict(ck0["model"])
+        arc.load_state_dict(ck0["arc"])
+        print(f"initialised from {args.init}")
     opt = torch.optim.AdamW([
         {"params": model.backbone.parameters(), "lr": args.lr * 0.5},
         {"params": list(model.head.parameters()) + list(arc.parameters()), "lr": args.lr * 5},
@@ -158,7 +166,7 @@ def main():
         for st in range(steps_per_epoch):
             idx = order[st * batch:(st + 1) * batch]
             ta = time.time()
-            x = gpu_aug.augment(refs, idx, bg_pool, chunk=chunk)
+            x = gpu_aug.augment(refs, idx, bg_pool, chunk=chunk, realistic=args.realistic)
             if os.environ.get("CARDINDEX_STEP_TIMING") and st % 10 == 0:
                 torch.cuda.synchronize()
                 print(f"step {st} aug {time.time() - ta:.3f}s", flush=True)
