@@ -32,6 +32,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -80,11 +81,13 @@ import java.util.Locale
 /**
  * Live scan (DESIGN.md, Recognition; mockup c-index "Live scan"): no shutter. A card held in the guide is added to
  * All Cards as soon as its number confirms it, unsure cards go to Review, and the camera never stops for either.
- * The tray shows the count, the review queue and the last decision with Undo.
+ * The tray shows the count, the review queue (opens [de.fabianduerkop.cardindex.ui.review.ReviewScreen]) and the
+ * last decision with Undo.
  */
 @Composable
 fun ScanScreen(
     modifier: Modifier = Modifier,
+    onOpenReview: () -> Unit = {},
     onOpenLab: () -> Unit = {},
     viewModel: ScanViewModel = viewModel(),
 ) {
@@ -109,13 +112,13 @@ fun ScanScreen(
                     Text(stringResource(R.string.scan_camera_allow))
                 }
             }
-            else -> LiveScan(viewModel, engine, onOpenLab.takeIf { debuggable })
+            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable })
         }
     }
 }
 
 @Composable
-private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenLab: (() -> Unit)?) {
+private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenReview: () -> Unit, onOpenLab: (() -> Unit)?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewfinder by viewModel.viewfinder.collectAsStateWithLifecycle()
@@ -186,7 +189,7 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenLa
                 }
             }
         }
-        Tray(viewModel)
+        Tray(viewModel, onOpenReview)
     }
 }
 
@@ -246,7 +249,7 @@ private fun AutoPill(paused: Boolean, modifier: Modifier) {
 
 /** Count, review queue and the last decision with Undo. */
 @Composable
-private fun Tray(viewModel: ScanViewModel) {
+private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit) {
     val scanned by viewModel.scanned.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
     val last by viewModel.lastScan.collectAsStateWithLifecycle()
@@ -272,27 +275,29 @@ private fun Tray(viewModel: ScanViewModel) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.weight(1f))
-                ReviewCount(toReview)
+                ReviewCount(toReview, onOpenReview)
             }
             LastScanRow(last, viewModel::undo)
         }
     }
 }
 
+/** The review queue's size; opens it. Skipped cards count too, since they stay reachable there. */
 @Composable
-private fun ReviewCount(count: Int) {
+private fun ReviewCount(count: Int, onOpen: () -> Unit) {
     val empty = count == 0
-    Text(
-        if (empty) stringResource(R.string.scan_nothing_to_review) else pluralStringResource(R.plurals.scan_to_review, count, count),
-        Modifier
-            .background(
-                if (empty) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.tertiaryContainer,
-                RoundedCornerShape(999.dp),
-            )
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        color = if (empty) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onTertiaryContainer,
-        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-    )
+    val label = if (empty) stringResource(R.string.scan_nothing_to_review) else pluralStringResource(R.plurals.scan_to_review, count, count)
+    val description = stringResource(R.string.scan_open_review)
+    Button(
+        onClick = onOpen,
+        modifier = Modifier.heightIn(min = 48.dp).semantics { contentDescription = "$label. $description" },
+        colors = ButtonDefaults.buttonColors(
+            containerColor = if (empty) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.tertiaryContainer,
+            contentColor = if (empty) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onTertiaryContainer,
+        ),
+    ) {
+        Text(label, style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+    }
 }
 
 @Composable

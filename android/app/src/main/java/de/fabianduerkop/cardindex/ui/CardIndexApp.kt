@@ -25,6 +25,7 @@ import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import de.fabianduerkop.cardindex.ui.collections.CollectionsScreen
 import de.fabianduerkop.cardindex.ui.lab.LabScreen
+import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
 import de.fabianduerkop.cardindex.ui.scan.ScanScreen
 import de.fabianduerkop.cardindex.ui.search.SearchScreen
@@ -45,17 +46,26 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
             startDestination = TopLevelDestination.SCAN.route,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
-            composable(TopLevelDestination.SCAN.route) { ScanScreen(onOpenLab = { navController.navigate(LAB_ROUTE) }) }
+            composable(TopLevelDestination.SCAN.route) {
+                ScanScreen(
+                    onOpenReview = { navController.navigate(REVIEW_ROUTE) },
+                    onOpenLab = { navController.navigate(LAB_ROUTE) },
+                )
+            }
             composable(TopLevelDestination.COLLECTIONS.route) { CollectionsScreen() }
             composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
             composable(TopLevelDestination.SETTINGS.route) { SettingsScreen() }
             composable(LAB_ROUTE) { LabScreen() }
+            composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }
 
 /** The recognition lab, a debug-only test bench reached from the Scan screen. */
 private const val LAB_ROUTE = "lab"
+
+/** The review queue of unsure scans, opened from the Scan screen's tray. */
+private const val REVIEW_ROUTE = "review"
 
 @Composable
 private fun BottomBar(navController: NavHostController) {
