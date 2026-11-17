@@ -166,6 +166,12 @@ class PackStore(val root: File) {
         val addBroken = HashSet<String>()
         var modelBroken: Boolean? = null
         val catalogFilled = LinkedHashMap<String, String>()
+
+        /** Marks a language broken only if [packs]' directory for it is still this one. */
+        val addBrokenIfActive = LinkedHashMap<String, File>()
+
+        /** Marks the model broken only if it is still the one in this directory. */
+        var modelBrokenIfActive: File? = null
     }
 
     /** Applies [change] atomically, then deletes directories that are no longer active. */
@@ -180,11 +186,14 @@ class PackStore(val root: File) {
         val old = readState()
         val packs = if (c.replaceAllPacks) LinkedHashMap() else LinkedHashMap(old.packs)
         for ((lang, dir) in c.packs) if (dir == null) packs.remove(lang) else packs[lang] = dir.name
+        val modelDir = c.model?.name ?: old.modelDir
+        val stillActive = c.addBrokenIfActive.filter { (lang, dir) -> packs[lang] == dir.name }.keys
         val next = State(
-            modelDir = c.model?.name ?: old.modelDir,
+            modelDir = modelDir,
             packs = packs,
-            broken = (old.broken - c.clearBroken + c.addBroken).intersect(packs.keys),
-            modelBroken = c.modelBroken ?: (old.modelBroken && c.model == null),
+            broken = (old.broken - c.clearBroken + c.addBroken + stillActive).intersect(packs.keys),
+            modelBroken = c.modelBroken
+                ?: ((old.modelBroken && c.model == null) || (c.modelBrokenIfActive != null && c.modelBrokenIfActive?.name == modelDir)),
             catalogFilled = (old.catalogFilled + c.catalogFilled).filter { (lang, dir) -> packs[lang] == dir },
         )
         writeState(next)

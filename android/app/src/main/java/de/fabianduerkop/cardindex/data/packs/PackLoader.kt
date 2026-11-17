@@ -19,8 +19,12 @@ class LoadedPacks(
     val languages: Set<String>,
 )
 
-/** [loaded] is null when no language is usable; [broken] and [modelBroken] go back to the [PackStore]. */
-data class PackLoad(val loaded: LoadedPacks?, val broken: Set<String>, val modelBroken: Boolean)
+/**
+ * [loaded] is null when no language is usable; [broken] and [modelBroken] go back to the [PackStore]. [from] is the
+ * snapshot that was loaded: a sync may have replaced its directories since, and their failures say nothing about
+ * the new ones.
+ */
+data class PackLoad(val loaded: LoadedPacks?, val broken: Set<String>, val modelBroken: Boolean, val from: InstalledPacks)
 
 /**
  * The checks on load (docs/packs.md, "Checks"): SHA-256 of the model = `modelSha256`, SHA-256 of `index.bin` =
@@ -34,7 +38,7 @@ object PackLoader {
 
     fun load(installed: InstalledPacks): PackLoad {
         val model = installed.model
-        if (model == null || installed.modelBroken) return PackLoad(null, emptySet(), modelBroken = model != null)
+        if (model == null || installed.modelBroken) return PackLoad(null, emptySet(), modelBroken = model != null, from = installed)
         val candidates = installed.packs.filterKeys { it !in installed.broken }
         val modelBytes = try {
             model.embedderFile.readBytes().also { bytes ->
@@ -46,7 +50,7 @@ object PackLoader {
             }
         } catch (e: Exception) {
             Log.w(TAG, "model ${model.id} failed its check", e)
-            return PackLoad(null, emptySet(), modelBroken = true)
+            return PackLoad(null, emptySet(), modelBroken = true, from = installed)
         }
 
         val broken = HashSet<String>()
@@ -96,7 +100,7 @@ object PackLoader {
                 broken += lang
             }
         }
-        if (cards.size < 2) return PackLoad(null, broken, modelBroken = false)
+        if (cards.size < 2) return PackLoad(null, broken, modelBroken = false, from = installed)
         val vectors = FloatArray(parts.sumOf { it.size })
         var offset = 0
         for (p in parts) {
@@ -104,7 +108,9 @@ object PackLoader {
             offset += p.size
         }
         val languages = candidates.keys - broken
-        return PackLoad(LoadedPacks(model, modelBytes, cards, vectors, model.dim, languages), broken, modelBroken = false)
+        return PackLoad(
+            LoadedPacks(model, modelBytes, cards, vectors, model.dim, languages), broken, modelBroken = false, from = installed,
+        )
     }
 
     private fun check(bytes: ByteArray, expected: String, what: String) {

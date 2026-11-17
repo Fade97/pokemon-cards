@@ -100,7 +100,7 @@ class PackSyncTest {
         File(pending, "cards.json.gz").writeBytes(byteArrayOf(1))
 
         newManager().repair("en")
-        newManager().reportLoad(PackLoad(loaded = null, broken = setOf("en"), modelBroken = true))
+        newManager().reportLoad(PackLoad(loaded = null, broken = setOf("en"), modelBroken = true, from = store.installed.value))
         assertTrue(pending.exists())
 
         // A commit under the sync lock cleans up as before.
@@ -349,6 +349,36 @@ class PackSyncTest {
         manager.repair("de")
         assertEquals(SyncOutcome.Done, manager.sync(poll = false))
         assertEquals(setOf("de", "en"), store.installed.value.usable)
+    }
+
+    @Test
+    fun loadOfAnOlderGenerationDoesNotMarkTheNewOneBroken() = runTest {
+        val m1 = fake.publishModel("mnv3", modelBytes)
+        fake.publish(en1, m1)
+        manager.addLanguages(setOf("en"))
+        manager.sync(poll = false)
+        val v1 = store.installed.value
+
+        // A pack update commits v2 and deletes v1 while recognition still loads the v1 snapshot.
+        fake.publish(en2, m1)
+        assertEquals(SyncOutcome.Done, manager.sync(poll = true))
+        assertFalse(v1.packs.getValue("en").dir.exists())
+        val stalePack = PackLoader.load(v1)
+        assertEquals(setOf("en"), stalePack.broken)
+        manager.reportLoad(stalePack)
+        assertEquals(setOf("en"), store.installed.value.usable)
+
+        // Same for a model switch: the old model's failure is not the new model's.
+        val v2 = store.installed.value
+        val m2 = fake.publishModel("mnv4", ByteArray(310) { 9 })
+        fake.publish(content("en", 3, en2.sets, en2.cards), m2)
+        assertEquals(SyncOutcome.Done, manager.sync(poll = true))
+        assertFalse(v2.model!!.dir.exists())
+        val staleModel = PackLoader.load(v2)
+        assertTrue(staleModel.modelBroken)
+        manager.reportLoad(staleModel)
+        assertFalse(store.installed.value.modelBroken)
+        assertEquals(setOf("en"), PackLoader.load(store.installed.value).loaded!!.languages)
     }
 
     @Test

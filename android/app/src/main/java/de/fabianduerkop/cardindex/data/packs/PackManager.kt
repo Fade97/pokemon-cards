@@ -120,12 +120,15 @@ class PackManager(
         requestSync()
     }
 
-    /** Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. */
+    /**
+     * Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. Only for
+     * the directories that were loaded: a sync that installed newer ones meanwhile is not marked by the old ones.
+     */
     fun reportLoad(load: PackLoad) {
         if (load.broken.isEmpty() && !load.modelBroken) return
         store.commit(collectGarbage = false) {
-            addBroken += load.broken
-            if (load.modelBroken) modelBroken = true
+            load.broken.forEach { lang -> load.from.packs[lang]?.let { addBrokenIfActive[lang] = it.dir } }
+            if (load.modelBroken) modelBrokenIfActive = load.from.model?.dir
         }
     }
 
