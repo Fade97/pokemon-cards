@@ -33,12 +33,14 @@ Status: design agreed on 2026-11-15, nothing implemented yet. Each decision has 
 └───────────────▲──────────────────────────▲────────────────────┘
                 │ language packs (R2)      │ prices (Worker API)
 ┌───────────────┴──────── Cloudflare ──────┴────────────────────┐
-│ Cron Worker (nightly): TCGdex + Cardmarket price guide +      │
-│   TCGCSV ─► mapping ─► D1 (current prices)                    │
-│   └► R2: daily price snapshots (kept from day one)            │
+│ Worker: price API, reads price files from R2                  │
+│ R2: price files per set + daily snapshots (kept from day one) │
 │ R2: language packs (model, index, card DB, deltas)            │
 │ (later) auth, sync, alerts for Pro                            │
-└───────────────────────────────────────────────────────────────┘
+└───────────────────────────────▲───────────────────────────────┘
+                                │ price files (S3 API)
+Vulcan (homelab), nightly: TCGdex + Cardmarket price guide + TCGCSV
+  ─► mapping ─► SQLite ─► price files + snapshot (ADR 0011)
 Offline: training on the RTX 3080 (detector, embeddings, later the OCR model)
 ```
 

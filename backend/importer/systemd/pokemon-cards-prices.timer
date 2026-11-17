@@ -1,0 +1,11 @@
+[Unit]
+Description=Nightly Pokémon cards price import
+
+[Timer]
+# The Cardmarket guide is rebuilt around 03:00 CET and TCGCSV around 21:00 UTC, so 05:30 sees both fresh.
+OnCalendar=*-*-* 05:30:00 Europe/Berlin
+RandomizedDelaySec=10min
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,8 +1,6 @@
 import { env, exports } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
 
-const NOW = "2026-11-16T04:30:00.000Z";
-
 let clients = 0;
 
 /** Each call comes from its own client IP unless one is given, so the rate limit only bites where a test wants it. */
@@ -20,55 +18,91 @@ function postIds(ids: unknown) {
   });
 }
 
-/** Pikachu 151 (EN prices on both markets), a JP card (Cardmarket only) and a card without any product. */
-async function seed() {
-  await env.DB.batch(
-    [
-      "DELETE FROM tcgplayer_prices",
-      "DELETE FROM cardmarket_prices",
-      "DELETE FROM card_mapping",
-      "DELETE FROM cards",
-      "DELETE FROM import_runs",
-    ].map((sql) => env.DB.prepare(sql)),
-  );
-  const card = env.DB.prepare(
-    "INSERT INTO cards (tcgdex_id, lang, set_id, local_id, name, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
-  );
-  const mapping = env.DB.prepare(
-    `INSERT INTO card_mapping (tcgdex_id, cardmarket_id, tcgplayer_id, cardmarket_source, tcgplayer_source, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?)`,
-  );
-  await env.DB.batch([
-    card.bind("sv03.5-025", "en", "sv03.5", "025", "Pikachu", NOW),
-    card.bind("SV2a-025", "ja", "SV2a", "025", "Pikachu", NOW),
-    card.bind("sv03.5-999", "en", "sv03.5", "999", "Nobody", NOW),
-    card.bind("sv03.5-026", "en", "sv03.5", "026", "Raichu", NOW),
-    mapping.bind("sv03.5-025", 712345, 501234, "tcgdex", "tcgdex", NOW),
-    mapping.bind("SV2a-025", 698765, null, "tcgdex", null, NOW),
-    mapping.bind("sv03.5-999", null, null, null, null, NOW),
-    mapping.bind("sv03.5-026", 712346, null, "tcgdex", null, NOW),
-    env.DB.prepare(
-      `INSERT INTO cardmarket_prices (id_product, low, trend, avg, avg1, avg7, avg30,
-         holo_low, holo_trend, holo_avg, holo_avg1, holo_avg7, holo_avg30, price_date)
-       VALUES (712345, 0.5, 1.2, 1.1, 1.0, 1.15, 1.3, 1.5, 2.4, 2.2, 2.0, 2.3, 2.5, '2026-11-16T02:00:00Z'),
-              (698765, 2.0, 3.1, 3.0, NULL, 3.2, 3.3, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-16T02:00:00Z'),
-              (712346, 1.0, 1.0, 1.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-16T02:00:00Z')`,
-    ),
-    env.DB.prepare(
-      `INSERT INTO tcgplayer_prices (product_id, sub_type, low, mid, high, market, direct_low, price_date)
-       VALUES (501234, 'Normal', 0.4, 0.9, 5.0, 0.8, NULL, '2026-11-15T20:00:00Z'),
-              (501234, 'Reverse Holofoil', 1.0, 1.8, 9.0, 1.6, 1.5, '2026-11-15T20:00:00Z')`,
-    ),
-  ]);
+const PIKACHU = {
+  id: "sv03.5-025",
+  cardmarket: {
+    productId: 712345,
+    currency: "EUR",
+    mixedLanguages: true,
+    priceDate: "2026-11-16T02:00:00Z",
+    normal: { low: 0.5, trend: 1.2, avg: 1.1, avg1: 1.0, avg7: 1.15, avg30: 1.3 },
+    holo: { low: 1.5, trend: 2.4, avg: 2.2, avg1: 2.0, avg7: 2.3, avg30: 2.5 },
+  },
+  tcgplayer: {
+    productId: 501234,
+    currency: "USD",
+    priceDate: "2026-11-15T20:00:00Z",
+    variants: {
+      Normal: { low: 0.4, mid: 0.9, high: 5.0, market: 0.8, directLow: null },
+      "Reverse Holofoil": { low: 1.0, mid: 1.8, high: 9.0, market: 1.6, directLow: 1.5 },
+    },
+  },
+};
+
+const cardmarketOnly = (id: string, productId: number, trend: number) => ({
+  id,
+  cardmarket: {
+    productId,
+    currency: "EUR",
+    mixedLanguages: true,
+    priceDate: "2026-11-16T02:00:00Z",
+    normal: { low: 2.0, trend, avg: 3.0, avg1: null, avg7: 3.2, avg30: 3.3 },
+    holo: null,
+  },
+  tcgplayer: null,
+});
+
+async function putJson(key: string, value: unknown) {
+  await env.PRICES.put(key, JSON.stringify(value));
 }
 
-beforeEach(seed);
+/**
+ * Price files as the importer writes them: Pikachu 151 (EN prices on both markets), a JP card (Cardmarket only),
+ * a card without any product and Raichu for the cache test.
+ */
+async function seed(generatedAt = new Date().toISOString()) {
+  const listed = await env.PRICES.list();
+  await Promise.all(listed.objects.map((o) => env.PRICES.delete(o.key)));
+  await putJson("current/sv03.5.json", {
+    version: 1,
+    generatedAt,
+    cards: {
+      "sv03.5-025": PIKACHU,
+      "sv03.5-026": cardmarketOnly("sv03.5-026", 712346, 1.0),
+      "sv03.5-999": { id: "sv03.5-999", cardmarket: null, tcgplayer: null },
+    },
+  });
+  await putJson("current/SV2a.json", {
+    version: 1,
+    generatedAt,
+    cards: { "SV2a-025": cardmarketOnly("SV2a-025", 698765, 3.1) },
+  });
+  await putJson("current/meta.json", {
+    version: 1,
+    generatedAt,
+    cards: 4,
+    shards: 2,
+    cardmarketPriceDate: "2026-11-16T02:00:00Z",
+    tcgplayerPriceDate: "2026-11-15T20:00:00Z",
+  });
+}
+
+beforeEach(() => seed());
 
 describe("GET /health", () => {
-  it("answers after a D1 round trip", async () => {
+  it("reports fresh price files", async () => {
     const res = await call("/health");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ ok: true });
+    expect(((await res.json()) as any).ok).toBe(true);
+  });
+
+  it("answers 503 when the importer has not written for two days, or never", async () => {
+    await seed("2026-01-01T00:00:00.000Z");
+    const stale = await call("/health");
+    expect(stale.status).toBe(503);
+    expect(await stale.json()).toEqual({ ok: false, pricesGeneratedAt: "2026-01-01T00:00:00.000Z" });
+    await env.PRICES.delete("current/meta.json");
+    expect((await call("/health")).status).toBe(503);
   });
 });
 
@@ -109,6 +143,11 @@ describe("GET /v1/prices/:id", () => {
   it("keeps a mapped card whose markets have no product", async () => {
     const body = (await (await call("/v1/prices/sv03.5-999")).json()) as any;
     expect(body).toEqual({ id: "sv03.5-999", cardmarket: null, tcgplayer: null });
+  });
+
+  it("does not resolve object prototype members as cards", async () => {
+    expect((await call("/v1/prices/sv03.5-constructor")).status).toBe(404);
+    expect((await call("/v1/prices/__proto__")).status).toBe(404);
   });
 
   it("returns 404 for an unknown card and 400 for a malformed id", async () => {
@@ -181,7 +220,11 @@ describe("limits (#30)", () => {
     const first = (await (await call("/v1/prices/sv03.5-026")).json()) as any;
     expect(first.cardmarket.trend).toBeUndefined();
     expect(first.cardmarket.normal.trend).toBe(1.0);
-    await env.DB.prepare("UPDATE cardmarket_prices SET trend = 9.0 WHERE id_product = 712346").run();
+    await putJson("current/sv03.5.json", {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      cards: { "sv03.5-026": cardmarketOnly("sv03.5-026", 712346, 9.0) },
+    });
     const second = (await (await call("/v1/prices/sv03.5-026")).json()) as any;
     expect(second.cardmarket.normal.trend).toBe(1.0);
   });

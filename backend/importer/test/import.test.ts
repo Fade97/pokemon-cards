@@ -1,13 +1,14 @@
-import { env } from "cloudflare:workers";
+import { gunzipSync } from "node:zlib";
 import { beforeEach, describe, expect, it } from "vitest";
-import { guideDate, PRICE_GUIDE_URL } from "../src/import/cardmarket";
-import type { ImportContext, ImportMessage } from "../src/import/context";
-import { JsonArrayStream } from "../src/import/json-stream";
-import { snapshotKey } from "../src/import/snapshot";
-import { normalizeNumber, TCGCSV } from "../src/import/tcgcsv";
-import { pickProduct, TCGDEX_API } from "../src/import/tcgdex";
-import { consumeBatch, runJob, runScheduled, startNightly } from "../src/nightly";
-import { getPrices } from "../src/prices";
+import { shardOf, snapshotKey, type PriceMeta, type PriceShard } from "../../src/price-data";
+import { SqliteDb } from "../db";
+import { guideDate, PRICE_GUIDE_URL } from "../jobs/cardmarket";
+import type { ImportContext, ImportMessage } from "../jobs/context";
+import { JsonArrayStream } from "../jobs/json-stream";
+import { LocalQueue, runJob, startNightly } from "../jobs/nightly";
+import { normalizeNumber, TCGCSV } from "../jobs/tcgcsv";
+import { pickProduct, TCGDEX_API } from "../jobs/tcgdex";
+import { publish, readAllPrices, type Sink } from "../publish";
 
 const NOW = new Date("2026-11-17T04:30:00.000Z");
 
@@ -29,12 +30,8 @@ function makeContext(routes: Record<string, unknown> = {}) {
   const sent: { body: ImportMessage; delaySeconds?: number }[] = [];
   const net = fakeFetch(routes);
   const ctx: ImportContext = {
-    db: env.DB,
-    snapshots: env.SNAPSHOTS,
+    db,
     queue: {
-      async send(body, options) {
-        sent.push({ body, delaySeconds: options?.delaySeconds });
-      },
       async sendBatch(messages) {
         for (const m of messages) sent.push({ body: m.body, delaySeconds: m.delaySeconds });
       },
@@ -63,21 +60,11 @@ async function drain(ctx: ImportContext, sent: { body: ImportMessage; delaySecon
   }
 }
 
-async function reset() {
-  await env.DB.batch(
-    [
-      "DELETE FROM tcgplayer_prices",
-      "DELETE FROM cardmarket_prices",
-      "DELETE FROM card_mapping",
-      "DELETE FROM mapping_overrides",
-      "DELETE FROM cards",
-      "DELETE FROM tcgdex_sets",
-      "DELETE FROM import_runs",
-    ].map((sql) => env.DB.prepare(sql)),
-  );
-}
-
-beforeEach(reset);
+/** A fresh in-memory database with the importer schema for every test. */
+let db: SqliteDb;
+beforeEach(() => {
+  db = new SqliteDb(":memory:");
+});
 
 function streamOf(text: string, chunkSize: number): ReadableStream<Uint8Array> {
   const bytes = new TextEncoder().encode(text);
@@ -159,7 +146,15 @@ describe("helpers", () => {
   });
 
   it("builds one snapshot key per UTC day", () => {
-    expect(snapshotKey(new Date("2026-01-05T23:59:59Z"))).toBe("prices/2026/01/05.json.gz");
+    expect(snapshotKey(new Date("2026-01-05T23:59:59Z"))).toBe("snapshots/2026/01/05.json.gz");
+  });
+
+  it("shards card IDs by set", () => {
+    expect(shardOf("sv03.5-025")).toBe("sv03.5");
+    expect(shardOf("SV2a-025")).toBe("SV2a");
+    expect(shardOf("swsh12pt5gg-GG01")).toBe("swsh12pt5gg");
+    expect(shardOf("nodash")).toBe("_misc");
+    expect(shardOf("..-1")).toBe("_misc");
   });
 });
 
@@ -264,19 +259,19 @@ describe("nightly import", () => {
   it("queues TCGdex per language now and the price jobs 30 minutes later", async () => {
     const { ctx, sent } = makeContext();
     await startNightly(ctx);
-    expect(sent.filter((m) => m.body.type === "tcgdex-sets").map((m) => m.delaySeconds)).toEqual(Array(9).fill(0));
+    expect(sent.filter((m) => m.body.type === "tcgdex-sets").map((m) => m.delaySeconds ?? 0)).toEqual(Array(9).fill(0));
     expect(sent.filter((m) => m.body.type !== "tcgdex-sets")).toEqual([
       { body: { type: "cardmarket" }, delaySeconds: 1800 },
       { body: { type: "tcgcsv-groups" }, delaySeconds: 1800 },
     ]);
-    const run = await env.DB.prepare("SELECT job, status FROM import_runs").first();
+    const run = await db.prepare("SELECT job, status FROM import_runs").first();
     expect(run).toEqual({ job: "nightly", status: "ok" });
   });
 
   it("maps cards, stores only mapped prices and answers the price API", async () => {
     await runNight();
 
-    const mapping = await env.DB.prepare(
+    const mapping = await db.prepare(
       "SELECT tcgdex_id, cardmarket_id, tcgplayer_id, cardmarket_source, tcgplayer_source FROM card_mapping ORDER BY tcgdex_id",
     ).all();
     expect(mapping.results).toEqual([
@@ -288,16 +283,16 @@ describe("nightly import", () => {
     ]);
 
     // JA only adds the set English lacks; the empty set is skipped; the bad ID is dropped.
-    const sets = await env.DB.prepare("SELECT lang, set_id, abbreviation FROM tcgdex_sets ORDER BY set_id").all();
+    const sets = await db.prepare("SELECT lang, set_id, abbreviation FROM tcgdex_sets ORDER BY set_id").all();
     expect(sets.results).toEqual([
       { lang: "ja", set_id: "SV2a", abbreviation: null },
       { lang: "en", set_id: "base1", abbreviation: null },
       { lang: "en", set_id: "sv03.5", abbreviation: "MEW" },
     ]);
 
-    const cm = await env.DB.prepare("SELECT id_product FROM cardmarket_prices ORDER BY id_product").all();
+    const cm = await db.prepare("SELECT id_product FROM cardmarket_prices ORDER BY id_product").all();
     expect(cm.results.map((r) => r.id_product)).toEqual([719467, 733620]);
-    const tp = await env.DB.prepare("SELECT product_id, sub_type FROM tcgplayer_prices ORDER BY 1, 2").all();
+    const tp = await db.prepare("SELECT product_id, sub_type FROM tcgplayer_prices ORDER BY 1, 2").all();
     expect(tp.results.map((r) => `${r.product_id} ${r.sub_type}`)).toEqual([
       "42382 Holofoil",
       "517033 Normal",
@@ -306,7 +301,7 @@ describe("nightly import", () => {
       "517035 Normal",
     ]);
 
-    const prices = await getPrices(env.DB, ["sv03.5-025", "SV2a-025"]);
+    const prices = new Map((await readAllPrices(db)).map((p) => [p.id, p]));
     expect(prices.get("sv03.5-025")).toEqual({
       id: "sv03.5-025",
       cardmarket: {
@@ -325,7 +320,7 @@ describe("nightly import", () => {
     // A zero in the guide means "no price".
     expect(prices.get("SV2a-025")!.cardmarket!.holo).toBeNull();
 
-    const runs = await env.DB.prepare("SELECT job, status FROM import_runs ORDER BY id").all();
+    const runs = await db.prepare("SELECT job, status FROM import_runs ORDER BY id").all();
     expect(runs.results).toEqual([
       { job: "nightly", status: "ok" },
       { job: "tcgdex:en", status: "ok" },
@@ -342,7 +337,7 @@ describe("nightly import", () => {
     expect(sent.map((m) => m.body)).toEqual([{ type: "tcgdex-set", lang: "en", setId: "sv03.5" }]);
 
     // Synced sets are skipped until their card count changes or they are 30 days old.
-    await env.DB.prepare(
+    await db.prepare(
       `INSERT INTO tcgdex_sets (lang, set_id, card_count, synced_at) VALUES
          ('en', 'sv03.5', 3, '2026-11-16T00:00:00Z'), ('en', 'base1', 1, '2026-10-01T00:00:00Z')`,
     ).run();
@@ -354,7 +349,7 @@ describe("nightly import", () => {
 
   it("lets overrides win over TCGdex and matches, and releases them when removed", async () => {
     await runNight();
-    await env.DB.prepare(
+    await db.prepare(
       `INSERT INTO mapping_overrides (tcgdex_id, cardmarket_id, tcgplayer_id, note, created_at)
        VALUES ('sv03.5-025', 1, NULL, 'test', '2026-11-17')`,
     ).run();
@@ -363,71 +358,91 @@ describe("nightly import", () => {
     await startNightly(ctx);
     await runJob({ type: "tcgdex-cards", lang: "en", setId: "sv03.5", cardIds: ["sv03.5-025"] }, ctx);
     const row = () =>
-      env.DB.prepare("SELECT cardmarket_id, cardmarket_source, tcgplayer_id FROM card_mapping WHERE tcgdex_id = 'sv03.5-025'").first();
+      db.prepare("SELECT cardmarket_id, cardmarket_source, tcgplayer_id FROM card_mapping WHERE tcgdex_id = 'sv03.5-025'").first();
     expect(await row()).toEqual({ cardmarket_id: 1, cardmarket_source: "override", tcgplayer_id: 517033 });
 
-    await env.DB.prepare("DELETE FROM mapping_overrides").run();
+    await db.prepare("DELETE FROM mapping_overrides").run();
     await startNightly(ctx);
     await runJob({ type: "tcgdex-cards", lang: "en", setId: "sv03.5", cardIds: ["sv03.5-025"] }, ctx);
     expect(await row()).toEqual({ cardmarket_id: 733620, cardmarket_source: "tcgdex", tcgplayer_id: 517033 });
   });
 
-  it("writes a gzipped daily snapshot to R2", async () => {
-    const { ctx } = await runNight();
-    await runScheduled("30 7 * * *", ctx);
-    const object = await env.SNAPSHOTS.get("prices/2026/11/17.json.gz");
-    expect(object?.httpMetadata?.contentEncoding).toBe("gzip");
-    const text = await new Response(object!.body.pipeThrough(new DecompressionStream("gzip"))).text();
-    const snapshot = JSON.parse(text);
+  it("publishes one price file per set, the snapshot and meta.json last", async () => {
+    await runNight();
+    const files = new Map<string, { body: Uint8Array; encoding?: string }>();
+    const order: string[] = [];
+    const sink: Sink = {
+      name: "memory",
+      async put(key, body, _type, encoding) {
+        files.set(key, { body, encoding });
+        order.push(key);
+      },
+    };
+    expect(await publish(db, [sink], NOW)).toBe("5 cards in 3 files to memory");
+    expect(order.at(-1)).toBe("current/meta.json");
+    expect([...files.keys()].sort()).toEqual([
+      "current/SV2a.json",
+      "current/base1.json",
+      "current/meta.json",
+      "current/sv03.5.json",
+      "snapshots/2026/11/17.json.gz",
+    ]);
+
+    const json = (key: string) => JSON.parse(new TextDecoder().decode(files.get(key)!.body));
+    const shard: PriceShard = json("current/sv03.5.json");
+    expect(Object.keys(shard.cards).sort()).toEqual(["sv03.5-025", "sv03.5-026", "sv03.5-027"]);
+    expect(shard.cards["sv03.5-025"]!.tcgplayer!.variants.Normal!.market).toBe(0.26);
+    const meta: PriceMeta = json("current/meta.json");
+    expect(meta).toEqual({
+      version: 1,
+      generatedAt: NOW.toISOString(),
+      cards: 5,
+      shards: 3,
+      cardmarketPriceDate: "2026-11-17T01:48:57.000Z",
+      tcgplayerPriceDate: "2026-11-16T20:05:58.000Z",
+    });
+
+    const gz = files.get("snapshots/2026/11/17.json.gz")!;
+    expect(gz.encoding).toBe("gzip");
+    const snapshot = JSON.parse(gunzipSync(gz.body).toString("utf8"));
     expect(snapshot.version).toBe(1);
     expect(snapshot.date).toBe("2026-11-17");
     expect(snapshot.mapping.rows).toHaveLength(5);
     expect(snapshot.cardmarket.columns[0]).toBe("idProduct");
     expect(snapshot.cardmarket.rows.map((r: unknown[]) => r[0]).sort()).toEqual([719467, 733620]);
     expect(snapshot.tcgplayer.rows).toHaveLength(5);
-    const run = await env.DB.prepare("SELECT status, detail FROM import_runs WHERE job = 'snapshot'").first<any>();
-    expect(run.status).toBe("ok");
-    expect(run.detail).toMatch(/^prices\/2026\/11\/17\.json\.gz: 5 mapping, 2 cardmarket, 5 tcgplayer/);
   });
 });
 
-describe("queue consumer", () => {
-  function message(body: ImportMessage, attempts: number) {
-    const state = { acked: false, retried: false };
-    return {
-      state,
-      msg: {
-        id: "1", timestamp: NOW, body, attempts,
-        ack: () => { state.acked = true; },
-        retry: () => { state.retried = true; },
-      } as unknown as Message<ImportMessage>,
-    };
-  }
-  const batch = (...messages: Message<ImportMessage>[]) =>
-    ({ queue: "pokemon-cards-import", messages }) as unknown as MessageBatch<ImportMessage>;
-
-  it("acks finished jobs", async () => {
+describe("LocalQueue", () => {
+  it("runs undelayed jobs first, including the ones jobs queue themselves", async () => {
     const { ctx } = makeContext(ROUTES);
-    const m = message({ type: "tcgdex-set", lang: "en", setId: "base1" }, 1);
-    await consumeBatch(batch(m.msg), ctx);
-    expect(m.state).toEqual({ acked: true, retried: false });
+    const queue = new LocalQueue(0);
+    ctx.queue = queue;
+    await startNightly(ctx, ["en"]);
+    await queue.drain(ctx);
+    expect(queue.failed).toEqual([]);
+    // The price jobs ran after the cards were mapped, so the new cards have prices.
+    const n = await db.prepare("SELECT COUNT(*) AS n FROM cardmarket_prices").first();
+    expect(n).toEqual({ n: 1 });
   });
 
-  it("retries failed jobs and records the last failed attempt", async () => {
+  it("retries a failing job, records its final failure and carries on", async () => {
     const { ctx } = makeContext({}); // every request is a 404
-    const early = message({ type: "tcgcsv-group", groupId: 1, abbreviation: null, priceDate: "x" }, 1);
-    await consumeBatch(batch(early.msg), ctx);
-    expect(early.state).toEqual({ acked: false, retried: true });
-    expect(await env.DB.prepare("SELECT COUNT(*) AS n FROM import_runs").first()).toEqual({ n: 0 });
-
-    const last = message({ type: "tcgcsv-group", groupId: 1, abbreviation: null, priceDate: "x" }, 4);
-    await consumeBatch(batch(last.msg), ctx);
-    expect(last.state.retried).toBe(true);
-    const run = await env.DB.prepare("SELECT job, status, detail FROM import_runs").first();
-    expect(run).toEqual({
-      job: "tcgcsv-group:1",
-      status: "failed",
-      detail: `GET ${TCGCSV}/tcgplayer/3/1/products: HTTP 404`,
-    });
+    const queue = new LocalQueue(0);
+    ctx.queue = queue;
+    await queue.sendBatch([
+      { body: { type: "tcgcsv-group", groupId: 1, abbreviation: null, priceDate: "x" } },
+      { body: { type: "tcgcsv-group", groupId: 2, abbreviation: null, priceDate: "x" } },
+    ]);
+    const lines: string[] = [];
+    await queue.drain(ctx, (l) => lines.push(l));
+    expect(queue.failed).toEqual(["tcgcsv-group:1", "tcgcsv-group:2"]);
+    expect(lines.filter((l) => l.startsWith("tcgcsv-group:1 attempt"))).toHaveLength(4);
+    const runs = await db.prepare("SELECT job, status, detail FROM import_runs ORDER BY id").all();
+    expect(runs.results).toEqual([
+      { job: "tcgcsv-group:1", status: "failed", detail: `GET ${TCGCSV}/tcgplayer/3/1/products: HTTP 404` },
+      { job: "tcgcsv-group:2", status: "failed", detail: `GET ${TCGCSV}/tcgplayer/3/2/products: HTTP 404` },
+    ]);
   });
 });

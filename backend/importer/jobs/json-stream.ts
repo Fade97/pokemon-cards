@@ -17,7 +17,7 @@ export class JsonArrayStream<T = unknown> {
 
   async *items(body: ReadableStream<Uint8Array>): AsyncGenerator<T> {
     const marker = new RegExp(`"${this.key}"\\s*:\\s*\\[`);
-    const reader = body.pipeThrough(new TextDecoderStream()).getReader();
+    const reader = body.pipeThrough(new TextDecoderStream() as ReadableWritablePair<string, Uint8Array>).getReader();
 
     let buffer = "";
     let inArray = false;

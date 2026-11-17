@@ -1,5 +1,7 @@
-// What an import job needs from the outside world. Jobs get it passed in, so tests can swap the network and
-// the queue for fakes while D1 and R2 stay the real local bindings.
+// What an import job needs from the outside world. Jobs get it passed in, so tests can swap the network for a
+// fake while the database stays a real (in-memory) SQLite.
+
+import type { Db } from "../db";
 
 export type ImportMessage =
   | { type: "tcgdex-sets"; lang: string }
@@ -9,31 +11,21 @@ export type ImportMessage =
   | { type: "tcgcsv-groups" }
   | { type: "tcgcsv-group"; groupId: number; abbreviation: string | null; priceDate: string };
 
-/** The part of the queue producer the jobs use; a structural type so tests can pass a plain recorder. */
+/**
+ * Jobs queue follow-up jobs (a set queues its card chunks). The importer runs them in-process (../queue.ts);
+ * a delay only orders them: undelayed jobs run first.
+ */
 export interface ImportQueue {
-  send(body: ImportMessage, options?: QueueSendOptions): Promise<unknown>;
-  sendBatch(messages: Iterable<MessageSendRequest<ImportMessage>>): Promise<unknown>;
+  sendBatch(messages: Iterable<{ body: ImportMessage; delaySeconds?: number }>): Promise<unknown>;
 }
 
 export interface ImportContext {
-  db: D1Database;
-  snapshots: R2Bucket;
+  db: Db;
   queue: ImportQueue;
   fetch: typeof fetch;
   now: () => Date;
-  /** Upper bound of TCGdex sets synced per language and night; keeps the first backfill spread over a few nights. */
+  /** Upper bound of TCGdex sets synced per language and night; spreads the first backfill if wanted. */
   maxSetsPerNight: number;
-}
-
-export function contextFromEnv(env: Env): ImportContext {
-  return {
-    db: env.DB,
-    snapshots: env.SNAPSHOTS,
-    queue: env.IMPORT_QUEUE as Queue<ImportMessage>,
-    fetch: globalThis.fetch.bind(globalThis),
-    now: () => new Date(),
-    maxSetsPerNight: Number(env.TCGDEX_SETS_PER_NIGHT) || 40,
-  };
 }
 
 /** Upstream sources ask for no particular identification; a generic name keeps the logs readable for them. */

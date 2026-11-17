@@ -1,17 +1,19 @@
-// Price API for the app plus the nightly import (ADR 0005).
+// Price API for the app (ADR 0005). Prices come from the files the importer on Vulcan writes to R2 each night
+// (importer/, src/price-data.ts); the Worker itself only reads them.
 //
-//   GET  /health                 D1 round trip, for uptime checks
+//   GET  /health                 age of the price files, for uptime checks (503 when they are stale)
 //   GET  /v1/prices/:tcgdexId    prices of one card
 //   POST /v1/prices {ids: [...]} prices of up to 100 cards, e.g. to refresh a collection
 //
-// Every route is rate-limited per client IP (#30). The cron and the queue consumer run the nightly import.
+// Every route is rate-limited per client IP (#30).
 
-import { contextFromEnv, type ImportMessage } from "./import/context";
-import { consumeBatch, runScheduled } from "./nightly";
-import { getPrices, isCardId, MAX_BATCH } from "./prices";
+import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
 
 /** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
 const CACHE_ONE_CARD = "public, max-age=3600";
+
+/** The importer runs nightly; after two missed nights /health reports the price files as stale. */
+const STALE_AFTER_MS = 48 * 3600 * 1000;
 
 /** Generous for 100 ids of ~20 characters; bigger bodies are not read at all. */
 const MAX_BODY_BYTES = 16 * 1024;
@@ -26,15 +28,7 @@ export default {
       return error(500, "internal error");
     }
   },
-
-  async scheduled(controller, env, ctx): Promise<void> {
-    ctx.waitUntil(runScheduled(controller.cron, contextFromEnv(env)));
-  },
-
-  async queue(batch, env): Promise<void> {
-    await consumeBatch(batch, contextFromEnv(env));
-  },
-} satisfies ExportedHandler<Env, ImportMessage>;
+} satisfies ExportedHandler<Env>;
 
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
@@ -46,15 +40,17 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
   if (pathname === "/health") {
     if (request.method !== "GET") return methodNotAllowed("GET");
-    await env.DB.prepare("SELECT 1").first();
-    return json({ ok: true });
+    const meta = await getMeta(env.PRICES);
+    const age = meta ? Date.now() - Date.parse(meta.generatedAt) : Infinity;
+    const ok = age <= STALE_AFTER_MS;
+    return json({ ok, pricesGeneratedAt: meta?.generatedAt ?? null }, {}, ok ? 200 : 503);
   }
 
   if (pathname === "/v1/prices") {
     if (request.method !== "POST") return methodNotAllowed("POST");
     const ids = await readIds(request);
     if (ids instanceof Response) return ids;
-    const prices = await getPrices(env.DB, ids);
+    const prices = await getPrices(env.PRICES, ids);
     return json({
       prices: Object.fromEntries(prices),
       missing: ids.filter((id) => !prices.has(id)),
@@ -72,7 +68,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     const cacheKey = new Request(request.url);
     const cached = await caches.default.match(cacheKey);
     if (cached) return cached;
-    const price = (await getPrices(env.DB, [id])).get(id);
+    const price = (await getPrices(env.PRICES, [id])).get(id);
     if (!price) return error(404, "unknown card");
     const response = json(price, { "Cache-Control": CACHE_ONE_CARD });
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));

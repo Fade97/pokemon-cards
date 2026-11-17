@@ -1,6 +1,7 @@
 // Nightly TCGplayer prices from TCGCSV's daily dumps (ADR 0004), one queue job per TCGplayer group (set).
 // Each group job also fills TCGplayer IDs that TCGdex lacks by matching set code + collector number.
 
+import type { Stmt } from "../db";
 import { enqueue, getJson, getOk, type ImportContext, type ImportMessage } from "./context";
 
 export const TCGCSV = "https://tcgcsv.com";
@@ -89,7 +90,7 @@ async function matchStatements(
   ctx: ImportContext,
   abbreviation: string | null,
   products: Product[],
-): Promise<D1PreparedStatement[]> {
+): Promise<Stmt[]> {
   if (!abbreviation) return [];
   const { results: sets } = await ctx.db
     .prepare("SELECT set_id FROM tcgdex_sets WHERE lang = 'en' AND abbreviation = ? COLLATE NOCASE")
@@ -124,7 +125,7 @@ async function matchStatements(
        tcgplayer_id = excluded.tcgplayer_id, tcgplayer_source = 'match', updated_at = excluded.updated_at
      WHERE card_mapping.tcgplayer_id IS NULL`,
   );
-  const statements: D1PreparedStatement[] = [];
+  const statements: Stmt[] = [];
   for (const card of cards) {
     let candidates = byNumber.get(normalizeNumber(card.local_id)) ?? [];
     if (candidates.length > 1) {

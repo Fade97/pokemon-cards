@@ -1,5 +1,6 @@
 // Nightly Cardmarket price guide import (ADR 0004). The guide is public, keyless and rebuilt once a night.
 
+import type { Stmt } from "../db";
 import { getOk, type ImportContext } from "./context";
 import { JsonArrayStream } from "./json-stream";
 
@@ -49,7 +50,7 @@ export async function importCardmarket(ctx: ImportContext): Promise<string> {
 
   let priceDate: string | null = null;
   let rows: unknown[][] = [];
-  let statements: D1PreparedStatement[] = [];
+  let statements: Stmt[] = [];
   let read = 0;
   let stored = 0;
 

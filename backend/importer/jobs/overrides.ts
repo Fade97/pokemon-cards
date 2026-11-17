@@ -1,12 +1,14 @@
 // Manual mapping fixes (`mapping_overrides`). They are applied every night and after each card sync, so a fix
-// added with `wrangler d1 execute` takes effect at the next run without touching the import code.
+// added with `sqlite3` on Vulcan takes effect at the next run without touching the import code.
+
+import type { Db, Stmt } from "../db";
 
 /**
  * Statements that write all overrides into `card_mapping` and release markets whose override was removed.
  * An override needs the card in `cards` (foreign key), so one for a card the import has not seen yet waits
  * until that card's set is synced.
  */
-export function applyOverridesStatements(db: D1Database, at: string): D1PreparedStatement[] {
+export function applyOverridesStatements(db: Db, at: string): Stmt[] {
   const release = (market: "cardmarket" | "tcgplayer") =>
     db.prepare(
       // The ID stays until the next sync of the card replaces it; only the 'override' lock is dropped.

@@ -5,7 +5,8 @@
 // a set list job per language picks the sets that are due, a set job splits a set into chunks, and each chunk job
 // fetches a few dozen cards. Every queue message stays well inside the Worker's subrequest and time limits.
 
-import { isCardId } from "../prices";
+import type { Stmt } from "../db";
+import { isCardId } from "../../src/price-data";
 import { enqueue, getJson, mapLimit, type ImportContext, type ImportMessage } from "./context";
 import { applyOverridesStatements } from "./overrides";
 
@@ -128,7 +129,7 @@ export async function syncCards(ctx: ImportContext, lang: string, cardIds: strin
                                ELSE excluded.tcgplayer_source END,
        updated_at = excluded.updated_at`,
   );
-  const statements: D1PreparedStatement[] = [];
+  const statements: Stmt[] = [];
   for (const c of cards) {
     statements.push(card.bind(c.id, lang, c.set.id, c.localId, c.name, at));
     statements.push(
