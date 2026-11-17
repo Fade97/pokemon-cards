@@ -169,7 +169,16 @@
     "not_a_class_in_this_run": {
       "n": 1255,
       "top1": 0.999203187250996
-    }
+    },
+    "not_a_class_but_twin_is": {
+      "n": 690,
+      "top1": 0.9985507246376811
+    },
+    "not_a_class_and_no_twin_class": {
+      "n": 565,
+      "top1": 1.0
+    },
+    "twin_source": "twins.json (baseline cos >= 0.9 + language twins)"
   },
   "main_top1_after_perfect_ocr": 0.9997701149425288
 }

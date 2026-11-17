@@ -123,7 +123,7 @@ def main():
             res["main_by_class_membership"].update({
                 "not_a_class_but_twin_is": group(~member & has_twin),
                 "not_a_class_and_no_twin_class": group(~member & ~has_twin),
-                "twin_source": f"{TWINS.name} (cos >= {json.loads(TWINS.read_text())['cos']})"})
+                "twin_source": f"{TWINS.name} (baseline cos >= {json.loads(TWINS.read_text())['cos']} + language twins)"})
     rr_perfect = rerank(topk_scores(s_test[:, :n_trained], 5), None, cards[:n_trained],
                         [number_key(cards[t].local_id) for t in t_test])
     res["main_top1_after_perfect_ocr"] = float((rr_perfect[:, 0] == t_test).mean())

@@ -3,11 +3,11 @@
  "threshold": 0.5,
  "summary": {
   "all": {
-   "n": 5546,
-   "top1": 5215,
-   "top5": 5328,
-   "shown@0.5": 5085,
-   "shown_correct": 5018,
+   "n": 5578,
+   "top1": 5240,
+   "top5": 5356,
+   "shown@0.5": 5115,
+   "shown_correct": 5048,
    "shown_wrong": 67,
    "sim_correct_min_med_max": [
     0.32,
@@ -21,50 +21,50 @@
    ],
    "threshold_sweep": {
     "0.30": {
-     "shown": 5545,
-     "correct": 5215,
-     "wrong": 330
+     "shown": 5577,
+     "correct": 5240,
+     "wrong": 337
     },
     "0.35": {
-     "shown": 5454,
-     "correct": 5213,
-     "wrong": 241
+     "shown": 5486,
+     "correct": 5238,
+     "wrong": 248
     },
     "0.40": {
-     "shown": 5333,
-     "correct": 5196,
-     "wrong": 137
+     "shown": 5361,
+     "correct": 5221,
+     "wrong": 140
     },
     "0.45": {
-     "shown": 5219,
-     "correct": 5133,
-     "wrong": 86
+     "shown": 5244,
+     "correct": 5157,
+     "wrong": 87
     },
     "0.50": {
-     "shown": 5085,
-     "correct": 5018,
+     "shown": 5115,
+     "correct": 5048,
      "wrong": 67
     },
     "0.55": {
-     "shown": 4909,
-     "correct": 4847,
+     "shown": 4943,
+     "correct": 4881,
      "wrong": 62
     },
     "0.60": {
-     "shown": 4689,
-     "correct": 4633,
+     "shown": 4724,
+     "correct": 4668,
      "wrong": 56
     }
    },
-   "name_top1": 5287,
-   "name_top5": 5339
+   "name_top1": 5312,
+   "name_top5": 5367
   },
   "split=train": {
-   "n": 4414,
-   "top1": 4222,
-   "top5": 4289,
-   "shown@0.5": 4153,
-   "shown_correct": 4105,
+   "n": 4446,
+   "top1": 4247,
+   "top5": 4317,
+   "shown@0.5": 4183,
+   "shown_correct": 4135,
    "shown_wrong": 48,
    "sim_correct_min_med_max": [
     0.32,
@@ -78,43 +78,43 @@
    ],
    "threshold_sweep": {
     "0.30": {
-     "shown": 4414,
-     "correct": 4222,
-     "wrong": 192
+     "shown": 4446,
+     "correct": 4247,
+     "wrong": 199
     },
     "0.35": {
-     "shown": 4358,
-     "correct": 4220,
-     "wrong": 138
+     "shown": 4390,
+     "correct": 4245,
+     "wrong": 145
     },
     "0.40": {
-     "shown": 4291,
-     "correct": 4212,
-     "wrong": 79
+     "shown": 4319,
+     "correct": 4237,
+     "wrong": 82
     },
     "0.45": {
-     "shown": 4230,
-     "correct": 4175,
-     "wrong": 55
+     "shown": 4255,
+     "correct": 4199,
+     "wrong": 56
     },
     "0.50": {
-     "shown": 4153,
-     "correct": 4105,
+     "shown": 4183,
+     "correct": 4135,
      "wrong": 48
     },
     "0.55": {
-     "shown": 4039,
-     "correct": 3993,
+     "shown": 4073,
+     "correct": 4027,
      "wrong": 46
     },
     "0.60": {
-     "shown": 3892,
-     "correct": 3850,
+     "shown": 3927,
+     "correct": 3885,
      "wrong": 42
     }
    },
-   "name_top1": 4274,
-   "name_top5": 4295
+   "name_top1": 4299,
+   "name_top5": 4323
   },
   "split=test": {
    "n": 1132,
@@ -174,11 +174,11 @@
    "name_top5": 1044
   },
   "difficulty=medium": {
-   "n": 4464,
-   "top1": 4266,
-   "top5": 4351,
-   "shown@0.5": 4180,
-   "shown_correct": 4130,
+   "n": 4494,
+   "top1": 4291,
+   "top5": 4379,
+   "shown@0.5": 4210,
+   "shown_correct": 4160,
    "shown_wrong": 50,
    "sim_correct_min_med_max": [
     0.32,
@@ -192,54 +192,54 @@
    ],
    "threshold_sweep": {
     "0.30": {
-     "shown": 4463,
-     "correct": 4266,
-     "wrong": 197
+     "shown": 4493,
+     "correct": 4291,
+     "wrong": 202
     },
     "0.35": {
-     "shown": 4420,
-     "correct": 4264,
-     "wrong": 156
+     "shown": 4450,
+     "correct": 4289,
+     "wrong": 161
     },
     "0.40": {
-     "shown": 4347,
-     "correct": 4253,
-     "wrong": 94
+     "shown": 4375,
+     "correct": 4278,
+     "wrong": 97
     },
     "0.45": {
-     "shown": 4272,
-     "correct": 4208,
-     "wrong": 64
+     "shown": 4298,
+     "correct": 4233,
+     "wrong": 65
     },
     "0.50": {
-     "shown": 4180,
-     "correct": 4130,
+     "shown": 4210,
+     "correct": 4160,
      "wrong": 50
     },
     "0.55": {
-     "shown": 4057,
-     "correct": 4010,
+     "shown": 4091,
+     "correct": 4044,
      "wrong": 47
     },
     "0.60": {
-     "shown": 3884,
-     "correct": 3842,
+     "shown": 3919,
+     "correct": 3877,
      "wrong": 42
     }
    },
-   "name_top1": 4318,
-   "name_top5": 4358
+   "name_top1": 4343,
+   "name_top5": 4386
   },
   "difficulty=hard": {
-   "n": 398,
-   "top1": 277,
-   "top5": 295,
+   "n": 401,
+   "top1": 278,
+   "top5": 296,
    "shown@0.5": 226,
    "shown_correct": 219,
    "shown_wrong": 7,
    "sim_correct_min_med_max": [
     0.356,
-    0.599,
+    0.598,
     0.889
    ],
    "sim_wrong_min_med_max": [
@@ -249,18 +249,18 @@
    ],
    "threshold_sweep": {
     "0.30": {
-     "shown": 398,
-     "correct": 277,
-     "wrong": 121
+     "shown": 401,
+     "correct": 278,
+     "wrong": 123
     },
     "0.35": {
-     "shown": 351,
-     "correct": 277,
-     "wrong": 74
+     "shown": 354,
+     "correct": 278,
+     "wrong": 76
     },
     "0.40": {
-     "shown": 304,
-     "correct": 271,
+     "shown": 305,
+     "correct": 272,
      "wrong": 33
     },
     "0.45": {
@@ -284,18 +284,18 @@
      "wrong": 4
     }
    },
-   "name_top1": 287,
-   "name_top5": 299
+   "name_top1": 288,
+   "name_top5": 300
   },
   "difficulty=easy": {
-   "n": 684,
-   "top1": 672,
-   "top5": 682,
+   "n": 683,
+   "top1": 671,
+   "top5": 681,
    "shown@0.5": 679,
    "shown_correct": 669,
    "shown_wrong": 10,
    "sim_correct_min_med_max": [
-    0.473,
+    0.48,
     0.829,
     0.962
    ],
@@ -306,23 +306,23 @@
    ],
    "threshold_sweep": {
     "0.30": {
-     "shown": 684,
-     "correct": 672,
+     "shown": 683,
+     "correct": 671,
      "wrong": 12
     },
     "0.35": {
-     "shown": 683,
-     "correct": 672,
+     "shown": 682,
+     "correct": 671,
      "wrong": 11
     },
     "0.40": {
-     "shown": 682,
-     "correct": 672,
+     "shown": 681,
+     "correct": 671,
      "wrong": 10
     },
     "0.45": {
-     "shown": 682,
-     "correct": 672,
+     "shown": 681,
+     "correct": 671,
      "wrong": 10
     },
     "0.50": {
@@ -341,8 +341,464 @@
      "wrong": 10
     }
    },
-   "name_top1": 682,
-   "name_top5": 682
+   "name_top1": 681,
+   "name_top5": 681
+  },
+  "split=train,difficulty=medium": {
+   "n": 3579,
+   "top1": 3464,
+   "top5": 3516,
+   "shown@0.5": 3435,
+   "shown_correct": 3399,
+   "shown_wrong": 36,
+   "sim_correct_min_med_max": [
+    0.32,
+    0.797,
+    0.957
+   ],
+   "sim_wrong_min_med_max": [
+    0.304,
+    0.4,
+    0.939
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 3579,
+     "correct": 3464,
+     "wrong": 115
+    },
+    "0.35": {
+     "shown": 3553,
+     "correct": 3462,
+     "wrong": 91
+    },
+    "0.40": {
+     "shown": 3515,
+     "correct": 3458,
+     "wrong": 57
+    },
+    "0.45": {
+     "shown": 3476,
+     "correct": 3434,
+     "wrong": 42
+    },
+    "0.50": {
+     "shown": 3435,
+     "correct": 3399,
+     "wrong": 36
+    },
+    "0.55": {
+     "shown": 3361,
+     "correct": 3326,
+     "wrong": 35
+    },
+    "0.60": {
+     "shown": 3254,
+     "correct": 3222,
+     "wrong": 32
+    }
+   },
+   "name_top1": 3501,
+   "name_top5": 3519
+  },
+  "split=test,difficulty=hard": {
+   "n": 80,
+   "top1": 33,
+   "top5": 39,
+   "shown@0.5": 21,
+   "shown_correct": 20,
+   "shown_wrong": 1,
+   "sim_correct_min_med_max": [
+    0.369,
+    0.527,
+    0.828
+   ],
+   "sim_wrong_min_med_max": [
+    0.301,
+    0.364,
+    0.535
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 80,
+     "correct": 33,
+     "wrong": 47
+    },
+    "0.35": {
+     "shown": 62,
+     "correct": 33,
+     "wrong": 29
+    },
+    "0.40": {
+     "shown": 45,
+     "correct": 31,
+     "wrong": 14
+    },
+    "0.45": {
+     "shown": 30,
+     "correct": 26,
+     "wrong": 4
+    },
+    "0.50": {
+     "shown": 21,
+     "correct": 20,
+     "wrong": 1
+    },
+    "0.55": {
+     "shown": 11,
+     "correct": 11,
+     "wrong": 0
+    },
+    "0.60": {
+     "shown": 7,
+     "correct": 7,
+     "wrong": 0
+    }
+   },
+   "name_top1": 34,
+   "name_top5": 40
+  },
+  "split=test,difficulty=medium": {
+   "n": 915,
+   "top1": 827,
+   "top5": 863,
+   "shown@0.5": 775,
+   "shown_correct": 761,
+   "shown_wrong": 14,
+   "sim_correct_min_med_max": [
+    0.368,
+    0.708,
+    0.93
+   ],
+   "sim_wrong_min_med_max": [
+    0.299,
+    0.399,
+    0.907
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 914,
+     "correct": 827,
+     "wrong": 87
+    },
+    "0.35": {
+     "shown": 897,
+     "correct": 827,
+     "wrong": 70
+    },
+    "0.40": {
+     "shown": 860,
+     "correct": 820,
+     "wrong": 40
+    },
+    "0.45": {
+     "shown": 822,
+     "correct": 799,
+     "wrong": 23
+    },
+    "0.50": {
+     "shown": 775,
+     "correct": 761,
+     "wrong": 14
+    },
+    "0.55": {
+     "shown": 730,
+     "correct": 718,
+     "wrong": 12
+    },
+    "0.60": {
+     "shown": 665,
+     "correct": 655,
+     "wrong": 10
+    }
+   },
+   "name_top1": 842,
+   "name_top5": 867
+  },
+  "split=train,difficulty=hard": {
+   "n": 321,
+   "top1": 245,
+   "top5": 257,
+   "shown@0.5": 205,
+   "shown_correct": 199,
+   "shown_wrong": 6,
+   "sim_correct_min_med_max": [
+    0.356,
+    0.608,
+    0.889
+   ],
+   "sim_wrong_min_med_max": [
+    0.302,
+    0.362,
+    0.862
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 321,
+     "correct": 245,
+     "wrong": 76
+    },
+    "0.35": {
+     "shown": 292,
+     "correct": 245,
+     "wrong": 47
+    },
+    "0.40": {
+     "shown": 260,
+     "correct": 241,
+     "wrong": 19
+    },
+    "0.45": {
+     "shown": 235,
+     "correct": 227,
+     "wrong": 8
+    },
+    "0.50": {
+     "shown": 205,
+     "correct": 199,
+     "wrong": 6
+    },
+    "0.55": {
+     "shown": 171,
+     "correct": 166,
+     "wrong": 5
+    },
+    "0.60": {
+     "shown": 135,
+     "correct": 131,
+     "wrong": 4
+    }
+   },
+   "name_top1": 254,
+   "name_top5": 260
+  },
+  "split=test,difficulty=easy": {
+   "n": 137,
+   "top1": 133,
+   "top5": 137,
+   "shown@0.5": 136,
+   "shown_correct": 132,
+   "shown_wrong": 4,
+   "sim_correct_min_med_max": [
+    0.496,
+    0.748,
+    0.919
+   ],
+   "sim_wrong_min_med_max": [
+    0.693,
+    0.878,
+    0.942
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 137,
+     "correct": 133,
+     "wrong": 4
+    },
+    "0.35": {
+     "shown": 137,
+     "correct": 133,
+     "wrong": 4
+    },
+    "0.40": {
+     "shown": 137,
+     "correct": 133,
+     "wrong": 4
+    },
+    "0.45": {
+     "shown": 137,
+     "correct": 133,
+     "wrong": 4
+    },
+    "0.50": {
+     "shown": 136,
+     "correct": 132,
+     "wrong": 4
+    },
+    "0.55": {
+     "shown": 129,
+     "correct": 125,
+     "wrong": 4
+    },
+    "0.60": {
+     "shown": 125,
+     "correct": 121,
+     "wrong": 4
+    }
+   },
+   "name_top1": 137,
+   "name_top5": 137
+  },
+  "split=train,difficulty=easy": {
+   "n": 546,
+   "top1": 538,
+   "top5": 544,
+   "shown@0.5": 543,
+   "shown_correct": 537,
+   "shown_wrong": 6,
+   "sim_correct_min_med_max": [
+    0.48,
+    0.844,
+    0.962
+   ],
+   "sim_wrong_min_med_max": [
+    0.311,
+    0.813,
+    0.875
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 546,
+     "correct": 538,
+     "wrong": 8
+    },
+    "0.35": {
+     "shown": 545,
+     "correct": 538,
+     "wrong": 7
+    },
+    "0.40": {
+     "shown": 544,
+     "correct": 538,
+     "wrong": 6
+    },
+    "0.45": {
+     "shown": 544,
+     "correct": 538,
+     "wrong": 6
+    },
+    "0.50": {
+     "shown": 543,
+     "correct": 537,
+     "wrong": 6
+    },
+    "0.55": {
+     "shown": 541,
+     "correct": 535,
+     "wrong": 6
+    },
+    "0.60": {
+     "shown": 538,
+     "correct": 532,
+     "wrong": 6
+    }
+   },
+   "name_top1": 544,
+   "name_top5": 544
+  },
+  "test_misses_by_set": {
+   "swshp": {
+    "n": 166,
+    "miss": 23
+   },
+   "ex1": {
+    "n": 78,
+    "miss": 14
+   },
+   "xy0": {
+    "n": 27,
+    "miss": 14
+   },
+   "bwp": {
+    "n": 49,
+    "miss": 13
+   },
+   "sm1": {
+    "n": 101,
+    "miss": 13
+   },
+   "smp": {
+    "n": 166,
+    "miss": 12
+   },
+   "g1": {
+    "n": 13,
+    "miss": 6
+   },
+   "xyp": {
+    "n": 112,
+    "miss": 6
+   },
+   "sv01": {
+    "n": 31,
+    "miss": 5
+   },
+   "swsh1": {
+    "n": 56,
+    "miss": 5
+   },
+   "sma": {
+    "n": 87,
+    "miss": 3
+   },
+   "swsh3": {
+    "n": 7,
+    "miss": 3
+   },
+   "hgssp": {
+    "n": 8,
+    "miss": 2
+   },
+   "sm10": {
+    "n": 11,
+    "miss": 2
+   },
+   "sm2": {
+    "n": 8,
+    "miss": 2
+   },
+   "swsh3.5": {
+    "n": 4,
+    "miss": 2
+   },
+   "swsh4.5": {
+    "n": 10,
+    "miss": 2
+   },
+   "xy10": {
+    "n": 14,
+    "miss": 2
+   },
+   "bw3": {
+    "n": 7,
+    "miss": 1
+   },
+   "bw8": {
+    "n": 8,
+    "miss": 1
+   },
+   "ex5": {
+    "n": 6,
+    "miss": 1
+   },
+   "sm4": {
+    "n": 10,
+    "miss": 1
+   },
+   "sm6": {
+    "n": 11,
+    "miss": 1
+   },
+   "swsh8": {
+    "n": 15,
+    "miss": 1
+   },
+   "xy3": {
+    "n": 7,
+    "miss": 1
+   },
+   "xy4": {
+    "n": 4,
+    "miss": 1
+   },
+   "xy5": {
+    "n": 1,
+    "miss": 1
+   },
+   "xy7": {
+    "n": 6,
+    "miss": 1
+   }
   }
  }
 }
