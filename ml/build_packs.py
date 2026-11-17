@@ -169,7 +169,8 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
 # Step 2: embed (needs the data dir; heavy imports stay inside)
 
 def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, download=None,
-               drop_images: bool = False, chunk: int = 256) -> tuple[list[str], list[bytes], list[list[str]], dict]:
+               drop_images: bool = False, chunk: int = 256,
+               on_chunk=None) -> tuple[list[str], list[bytes], list[list[str]], dict]:
     """Embedding rows of `cards` (objects with `.card_id` and `.ref_path`), in card order.
 
     `cached` maps card id -> (image sha256, row). A card whose image file is there is embedded again only when its
@@ -178,6 +179,8 @@ def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, 
     so this is no less fresh than keeping the file). `download(card) -> str` fetches a missing image of a card that
     is not cached; with `drop_images` the files this call downloaded are deleted after each chunk of `chunk`
     cards, so the disk only ever holds one chunk of them.
+    `on_chunk(done, entries, rows)` runs after each chunk that computed something, so the caller can save the
+    cache: with dropped images, a crash would otherwise mean downloading the whole language again.
     Returns ids, rows, cache entries ([id, image sha256]) and stats {"computed", "images": {download result: n}}.
     """
     import hashlib
@@ -192,6 +195,7 @@ def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, 
 
     for start in range(0, len(cards), max(1, chunk)):
         part = cards[start:start + chunk]
+        computed_before = stats["computed"]
         fetched = []
         if download is not None:
             todo = [c for c in part if c.card_id not in cached and not on_disk(c)]
@@ -222,6 +226,8 @@ def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, 
             if drop_images:
                 for c in fetched:
                     c.ref_path.unlink(missing_ok=True)
+        if on_chunk is not None and stats["computed"] > computed_before:
+            on_chunk(start + len(part), entries, rows)
     return ids, rows, entries, stats
 
 
@@ -271,8 +277,11 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
         if cache_json.exists() and cache_bin.exists():
             entries = json.loads(cache_json.read_text())
             blob = cache_bin.read_bytes()
-            for n, (cid, img_sha) in enumerate(entries):
-                cached[cid] = (img_sha, blob[n * dim * 4:(n + 1) * dim * 4])
+            if len(blob) == len(entries) * dim * 4:
+                for n, (cid, img_sha) in enumerate(entries):
+                    cached[cid] = (img_sha, blob[n * dim * 4:(n + 1) * dim * 4])
+            else:
+                print(f"{lang}: embedding cache does not match its ids, starting over")
 
         download = None
         if download_images:
@@ -281,13 +290,36 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
         def embed_one(path: Path) -> bytes:
             return emb(to_input(load_ref_rgba(str(path)))).astype("<f4").tobytes()
 
+        def save_cache(entries: list, rows: list) -> None:
+            # A crash at any point leaves the old pair, no cache, or the new pair; never ids from one save with
+            # rows from another (the loader needs both files).
+            tmp_json, tmp_bin = cache_json.with_suffix(".json.tmp"), cache_bin.with_suffix(".bin.tmp")
+            tmp_bin.write_bytes(b"".join(rows))
+            tmp_json.write_text(json.dumps(entries))
+            cache_json.unlink(missing_ok=True)
+            tmp_bin.replace(cache_bin)
+            tmp_json.replace(cache_json)
+
+        started, last = time.time(), [0.0]
+
+        def on_chunk(done: int, entries: list, rows: list) -> None:
+            if time.time() - last[0] < 60 and done < len(cards):
+                return
+            last[0] = time.time()
+            # Cards not reached yet keep their old cache rows, so a crash loses nothing that was computed before.
+            seen = {e[0] for e in entries}
+            rest = [(cid, v) for cid, v in cached.items() if cid not in seen]
+            save_cache(entries + [[cid, sha] for cid, (sha, _) in rest], rows + [row for _, (_, row) in rest])
+            rate = done / max(time.time() - started, 1e-9)
+            print(f"{lang}: {done}/{len(cards)} cards, {rate:.1f}/s, ~{(len(cards) - done) / rate / 60:.0f} min left",
+                  flush=True)
+
         ids, rows, entries, stats = embed_rows(cards, cached, embed_one, download=download,
-                                               drop_images=drop_images, chunk=chunk)
+                                               drop_images=drop_images, chunk=chunk, on_chunk=on_chunk)
         if download:
             print(f"{lang}: images {stats['images']}" + (" (dropped after embedding)" if drop_images else ""))
         fresh = stats["computed"]
-        cache_json.write_text(json.dumps(entries))
-        cache_bin.write_bytes(b"".join(rows))
+        save_cache(entries, rows)
         (work / lang / "embeddings.bin").write_bytes(b"".join(rows))
         (work / lang / "embeddings.json").write_text(json.dumps(
             {"model": model.name, "modelSha256": model_sha, "dim": dim, "ids": ids}))

@@ -521,8 +521,11 @@ def test_embed_rows_drops_downloaded_images_and_reuses_the_cache(tmp_path):
         c.ref_path.write_bytes(c.card_id.encode() * 2)
         return "png"
 
+    saved = []
     ids, rows, entries, stats = build_packs.embed_rows(cards, {}, fake_embed, download=download,
-                                                       drop_images=True, chunk=2)
+                                                       drop_images=True, chunk=2,
+                                                       on_chunk=lambda done, e, r: saved.append((done, len(e))))
+    assert saved == [(2, 2), (4, 3), (5, 4)]  # after every chunk that computed rows
     assert ids == ["c0", "c1", "c2", "c4"]
     assert rows == [b"kept", b"c1c1", b"c2c2", b"c4c4"]
     assert stats == {"computed": 4, "images": {"png": 3, "missing": 1}}
