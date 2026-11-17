@@ -169,6 +169,40 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
   });
 
+  it("a withdrawal that overtakes its upload leaves a tombstone, so the late upload stores nothing", async () => {
+    const id = crypto.randomUUID();
+    expect((await withdraw(id, token)).status).toBe(404); // unknown yet: still 404, ids can't be probed
+    const late = await upload(jpeg(), { query: query(id), token });
+    expect(late.status).toBe(200);
+    expect(((await late.json()) as any).withdrawnAt).toBeTruthy();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+    const row = await env.DB.prepare("SELECT withdrawn_at FROM contributions WHERE id = ?").bind(id).first<any>();
+    expect(row.withdrawn_at).toBeTruthy();
+    // Someone else's token can't take the id either.
+    expect((await upload(jpeg(), { query: query(id), token: "C".repeat(43) })).status).toBe(409);
+  });
+
+  it("leaves no tombstone for a token that isn't a client token", async () => {
+    const id = crypto.randomUUID();
+    expect((await withdraw(id, "short")).status).toBe(404);
+    expect(await env.DB.prepare("SELECT 1 FROM contributions WHERE id = ?").bind(id).first()).toBeNull();
+  });
+
+  it("lets exactly one of two racing uploads with one id write the image", async () => {
+    const id = crypto.randomUUID();
+    const [a, b] = await Promise.all([
+      upload(jpeg({ w: 252 }), { query: query(id), token, ip: "192.0.2.10" }),
+      upload(jpeg({ w: 300 }), { query: query(id), token: "D".repeat(43), ip: "192.0.2.11" }),
+    ]);
+    const statuses = [a.status, b.status].sort();
+    expect(statuses).toEqual([201, 409]);
+    const winner = a.status === 201 ? 252 : 300;
+    const row = await env.DB.prepare("SELECT width FROM contributions WHERE id = ?").bind(id).first<any>();
+    expect(row.width).toBe(winner);
+    const stored = await env.CONTRIBUTIONS.get(`scans/${id}.jpg`);
+    expect(new Uint8Array(await stored!.arrayBuffer())).toEqual(jpeg({ w: winner }));
+  });
+
   it("refuses an id taken with another token, and malformed ids or tokens", async () => {
     const id = crypto.randomUUID();
     expect((await upload(jpeg(), { query: query(id), token })).status).toBe(201);

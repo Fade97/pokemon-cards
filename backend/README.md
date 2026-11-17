@@ -119,6 +119,11 @@ today `cc0-1`).
 - **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, card id, language,
   consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at` and `withdrawn_at`. No IP
   address, user agent or device data. The client IP is only the in-memory rate-limit key.
+- **Order of writes**: an upload first claims its id in D1, then writes the image, then checks again; so of two
+  uploads with one id only one writes, and a withdrawal always wins. A withdrawal for an id the server doesn't know
+  yet (with a 43-char client token) leaves a **tombstone**, a withdrawn row without card data: an upload still on its
+  way then finds the id taken and stores nothing. The answer stays `404`, and tombstones count against the upload
+  rate limit.
 - **Withdrawal** deletes the image from R2 right away and sets `withdrawn_at`. Dataset releases (#20) take only
   `WHERE withdrawn_at IS NULL`; a scan already in a published release stays there, later releases drop it.
 - **Rate limit**: 10 uploads per minute per client IP (`CONTRIBUTION_RATE_LIMIT`), on top of the API limit.

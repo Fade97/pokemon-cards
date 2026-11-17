@@ -88,25 +88,66 @@ async function create(request: Request, env: Env): Promise<Response> {
   }
 
   const key = `scans/${id}.${EXT[declared]}`;
+  const tokenHash = await sha256Hex(new TextEncoder().encode(token));
   const sha256 = await sha256Hex(clean.bytes);
-  await env.CONTRIBUTIONS.put(key, clean.bytes, { httpMetadata: { contentType: declared }, sha256 });
+  // The row claims the id before the image is written, so of two requests with one id only one writes, and a
+  // withdrawal (or its tombstone, see withdraw) always wins over an upload still on its way.
+  const claimed = await env.DB.prepare(
+    `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
+       width, height, sha256, created_at)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+     ON CONFLICT (id) DO NOTHING`,
+  )
+    .bind(id, tokenHash, cardId, lang, consent, key, declared, clean.bytes.length, width, height, sha256,
+      new Date().toISOString())
+    .run();
+  if (claimed.meta.changes === 0) {
+    return (await existingUpload(env, id, token)) ?? json({ error: "id already used" }, 409);
+  }
   try {
-    await env.DB.prepare(
-      `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
-         width, height, sha256, created_at)
-       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-    )
-      .bind(id, await sha256Hex(new TextEncoder().encode(token)), cardId, lang, consent, key, declared,
-        clean.bytes.length, width, height, sha256, new Date().toISOString())
-      .run();
+    await env.CONTRIBUTIONS.put(key, clean.bytes, { httpMetadata: { contentType: declared }, sha256 });
   } catch (e) {
-    // The same upload arriving twice at once: the first one stored the row and owns the image.
-    const raced = clientId !== null ? await existingUpload(env, id, token) : null;
-    if (raced) return raced;
-    await env.CONTRIBUTIONS.delete(key); // no orphaned image without its withdraw record
+    // No record without its image; a withdrawal that came in meanwhile keeps its row.
+    await env.DB.prepare("DELETE FROM contributions WHERE id = ? AND withdrawn_at IS NULL").bind(id).run();
     throw e;
   }
+  // A withdrawal between the claim and the write found no image to delete; delete it now.
+  const after = await env.DB.prepare("SELECT withdrawn_at FROM contributions WHERE id = ?")
+    .bind(id)
+    .first<{ withdrawn_at: string | null }>();
+  if (after?.withdrawn_at) {
+    await env.CONTRIBUTIONS.delete(key);
+    return json({ id, withdrawToken: token, withdrawnAt: after.withdrawn_at }, 200);
+  }
   return json({ id, withdrawToken: token }, 201);
+}
+
+/**
+ * A withdrawal for an id the server doesn't know (yet). With client-chosen ids the upload may still be on its way
+ * (the app gave up waiting and the user took it back), so a withdrawn record is left: when that upload arrives, it
+ * finds the id taken and stores nothing. The answer stays 404, so ids cannot be probed. Tombstones have no card
+ * data, and dataset releases skip them like every withdrawn row.
+ */
+async function tombstone(request: Request, env: Env, id: string, token: string): Promise<Response> {
+  const notFound = json({ error: "not found" }, 404);
+  if (!TOKEN.test(token)) return notFound; // server-made ids are never unknown to the server
+  // A tombstone is a write, so it counts against the upload limit.
+  const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  if (!(await env.CONTRIBUTION_RATE_LIMIT.limit({ key: client })).success) {
+    return json({ error: "too many requests" }, 429, { "Retry-After": "60" });
+  }
+  const now = new Date().toISOString();
+  const placed = await env.DB.prepare(
+    `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
+       width, height, sha256, created_at, withdrawn_at)
+     VALUES (?, ?, '', '', '', '', '', 0, 0, 0, '', ?, ?)
+     ON CONFLICT (id) DO NOTHING`,
+  )
+    .bind(id, await sha256Hex(new TextEncoder().encode(token)), now, now)
+    .run();
+  // The upload claimed the id a moment ago: withdraw it the normal way.
+  if (placed.meta.changes === 0) return withdraw(request, env, id);
+  return notFound;
 }
 
 /** The answer for an id that is already stored: 200 with the same values for its owner, 409 for anyone else. */
@@ -136,7 +177,8 @@ async function withdraw(request: Request, env: Env, id: string): Promise<Respons
   )
     .bind(id)
     .first<{ token_hash: string; object_key: string; withdrawn_at: string | null }>();
-  if (!row || row.token_hash !== (await sha256Hex(new TextEncoder().encode(token)))) {
+  if (!row) return tombstone(request, env, id, token);
+  if (row.token_hash !== (await sha256Hex(new TextEncoder().encode(token)))) {
     return json({ error: "not found" }, 404);
   }
   if (row.withdrawn_at) return json({ id, withdrawnAt: row.withdrawn_at });
