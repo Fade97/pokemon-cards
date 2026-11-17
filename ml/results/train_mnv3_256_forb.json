@@ -129,5 +129,16 @@
     "gpu_mem_used_max_mib": 7871.0,
     "samples": 69
   },
-  "best_val_real_top1": 0.8822429906542056
+  "best_val_real_top1": 0.8822429906542056,
+  "real_crops": {
+    "train": 4288,
+    "train_cards": 1068,
+    "val": 535,
+    "val_cards": 124,
+    "gallery_cards": 1939,
+    "classes": 1688,
+    "manifest_classes": 619,
+    "blocked_twins": null,
+    "source": "--real line of the training stdout (logged in the JSON by train.py from now on); twins were not blocked in this run"
+  }
 }

@@ -2,11 +2,10 @@
 from collections import Counter
 
 import numpy as np
-import pytest
 
 from common import split_of
 from conftest import make_card
-from realset import balanced_weights, plan_classes, real_samples, role_of
+from realset import balanced_weights, blocked_keys, find_twins, plan_classes, real_samples, role_of
 
 IDS = [f"set{s}-{n}" for s in range(20) for n in range(1, 201)]
 
@@ -42,10 +41,38 @@ def test_plan_classes_keeps_base_order_and_excludes_test_and_val():
     assert [cards[i].key for i in cls] == ["en/a-3", "en/b-1"]
 
 
-def test_real_samples_rejects_a_test_card_in_train():
+def test_real_samples_recomputes_the_stored_role():
+    # an old samples.json may say "train" for a card that is test today: never train on it
     bad = next(c for c in IDS if split_of(c) == "test")
-    with pytest.raises(AssertionError):
-        real_samples([{"card_id": bad, "role": "train"}], "train")
+    assert real_samples([{"card_id": bad, "role": "train"}], "train") == []
+    assert real_samples([{"card_id": bad, "role": "train"}], "test") == [{"card_id": bad, "role": "train"}]
+
+
+def test_real_samples_drops_crops_of_a_neighbouring_held_out_card():
+    tr = [c for c in IDS if role_of(c) == "train"][:2]
+    te = next(c for c in IDS if role_of(c) == "test")
+    s = [{"card_id": tr[0], "role": "train", "top1_baseline": te},      # detector caught a test card
+         {"card_id": tr[0], "role": "train", "top1_baseline": tr[1]},   # wrong but harmless neighbour
+         {"card_id": tr[0], "role": "train", "top1_baseline": tr[0]}]
+    assert real_samples(s, "train") == s[1:]
+
+
+def test_plan_classes_blocks_twins_of_held_out_cards():
+    base = [make_card("ja/SV2a-025", "25"), make_card("en/sv03.5-025", "25")]
+    cards, cls = plan_classes(base, [], role=lambda c: "test" if c == "sv03.5-025" else "train",
+                              blocked={"ja/SV2a-025"})
+    assert cls == []
+
+
+def test_find_twins_and_blocked_keys():
+    E = np.eye(3, dtype=np.float32)
+    E[1] = [0.95, np.sqrt(1 - 0.95 ** 2), 0]          # same art as row 0
+    keys, ids = ["ja/SV2a-025", "en/sv03.5-025", "en/x-1"], ["SV2a-025", "sv03.5-025", "x-1"]
+    pairs = find_twins(keys, ids, E, ids, E, thr=0.9)
+    assert ("ja/SV2a-025", "sv03.5-025", 0.95) in pairs
+    assert all(ids[keys.index(k)] != o for k, o, _ in pairs)  # never a card with itself
+    assert not any(o == "x-1" for _, o, _ in pairs)
+    assert blocked_keys(pairs, role=lambda c: "test" if c == "sv03.5-025" else "train") == {"ja/SV2a-025"}
 
 
 def test_real_samples_filters_by_role_and_class():
@@ -71,3 +98,15 @@ def test_balanced_weights_give_each_card_equal_mass():
     w = balanced_weights(ids)
     assert np.isclose(w.sum(), 1)
     assert np.isclose(w[:3].sum(), w[3])
+
+
+def test_language_twins_by_number_and_secret_dex():
+    from realset import language_twins
+    ja = [make_card("ja/SV2a-025", "25"), make_card("ja/SV2a-182", "182", dex_ids=(3,))]
+    en = [make_card("en/sv03.5-025", "25"), make_card("en/sv03.5-182", "182", dex_ids=(6,)),
+          make_card("en/sv03.5-198", "198", dex_ids=(3,))]
+    pairs = set(language_twins(ja + en))
+    assert ("ja/SV2a-025", "sv03.5-025", "number") in pairs and ("en/sv03.5-025", "SV2a-025", "number") in pairs
+    # secret rares: numbers differ between the languages, the same Pokemon pairs up
+    assert ("ja/SV2a-182", "sv03.5-198", "dex") in pairs
+    assert not any(k == "ja/SV2a-182" and o == "sv03.5-182" for k, o, _ in pairs)

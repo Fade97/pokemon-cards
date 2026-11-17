@@ -86,7 +86,10 @@ HOLDOUT_PERCENT = 20
 
 def split_of(card_id: str) -> str:
     """Fixed card-level real-photo split (FORB, TCG-AR): the same card is always in the same split, whatever else
-    changes. A 'test' card is never used in training in any form (no photo, no ArcFace class)."""
+    changes. A 'test' card gets no real photo and no ArcFace class in train.py --real, and neither does a same-art
+    twin or reprint of it under another id (realset.py twins). Caveat: runs fine-tuned from mnv3_256_real inherit a
+    backbone that saw all 870 manifest cards as classes, including the manifest's test-split ids; no FORB/TCG-AR
+    test card is a manifest card, so the real-photo test scores are not affected."""
     return "test" if int(hashlib.sha1(card_id.encode()).hexdigest(), 16) % 100 < HOLDOUT_PERCENT else "train"
 
 

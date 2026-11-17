@@ -165,10 +165,13 @@ def main():
         samples = json.loads(realset.SAMPLES.read_text())
         pc = realset.pack_cards()
         extra = [pc[cid] for cid in sorted({s["card_id"] for s in samples if s["role"] == "train"})]
-        cards, cls = realset.plan_classes(cards, extra)
+        blocked = realset.load_blocked()  # same-art twins/reprints of test and val cards get no class
+        cards, cls = realset.plan_classes(cards, extra, blocked=blocked)
         class_idx = [i for i in cls if cards[i].group not in args.holdout]
         key2i = {c.key: i for i, c in enumerate(cards)}
-        tr = realset.real_samples(samples, "train", {cards[i].card_id for i in class_idx})
+        # real photos are EN prints: only those whose en/<id> key is a class (not just the same id in de, which a
+        # --holdout en/<set> would leave without a class index)
+        tr = realset.real_samples(samples, "train", {cards[i].card_id for i in class_idx if cards[i].lang == "en"})
         va = realset.real_samples(samples, "val")
         crops = realset.REAL_TRAIN / "crops"
         real = {
@@ -225,7 +228,10 @@ def main():
     val_crops, val_truth = load_eval_set("val", cards[:n_base])
     ref_x = ref_inputs(cards[:n_base])
     hold_mask = np.array([cards[t].group in args.holdout for t in val_truth]) if args.holdout else None
-    log = {"args": vars(args), "batch": batch, "batch_real": n_real, "classes": len(class_keys), "free_vram_mib_at_start": free, "epochs": []}
+    log = {"args": vars(args), "batch": batch, "batch_real": n_real, "classes": len(class_keys),
+           "real_crops": {"train": len(tr), "train_cards": len({s["card_id"] for s in tr}), "val": len(va),
+                          "val_cards": len(set(real["val_ids"])), "blocked_twins": len(blocked)} if real else None,
+           "free_vram_mib_at_start": free, "epochs": []}
     mon = GpuMonitor(every=float(os.environ.get("CARDINDEX_GPU_MON_EVERY", "30")))
     if os.environ.get("CARDINDEX_GPU_MON", "1") == "1":
         mon.start()

@@ -105,9 +105,25 @@ def main():
         classes = set(ck["classes"])
         member = np.array([cards[t].key in classes for t in t_test])
         top1 = s_test[:, :n_trained].argmax(1) == t_test
-        res["main_by_class_membership"] = {
-            "class_in_this_run": {"n": int(member.sum()), "top1": float(top1[member].mean())},
-            "not_a_class_in_this_run": {"n": int((~member).sum()), "top1": float(top1[~member].mean())}}
+
+        def group(mask):
+            return {"n": int(mask.sum()), "top1": float(top1[mask].mean()) if mask.any() else None}
+
+        res["main_by_class_membership"] = {"class_in_this_run": group(member),
+                                           "not_a_class_in_this_run": group(~member)}
+        # A non-class card can still have a same-art twin that is a class (ja/SV2a <-> en,de/sv03.5, reprints):
+        # those are not unseen art. Twins from realset.py twins (baseline embedding, cos >= 0.9).
+        from realset import TWINS
+        if TWINS.exists():
+            twin_of = {}
+            for k, other, _ in json.loads(TWINS.read_text())["pairs"]:
+                twin_of.setdefault(other, set()).add(k)
+            twin_cls = {c.key: any(k in classes for k in twin_of.get(c.card_id, ())) for c in cards}
+            has_twin = np.array([twin_cls[cards[t].key] for t in t_test])
+            res["main_by_class_membership"].update({
+                "not_a_class_but_twin_is": group(~member & has_twin),
+                "not_a_class_and_no_twin_class": group(~member & ~has_twin),
+                "twin_source": f"{TWINS.name} (cos >= {json.loads(TWINS.read_text())['cos']})"})
     rr_perfect = rerank(topk_scores(s_test[:, :n_trained], 5), None, cards[:n_trained],
                         [number_key(cards[t].local_id) for t in t_test])
     res["main_top1_after_perfect_ocr"] = float((rr_perfect[:, 0] == t_test).mean())
