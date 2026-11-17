@@ -14,7 +14,7 @@ internal object Csv {
         var record = mutableListOf<String>()
         val field = StringBuilder()
         var quoted = false
-        var i = if (text.startsWith('﻿')) 1 else 0
+        var i = if (text.startsWith('\uFEFF')) 1 else 0
         while (i < text.length) {
             val c = text[i]
             if (quoted) {

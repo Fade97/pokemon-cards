@@ -61,7 +61,7 @@ class BackupRepository(private val db: CardIndexDatabase, private val clock: Clo
     /** Reads a JSON or CSV backup (told apart by content, since SAF names and MIME types are unreliable). */
     suspend fun import(input: InputStream): ImportResult {
         val text = withContext(Dispatchers.IO) { input.bufferedReader(Charsets.UTF_8).use { it.readText() } }
-        return if (text.trimStart('﻿', ' ', '\n', '\r', '\t').startsWith("{")) {
+        return if (text.trimStart('\uFEFF', ' ', '\n', '\r', '\t').startsWith("{")) {
             import(BackupJson.read(text))
         } else {
             val csv = BackupCsv.read(text, clock.instant())

@@ -149,7 +149,7 @@ class BackupTest {
     fun csv_roundTrips_andMatchesCollectionsByName() = runTest {
         seedSource()
         val csv = export(source, BackupFileType.CSV)
-        assertTrue(csv.startsWith("﻿uuid,card_id,language,"))
+        assertTrue(csv.startsWith("\uFEFFuuid,card_id,language,"))
 
         target.seedCatalog()
         val existing = collections(target).createCollection("trade binder", null) // same name, other case

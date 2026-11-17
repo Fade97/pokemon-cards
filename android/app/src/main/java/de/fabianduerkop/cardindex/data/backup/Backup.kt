@@ -187,7 +187,7 @@ object BackupCsv {
             .groupBy({ it.first }, { names[it.second] }).mapValues { (_, n) -> n.filterNotNull().sorted() }
         return buildString {
             // A byte order mark makes Excel read the file as UTF-8 (Japanese card names).
-            append('﻿')
+            append('\uFEFF')
             append(Csv.line(COLUMNS)).append("\r\n")
             for (copy in data.copies) {
                 val card = cards[copy.cardId to copy.cardLanguage]
