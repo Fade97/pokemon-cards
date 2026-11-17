@@ -20,7 +20,6 @@ English is installed, not just the 870 trained cards.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from collections import defaultdict
@@ -28,20 +27,13 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR
+from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR, split_of
 from detect import center_crop_fallback, detect, rectify
 from eval_real_manual import THRESH, Embedder, LearnedDetector, summarize
 
 FORB = DATA_DIR / "external" / "forb"
 WORK = DATA_DIR / "packs-work"
 MAP = FORB / "forb_map.json"
-HOLDOUT_PERCENT = 20
-
-
-def split_of(card_id: str) -> str:
-    """Fixed card-level split: the same card is always in the same split, whatever else changes."""
-    return "test" if int(hashlib.sha1(card_id.encode()).hexdigest(), 16) % 100 < HOLDOUT_PERCENT else "train"
-
 
 def norm_number(s: str) -> str:
     """'SWSH090' -> 'SWSH90', '052' -> '52', 'sv47' -> 'SV47': compare collector numbers across sources."""

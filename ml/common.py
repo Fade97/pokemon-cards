@@ -81,6 +81,15 @@ def load_manifest(include_holdout: bool = False) -> list[Card]:
     return cards if include_holdout else [c for c in cards if not c.holdout]
 
 
+HOLDOUT_PERCENT = 20
+
+
+def split_of(card_id: str) -> str:
+    """Fixed card-level real-photo split (FORB, TCG-AR): the same card is always in the same split, whatever else
+    changes. A 'test' card is never used in training in any form (no photo, no ArcFace class)."""
+    return "test" if int(hashlib.sha1(card_id.encode()).hexdigest(), 16) % 100 < HOLDOUT_PERCENT else "train"
+
+
 def number_key(local_id: str) -> str:
     """Normalize a collector number for comparison ("006" -> "6", "TG01" stays)."""
     s = local_id.strip().upper()

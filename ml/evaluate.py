@@ -101,6 +101,13 @@ def main():
         Q = embed_arrays(model, [preprocess(c) for c in test], dev)
         r = evaluate(topk_scores(Q @ W.T, 5), t_test, cards[:n_trained])
         res["arcface_weight_index_main"] = {"top1": r["top1"], "top5": r["top5"]}
+    else:  # e.g. train.py --real: test-split cards were no class in this fine-tune; score both groups separately
+        classes = set(ck["classes"])
+        member = np.array([cards[t].key in classes for t in t_test])
+        top1 = s_test[:, :n_trained].argmax(1) == t_test
+        res["main_by_class_membership"] = {
+            "class_in_this_run": {"n": int(member.sum()), "top1": float(top1[member].mean())},
+            "not_a_class_in_this_run": {"n": int((~member).sum()), "top1": float(top1[~member].mean())}}
     rr_perfect = rerank(topk_scores(s_test[:, :n_trained], 5), None, cards[:n_trained],
                         [number_key(cards[t].local_id) for t in t_test])
     res["main_top1_after_perfect_ocr"] = float((rr_perfect[:, 0] == t_test).mean())

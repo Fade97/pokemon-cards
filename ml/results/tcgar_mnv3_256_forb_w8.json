@@ -1,0 +1,47 @@
+{
+ "cards": 832,
+ "unmapped_ids": {
+  "base6-82": 1,
+  "base6-108": 1
+ },
+ "detector_classic": {
+  "found": 95.2,
+  "err_median_pct_diag": 13.5,
+  "within_3pct": 23.6,
+  "within_5pct": 31.2
+ },
+ "detector_learned": {
+  "found": 100.0,
+  "err_median_pct_diag": 1.71,
+  "within_3pct": 64.1,
+  "within_5pct": 72.0
+ },
+ "recognition": {
+  "n": 633,
+  "top1_gt": 92.9,
+  "top5_gt": 98.7,
+  "name_gt": 98.3,
+  "top1_learned": 90.0,
+  "top5_learned": 96.8,
+  "name_learned": 94.8
+ },
+ "recognition_split=train": {
+  "n": 494,
+  "top1_gt": 93.3,
+  "top5_gt": 99.0,
+  "name_gt": 99.0,
+  "top1_learned": 92.3,
+  "top5_learned": 98.4,
+  "name_learned": 97.4
+ },
+ "recognition_split=test": {
+  "n": 139,
+  "top1_gt": 91.4,
+  "top5_gt": 97.8,
+  "name_gt": 95.7,
+  "top1_learned": 82.0,
+  "top5_learned": 91.4,
+  "name_learned": 85.6
+ },
+ "median_card_width_px": 144.0
+}
