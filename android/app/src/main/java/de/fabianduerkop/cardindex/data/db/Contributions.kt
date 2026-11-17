@@ -66,7 +66,8 @@ interface ContributionDao {
     @Query("SELECT * FROM contributions WHERE uploadedAt IS NULL AND withdrawRequested = 0 ORDER BY id")
     suspend fun pendingUploads(): List<ContributionEntity>
 
-    @Query("SELECT * FROM contributions WHERE uploadedAt IS NOT NULL AND withdrawRequested = 1 ORDER BY id")
+    /** Uploaded ones, and queued ones that may have reached the server with the answer lost. */
+    @Query("SELECT * FROM contributions WHERE remoteId IS NOT NULL AND withdrawRequested = 1 ORDER BY id")
     suspend fun pendingWithdrawals(): List<ContributionEntity>
 
     @Query(
@@ -75,11 +76,11 @@ interface ContributionDao {
     )
     suspend fun markUploaded(id: Long, remoteId: String, token: String, at: Instant)
 
-    @Query("UPDATE contributions SET withdrawRequested = 1 WHERE id = :id")
+    @Query("UPDATE contributions SET withdrawRequested = 1, cropPath = NULL WHERE id = :id")
     suspend fun requestWithdrawal(id: Long)
 
-    /** Marks every uploaded contribution for withdrawal; returns how many. */
-    @Query("UPDATE contributions SET withdrawRequested = 1 WHERE uploadedAt IS NOT NULL")
+    /** Marks every contribution with a server id for withdrawal, queued ones included; returns how many. */
+    @Query("UPDATE contributions SET withdrawRequested = 1, cropPath = NULL WHERE remoteId IS NOT NULL")
     suspend fun requestWithdrawalOfAll(): Int
 
     @Query("DELETE FROM contributions WHERE id = :id")

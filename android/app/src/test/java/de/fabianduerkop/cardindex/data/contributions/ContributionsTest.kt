@@ -188,20 +188,43 @@ class ContributionsTest {
     }
 
     @Test
-    fun withdrawDropsQueuedOnesLocallyAndSendsTheTokenForUploadedOnes() = runTest {
+    fun withdrawOfAQueuedOneNeverSendsIt_andTheServerIsAskedToForgetBoth() = runTest {
         val uploaded = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
         repo.processQueue()
         val queued = repo.contribute("sv03.5-025", "de", jpegWithMetadata)!!
+        val queuedRow = db.contributionDao().byId(queued)!!
 
         repo.withdraw(queued)
-        assertNull(db.contributionDao().byId(queued))
+        // The crop is gone at once and the scan is never uploaded.
+        assertNull(db.contributionDao().byId(queued)!!.cropPath)
+        assertFalse(File(tmp.root, queuedRow.cropPath!!).exists())
 
         repo.withdraw(uploaded)
         val row = db.contributionDao().byId(uploaded)!!
         assertTrue(row.withdrawRequested)
         assertEquals(QueueOutcome.Done, repo.processQueue())
-        assertEquals(listOf(row.remoteId to row.withdrawToken), api.withdrawals)
+        assertEquals(1, api.uploads.size)
+        // The queued one is withdrawn too, in case an earlier attempt reached the server; 404 counts as done.
+        assertEquals(
+            setOf(row.remoteId to row.withdrawToken, queuedRow.remoteId to queuedRow.withdrawToken),
+            api.withdrawals.toSet(),
+        )
         assertTrue(repo.observe().first().isEmpty())
+    }
+
+    @Test
+    fun lostAnswerThenWithdraw_removesTheServerCopy() = runTest {
+        val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val queued = db.contributionDao().byId(id)!!
+        api.loseNextAnswer = true
+        assertEquals(QueueOutcome.Retry, repo.processQueue()) // stored on the server, answer lost
+
+        repo.withdraw(id) // the user takes it back before any retry
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+
+        assertEquals(1, api.uploads.size)
+        assertTrue(api.withdrawn(queued.remoteId!!))
+        assertNull(db.contributionDao().byId(id))
     }
 
     @Test
@@ -235,12 +258,14 @@ class ContributionsTest {
         val second = repo.contribute("sv03.5-025", "de", jpegWithMetadata)!!
         repo.processQueue()
         repo.contribute("sv03.5-001", "en", jpegWithMetadata)
+        val third = db.contributionDao().pendingUploads().single()
         val sent = listOf(first, second).map { db.contributionDao().byId(it)!!.remoteId }
 
         repo.withdrawAll()
         assertEquals(QueueOutcome.Done, repo.processQueue())
 
-        assertEquals(sent, api.withdrawals.map { it.first })
+        // The queued third one is never uploaded, but the server is asked to forget it as well.
+        assertEquals((sent + third.remoteId).toSet(), api.withdrawals.map { it.first }.toSet())
         assertEquals(2, api.uploads.size)
         assertTrue(repo.observe().first().isEmpty())
     }

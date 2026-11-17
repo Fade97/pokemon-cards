@@ -89,16 +89,22 @@ class ContributionRepository(
     /** Takes one contribution back: a queued one is dropped here, an uploaded one is withdrawn on the server. */
     suspend fun withdraw(id: Long) = lock.withLock {
         val item = dao.byId(id) ?: return@withLock
-        if (item.uploadedAt == null) {
+        if (item.remoteId == null) {
             drop(item)
-        } else {
-            dao.requestWithdrawal(id)
-            requestRun()
+            return@withLock
         }
+        // A queued scan may already be on the server: an earlier attempt can have stored it with the answer lost.
+        // So it is withdrawn like an uploaded one, with the stored id and token; a server that never got it answers
+        // 404, which counts as done. Its crop goes right away and it is never sent again.
+        item.cropPath?.let { File(filesDir, it).delete() }
+        dao.requestWithdrawal(id)
+        requestRun()
     }
 
     suspend fun withdrawAll() = lock.withLock {
-        dao.pendingUploads().forEach { drop(it) }
+        for (item in dao.pendingUploads()) {
+            if (item.remoteId == null) drop(item) else item.cropPath?.let { File(filesDir, it).delete() }
+        }
         if (dao.requestWithdrawalOfAll() > 0) requestRun()
     }
 
