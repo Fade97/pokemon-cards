@@ -19,8 +19,8 @@ importer ─► prices.db (SQLite) ─► publish ─► R2 pokemon-cards-prices
 
 - Importer: runs nightly on Vulcan since 2026-11-17, writes the files to
   `~/.local/share/pokemon-cards-prices/files` and uploads them to R2 `pokemon-cards-prices`.
-- Worker: deployed on 2026-11-17 at https://pokemon-cards-api.salaryanalyzer.workers.dev (the account's
-  workers.dev subdomain; a custom domain follows with the final app name, #15).
+- Worker: deployed on 2026-11-17 at https://cards-api.fdu.gg (custom domain; the workers.dev address is off).
+  It moves to the final app domain after #15.
 
 ## Importer
 
