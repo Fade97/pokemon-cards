@@ -17,10 +17,10 @@ importer ─► prices.db (SQLite) ─► publish ─► R2 pokemon-cards-prices
 
 ## Status
 
-- Importer: runs nightly on Vulcan since 2026-11-17 and writes the files to
-  `~/.local/share/pokemon-cards-prices/files`. Uploads to R2 start once the bucket and credentials exist
-  (see [Deploy](#deploy)).
-- Worker: works locally and in tests, not deployed yet.
+- Importer: runs nightly on Vulcan since 2026-11-17, writes the files to
+  `~/.local/share/pokemon-cards-prices/files` and uploads them to R2 `pokemon-cards-prices`.
+- Worker: deployed on 2026-11-17 at https://cards-api.fdu.gg (custom domain; the workers.dev address is off).
+  It moves to the final app domain after #15.
 
 ## Importer
 
@@ -99,8 +99,42 @@ cards only), and `holo` is `null` when the guide has no foil price.
 - A request reads one R2 file per set it touches; a set file is up to ~120 KB. That keeps a 100-card batch well
   inside the free plan's CPU budget when the cards come from a few sets.
 
+## Scan contributions
+
+Issue #14, ADR 0008. Opt-in uploads of the rectified card crop for the open dataset. The app shows the consent
+text, the backend only accepts versions it knows (`CONSENT_VERSIONS` in [`src/contributions.ts`](src/contributions.ts),
+today `cc0-1`).
+
+| Request | Answer |
+|---|---|
+| `POST /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>` with the crop as body, `Content-Type: image/jpeg` or `image/webp` | `201 { "id", "withdrawToken" }` |
+| The same POST plus `&id=<uuid>` and `Authorization: Bearer <43-char token>` chosen by the app | `201 { "id", "withdrawToken" }` with those values; a retry with the same id and token answers `200` with the same values instead of storing a second copy; `409` if the id belongs to another token. The app uses this form, so a lost response never leaves a copy it can't withdraw. |
+| `DELETE /v1/contributions/:id` with `Authorization: Bearer <withdrawToken>` | `200 { "id", "withdrawnAt" }`, the same again on repeat; `404` for an unknown id or a wrong token, `401` without a token |
+
+- **Validation**: body at most 1 MiB (`413`); declared type and magic bytes must agree (`415`); 64–2048 px per side
+  and a well-formed container (`422`); `cardId`, `lang` and `consent` checked (`400`). Animated WebP is refused.
+- **No metadata**: the file is walked, not re-encoded. JPEG: every APPn segment (EXIF, XMP, JFIF, ICC, …) except
+  APP14 in its fixed 12-byte Adobe form, comments and bytes after the end marker are dropped. WebP: `ICCP`, `EXIF`, `XMP ` and
+  unknown chunks are dropped and the VP8X flags cleared. Metadata segments between progressive scans → `422`.
+- **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, card id, language,
+  consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at` and `withdrawn_at`. No IP
+  address, user agent or device data. The client IP is only the in-memory rate-limit key.
+- **Order of writes**: an upload first claims its id in D1, then writes the image, then checks again; so of two
+  uploads with one id only one writes, and a withdrawal always wins. A withdrawal for an id the server doesn't know
+  yet (with a 43-char client token) leaves a **tombstone**, a withdrawn row without card data: an upload still on its
+  way then finds the id taken and stores nothing. The answer stays `404`, and tombstones count against the upload
+  rate limit.
+- **Stored or only claimed**: `stored_at` is set once the image is in R2. A retry of an upload still being written
+  gets `503` with `Retry-After: 30` (the app retries), not a false success; a claim stuck for over 2 minutes is
+  taken over by a retry with the same token.
+- **Withdrawal** sets `withdrawn_at` first and then deletes the image, so an upload still writing can't leave it
+  behind; a repeated withdrawal deletes again. Dataset releases (#20) take only
+  `WHERE withdrawn_at IS NULL AND stored_at IS NOT NULL`; a scan already in a published release stays there, later releases drop it.
+- **Rate limit**: 10 uploads per minute per client IP (`CONTRIBUTION_RATE_LIMIT`), on top of the API limit.
+
 ## Storage
 
+- **D1 `DB`**: only `contributions` (schema in [`migrations/`](migrations/)); prices live in R2.
 - **R2 `PRICES`** (`pokemon-cards-prices`): `current/` price files and `snapshots/`, written by the importer.
 - **R2 `PACKS`** (`pokemon-cards-packs`): language packs (model, reference index, card DB, deltas), written by
   [`ml/build_packs.py`](../ml/README.md#language-packs) with `wrangler r2 object put`, never by the Worker.
@@ -117,16 +151,19 @@ pnpm run import --data /tmp/prices --langs en --sets-per-night 3   # a small rea
 
 ## Deploy
 
-Worker (not done yet):
+Worker (done on 2026-11-17; repeat `pnpm run deploy` after changes):
 
 ```sh
 wrangler r2 bucket create pokemon-cards-packs
 wrangler r2 bucket create pokemon-cards-prices
+wrangler r2 bucket create pokemon-cards-contributions
+wrangler d1 create pokemon-cards          # put the database_id into wrangler.jsonc
+wrangler d1 migrations apply DB --remote
 pnpm run deploy
 ```
 
-Importer uploads: create an R2 API token with write access to `pokemon-cards-prices`, store it in Vault at
-`secret/services/pokemon-cards` (keys above; `R2_ENDPOINT` is `https://<account id>.r2.cloudflarestorage.com`),
-and add `secret/data/services/pokemon-cards` to the `vulcan-apps` policy. The next run then uploads.
+Importer uploads use an R2 API token limited to `pokemon-cards-prices` (read + write on its objects), stored in
+Vault at `secret/services/pokemon-cards` (keys above, plus `CLOUDFLARE_R2_TOKEN_ID` to find the token again); the
+`vulcan-apps` policy can read that path.
 
 Resource names use the working title and change with the final app name (#15).

@@ -8,13 +8,36 @@
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
 
+  // The app talks to a neutral custom domain; the account's workers.dev subdomain is unrelated to this project.
+  // Moves to the final app domain after #15.
+  "routes": [{ "pattern": "cards-api.fdu.gg", "custom_domain": true }],
+  "workers_dev": false,
+  "preview_urls": false,
+
+  // Scan contributions only (#14); prices are files in R2.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "pokemon-cards",
+      // Created 2026-11-17. Local dev and tests use a local database instead.
+      "database_id": "2e9a274f-1bd8-43ab-96ad-92af294bce17",
+      "migrations_dir": "migrations"
+    }
+  ],
+
   "r2_buckets": [
     // Language packs: model, reference index, card DB and deltas (ADR 0003, #5).
     { "binding": "PACKS", "bucket_name": "pokemon-cards-packs" },
     // Price files (current/) and daily snapshots (snapshots/), written by the importer (src/price-data.ts).
-    { "binding": "PRICES", "bucket_name": "pokemon-cards-prices" }
+    { "binding": "PRICES", "bucket_name": "pokemon-cards-prices" },
+    // Opt-in scan contributions: metadata-free card crops under CC0 consent (ADR 0008, #14). Not public.
+    { "binding": "CONTRIBUTIONS", "bucket_name": "pokemon-cards-contributions" }
   ],
 
   // Per-IP limit for all routes (#30). Generous for an app refreshing a collection in batches of 100 cards.
-  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } }]
+  // Uploads get a much tighter limit of their own on top (#14): a person scans a few cards a minute at most.
+  "ratelimits": [
+    { "name": "API_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } },
+    { "name": "CONTRIBUTION_RATE_LIMIT", "namespace_id": "1002", "simple": { "limit": 10, "period": 60 } }
+  ]
 }
