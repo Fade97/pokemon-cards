@@ -371,7 +371,8 @@ def verify_file(entry: dict, data: bytes) -> bool:
 # ---------------------------------------------------------------------------------------------------------------
 # Upload
 
-def upload_commands(files: list[PublishedFile], bucket: str, root: Path, *, remote: bool = True) -> list[list[str]]:
+def upload_commands(files: list[PublishedFile], bucket: str, root: Path, *, remote: bool = True,
+                    paths: dict[str, Path] | None = None) -> list[list[str]]:
     """`wrangler r2 object put` invocations, catalog.json last so it never points at files not uploaded yet.
 
     Versioned files are immutable: the Worker serves them with a one-year cache, so a key must never be reused
@@ -381,7 +382,7 @@ def upload_commands(files: list[PublishedFile], bucket: str, root: Path, *, remo
     cmds = []
     for f in ordered:
         cmd = ["pnpm", "exec", "wrangler", "r2", "object", "put", f"{bucket}/{f.key}",
-               "--file", str((root / f.key).resolve()), "--content-type", f.content_type]
+               "--file", str((paths or {}).get(f.key, root / f.key).resolve()), "--content-type", f.content_type]
         cmd.append("--remote" if remote else "--local")
         cmds.append(cmd)
     return cmds

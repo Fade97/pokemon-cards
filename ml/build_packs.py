@@ -228,7 +228,7 @@ class Source:
         return packs.pack_from_files(lang, cards, index, entry.get("dim") or 0)
 
 
-def load_work_pack(work: Path, lang: str, *, embeddings: bool) -> packs.Pack | None:
+def load_work_pack(work: Path, lang: str, *, embeddings: bool, model_sha: str | None = None) -> packs.Pack | None:
     meta_path = work / lang / "metadata.json"
     if not meta_path.exists():
         return None
@@ -240,6 +240,9 @@ def load_work_pack(work: Path, lang: str, *, embeddings: bool) -> packs.Pack | N
         if not info_path.exists():
             raise SystemExit(f"{lang}: no embeddings in {work / lang}; run embed first or pass --no-embeddings")
         info = json.loads(info_path.read_text())
+        # Embeddings from another model would pass every check in the app and then match nothing.
+        if model_sha is not None and info.get("modelSha256") != model_sha:
+            raise SystemExit(f"{lang}: embeddings were made with another model than work/model; run embed again")
         dim = int(info["dim"])
         blob = (work / lang / "embeddings.bin").read_bytes()
         if len(blob) != len(info["ids"]) * dim * 4:
@@ -272,7 +275,8 @@ def build(work: Path, out: Path, langs: list[str], *, base: str | None, embeddin
         model, model_files = load_work_model(work)
     changed: list[packs.PublishedFile] = []
     for lang in langs:
-        pack = load_work_pack(work, lang, embeddings=embeddings)
+        pack = load_work_pack(work, lang, embeddings=embeddings,
+                              model_sha=model["embedder"]["sha256"] if model else None)
         if pack is None:
             print(f"{lang}: no metadata in {work}, skipped")
             continue
@@ -298,13 +302,25 @@ def build(work: Path, out: Path, langs: list[str], *, base: str | None, embeddin
     changed += [f for f in model_files if f.key in used and f.key not in published]
     catalog_bytes = (json.dumps(catalog, ensure_ascii=False, indent=1) + "\n").encode("utf-8")
     changed.append(packs.PublishedFile("catalog.json", catalog_bytes, "application/json"))
-    packs.write_files(out, changed)
-    print(f"wrote {len(changed)} files to {out}")
+    # out/catalog.json is the baseline of the next build, so the new one stays staged until it is published.
+    packs.write_files(out, [f for f in changed if f.key != "catalog.json"])
+    (out / PENDING_CATALOG).write_bytes(catalog_bytes)
+    print(f"wrote {len(changed)} files to {out} (catalog staged as {PENDING_CATALOG})")
     return catalog, changed
 
 
+PENDING_CATALOG = "catalog.next.json"
+
+
+def promote_catalog(out: Path) -> None:
+    """Makes the staged catalog the baseline, once its files are where the app will look for them."""
+    (out / PENDING_CATALOG).replace(out / "catalog.json")
+    print(f"{out / 'catalog.json'} is the new baseline")
+
+
 def upload(files: list[packs.PublishedFile], out: Path, *, bucket: str, remote: bool, dry_run: bool) -> None:
-    for cmd in packs.upload_commands(files, bucket, out, remote=remote):
+    paths = {"catalog.json": out / PENDING_CATALOG}
+    for cmd in packs.upload_commands(files, bucket, out, remote=remote, paths=paths):
         print("$", " ".join(cmd))
         if not dry_run:
             subprocess.run(cmd, cwd=BACKEND_DIR, check=True)
@@ -377,8 +393,13 @@ def main(argv: list[str] | None = None) -> None:
               download_images=args.download_images, threads=args.threads)
     if args.cmd in ("build", "all"):
         _, files = build(args.work, args.out, args.langs, base=args.base, embeddings=not args.no_embeddings)
-        if args.upload and files:
+        if files and args.upload:
+            # A failed upload raises, so the old baseline stays and the next run builds the same versions again.
             upload(files, args.out, bucket=args.bucket, remote=not args.local, dry_run=args.dry_run)
+            if not args.dry_run:
+                promote_catalog(args.out)
+        elif files:
+            promote_catalog(args.out)
 
 
 if __name__ == "__main__":

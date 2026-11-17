@@ -8,6 +8,7 @@ from __future__ import annotations
 import gzip
 import json
 import struct
+import subprocess
 import sys
 from pathlib import Path
 
@@ -262,7 +263,7 @@ def test_upload_commands_put_catalog_last(tmp_path):
 # ---------------------------------------------------------------------------------------------------------------
 # build step (work dir -> out dir), without network or model
 
-def write_work(work, *sets, rows=None, model_bytes=b"model-1"):
+def write_work(work, *sets, rows=None, model_bytes=b"model-1", embedded_with=None):
     d = work / "en"
     d.mkdir(parents=True, exist_ok=True)
     meta = {"lang": "en", "fetchedAt": BUILT, "sets": [packs.set_record(s) for s in sets],
@@ -271,7 +272,8 @@ def write_work(work, *sets, rows=None, model_bytes=b"model-1"):
     if rows is not None:
         ids = sorted(rows)
         (d / "embeddings.bin").write_bytes(b"".join(rows[i] for i in ids))
-        (d / "embeddings.json").write_text(json.dumps({"model": "m.tflite", "modelSha256": "x", "dim": DIM,
+        sha = packs.sha256_bytes(embedded_with if embedded_with is not None else model_bytes)
+        (d / "embeddings.json").write_text(json.dumps({"model": "m.tflite", "modelSha256": sha, "dim": DIM,
                                                        "ids": ids}))
         m = work / "model"
         m.mkdir(exist_ok=True)
@@ -287,6 +289,10 @@ def test_build_against_local_mirror(tmp_path):
     keys = {f.key for f in files}
     model_key = cat["models"][cat["packs"]["en"]["model"]]["embedder"]["path"]
     assert keys == {"en/cards-1.json.gz", "en/index-1.bin", model_key, "catalog.json"}
+    # Staged until published: the baseline (catalog.json) does not move yet.
+    assert not (out / "catalog.json").exists()
+    assert json.loads((out / build_packs.PENDING_CATALOG).read_text()) == cat
+    build_packs.promote_catalog(out)
     assert json.loads((out / "catalog.json").read_text()) == cat
 
     # Unchanged rebuild: nothing to publish.
@@ -297,12 +303,41 @@ def test_build_against_local_mirror(tmp_path):
     cat, files = build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
     assert {f.key for f in files} == {"en/cards-2.json.gz", "en/index-2.bin", "en/delta-1-2.json.gz",
                                       "en/delta-1-2.bin", "catalog.json"}
+    build_packs.promote_catalog(out)
 
     # A tampered published file is caught before it becomes a delta base.
     (out / "en/index-2.bin").write_bytes(b"\0" * 12)
     write_work(work, A, rows=ROWS_A)
     with pytest.raises(SystemExit, match="checksums"):
         build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
+
+
+def test_build_refuses_embeddings_from_another_model(tmp_path):
+    work, out = tmp_path / "work", tmp_path / "out"
+    write_work(work, A, rows=ROWS_A, model_bytes=b"model-2", embedded_with=b"model-1")
+    with pytest.raises(SystemExit, match="another model"):
+        build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
+
+
+def test_failed_upload_keeps_the_baseline_so_a_rerun_publishes_again(tmp_path, monkeypatch):
+    work, out = tmp_path / "work", tmp_path / "out"
+    write_work(work, A, rows=ROWS_A)
+    args = ["build", "--work", str(work), "--out", str(out), "--langs", "en", "--upload"]
+
+    def broken_upload(cmd, **kwargs):
+        raise subprocess.CalledProcessError(1, cmd)
+
+    monkeypatch.setattr(build_packs.subprocess, "run", broken_upload)
+    with pytest.raises(subprocess.CalledProcessError):
+        build_packs.main(args)
+    assert not (out / "catalog.json").exists()
+
+    uploaded = []
+    monkeypatch.setattr(build_packs.subprocess, "run", lambda cmd, **kwargs: uploaded.append(cmd[6]))
+    build_packs.main(args)
+    assert uploaded[-1] == "pokemon-cards-packs/catalog.json"
+    assert "pokemon-cards-packs/en/index-1.bin" in uploaded
+    assert (out / "catalog.json").exists() and not (out / build_packs.PENDING_CATALOG).exists()
 
 
 def test_build_no_embeddings(tmp_path):
