@@ -107,8 +107,11 @@ class LiveScanDecider<T>(private val config: DeciderConfig = DeciderConfig()) {
     private var switchKey: String? = null
     private var switchCount = 0
 
-    /** Whether [key] belongs to the card already decided and still in view; such frames need no number OCR. */
-    fun isHandled(key: String): Boolean = handled?.let { it.inView && (key == it.key || key in it.related) } == true
+    /**
+     * Whether [key] is the card already decided and still in view; such frames need no number OCR. Its lookalike
+     * candidates still get the OCR: only the number tells another card that resembles it from flicker.
+     */
+    fun isHandled(key: String): Boolean = handled?.let { it.inView && key == it.key } == true
 
     fun reset() {
         track = null
@@ -143,10 +146,20 @@ class LiveScanDecider<T>(private val config: DeciderConfig = DeciderConfig()) {
         val h = handled
         if (h != null && (f.key == h.key || f.key in h.related)) {
             if (h.inView || now - h.lastSeenAt < config.sameCardCooldownMs) {
-                h.inView = true
-                h.lastSeenAt = now
-                resetSwitch()
-                return null
+                // A lookalike candidate that the number confirms in a run of frames is another card (say the next
+                // one, which resembles the last); flicker between candidates does not keep a confirmed number.
+                if (f.key != h.key && f.unsure == null) {
+                    if (f.key == switchKey) switchCount++ else { switchKey = f.key; switchCount = 1 }
+                } else if (f.key != switchKey) {
+                    resetSwitch()
+                }
+                if (f.key != switchKey || switchCount < config.switchFrames) {
+                    h.inView = true
+                    h.lastSeenAt = now
+                    return null
+                }
+                // The last card keeps its cooldown, but no longer claims this one.
+                handled = Handled(h.key, h.related - f.key, h.lastSeenAt, inView = false)
             }
             // Gone long enough: another copy of the same card, decided like any new card.
         } else if (h != null && h.inView) {

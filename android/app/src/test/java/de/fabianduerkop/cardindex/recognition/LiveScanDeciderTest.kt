@@ -124,6 +124,21 @@ class LiveScanDeciderTest {
     }
 
     @Test
+    fun nextCardThatWasACandidateOfTheLastOneIsAddedOnceItsNumberIsConfirmed() {
+        frames(2) { sure("a", related = setOf("b", "c")) }
+        // "b" was in the top 3 of "a", but is now the best match on its own: it needs the number OCR.
+        assertFalse(decider.isHandled("b"))
+        // Read without a number, it is still flicker of "a".
+        assertEquals(emptyList<ScanEvent<String>>(), frames(10) { unsure("b", related = setOf("a")) })
+        // Confirmed by its number in a run of frames, it is the next card: added once, and then handled.
+        val events = frames(10) { sure("b", related = setOf("a")) }
+        assertEquals(listOf("b"), events.map { it.payload.substringBefore('@') })
+        assertTrue(events.single() is ScanEvent.Add)
+        assertTrue(decider.isHandled("b"))
+        assertEquals(emptyList<ScanEvent<String>>(), frames(30) { sure("b", related = setOf("a")) })
+    }
+
+    @Test
     fun nextCardAfterTheGuideWasEmptyIsAddedAtOnce() {
         frames(2) { sure("a") }
         frames(9) { FrameSignal.Empty }
