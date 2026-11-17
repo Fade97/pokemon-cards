@@ -21,7 +21,7 @@ coil = "3.6.3"
 # clients share its OkHttpClient. Checked 2026-11-17 on the emulator: pack download, prices, card images.
 okhttp = "5.5.1"
 coroutines = "1.11.0"
-work = "2.10.1"
+work = "2.12.0"
 junit = "4.13.2"
 robolectric = "4.18"
 androidxTestCore = "1.7.0"
