@@ -6,13 +6,14 @@ import android.util.Log
 import androidx.core.graphics.scale
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.data.packs.PackLoader
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.io.File
-import java.io.FileNotFoundException
 import kotlin.math.max
 import kotlin.math.roundToInt
 
@@ -23,7 +24,9 @@ import kotlin.math.roundToInt
  * adb push real-photos/. /sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/realphotos/
  * adb push real-photos-labels-manual.json /sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/realphotos/labels.json
  * ```
- * labels.json maps file name → accepted keys `"<lang>/<set id>:<collector number>"`.
+ * labels.json maps file name → accepted keys `"<lang>/<set id>:<collector number>"`. Without bundled assets the
+ * test uses the installed language packs, so install the debug build with `adb install -r` (Gradle's
+ * connectedAndroidTest uninstalls the app afterwards and deletes the packs and photos).
  */
 @RunWith(AndroidJUnit4::class)
 class RealPhotoTest {
@@ -33,13 +36,16 @@ class RealPhotoTest {
         val dir = context.getExternalFilesDir("realphotos")
         val labelsFile = File(dir, "labels.json")
         assumeTrue("no real photos in $dir", labelsFile.exists())
-        // Only missing assets skip the test; present but broken assets (bad model, dim mismatch) must fail it.
-        val engine = try {
+        // Like the lab: bundled assets from ml/app_assets.py first, else the installed language packs (what the app
+        // runs). Only missing assets skip the test; present but broken ones (bad model, dim mismatch) must fail it.
+        val engine = if (RecognitionEngine.hasBundledAssets(context)) {
             RecognitionEngine.load(context)
-        } catch (e: FileNotFoundException) {
-            assumeTrue("recognition assets missing: ${e.message}", false)
-            return
+        } else {
+            val loaded = PackLoader.load(context.appContainer.packs.installed.value).loaded
+            assumeTrue("no bundled recognition assets and no usable language pack", loaded != null)
+            RecognitionEngine.load(loaded!!)
         }
+        Log.i("RealPhotoTest", "engine: ${engine.info}")
         val labels = JSONObject(labelsFile.readText())
         val kinds = if (engine.hasLearnedDetector) DetectorKind.entries else listOf(DetectorKind.CLASSIC)
         // Each detector once with every language, once German only (the photos are German prints).
