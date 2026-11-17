@@ -92,7 +92,7 @@ def main():
     from litert_torch.quantize.quant_config import QuantConfig
     from torchao.quantization.pt2e import quantize_pt2e
 
-    ck = torch.load(DATA / "checkpoints" / f"{args.run}.pt", map_location="cpu", weights_only=False)
+    ck = torch.load(DATA / "checkpoints" / f"{args.run}.pt", map_location="cpu", weights_only=True)
     net = EmbeddingNet(ck["backbone"], ck["dim"], pretrained=False)
     net.load_state_dict(ck["model"])
     model = PhoneModel(net).eval()

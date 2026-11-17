@@ -5,8 +5,10 @@ Scenes are generated on the GPU into a cache (uint8, CPU RAM); a quarter of the 
 and samples are flipped horizontally (with TL<->TR, BL<->BR swapped) for extra variety. Training scenes use the
 870 trained cards; the fixed test scenes use all cards incl. the unseen sets.
 
-A fixed synthetic corner test set (seed 4711) is evaluated for both the learned and the classic detector:
-mean corner error (% of card height), PCK@2 % / 5 %, and quad IoU >= 0.9 / 0.8.
+The checkpoint is selected on a separate synthetic validation set (seed 90001, trained cards only, other
+backgrounds). The fixed synthetic corner test set (seed 4711) is evaluated once at the end, with the selected
+checkpoint, so its numbers are independent of model selection. It is scored for both the learned and the classic
+detector: mean corner error (% of card height), PCK@2 % / 5 %, and quad IoU >= 0.9 / 0.8.
 
   uv run python train_corners.py --run corners_mnv3
 """
@@ -29,6 +31,10 @@ from detect import detect, quad_iou
 from models import MEAN, STD
 
 TEST_PATH = SYNTH_DIR / "corners_test.pt"
+VAL_PATH = SYNTH_DIR / "corners_val.pt"
+# Scene seeds advance by the chunk index (gen_cache), so the test set uses seeds 4711 .. 4711 + n. The val seed
+# keeps far away from that range; the training cache is unseeded.
+VAL_SEED = 90001
 
 
 def normalize(x):
@@ -50,7 +56,7 @@ def gen_cache(refs, bg, n, dev, out_hw=(IN_H, IN_W), chunk=64, seed=None):
 def build_test(dev, n=2000):
     """Same scenes at the model size (192x256) and at 288x384 for the classic detector."""
     if TEST_PATH.exists():
-        return torch.load(TEST_PATH)
+        return torch.load(TEST_PATH, weights_only=True)
     cards = load_manifest(include_holdout=True)
     refs = gpu_aug.load_refs(cards, dev)
     bg = gpu_aug.make_bg_pool(64, dev, seed=999)
@@ -59,6 +65,25 @@ def build_test(dev, n=2000):
     d = {"x": x, "c": c, "x_big": xb, "c_big": cb}
     TEST_PATH.parent.mkdir(parents=True, exist_ok=True)
     torch.save(d, TEST_PATH)
+    del refs
+    torch.cuda.empty_cache()
+    return d
+
+
+def build_val(dev, n=500):
+    """Validation scenes for checkpoint selection, at the model size only (the classic detector is not tuned).
+
+    Trained cards only and a different background pool, so neither the unseen sets nor the test backgrounds take
+    part in model selection.
+    """
+    if VAL_PATH.exists():
+        return torch.load(VAL_PATH, weights_only=True)
+    refs = gpu_aug.load_refs(load_manifest(), dev)
+    bg = gpu_aug.make_bg_pool(64, dev, seed=998)
+    x, c = gen_cache(refs, bg, n, dev, seed=VAL_SEED)
+    d = {"x": x, "c": c}
+    VAL_PATH.parent.mkdir(parents=True, exist_ok=True)
+    torch.save(d, VAL_PATH)
     del refs
     torch.cuda.empty_cache()
     return d
@@ -88,9 +113,9 @@ def predict(net, x_uint8, dev, batch=128):
     return torch.cat(out).numpy(), torch.cat(conf).numpy()
 
 
-def eval_test(net, test, dev):
-    pred, conf = predict(net, test["x"], dev)
-    r = quad_metrics(pred, test["c"].numpy())
+def eval_scenes(net, scenes, dev):
+    pred, conf = predict(net, scenes["x"], dev)
+    r = quad_metrics(pred, scenes["c"].numpy())
     r["conf_mean"] = float(conf.mean())
     return r
 
@@ -111,6 +136,20 @@ def eval_classic(test):
     return r
 
 
+def save_checkpoint(net, backbone, epoch, path):
+    # tensors and plain types only, so it loads with torch.load(weights_only=True)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    torch.save({"model": net.state_dict(), "backbone": backbone, "epoch": epoch}, path)
+
+
+def test_selected(path, test, dev):
+    """Load the checkpoint chosen on val and score it on the test set; the only test evaluation of a run."""
+    ck = torch.load(path, map_location="cpu", weights_only=True)
+    net = CornerNet(ck["backbone"], pretrained=False).to(dev)
+    net.load_state_dict(ck["model"])
+    return ck["epoch"], eval_scenes(net, test, dev)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--run", default="corners_mnv3")
@@ -125,7 +164,8 @@ def main():
     torch.backends.cudnn.benchmark = True
     t0 = time.time()
     test = build_test(dev)
-    print(f"test set ready ({time.time() - t0:.0f}s)", flush=True)
+    val = build_val(dev)
+    print(f"test and val sets ready ({time.time() - t0:.0f}s)", flush=True)
     classic_path = RESULTS_DIR / "corners_classic_synth.json"
     if not classic_path.exists():
         rc = eval_classic(test)
@@ -151,6 +191,7 @@ def main():
     flip_order = torch.tensor([1, 0, 3, 2])
     log = {"args": vars(args), "scene_gen_per_s": gen_rate, "epochs": []}
     best = 1e9
+    ckpt = CKPT_DIR / f"{args.run}.pt"
     train_time = 0.0
     for ep in range(args.epochs):
         net.train()
@@ -186,17 +227,21 @@ def main():
             cx[ri], cc[ri] = nx, nc
         entry = {"epoch": ep + 1, "loss": tl / spe, "l1_px": tl1 / spe, "minutes": (time.time() - t0) / 60}
         if (ep + 1) % 5 == 0 or ep == args.epochs - 1:
-            entry["test"] = eval_test(net, test, dev)
-            if entry["test"]["corner_err_mean_pct_h"] < best:
-                best = entry["test"]["corner_err_mean_pct_h"]
-                CKPT_DIR.mkdir(parents=True, exist_ok=True)
-                torch.save({"model": net.state_dict(), "backbone": args.backbone, "epoch": ep + 1},
-                           CKPT_DIR / f"{args.run}.pt")
+            # select on val only; the test set stays unseen until the end
+            entry["val"] = eval_scenes(net, val, dev)
+            if entry["val"]["corner_err_mean_pct_h"] < best:
+                best = entry["val"]["corner_err_mean_pct_h"]
+                save_checkpoint(net, args.backbone, ep + 1, ckpt)
         log["epochs"].append(entry)
         print(json.dumps(entry), flush=True)
     log["train_minutes_total"] = (time.time() - t0) / 60
     log["train_minutes_optim_only"] = train_time / 60
     log["samples_per_s_optim"] = args.epochs * spe * args.batch / train_time
+    sel_epoch, log["test_selected"] = test_selected(ckpt, test, dev)
+    log["selected_epoch"] = sel_epoch
+    log["val_selected"] = next(e["val"] for e in log["epochs"] if e["epoch"] == sel_epoch)
+    log["selection"] = "lowest val corner_err_mean_pct_h; test evaluated once with that checkpoint"
+    print("selected epoch", sel_epoch, "test:", json.dumps(log["test_selected"]), flush=True)
     log["classic_synth"] = json.loads(classic_path.read_text())
     RESULTS_DIR.mkdir(exist_ok=True)
     (RESULTS_DIR / f"train_{args.run}.json").write_text(json.dumps(log, indent=2))

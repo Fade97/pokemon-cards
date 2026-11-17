@@ -37,7 +37,7 @@ class Result:
 
 def load_model(run: str, dev=None):
     dev = dev or device()
-    ck = torch.load(CKPT_DIR / f"{run}.pt", map_location="cpu", weights_only=False)
+    ck = torch.load(CKPT_DIR / f"{run}.pt", map_location="cpu", weights_only=True)
     m = EmbeddingNet(ck["backbone"], ck["dim"], pretrained=False)
     m.load_state_dict(ck["model"])
     return m.to(dev).eval()
