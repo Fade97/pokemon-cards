@@ -19,13 +19,13 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Backend API (backend/): prices (#11), language packs (#39). Not deployed yet, so the default is a placeholder
-        // that never resolves: the app shows cached prices only and offers no pack downloads. Point a build at a
-        // running backend with `-Pcardindex.apiBaseUrl=https://…` (or the same line in ~/.gradle/gradle.properties);
+        // Backend API (backend/): prices (#11), language packs (#39), contributions (#14), deployed at cards-api.fdu.gg
+        // until the final app domain exists (#15). Point a build at another backend (e.g. `wrangler dev`) with
+        // `-Pcardindex.apiBaseUrl=https://…` (or the same line in ~/.gradle/gradle.properties);
         // the older `cardindex.priceApiBaseUrl` still works.
         val api = providers.gradleProperty("cardindex.apiBaseUrl")
             .orElse(providers.gradleProperty("cardindex.priceApiBaseUrl"))
-            .getOrElse("https://api.cardindex.invalid")
+            .getOrElse("https://cards-api.fdu.gg")
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
     }
 

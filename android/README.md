@@ -167,9 +167,9 @@ Two of the three wrong matches with all languages are the right card in English;
   12 hours. `PriceSelection` values a copy through `PriceVariant.candidates`; TCGplayer (TCGCSV's English category) prices
   English copies only, other languages get Cardmarket. The main market follows the region
   (Cardmarket EUR, TCGplayer USD in the US, Canada and US territories) and can be switched in Settings. The API base
-  URL is the `API_BASE_URL` BuildConfig field; until the backend is deployed it is a placeholder that never
-  resolves, so only cached prices show and no packs can be downloaded. Build against a running backend with
-  `./gradlew :app:assembleDebug -Pcardindex.apiBaseUrl=https://…` (`cardindex.priceApiBaseUrl` still works).
+  URL is the `API_BASE_URL` BuildConfig field, by default the deployed backend at `https://cards-api.fdu.gg`.
+  Build against another backend with `./gradlew :app:assembleDebug -Pcardindex.apiBaseUrl=https://…`
+  (`cardindex.priceApiBaseUrl` still works).
 
 ## Backup (JSON and CSV)
 
