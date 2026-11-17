@@ -1,0 +1,358 @@
+{
+ "distributions": {
+  "tcgar_good (err<=5%)": {
+   "score": {
+    "p1": 0.093,
+    "p5": 0.114,
+    "p50": 0.154,
+    "p95": 0.246,
+    "p99": 0.277
+   },
+   "aspect": {
+    "p1": 0.901,
+    "p5": 0.935,
+    "p50": 0.993,
+    "p95": 1.038,
+    "p99": 1.084
+   },
+   "fill": {
+    "p1": 0.445,
+    "p5": 0.48,
+    "p50": 0.533,
+    "p95": 0.594,
+    "p99": 0.636
+   },
+   "angle": {
+    "p1": 0.259,
+    "p5": 0.454,
+    "p50": 1.648,
+    "p95": 8.595,
+    "p99": 12.003
+   },
+   "n": 631,
+   "convex": 1.0
+  },
+  "tcgar_bad (err>5%)": {
+   "score": {
+    "p1": 0.091,
+    "p5": 0.107,
+    "p50": 0.196,
+    "p95": 0.431,
+    "p99": 0.494
+   },
+   "aspect": {
+    "p1": 0.652,
+    "p5": 0.713,
+    "p50": 0.953,
+    "p95": 1.368,
+    "p99": 1.545
+   },
+   "fill": {
+    "p1": 0.245,
+    "p5": 0.347,
+    "p50": 0.635,
+    "p95": 0.786,
+    "p99": 0.83
+   },
+   "angle": {
+    "p1": 2.019,
+    "p5": 3.612,
+    "p50": 11.492,
+    "p95": 25.753,
+    "p99": 63.665
+   },
+   "n": 201,
+   "convex": 1.0
+  },
+  "phone": {
+   "score": {
+    "p1": 0.089,
+    "p5": 0.109,
+    "p50": 0.139,
+    "p95": 0.16,
+    "p99": 0.181
+   },
+   "aspect": {
+    "p1": 0.535,
+    "p5": 0.974,
+    "p50": 1.02,
+    "p95": 1.081,
+    "p99": 1.16
+   },
+   "fill": {
+    "p1": 0.097,
+    "p5": 0.134,
+    "p50": 0.236,
+    "p95": 0.592,
+    "p99": 0.654
+   },
+   "angle": {
+    "p1": 1.12,
+    "p5": 1.308,
+    "p50": 4.429,
+    "p95": 14.012,
+    "p99": 47.111
+   },
+   "n": 79,
+   "convex": 1.0
+  },
+  "tcgar_bg (no card inside)": {
+   "score": {
+    "p1": 0.004,
+    "p5": 0.006,
+    "p50": 0.057,
+    "p95": 0.368,
+    "p99": 0.549
+   },
+   "aspect": {
+    "p1": 0.309,
+    "p5": 0.502,
+    "p50": 0.868,
+    "p95": 1.312,
+    "p99": 1.856
+   },
+   "fill": {
+    "p1": 0.017,
+    "p5": 0.055,
+    "p50": 0.232,
+    "p95": 0.646,
+    "p99": 0.815
+   },
+   "angle": {
+    "p1": 2.279,
+    "p5": 5.486,
+    "p50": 21.126,
+    "p95": 57.247,
+    "p99": 85.5
+   },
+   "n": 246,
+   "convex": 0.98
+  },
+  "tcgar_bg (part of a card)": {
+   "score": {
+    "p1": 0.018,
+    "p5": 0.031,
+    "p50": 0.127,
+    "p95": 0.374,
+    "p99": 0.525
+   },
+   "aspect": {
+    "p1": 0.455,
+    "p5": 0.61,
+    "p50": 0.931,
+    "p95": 1.465,
+    "p99": 2.434
+   },
+   "fill": {
+    "p1": 0.035,
+    "p5": 0.096,
+    "p50": 0.348,
+    "p95": 0.703,
+    "p99": 0.785
+   },
+   "angle": {
+    "p1": 2.535,
+    "p5": 5.552,
+    "p50": 21.558,
+    "p95": 77.044,
+    "p99": 88.182
+   },
+   "n": 366,
+   "convex": 0.923
+  },
+  "synth_bg": {
+   "score": {
+    "p1": 0.004,
+    "p5": 0.005,
+    "p50": 0.01,
+    "p95": 0.109,
+    "p99": 0.154
+   },
+   "aspect": {
+    "p1": 0.244,
+    "p5": 0.33,
+    "p50": 0.744,
+    "p95": 1.211,
+    "p99": 1.476
+   },
+   "fill": {
+    "p1": 0.003,
+    "p5": 0.016,
+    "p50": 0.075,
+    "p95": 0.211,
+    "p99": 0.348
+   },
+   "angle": {
+    "p1": 6.357,
+    "p5": 10.523,
+    "p50": 30.803,
+    "p95": 81.981,
+    "p99": 87.685
+   },
+   "n": 600,
+   "convex": 0.94
+  }
+ },
+ "pass_rate_pct": {
+  "none score>=0.06": {
+   "tcgar_good (err<=5%)": 100.0,
+   "tcgar_bad (err>5%)": 100.0,
+   "phone": 98.7,
+   "tcgar_bg (no card inside)": 47.6,
+   "tcgar_bg (part of a card)": 80.3,
+   "synth_bg": 12.7
+  },
+  "none score>=0.08": {
+   "tcgar_good (err<=5%)": 99.8,
+   "tcgar_bad (err>5%)": 100.0,
+   "phone": 98.7,
+   "tcgar_bg (no card inside)": 41.5,
+   "tcgar_bg (part of a card)": 71.0,
+   "synth_bg": 9.0
+  },
+  "none score>=0.1": {
+   "tcgar_good (err<=5%)": 97.9,
+   "tcgar_bad (err>5%)": 97.5,
+   "phone": 97.5,
+   "tcgar_bg (no card inside)": 36.6,
+   "tcgar_bg (part of a card)": 62.6,
+   "synth_bg": 6.0
+  },
+  "none score>=0.12": {
+   "tcgar_good (err<=5%)": 90.3,
+   "tcgar_bad (err>5%)": 89.1,
+   "phone": 86.1,
+   "tcgar_bg (no card inside)": 31.3,
+   "tcgar_bg (part of a card)": 53.3,
+   "synth_bg": 4.2
+  },
+  "loose score>=0.06": {
+   "tcgar_good (err<=5%)": 100.0,
+   "tcgar_bad (err>5%)": 96.5,
+   "phone": 82.3,
+   "tcgar_bg (no card inside)": 41.1,
+   "tcgar_bg (part of a card)": 62.3,
+   "synth_bg": 7.2
+  },
+  "loose score>=0.08": {
+   "tcgar_good (err<=5%)": 99.8,
+   "tcgar_bad (err>5%)": 96.5,
+   "phone": 82.3,
+   "tcgar_bg (no card inside)": 35.8,
+   "tcgar_bg (part of a card)": 55.2,
+   "synth_bg": 5.5
+  },
+  "loose score>=0.1": {
+   "tcgar_good (err<=5%)": 97.9,
+   "tcgar_bad (err>5%)": 94.0,
+   "phone": 81.0,
+   "tcgar_bg (no card inside)": 32.1,
+   "tcgar_bg (part of a card)": 50.0,
+   "synth_bg": 3.7
+  },
+  "loose score>=0.12": {
+   "tcgar_good (err<=5%)": 90.3,
+   "tcgar_bad (err>5%)": 85.6,
+   "phone": 69.6,
+   "tcgar_bg (no card inside)": 27.6,
+   "tcgar_bg (part of a card)": 43.2,
+   "synth_bg": 3.0
+  },
+  "medium score>=0.06": {
+   "tcgar_good (err<=5%)": 100.0,
+   "tcgar_bad (err>5%)": 92.0,
+   "phone": 63.3,
+   "tcgar_bg (no card inside)": 36.2,
+   "tcgar_bg (part of a card)": 50.8,
+   "synth_bg": 3.5
+  },
+  "medium score>=0.08": {
+   "tcgar_good (err<=5%)": 99.8,
+   "tcgar_bad (err>5%)": 92.0,
+   "phone": 63.3,
+   "tcgar_bg (no card inside)": 31.7,
+   "tcgar_bg (part of a card)": 46.2,
+   "synth_bg": 2.7
+  },
+  "medium score>=0.1": {
+   "tcgar_good (err<=5%)": 97.9,
+   "tcgar_bad (err>5%)": 89.6,
+   "phone": 63.3,
+   "tcgar_bg (no card inside)": 28.5,
+   "tcgar_bg (part of a card)": 42.9,
+   "synth_bg": 1.8
+  },
+  "medium score>=0.12": {
+   "tcgar_good (err<=5%)": 90.3,
+   "tcgar_bad (err>5%)": 81.6,
+   "phone": 53.2,
+   "tcgar_bg (no card inside)": 24.8,
+   "tcgar_bg (part of a card)": 37.2,
+   "synth_bg": 1.8
+  },
+  "tight score>=0.06": {
+   "tcgar_good (err<=5%)": 100.0,
+   "tcgar_bad (err>5%)": 68.7,
+   "phone": 46.8,
+   "tcgar_bg (no card inside)": 16.7,
+   "tcgar_bg (part of a card)": 26.2,
+   "synth_bg": 1.0
+  },
+  "tight score>=0.08": {
+   "tcgar_good (err<=5%)": 99.8,
+   "tcgar_bad (err>5%)": 68.7,
+   "phone": 46.8,
+   "tcgar_bg (no card inside)": 15.0,
+   "tcgar_bg (part of a card)": 23.8,
+   "synth_bg": 0.8
+  },
+  "tight score>=0.1": {
+   "tcgar_good (err<=5%)": 97.9,
+   "tcgar_bad (err>5%)": 66.7,
+   "phone": 46.8,
+   "tcgar_bg (no card inside)": 13.8,
+   "tcgar_bg (part of a card)": 22.4,
+   "synth_bg": 0.5
+  },
+  "tight score>=0.12": {
+   "tcgar_good (err<=5%)": 90.3,
+   "tcgar_bad (err>5%)": 59.7,
+   "phone": 40.5,
+   "tcgar_bg (no card inside)": 12.6,
+   "tcgar_bg (part of a card)": 20.2,
+   "synth_bg": 0.5
+  },
+  "chosen score>=0.06": {
+   "tcgar_good (err<=5%)": 100.0,
+   "tcgar_bad (err>5%)": 95.0,
+   "phone": 94.9,
+   "tcgar_bg (no card inside)": 39.8,
+   "tcgar_bg (part of a card)": 57.4,
+   "synth_bg": 8.2
+  },
+  "chosen score>=0.08": {
+   "tcgar_good (err<=5%)": 99.8,
+   "tcgar_bad (err>5%)": 95.0,
+   "phone": 94.9,
+   "tcgar_bg (no card inside)": 34.6,
+   "tcgar_bg (part of a card)": 51.1,
+   "synth_bg": 6.5
+  },
+  "chosen score>=0.1": {
+   "tcgar_good (err<=5%)": 97.9,
+   "tcgar_bad (err>5%)": 92.5,
+   "phone": 93.7,
+   "tcgar_bg (no card inside)": 31.3,
+   "tcgar_bg (part of a card)": 46.7,
+   "synth_bg": 4.3
+  },
+  "chosen score>=0.12": {
+   "tcgar_good (err<=5%)": 90.3,
+   "tcgar_bad (err>5%)": 84.1,
+   "phone": 82.3,
+   "tcgar_bg (no card inside)": 27.2,
+   "tcgar_bg (part of a card)": 40.7,
+   "synth_bg": 3.0
+  }
+ }
+}

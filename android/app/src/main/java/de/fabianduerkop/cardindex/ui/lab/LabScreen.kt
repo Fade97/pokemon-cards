@@ -257,6 +257,7 @@ private fun StatusLine(
         paused -> stringResource(R.string.scan_lab_paused)
         gate is GateResult.NoOutline -> stringResource(R.string.scan_lab_gate_none)
         gate is GateResult.LowScore -> stringResource(R.string.scan_lab_gate_low, gate.score)
+        gate is GateResult.BadShape -> stringResource(R.string.scan_lab_gate_shape)
         gate is GateResult.Moving -> stringResource(R.string.scan_lab_gate_moving)
         live.noMatchSimilarity != null -> stringResource(R.string.scan_lab_no_match, live.noMatchSimilarity, minSimilarity)
         engine is EngineState.Ready -> stringResource(

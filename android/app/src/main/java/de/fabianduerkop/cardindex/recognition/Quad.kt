@@ -2,8 +2,10 @@
 package de.fabianduerkop.cardindex.recognition
 
 import kotlin.math.abs
+import kotlin.math.acos
 import kotlin.math.atan2
 import kotlin.math.hypot
+import kotlin.math.max
 
 /** A 2D point in image pixels. */
 data class Pt(val x: Double, val y: Double) {
@@ -32,6 +34,29 @@ fun Quad.widthHeight(): Pair<Double, Double> {
     val w = ((this[1] - this[0]).norm() + (this[2] - this[3]).norm()) / 2
     val h = ((this[3] - this[0]).norm() + (this[2] - this[1]).norm()) / 2
     return w to h
+}
+
+/**
+ * Whether the quad could be a card seen by the phone: convex with the corners clockwise on screen (TL, TR, BR, BL),
+ * width:height within [maxAspectFactor] of 63:88 either way, and every inner angle within [maxAngleDeviation]
+ * degrees of 90. Calibrated in `ml/calib_corner_gate.py` (issue #55): on TCG-AR it rejects only learned-corner
+ * quads that were wrong anyway (median corner error 18 %, none recognized), and on the phone photos only merged or
+ * twisted quads, while it halves the synthetic empty backgrounds that pass the score.
+ */
+fun Quad.looksLikeCard(maxAspectFactor: Double = 1.5, maxAngleDeviation: Double = 35.0): Boolean {
+    val edges = List(4) { this[(it + 1) % 4] - this[it] }
+    for (i in 0 until 4) {
+        val e = edges[i]
+        val f = edges[(i + 1) % 4]
+        if (e.x * f.y - e.y * f.x <= 0) return false // not convex, or counter-clockwise (twisted)
+        val a = edges[(i + 3) % 4] * -1.0
+        val cos = (a dot e) / max(a.norm() * e.norm(), 1e-9)
+        val angle = Math.toDegrees(acos(cos.coerceIn(-1.0, 1.0)))
+        if (abs(angle - 90) > maxAngleDeviation) return false
+    }
+    val (w, h) = widthHeight()
+    val aspect = w / max(h, 1e-6) / CARD_ASPECT
+    return aspect in 1 / maxAspectFactor..maxAspectFactor
 }
 
 /** Max absolute coordinate difference between two quads (numpy `np.abs(a - b).max()`). */
