@@ -71,8 +71,9 @@ an app release.
   (e.g. 87/165) and have a language filter. EN/DE/FR/… prints of an international set share one collection; JP
   sets such as SV2a are their own set collections.
 - **Custom collections** are made by the user: binders, a trade pile, a wishlist.
-- **Per copy**: quantity, variant (normal/holo/reverse/1st edition…), condition (NM…Poor) or grade
-  (PSA/CGC…), purchase price and date, and optionally the user's scan photo.
+- **Per copy**: quantity, finish (normal/holo/reverse holo) and edition (unlimited/1st edition/shadowless) as two
+  separate fields, so a 1st-edition holo fits; condition (NM…Poor) or grade (PSA/CGC…), purchase price and date,
+  and optionally the user's scan photo. Each copy has a stable uuid and an `updatedAt` for export/import and sync.
 - **Storage** is local-first in Room. A free JSON/CSV export serves as backup, and the last-known prices stay
   cached offline.
 

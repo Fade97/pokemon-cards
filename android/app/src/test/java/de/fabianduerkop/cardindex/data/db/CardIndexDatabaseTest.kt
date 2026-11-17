@@ -5,17 +5,25 @@ import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.fabianduerkop.cardindex.model.CollectionKind
+import android.database.sqlite.SQLiteConstraintException
 import de.fabianduerkop.cardindex.model.Condition
+import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.EnergyType
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
+import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.Region
-import de.fabianduerkop.cardindex.model.Variant
 import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -69,6 +77,9 @@ class CardIndexDatabaseTest {
         ),
     )
 
+    private fun collection(name: String, kind: CollectionKind) =
+        CollectionEntity(name = name, kind = kind, updatedAt = Instant.ofEpochMilli(++clock))
+
     @Test
     fun setCompletion_countsDistinctNumbersAcrossLanguages() = runTest {
         seedCatalog()
@@ -117,7 +128,8 @@ class CardIndexDatabaseTest {
             OwnedCopyEntity(
                 cardId = "sv03.5-006",
                 cardLanguage = "de",
-                variant = Variant.HOLO,
+                finish = Finish.HOLO,
+                edition = Edition.FIRST_EDITION,
                 condition = null,
                 grader = Grader.PSA,
                 grade = "9",
@@ -136,6 +148,7 @@ class CardIndexDatabaseTest {
         assertEquals("de", graded.card.language)
         assertEquals("151", graded.set.name)
         assertEquals(Grader.PSA, graded.copy.grader)
+        assertEquals(Finish.HOLO to Edition.FIRST_EDITION, graded.copy.finish to graded.copy.edition)
         assertEquals(null, graded.copy.condition)
         assertEquals(LocalDate.of(2026, 6, 20), graded.copy.purchaseDate)
         assertEquals(Condition.NEAR_MINT, all[1].copy.condition)
@@ -147,9 +160,9 @@ class CardIndexDatabaseTest {
         val a = own("sv03.5-001", "en", quantity = 3)
         val b = own("sv03.5-006", "de")
         own("sv03.5-025", "de") // not in the binder
-        val binder = collections.insert(CollectionEntity(name = "Trade binder", kind = CollectionKind.CUSTOM))
-        collections.insert(CollectionEntity(name = "Wishlist", kind = CollectionKind.CUSTOM))
-        collections.insert(CollectionEntity(name = "All cards", kind = CollectionKind.ALL))
+        val binder = collections.insert(collection("Trade binder", kind = CollectionKind.CUSTOM))
+        collections.insert(collection("Wishlist", kind = CollectionKind.CUSTOM))
+        collections.insert(collection("All cards", kind = CollectionKind.ALL))
         collections.addCopy(CollectionCopyCrossRef(binder, a))
         collections.addCopy(CollectionCopyCrossRef(binder, b))
         collections.addCopy(CollectionCopyCrossRef(binder, b)) // ignored duplicate
@@ -165,7 +178,7 @@ class CardIndexDatabaseTest {
     fun deletingCopy_removesItFromCollections() = runTest {
         seedCatalog()
         val id = own("sv03.5-001", "en")
-        val binder = collections.insert(CollectionEntity(name = "Binder", kind = CollectionKind.CUSTOM))
+        val binder = collections.insert(collection("Binder", kind = CollectionKind.CUSTOM))
         collections.addCopy(CollectionCopyCrossRef(binder, id))
 
         copies.delete(copies.observeAllCopies().first().single().copy)
@@ -181,5 +194,69 @@ class CardIndexDatabaseTest {
         seedCatalog() // a language-pack update rewrites the same rows
 
         assertEquals(1, copies.observeAllCopies().first().size)
+    }
+
+    @Test
+    fun copies_haveStableUniqueUuids() = runTest {
+        seedCatalog()
+        val first = own("sv03.5-001", "en")
+        own("sv03.5-001", "en")
+        val stored = copies.observeAllCopies().first().map { it.copy }
+
+        assertNotEquals(stored[0].uuid, stored[1].uuid)
+        val byUuid = copies.byUuid(stored.single { it.id == first }.uuid)
+        assertEquals(first, byUuid?.id)
+        assertEquals(byUuid?.createdAt, byUuid?.updatedAt) // a new copy was last changed when it was created
+
+        // An import that brings the same uuid again must update, not duplicate.
+        assertThrows(SQLiteConstraintException::class.java) {
+            runBlocking { copies.insert(stored[0].copy(id = 0)) }
+        }
+    }
+
+    @Test
+    fun cachedPrices_keepEveryPrintingOfACard() = runTest {
+        fun price(source: PriceSource, variant: PriceVariant, trend: Long) = CachedPriceEntity(
+            cardId = "sv03.5-006",
+            source = source,
+            variant = variant,
+            currency = if (source == PriceSource.CARDMARKET) "EUR" else "USD",
+            trend = trend,
+            low = null,
+            avg = null,
+            priceDate = Instant.parse("2026-11-16T02:00:00Z"),
+            fetchedAt = Instant.parse("2026-11-16T08:00:00Z"),
+        )
+        catalog.upsertPrices(
+            listOf(
+                price(PriceSource.CARDMARKET, PriceVariant.NORMAL, 120),
+                price(PriceSource.CARDMARKET, PriceVariant.REVERSE_HOLO, 240),
+                price(PriceSource.TCGPLAYER, PriceVariant.NORMAL, 80),
+                price(PriceSource.TCGPLAYER, PriceVariant.REVERSE_HOLO, 160),
+            ),
+        )
+        catalog.upsertPrices(listOf(price(PriceSource.CARDMARKET, PriceVariant.NORMAL, 130))) // next night
+
+        val prices = catalog.observePrices("sv03.5-006").first()
+            .associate { (it.source to it.variant) to it.trend }
+        assertEquals(4, prices.size)
+        assertEquals(130L, prices[PriceSource.CARDMARKET to PriceVariant.NORMAL])
+        assertEquals(240L, prices[PriceSource.CARDMARKET to PriceVariant.REVERSE_HOLO])
+    }
+
+    @Test
+    fun retiredCard_keepsItsCopies_andCannotBeDeleted() = runTest {
+        seedCatalog()
+        own("sv03.5-006", "en")
+
+        catalog.upsertCards(
+            listOf(CardEntity("sv03.5-006", "sv03.5", "006", "Card 006", "en", null, null, null, retired = true)),
+        )
+        val copy = copies.observeAllCopies().first().single()
+        assertTrue(copy.card.retired)
+
+        assertThrows(SQLiteConstraintException::class.java) {
+            db.openHelper.writableDatabase.execSQL("DELETE FROM cards WHERE id = 'sv03.5-006' AND language = 'en'")
+        }
     }
 }

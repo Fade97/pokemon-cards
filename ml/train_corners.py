@@ -24,7 +24,7 @@ import numpy as np
 import torch
 
 import gpu_aug
-from common import CKPT_DIR, DATA_DIR, RESULTS_DIR, SYNTH_DIR, device, load_manifest
+from common import CKPT_DIR, RESULTS_DIR, SYNTH_DIR, device, load_manifest
 from corner_model import IN_H, IN_W, CornerNet, corner_loss
 from corner_scenes import make_scenes
 from detect import detect, quad_iou

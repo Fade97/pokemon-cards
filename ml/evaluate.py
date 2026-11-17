@@ -17,7 +17,7 @@ import cv2
 import numpy as np
 import torch
 
-from baselines import load_crops
+from baselines import load_crops  # noqa: F401  (used in main(), which may rebind it via `global`)
 from common import CKPT_DIR, RESULTS_DIR, SYNTH_DIR, device, load_manifest, number_key
 from metrics import evaluate, full_report, rerank, topk_scores
 from models import embed_arrays, preprocess
