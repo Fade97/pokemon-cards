@@ -29,8 +29,14 @@ export function stripMetadata(bytes: Uint8Array, type: ImageType): CleanImage {
 // ---------------------------------------------------------------------------------------------------------------
 // JPEG
 
-/** Kept: APP0 (JFIF), APP2 (ICC colour profile), APP14 (Adobe colour transform, needed to decode some files). */
-const KEEP_APP = new Set([0xe0, 0xe2, 0xee]);
+/**
+ * Every APPn segment goes: decoders need none of them for a YCbCr JPEG, and kept payloads (a JFIF thumbnail, an ICC
+ * profile's text tags) could carry anything. The one exception is APP14 in its fixed 12-byte Adobe form, which
+ * tells decoders the colour transform of RGB/CMYK files and has no room for free text.
+ */
+function keepApp(src: Uint8Array, pos: number, marker: number, length: number): boolean {
+  return marker === 0xee && length === 14 && ascii(src, pos + 4, 5) === "Adobe";
+}
 
 function stripJpeg(src: Uint8Array): CleanImage {
   const out: Uint8Array[] = [src.subarray(0, 2)];
@@ -49,7 +55,7 @@ function stripJpeg(src: Uint8Array): CleanImage {
     const end = pos + 2 + length;
     if (length < 2 || end > src.length) throw new ImageError("JPEG segment runs past the end");
     const isApp = marker >= 0xe0 && marker <= 0xef;
-    if ((isApp && !KEEP_APP.has(marker)) || marker === 0xfe) {
+    if ((isApp && !keepApp(src, pos, marker, length)) || marker === 0xfe) {
       stripped.push(marker === 0xfe ? "COM" : `APP${marker - 0xe0}`);
     } else {
       out.push(src.subarray(pos, end));
@@ -86,7 +92,6 @@ function stripJpeg(src: Uint8Array): CleanImage {
 // ---------------------------------------------------------------------------------------------------------------
 // WebP (RIFF): https://developers.google.com/speed/webp/docs/riff_container
 
-const VP8X_ICC = 0x20;
 const VP8X_ALPHA = 0x10;
 
 function stripWebp(src: Uint8Array): CleanImage {
@@ -108,11 +113,12 @@ function stripWebp(src: Uint8Array): CleanImage {
   if (kinds.includes("ANIM") || kinds.includes("ANMF")) throw new ImageError("animated WebP");
   const stripped: string[] = [];
   const kept = chunks.filter((c) => {
-    if (c.fourcc === "EXIF" || c.fourcc === "XMP ") {
+    // ICCP goes too: a colour profile's text tags can carry anything, and WebP from the app has none.
+    if (c.fourcc === "EXIF" || c.fourcc === "XMP " || c.fourcc === "ICCP") {
       stripped.push(c.fourcc.trim());
       return false;
     }
-    if (!["VP8X", "VP8 ", "VP8L", "ALPH", "ICCP"].includes(c.fourcc)) {
+    if (!["VP8X", "VP8 ", "VP8L", "ALPH"].includes(c.fourcc)) {
       stripped.push(c.fourcc.trim()); // unknown chunks could carry anything
       return false;
     }
@@ -126,7 +132,7 @@ function stripWebp(src: Uint8Array): CleanImage {
   if (vp8x) {
     if (vp8x.data.length < 18) throw new ImageError("short VP8X chunk");
     const copy = vp8x.data.slice();
-    copy[8] = copy[8]! & (VP8X_ICC | VP8X_ALPHA); // clears the EXIF, XMP and animation flags
+    copy[8] = copy[8]! & VP8X_ALPHA; // clears the ICC, EXIF, XMP and animation flags
     vp8x.data = copy;
     width = 1 + (copy[12]! | (copy[13]! << 8) | (copy[14]! << 16));
     height = 1 + (copy[15]! | (copy[16]! << 8) | (copy[17]! << 16));

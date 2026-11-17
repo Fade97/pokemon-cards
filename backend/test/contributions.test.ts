@@ -22,15 +22,25 @@ function seg(marker: number, payload: number[]): number[] {
 
 const ENTROPY = [0x12, 0xff, 0x00, 0x34, 0xff, 0xd0, 0x56]; // a stuffed 0xFF and a restart marker
 
-function jpeg(opts: { exif?: boolean; xmp?: boolean; comment?: boolean; trailing?: boolean; w?: number; h?: number } = {}) {
+/** Fixed 12-byte Adobe APP14 payload: "Adobe", version, two flag words, transform 1 (YCbCr). */
+const ADOBE = [...text("Adobe"), 0, 100, 0, 0, 0, 0, 1];
+
+function jpeg(
+  opts: {
+    exif?: boolean; xmp?: boolean; comment?: boolean; trailing?: boolean; jfif?: boolean; icc?: boolean;
+    adobe?: boolean; adobeLong?: boolean; w?: number; h?: number;
+  } = {},
+) {
   const { w = 252, h = 352 } = opts;
   return new Uint8Array([
     0xff, 0xd8,
-    ...seg(0xe0, [...text("JFIF\0"), 1, 1, 0, 0, 1, 0, 1, 0, 0]),
+    ...(opts.jfif ? seg(0xe0, [...text("JFIF\0"), 1, 1, 0, 0, 1, 0, 1, 0, 0]) : []),
     ...(opts.exif ? seg(0xe1, [...text("Exif\0\0"), ...text("MM GPS 52.52N 13.40E Pixel 9")]) : []),
     ...(opts.xmp ? seg(0xe1, [...text("http://ns.adobe.com/xap/1.0/\0"), ...text("<x:xmpmeta/>")]) : []),
     ...(opts.comment ? seg(0xfe, text("taken at home")) : []),
-    ...seg(0xe2, [...text("ICC_PROFILE\0"), 1, 1]),
+    ...(opts.icc ? seg(0xe2, [...text("ICC_PROFILE\0"), 1, 1, ...text("desc: Max Mustermann, Berlin")]) : []),
+    ...(opts.adobe ? seg(0xee, ADOBE) : []),
+    ...(opts.adobeLong ? seg(0xee, [...ADOBE, ...text("hidden note")]) : []),
     ...seg(0xdb, [0, ...new Array(64).fill(1)]),
     ...seg(0xc0, [8, h >> 8, h & 0xff, w >> 8, w & 0xff, 1, 1, 0x11, 0]),
     ...seg(0xda, [1, 1, 0, 0, 63, 0]),
@@ -45,14 +55,15 @@ function chunk(fourcc: string, data: number[]): number[] {
   return [...text(fourcc), n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, n >>> 24, ...data, ...(n & 1 ? [0] : [])];
 }
 
-function webp(opts: { exif?: boolean; xmp?: boolean; anim?: boolean; w?: number; h?: number } = {}) {
+function webp(opts: { exif?: boolean; xmp?: boolean; icc?: boolean; anim?: boolean; w?: number; h?: number } = {}) {
   const { w = 252, h = 352 } = opts;
-  const flags = 0x10 | (opts.exif ? 0x08 : 0) | (opts.xmp ? 0x04 : 0) | (opts.anim ? 0x02 : 0);
+  const flags = 0x10 | (opts.icc ? 0x20 : 0) | (opts.exif ? 0x08 : 0) | (opts.xmp ? 0x04 : 0) | (opts.anim ? 0x02 : 0);
   const le24 = (v: number) => [v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff];
   const bits = (w - 1) | ((h - 1) << 14);
   const body = [
     ...text("WEBP"),
     ...chunk("VP8X", [flags, 0, 0, 0, ...le24(w - 1), ...le24(h - 1)]),
+    ...(opts.icc ? chunk("ICCP", text("desc: Max Mustermann, Berlin")) : []),
     ...(opts.anim ? chunk("ANIM", [0, 0, 0, 0, 0, 0]) : []),
     ...chunk("VP8L", [0x2f, bits & 0xff, (bits >> 8) & 0xff, (bits >> 16) & 0xff, (bits >>> 24) & 0xff, 7, 7]),
     ...(opts.exif ? chunk("EXIF", text("MM GPS 52.52N")) : []),
@@ -76,9 +87,18 @@ describe("stripMetadata", () => {
     expect(out.stripped).toEqual(["APP1", "APP1", "COM", "trailing data"]);
     expect([out.width, out.height]).toEqual([252, 352]);
     for (const s of ["Exif", "GPS", "xmpmeta", "taken at home", "appended secret"]) expect(contains(out.bytes, s)).toBe(false);
-    expect(contains(out.bytes, "JFIF")).toBe(true);
-    expect(contains(out.bytes, "ICC_PROFILE")).toBe(true);
     expect(out.bytes).toEqual(jpeg()); // exactly the clean file
+  });
+
+  it("drops JFIF and ICC segments and keeps only the fixed-size Adobe segment", () => {
+    const out = stripMetadata(jpeg({ jfif: true, icc: true, adobe: true }), "image/jpeg");
+    expect(out.stripped).toEqual(["APP0", "APP2"]);
+    expect(contains(out.bytes, "Mustermann")).toBe(false);
+    expect(out.bytes).toEqual(jpeg({ adobe: true }));
+
+    const long = stripMetadata(jpeg({ adobeLong: true }), "image/jpeg");
+    expect(long.stripped).toEqual(["APP14"]);
+    expect(contains(long.bytes, "hidden note")).toBe(false);
   });
 
   it("leaves a clean JPEG untouched", () => {
@@ -95,9 +115,10 @@ describe("stripMetadata", () => {
     expect(() => stripMetadata(sneaky, "image/jpeg")).toThrow(/between JPEG scans/);
   });
 
-  it("drops EXIF and XMP chunks from a WebP and clears their flags", () => {
-    const out = stripMetadata(webp({ exif: true, xmp: true }), "image/webp");
-    expect(out.stripped).toEqual(["EXIF", "XMP"]);
+  it("drops ICC, EXIF and XMP chunks from a WebP and clears their flags", () => {
+    const out = stripMetadata(webp({ icc: true, exif: true, xmp: true }), "image/webp");
+    expect(out.stripped).toEqual(["ICCP", "EXIF", "XMP"]);
+    expect(contains(out.bytes, "Mustermann")).toBe(false);
     expect([out.width, out.height]).toEqual([252, 352]);
     expect(contains(out.bytes, "GPS")).toBe(false);
     expect(out.bytes).toEqual(webp()); // flags and RIFF size match a file that never had them

@@ -112,8 +112,8 @@ today `cc0-1`).
 
 - **Validation**: body at most 1 MiB (`413`); declared type and magic bytes must agree (`415`); 64–2048 px per side
   and a well-formed container (`422`); `cardId`, `lang` and `consent` checked (`400`). Animated WebP is refused.
-- **No metadata**: the file is walked, not re-encoded. JPEG: APP1 (EXIF, XMP), all other APPn except APP0 (JFIF),
-  APP2 (ICC) and APP14 (Adobe), comments and bytes after the end marker are dropped. WebP: `EXIF`, `XMP ` and
+- **No metadata**: the file is walked, not re-encoded. JPEG: every APPn segment (EXIF, XMP, JFIF, ICC, …) except
+  APP14 in its fixed 12-byte Adobe form, comments and bytes after the end marker are dropped. WebP: `ICCP`, `EXIF`, `XMP ` and
   unknown chunks are dropped and the VP8X flags cleared. Metadata segments between progressive scans → `422`.
 - **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, card id, language,
   consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at` and `withdrawn_at`. No IP
