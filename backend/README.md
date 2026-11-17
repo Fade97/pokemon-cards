@@ -17,10 +17,10 @@ importer ─► prices.db (SQLite) ─► publish ─► R2 pokemon-cards-prices
 
 ## Status
 
-- Importer: runs nightly on Vulcan since 2026-11-17 and writes the files to
-  `~/.local/share/pokemon-cards-prices/files`. Uploads to R2 start once the bucket and credentials exist
-  (see [Deploy](#deploy)).
-- Worker: works locally and in tests, not deployed yet.
+- Importer: runs nightly on Vulcan since 2026-11-17, writes the files to
+  `~/.local/share/pokemon-cards-prices/files` and uploads them to R2 `pokemon-cards-prices`.
+- Worker: deployed on 2026-11-17 at https://pokemon-cards-api.salaryanalyzer.workers.dev (the account's
+  workers.dev subdomain; a custom domain follows with the final app name, #15).
 
 ## Importer
 
@@ -141,7 +141,7 @@ pnpm run import --data /tmp/prices --langs en --sets-per-night 3   # a small rea
 
 ## Deploy
 
-Worker (not done yet):
+Worker (done on 2026-11-17; repeat `pnpm run deploy` after changes):
 
 ```sh
 wrangler r2 bucket create pokemon-cards-packs
@@ -152,8 +152,8 @@ wrangler d1 migrations apply DB --remote
 pnpm run deploy
 ```
 
-Importer uploads: create an R2 API token with write access to `pokemon-cards-prices`, store it in Vault at
-`secret/services/pokemon-cards` (keys above; `R2_ENDPOINT` is `https://<account id>.r2.cloudflarestorage.com`),
-and add `secret/data/services/pokemon-cards` to the `vulcan-apps` policy. The next run then uploads.
+Importer uploads use an R2 API token limited to `pokemon-cards-prices` (read + write on its objects), stored in
+Vault at `secret/services/pokemon-cards` (keys above, plus `CLOUDFLARE_R2_TOKEN_ID` to find the token again); the
+`vulcan-apps` policy can read that path.
 
 Resource names use the working title and change with the final app name (#15).
