@@ -1,5 +1,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""The full recognition pipeline as the app would run it: detect -> embed -> kNN -> collector-number rerank.
+"""The full recognition pipeline as the app runs it on a photo: detect -> embed -> kNN -> collector-number rerank.
+
+Detection (`detector`):
+- "learned" (default, the app): scale to 2048 px, search the live-scan guide area with the learned corner model.
+- "classic": the same guide area with the classic CV detector (the app's DetectorKind.CLASSIC).
+- "full": the classic detector on the whole, unscaled image (the pipeline before issue #61; synthetic scenes whose
+  card is not centred).
 
 The reference index (one L2-normalized embedding per card, from the clean TCGdex image) is cached in
 <data>/index/<run>.npy. OCR is EasyOCR on the bottom-left number strip of the rectified card (stand-in for ML Kit).
@@ -14,7 +20,7 @@ import numpy as np
 import torch
 
 from common import CKPT_DIR, INDEX_DIR, Card, cached_index, device, load_manifest, number_key
-from detect import center_crop_fallback, detect, rectify
+from detect import LearnedDetector, app_resize, center_crop_fallback, detect, detect_app, rectify
 from models import EmbeddingNet, embed_arrays, preprocess
 from synth import load_ref_rgba
 
@@ -22,6 +28,7 @@ from synth import load_ref_rgba
 # number like "006/165" sits bottom-left under the attack box, set code + regulation mark to its left.
 NUM_BOX = (0.0, 0.905, 0.50, 0.99)
 NUM_RE = re.compile(r"(\d{1,3})\s*[/|\\]\s*(\d{2,3})")
+DETECTORS = ("learned", "classic", "full")
 
 
 @dataclass
@@ -33,6 +40,7 @@ class Result:
     number: str | None       # collector number read by OCR (normalized), None = unreadable
     total: str | None
     top5_reranked: list[str] = field(default_factory=list)
+    detector_score: float = 0.0  # learned: mean corner peak; classic: contour score
 
 
 def load_model(run: str, dev=None):
@@ -76,7 +84,11 @@ class NumberOCR:
 
 
 class Pipeline:
-    def __init__(self, run: str, use_ocr: bool = True):
+    def __init__(self, run: str, use_ocr: bool = True, detector: str = "learned"):
+        if detector not in DETECTORS:
+            raise ValueError(f"detector must be one of {DETECTORS}, not {detector!r}")
+        self.detector = detector
+        self.corners = LearnedDetector() if detector == "learned" else None
         self.dev = device()
         self.cards = load_manifest(include_holdout=True)  # app gallery: trained + unseen sets
         self.model = load_model(run, self.dev)
@@ -84,10 +96,14 @@ class Pipeline:
         self.ocr = NumberOCR(self.dev.type == "cuda") if use_ocr else None
 
     def run(self, img: np.ndarray, ocr_number: tuple | None = None) -> Result:
-        quad, _ = detect(img)
-        found = quad is not None
-        if not found:
-            quad = center_crop_fallback(img)
+        if self.detector == "full":
+            quad, score = detect(img)
+            found = quad is not None
+            if not found:
+                quad = center_crop_fallback(img)
+        else:
+            img = app_resize(img)
+            quad, found, score = detect_app(img, self.corners)
         crop = rectify(img, quad)
         # the detector cannot tell an upside-down card: embed both orientations, keep the better match
         qs = embed_arrays(self.model, [preprocess(crop), preprocess(cv2.rotate(crop, cv2.ROTATE_180))], self.dev)
@@ -107,7 +123,7 @@ class Pipeline:
             num, total = None, None
         reranked = rerank_one(order, self.cards, num, total)
         return Result(found, np.asarray(quad).round(1).tolist(), [self.cards[i].key for i in order],
-                      [float(sims[i]) for i in order], num, total, [self.cards[i].key for i in reranked])
+                      [float(sims[i]) for i in order], num, total, [self.cards[i].key for i in reranked], float(score))
 
 
 def rerank_one(order, cards: list[Card], num: str | None, total: str | None = None) -> list[int]:

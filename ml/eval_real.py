@@ -5,14 +5,15 @@ Photos with arbitrary file names go into <data>/real-photos/. Labels come from t
 
 1. label     A local VLM (labeler.py) reads name, collector number and language from the raw photo and matches
              them against the manifest. It never sees the pipeline output.
-2. pipeline  The full prototype pipeline: detect -> embed -> kNN -> OCR rerank.
+2. pipeline  The full pipeline as the app runs it: guide area + learned corners -> embed -> kNN -> OCR rerank
+             (--detector classic / full for the other detectors, see pipeline.py).
 3. review    Where both agree on card + language, the label is accepted automatically. All other photos go to
              a static review.html (photo, crop, labeler guess, pipeline top-5). Choices are kept in the
              browser's localStorage and exported as review_choices.json, which you save into the work dir.
              labels.json = auto-accepted + reviewed.
 4. eval      Accuracy of the pipeline against labels.json.
 
-  uv run --extra ocr --extra labeler python eval_real.py all            # label + pipeline + review + eval
+  uv run --extra ocr --extra labeler --extra litert python eval_real.py all   # label + pipeline + review + eval
   uv run python eval_real.py review && uv run python eval_real.py eval  # after saving review_choices.json
 
 Work dir: <data>/<photos folder name>-eval/. Also: `make-dryrun` builds a folder of synthetic photos with random
@@ -36,7 +37,7 @@ import numpy as np
 from common import DATA_DIR, REAL_DIR, RESULTS_DIR, SYNTH_DIR, load_manifest
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".webp"}
-DEFAULT_RUN = "mnv3_256"
+DEFAULT_RUN = "mnv3_256_real"  # the embedding the app ships (packs-out/catalog.json)
 
 
 def photos_in(d: Path) -> list[Path]:
@@ -79,24 +80,28 @@ def step_label(photos: list[Path], work: Path):
 
 
 # ---------------------------------------------------------------- 2. pipeline
-def step_pipeline(photos: list[Path], work: Path, run: str):
+def step_pipeline(photos: list[Path], work: Path, run: str, detector: str):
     out_p = work / "pipeline.json"
     out = load_json(out_p, {})
-    todo = [p for p in photos if out.get(p.name, {}).get("id") != file_id(p) or out[p.name].get("run") != run]
+    # entries from before the detector option ran the classic detector on the full image
+    todo = [p for p in photos if out.get(p.name, {}).get("id") != file_id(p) or out[p.name].get("run") != run
+            or out[p.name].get("detector", "full") != detector]
     if not todo:
         print("pipeline: all cached")
         return out
     from pipeline import Pipeline
     try:
-        pipe = Pipeline(run, use_ocr=True)
+        import easyocr  # noqa: F401  (optional dependency, ml[ocr])
+        use_ocr = True
     except ImportError:
         print("easyocr not installed: pipeline runs without OCR rerank")
-        pipe = Pipeline(run, use_ocr=False)
+        use_ocr = False
+    pipe = Pipeline(run, use_ocr=use_ocr, detector=detector)
     (work / "crops").mkdir(exist_ok=True)
     for i, p in enumerate(todo):
         r = pipe.run(cv2.imread(str(p)))
         cv2.imwrite(str(work / "crops" / f"{p.stem}.jpg"), pipe.last_crop, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        out[p.name] = {"id": file_id(p), "run": run, **r.__dict__}
+        out[p.name] = {"id": file_id(p), "run": run, "detector": detector, **r.__dict__}
         print(f"[pipeline {i + 1}/{len(todo)}] {p.name}: {r.top5_reranked[0]} (ocr {r.number}/{r.total})", flush=True)
         save_json(out_p, out)
     return out
@@ -292,6 +297,10 @@ def main():
     ap.add_argument("step", choices=["label", "pipeline", "review", "eval", "all", "make-dryrun", "truthcheck"])
     ap.add_argument("--photos", type=Path, default=REAL_DIR)
     ap.add_argument("--run", default=DEFAULT_RUN)
+    ap.add_argument("--detector", choices=["learned", "classic", "full"], default=None,
+                    help="pipeline: learned/classic = the app's detectors in the guide area, full = classic on the "
+                         "whole image. Default: learned, or full for make-dryrun folders (their synthetic cards are "
+                         "placed anywhere in the frame, not in the guide)")
     ap.add_argument("--n", type=int, default=30, help="make-dryrun: number of synthetic photos")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--sources", nargs="*", default=["test", "test30th"], help="make-dryrun: synthetic sets")
@@ -310,12 +319,14 @@ def main():
             save_json(RESULTS_DIR / args.results_name, {"photos": 0, "note": f"{args.photos} is empty"})
         return
     work.mkdir(parents=True, exist_ok=True)
+    if args.detector is None:
+        args.detector = "full" if (args.photos / "_truth.json").exists() else "learned"
     photos = photos_in(args.photos)
     print(f"{len(photos)} photos, work dir {work}")
     if args.step in ("label", "all"):
         step_label(photos, work)
     if args.step in ("pipeline", "all"):
-        step_pipeline(photos, work, args.run)
+        step_pipeline(photos, work, args.run, args.detector)
     if args.step in ("review", "all"):
         step_review(photos, work)
     if args.step in ("eval", "all"):

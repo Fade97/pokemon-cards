@@ -23,18 +23,11 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, EXPORT_DIR, INDEX_DIR, REAL_DIR, RESULTS_DIR, cached_index, load_manifest
-from detect import center_crop_fallback, detect, rectify
+from detect import LearnedDetector, app_resize, detect_app, rectify
 
 LABELS = DATA_DIR / "real-photos-labels-manual.json"
 THRESH = 0.5
 TWIN_SETS = {"en/me04": "de/me04", "en/me03": "de/me03"}
-
-
-def guide(w, h):
-    gh = 0.78 * h
-    gw = gh * 63 / 88
-    x0, y0, m = (w - gw) / 2, (h - gh) / 2, 0.07
-    return max(0, int(x0 - m * gw)), max(0, int(y0 - m * gh)), min(w, int(x0 + gw + m * gw)), min(h, int(y0 + gh + m * gh))
 
 
 def to_input(bgr, size=224):
@@ -75,35 +68,10 @@ class Embedder:
                             lambda: np.stack([self(load_ref_rgba(str(c.ref_path))) for c in cards]))
 
 
-class LearnedDetector:
-    """Corner model on the guide crop: resize (no letterbox) to 192x256, RGB [0,1] -> [4,3] (x, y, conf)."""
-
-    def __init__(self, run: str = "corners_mnv3", variant: str = "w8"):
-        self.model_file = EXPORT_DIR / f"{run}_{variant}.tflite"
-        self.m = TFLite(self.model_file)
-
-    def __call__(self, guide_bgr):
-        h, w = guide_bgr.shape[:2]
-        x = cv2.cvtColor(cv2.resize(guide_bgr, (192, 256), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)
-        out = self.m((x.astype(np.float32) / 255)[None])
-        quad = out[:, :2] * np.array([w, h], np.float32)
-        return quad.astype(np.float32), float(out[:, 2].mean())
-
-
 def run_pipeline(img, emb, R, det):
-    h, w = img.shape[:2]
-    s = 2048 / max(h, w)
-    img = cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA)
-    h, w = img.shape[:2]
-    l, t, r, b = guide(w, h)
-    g = img[t:b, l:r]
-    conf = None
-    if det == "classic":
-        q, _ = detect(g)
-        q = center_crop_fallback(img) if q is None else q + np.float32([l, t])
-    else:
-        q, conf = det(g)
-        q = q + np.float32([l, t])
+    img = app_resize(img)
+    q, _, score = detect_app(img, None if det == "classic" else det)
+    conf = None if det == "classic" else score
     crop = rectify(img, q)
     s0 = R @ emb(crop)
     s1 = R @ emb(cv2.rotate(crop, cv2.ROTATE_180))

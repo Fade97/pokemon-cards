@@ -212,8 +212,8 @@ def tcgar_items(cards: dict[str, Card]):
 def cmd_build(threads: int):
     import cv2
 
-    from detect import order_quad, rectify
-    from eval_real_manual import Embedder, LearnedDetector
+    from detect import LearnedDetector, order_quad, rectify
+    from eval_real_manual import Embedder
     from eval_tcgar import guide_crop, upright
     from synth import load_ref_rgba
 

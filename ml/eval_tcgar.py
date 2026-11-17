@@ -23,9 +23,9 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, RESULTS_DIR
-from detect import detect, order_quad, rectify
+from detect import LearnedDetector, detect, order_quad, rectify
 from eval_forb import gallery, split_of
-from eval_real_manual import Embedder, LearnedDetector
+from eval_real_manual import Embedder
 
 ROOT = DATA_DIR / "external" / "tcg-ar" / "real" / "real"
 

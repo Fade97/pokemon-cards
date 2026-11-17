@@ -1,7 +1,9 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Classic-CV card detection and rectification.
+"""Card detection and rectification.
 
-edges/contours -> largest card-shaped quadrilateral -> side-line refinement -> perspective warp to 63:88.
+Classic CV: edges/contours -> largest card-shaped quadrilateral -> side-line refinement -> perspective warp to 63:88.
+The app's detection (`detect_app`): only the live-scan guide area is searched, with the learned corner model
+(`LearnedDetector`) or the classic detector, exactly like ScanGuide.kt and CornerDetector.kt.
 
 As a script: evaluate on the synthetic test set against the known placement (IoU + corner error)
 and write ml/results/detection.json. Rectified crops go to <data>/synth/<name>-crops/ for later steps.
@@ -11,11 +13,12 @@ from __future__ import annotations
 import argparse
 import json
 from multiprocessing import Pool
+from pathlib import Path
 
 import cv2
 import numpy as np
 
-from common import CARD_H, CARD_W, RESULTS_DIR, SYNTH_DIR
+from common import CARD_H, CARD_W, EXPORT_DIR, RESULTS_DIR, SYNTH_DIR
 
 ASPECT = 63 / 88
 WORK_SIZE = 640
@@ -236,6 +239,79 @@ def center_crop_fallback(img: np.ndarray) -> np.ndarray:
         ch = cw / ASPECT
     x0, y0 = (w - cw) / 2, (h - ch) / 2
     return np.array([[x0, y0], [x0 + cw, y0], [x0 + cw, y0 + ch], [x0, y0 + ch]], np.float32)
+
+
+# ---------------------------------------------------------------- the app's detection
+APP_MAX_SIDE = 2048     # the app scales photos to this long side before detection (LabViewModel, RealPhotoTest)
+GUIDE_HEIGHT = 0.78     # ScanGuide.kt: guide height as a share of the frame height ...
+GUIDE_MAX_WIDTH = 0.90  # ... capped at this share of the frame width
+GUIDE_MARGIN = 0.07     # search margin around the guide, as a share of the guide's size
+CORNER_MIN_SCORE = 0.10  # CornerDetector.DEFAULT_MIN_SCORE: mean corner peak below this = "no card"
+
+
+def app_resize(img: np.ndarray) -> np.ndarray:
+    """Scale down so the long side is APP_MAX_SIDE, as the app does with photos (never scales up)."""
+    h, w = img.shape[:2]
+    s = APP_MAX_SIDE / max(h, w)
+    return cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA) if s < 1 else img
+
+
+def guide_area(w: int, h: int) -> tuple[int, int, int, int]:
+    """The app's search area (ScanGuide.forFrame): a centred 63:88 guide at 78 % of the frame height (at most 90 %
+    of the width) plus a 7 % margin, clipped to the frame. Returns (left, top, right, bottom) in pixels."""
+    gh = GUIDE_HEIGHT * h
+    gw = gh * ASPECT
+    if gw > GUIDE_MAX_WIDTH * w:
+        gw = GUIDE_MAX_WIDTH * w
+        gh = gw / ASPECT
+    x0, y0 = (w - gw) / 2, (h - gh) / 2
+    m = GUIDE_MARGIN
+    return (max(0, int(x0 - m * gw)), max(0, int(y0 - m * gh)),
+            min(w, int(x0 + gw + m * gw)), min(h, int(y0 + gh + m * gh)))
+
+
+class LearnedDetector:
+    """The app's learned corner detector (CornerDetector.kt; README "Learned corner detector: exact I/O").
+
+    Called with the guide crop (BGR); returns (quad TL,TR,BR,BL in crop pixels, score = mean corner peak).
+    Needs ai-edge-litert (`uv run --extra litert ...`).
+    """
+
+    def __init__(self, model_file: Path | None = None, threads: int = 8):
+        from ai_edge_litert.interpreter import Interpreter  # optional dependency (ml[litert])
+        self.model_file = model_file or EXPORT_DIR / "corners_mnv3_w8.tflite"
+        self.it = Interpreter(model_path=str(self.model_file), num_threads=threads)
+        self.it.allocate_tensors()
+        self.i = self.it.get_input_details()[0]["index"]
+        self.o = self.it.get_output_details()[0]["index"]
+
+    def __call__(self, guide_bgr: np.ndarray):
+        h, w = guide_bgr.shape[:2]
+        x = cv2.cvtColor(cv2.resize(guide_bgr, (192, 256), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB)
+        self.it.set_tensor(self.i, (x.astype(np.float32) / 255)[None])
+        self.it.invoke()
+        out = self.it.get_tensor(self.o)[0]
+        return (out[:, :2] * np.array([w, h], np.float32)).astype(np.float32), float(out[:, 2].mean())
+
+
+def detect_app(img: np.ndarray, corners=None):
+    """Detection as the app runs it: search the guide area only, with the learned corner model (`corners`, e.g. a
+    LearnedDetector) or, when `corners` is None, the classic detector with the centred-crop fallback.
+
+    Returns (quad in image pixels, found, score). The learned quad is always used, like the app does; `found` says
+    whether its score reaches CORNER_MIN_SCORE.
+    """
+    h, w = img.shape[:2]
+    left, top, right, bottom = guide_area(w, h)
+    g = img[top:bottom, left:right]
+    offset = np.float32([left, top])
+    if corners is None:
+        q, score = detect(g)
+        if q is None:
+            return center_crop_fallback(img), False, 0.0
+        return np.asarray(q, np.float32) + offset, True, score
+    q, score = corners(g)
+    return np.asarray(q, np.float32) + offset, score >= CORNER_MIN_SCORE, score
 
 
 def quad_iou(a: np.ndarray, b: np.ndarray) -> float:

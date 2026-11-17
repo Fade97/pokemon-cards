@@ -115,13 +115,16 @@ rectify the quad to 63:88 (the prototype uses 252×352) and feed the embedding m
 Put phone photos with any file names into `D:\AI\pokemon-cards-data\real-photos\`. Then run:
 
 ```powershell
-uv run python eval_real.py all          # = label, pipeline, review, eval
+uv run --extra ocr --extra labeler --extra litert python eval_real.py all   # = label, pipeline, review, eval
 ```
 
 1. **label**: A local VLM (Qwen3-VL-4B-Instruct, 4-bit, ~3.5 GB VRAM) reads the name, the collector number
    and the language from the *raw photo*, and `labeler.py` matches that against the manifest. The VLM never
    sees the pipeline's output.
-2. **pipeline**: Detect, embed, kNN, then EasyOCR number rerank. The rectified crops go to `crops/`.
+2. **pipeline**: Detect, embed, kNN, then EasyOCR number rerank, the way the app runs it. The default detector
+   is the app's: scale to 2048 px, then the learned corner model inside the live-scan guide area
+   (`--detector classic` = classic CV in the guide area, `--detector full` = classic CV on the whole image).
+   The default embedding is the one the app ships, `mnv3_256_real`. The rectified crops go to `crops/`.
 3. **review**: When the labeler and the pipeline's top-1 agree on card and language, the label is accepted
    automatically. Every other photo goes to `<data>/real-photos-eval/review.html`: open it in a browser
    (it works offline) and click the right card, or pick "not in scope" / "unclear". Choices are kept in
@@ -130,8 +133,9 @@ uv run python eval_real.py all          # = label, pipeline, review, eval
 4. **eval**: Accuracy against `labels.json` (auto-accepted plus reviewed). If any photos are still pending, the
    result is only an upper bound, and the script prints a lower bound next to it.
 
-All results are cached per file, so re-runs only process new photos. For a dry run on synthetic photos:
-`eval_real.py make-dryrun --photos <dir> --n 30`, then `eval_real.py all --photos <dir>`. On such a folder,
+All results are cached per file, run and detector, so re-runs only process new photos. For a dry run on synthetic
+photos: `eval_real.py make-dryrun --photos <dir> --n 30`, then `eval_real.py all --photos <dir>`. Such folders
+default to `--detector full`, because their synthetic cards sit anywhere in the frame, not in the guide. On such a folder,
 `eval_real.py truthcheck --photos <dir>` measures the labeler's accuracy and how often both sources are wrong
 the same way.
 
