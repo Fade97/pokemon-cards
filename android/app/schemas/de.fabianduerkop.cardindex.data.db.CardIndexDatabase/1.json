@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "d0b557341182e9d70e5bf8e847610389",
+    "identityHash": "c9b8b400c0448d1721e39bafdfd830d1",
     "entities": [
       {
         "tableName": "card_sets",
@@ -436,7 +436,7 @@
       },
       {
         "tableName": "cached_prices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `priceDate` INTEGER, `fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`cardId`, `source`, `variant`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `priceDate` INTEGER, `fetchedAt` INTEGER NOT NULL, `productId` INTEGER, PRIMARY KEY(`cardId`, `source`, `variant`))",
         "fields": [
           {
             "fieldPath": "cardId",
@@ -487,6 +487,11 @@
             "columnName": "fetchedAt",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "productId",
+            "columnName": "productId",
+            "affinity": "INTEGER"
           }
         ],
         "primaryKey": {
@@ -661,7 +666,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd0b557341182e9d70e5bf8e847610389')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c9b8b400c0448d1721e39bafdfd830d1')"
     ]
   }
 }

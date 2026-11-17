@@ -164,4 +164,6 @@ data class CachedPriceEntity(
     /** When the source published this price (the price guide's date), as opposed to [fetchedAt]. */
     val priceDate: Instant?,
     val fetchedAt: Instant,
+    /** The market's product id (Cardmarket `idProduct`, TCGplayer `productId`), for the deep link to its offers. */
+    val productId: Long? = null,
 )

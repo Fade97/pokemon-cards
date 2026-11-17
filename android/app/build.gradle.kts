@@ -18,6 +18,12 @@ android {
         versionCode = 1
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        // Price API (backend/, issue #11). Not deployed yet, so the default is a placeholder that never resolves and
+        // the app shows cached prices only. Point a build at a running backend with
+        // `-Pcardindex.priceApiBaseUrl=https://…` (or the same line in ~/.gradle/gradle.properties).
+        val priceApi = providers.gradleProperty("cardindex.priceApiBaseUrl").getOrElse("https://prices.cardindex.invalid")
+        buildConfigField("String", "PRICE_API_BASE_URL", "\"$priceApi\"")
     }
 
     buildTypes {
@@ -41,7 +47,10 @@ android {
         targetCompatibility = JavaVersion.VERSION_17
     }
 
-    buildFeatures { compose = true }
+    buildFeatures {
+        compose = true
+        buildConfig = true
+    }
 
     testOptions { unitTests.isIncludeAndroidResources = true }
 
@@ -83,6 +92,7 @@ dependencies {
     implementation(libs.opencv)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)
+    implementation(libs.okhttp)
 
     implementation(libs.kotlinx.coroutines.android)
 
@@ -92,6 +102,7 @@ dependencies {
     testImplementation(libs.androidx.test.ext.junit)
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
+    testImplementation(libs.okhttp.mockwebserver)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)
