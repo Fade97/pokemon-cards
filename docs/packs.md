@@ -21,7 +21,12 @@ R2 bucket PACKS                         served as
 ```
 
 - `<lang>` is the TCGdex language code: `en de fr it es pt nl pl ja` in v1. TCGdex has only a few NL/PL sets
-  (3 and 2 on 2026-11-17), and only about 30 % of the JP cards have an image, so those packs index fewer cards.
+  (3 and 2 on 2026-11-17), and only about 56 % of the JP cards have an image, so those packs index fewer cards.
+- `fetch` fills in images the TCGdex API leaves out although the file is on its CDN (tcgdex/cards-database#2362,
+  #2477): for every card without `image` it sends one `HEAD` to `<cdn>/<lang>/<serie>/<set>/<localId>/high.webp`
+  and sets `image` when the answer is 2xx (403/404/410 mean missing). Answers are cached in `<work>/tcgdex/<lang>.cdn-gap.json` for
+  `--max-age-days`. On 2026-11-17 this added 3,477 JP, 449 DE and 86 EN cards (JP 3,882 → 7,359). `ja/M1S` is
+  excluded: its files show other cards from 057 on (#2395). `--no-cdn-gap` turns it off.
 - `<v>` is the pack version, an integer per language that goes up by one with every publish.
 - One model serves all languages. Its id is the embedder's file stem plus the first 12 hex digits of the SHA-256
   of the embedder and the corner detector together, e.g. `mnv3_256_real_w8-1a2b3c4d5e6f`. A new corner detector
