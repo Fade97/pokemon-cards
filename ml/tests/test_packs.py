@@ -495,3 +495,70 @@ def test_http_exists_retries_dropped_connections(monkeypatch):
     monkeypatch.setattr(build_packs.time, "sleep", lambda s: None)
     assert build_packs.http_exists("https://example.invalid/x", tries=3) is None
     assert len(tries) == 3
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# embed rows (download, cache, drop), without network or model
+
+class FakeCard:
+    def __init__(self, root, cid):
+        self.card_id, self.ref_path = cid, root / f"{cid}.png"
+
+
+def fake_embed(path):
+    return path.read_bytes()[:4].ljust(4, b"\0")
+
+
+def test_embed_rows_drops_downloaded_images_and_reuses_the_cache(tmp_path):
+    cards = [FakeCard(tmp_path, f"c{i}") for i in range(5)]
+    cards[0].ref_path.write_bytes(b"kept")  # already on disk (e.g. a training reference): never deleted
+    downloads = []
+
+    def download(c):
+        downloads.append(c.card_id)
+        if c.card_id == "c3":
+            return "missing"
+        c.ref_path.write_bytes(c.card_id.encode() * 2)
+        return "png"
+
+    ids, rows, entries, stats = build_packs.embed_rows(cards, {}, fake_embed, download=download,
+                                                       drop_images=True, chunk=2)
+    assert ids == ["c0", "c1", "c2", "c4"]
+    assert rows == [b"kept", b"c1c1", b"c2c2", b"c4c4"]
+    assert stats == {"computed": 4, "images": {"png": 3, "missing": 1}}
+    assert sorted(downloads) == ["c1", "c2", "c3", "c4"]
+    assert [c.ref_path.exists() for c in cards] == [True, False, False, False, False]
+
+    # Next run: dropped images are not downloaded again, their cached rows stand in for them.
+    cached = {cid: (sha, row) for (cid, sha), row in zip(entries, rows)}
+    downloads.clear()
+    ids2, rows2, entries2, stats2 = build_packs.embed_rows(cards, cached, fake_embed, download=download,
+                                                           drop_images=True)
+    assert downloads == ["c3"]
+    assert (ids2, rows2, entries2) == (ids, rows, entries)
+    assert stats2["computed"] == 0
+
+    # An image on disk that changed is embedded again.
+    cards[0].ref_path.write_bytes(b"new!")
+    _, rows3, _, stats3 = build_packs.embed_rows(cards, cached, fake_embed)
+    assert rows3[0] == b"new!" and stats3["computed"] == 1
+
+
+def test_embed_rows_drops_the_chunk_when_embedding_fails(tmp_path):
+    cards = [FakeCard(tmp_path, f"c{i}") for i in range(3)]
+
+    def download(c):
+        c.ref_path.write_bytes(b"img")
+        return "webp"
+
+    def broken(path):
+        raise ValueError("bad image")
+
+    with pytest.raises(ValueError):
+        build_packs.embed_rows(cards, {}, broken, download=download, drop_images=True)
+    assert not any(c.ref_path.exists() for c in cards)
+
+
+def test_drop_images_needs_download_images():
+    with pytest.raises(SystemExit, match="--download-images"):
+        build_packs.main(["embed", "--drop-images"])

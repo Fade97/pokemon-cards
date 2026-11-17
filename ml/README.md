@@ -158,6 +158,10 @@ python build_packs.py fetch --work packs-work                       # all 9 lang
 # 2. Embeddings with the app's .tflite model, on the machine with CARDINDEX_DATA (numpy, OpenCV, ai-edge-litert).
 #    Rows are cached per model and image hash in <data>/packs-embcache, so unchanged cards stay byte-identical.
 python build_packs.py embed --work packs-work --download-images
+#    Low on disk (FR/IT/ES/PT/NL/PL are ~20 GB of PNGs): --drop-images deletes the images it downloaded once they
+#    are embedded, 256 cards at a time (--chunk). A cached row then stands in for its image, so later runs with the
+#    same model download nothing; a new model downloads them again. Images already on disk are never deleted.
+python build_packs.py embed --work packs-work --langs fr,it --download-images --drop-images
 # 3. Packs, deltas and catalog.json against what is published, any machine, standard library only
 python build_packs.py build --work packs-work --out packs-out --base https://<api>/v1/packs
 python build_packs.py build ... --upload            # wrangler r2 object put --remote, catalog.json last; --dry-run
@@ -172,5 +176,5 @@ metadata-only packs for testing; it cannot be combined with `--upload`. `all` ru
 Tests for the pure parts (format, deltas, catalog, build step) need no torch:
 
 ```sh
-uv run --no-project --with pytest pytest tests
+uv run --no-project --with pytest pytest tests/test_packs.py
 ```

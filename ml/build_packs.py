@@ -168,13 +168,69 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
 # ---------------------------------------------------------------------------------------------------------------
 # Step 2: embed (needs the data dir; heavy imports stay inside)
 
-def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, download_images: bool,
-          threads: int) -> None:
-    """Embeds every card that has a reference image with the app's own .tflite model (same code path as
-    app_assets.py, so pack and app always match). Rows are cached per model and image hash, so an unchanged card
-    keeps byte-identical bytes and does not show up in the next delta."""
+def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, download=None,
+               drop_images: bool = False, chunk: int = 256) -> tuple[list[str], list[bytes], list[list[str]], dict]:
+    """Embedding rows of `cards` (objects with `.card_id` and `.ref_path`), in card order.
+
+    `cached` maps card id -> (image sha256, row). A card whose image file is there is embedded again only when its
+    hash differs from the cached one. A card whose image file is gone keeps its cached row: the cache stands in for
+    an image that was dropped after embedding (`fetch.download` never fetches an image again once it is on disk,
+    so this is no less fresh than keeping the file). `download(card) -> str` fetches a missing image of a card that
+    is not cached; with `drop_images` the files this call downloaded are deleted after each chunk of `chunk`
+    cards, so the disk only ever holds one chunk of them.
+    Returns ids, rows, cache entries ([id, image sha256]) and stats {"computed", "images": {download result: n}}.
+    """
     import hashlib
 
+    ids: list[str] = []
+    rows: list[bytes] = []
+    entries: list[list[str]] = []
+    stats: dict = {"computed": 0, "images": {}}
+
+    def on_disk(c) -> bool:
+        return c.ref_path.exists() and c.ref_path.stat().st_size > 0
+
+    for start in range(0, len(cards), max(1, chunk)):
+        part = cards[start:start + chunk]
+        fetched = []
+        if download is not None:
+            todo = [c for c in part if c.card_id not in cached and not on_disk(c)]
+            with ThreadPoolExecutor(max_workers=4) as ex:  # TCGdex is free: at most 4 requests
+                results = list(ex.map(download, todo))
+            for c, r in zip(todo, results):
+                stats["images"][r] = stats["images"].get(r, 0) + 1
+                if r != "missing" and r != "cached":
+                    fetched.append(c)
+        try:
+            for c in part:
+                hit = cached.get(c.card_id)
+                if on_disk(c):
+                    img_sha = hashlib.sha256(c.ref_path.read_bytes()).hexdigest()
+                    if hit and hit[0] == img_sha:
+                        row = hit[1]
+                    else:
+                        row = embed_one(c.ref_path)
+                        stats["computed"] += 1
+                elif hit:
+                    img_sha, row = hit
+                else:
+                    continue
+                ids.append(c.card_id)
+                rows.append(row)
+                entries.append([c.card_id, img_sha])
+        finally:
+            if drop_images:
+                for c in fetched:
+                    c.ref_path.unlink(missing_ok=True)
+    return ids, rows, entries, stats
+
+
+def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, download_images: bool,
+          threads: int, drop_images: bool = False, chunk: int = 256) -> None:
+    """Embeds every card that has a reference image with the app's own .tflite model (same code path as
+    app_assets.py, so pack and app always match). Rows are cached per model and image hash, so an unchanged card
+    keeps byte-identical bytes and does not show up in the next delta. With `drop_images` the images downloaded
+    here are deleted once embedded (see embed_rows); a new model then has to download them again."""
     import numpy as np
 
     from app_assets import INPUT, Embedder, to_input
@@ -208,12 +264,6 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
         cards = [Card(f"{lang}/{c['id']}", c["id"], lang, c["setId"], sets[c["setId"]]["name"], c["localId"],
                       int(sets[c["setId"]]["official"] or 0), c["name"], "", (), c["image"])
                  for c in meta["cards"] if c["image"]]
-        if download_images:
-            from fetch import download
-            with ThreadPoolExecutor(max_workers=4) as ex:
-                results = list(ex.map(download, cards))
-            print(f"{lang}: images {({k: results.count(k) for k in set(results)})}")
-
         cache_dir = DATA_DIR / "packs-embcache" / model_sha[:12]
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_json, cache_bin = cache_dir / f"{lang}.json", cache_dir / f"{lang}.bin"
@@ -224,20 +274,18 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
             for n, (cid, img_sha) in enumerate(entries):
                 cached[cid] = (img_sha, blob[n * dim * 4:(n + 1) * dim * 4])
 
-        ids, rows, entries, fresh = [], [], [], 0
-        for c in cards:
-            if not c.ref_path.exists() or c.ref_path.stat().st_size == 0:
-                continue
-            img_sha = hashlib.sha256(c.ref_path.read_bytes()).hexdigest()
-            hit = cached.get(c.card_id)
-            if hit and hit[0] == img_sha:
-                row = hit[1]
-            else:
-                row = emb(to_input(load_ref_rgba(str(c.ref_path)))).astype("<f4").tobytes()
-                fresh += 1
-            ids.append(c.card_id)
-            rows.append(row)
-            entries.append([c.card_id, img_sha])
+        download = None
+        if download_images:
+            from fetch import download
+
+        def embed_one(path: Path) -> bytes:
+            return emb(to_input(load_ref_rgba(str(path)))).astype("<f4").tobytes()
+
+        ids, rows, entries, stats = embed_rows(cards, cached, embed_one, download=download,
+                                               drop_images=drop_images, chunk=chunk)
+        if download:
+            print(f"{lang}: images {stats['images']}" + (" (dropped after embedding)" if drop_images else ""))
+        fresh = stats["computed"]
         cache_json.write_text(json.dumps(entries))
         cache_bin.write_bytes(b"".join(rows))
         (work / lang / "embeddings.bin").write_bytes(b"".join(rows))
@@ -424,6 +472,10 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--model", default="export/mnv3_256_real_w8.tflite", help="relative to CARDINDEX_DATA")
         p.add_argument("--corners", default="export/corners_mnv3_w8.tflite", help="relative to CARDINDEX_DATA; '' = none")
         p.add_argument("--download-images", action="store_true", help="fetch missing reference images (fetch.py)")
+        p.add_argument("--drop-images", action="store_true",
+                       help="with --download-images: delete the images fetched here once embedded (saves ~330 kB "
+                            "per card; the embedding cache keeps the rows, a new model downloads them again)")
+        p.add_argument("--chunk", type=int, default=256, help="cards per download/embed/drop round")
         p.add_argument("--threads", type=int, default=8)
 
     def build_args(p):
@@ -448,6 +500,8 @@ def main(argv: list[str] | None = None) -> None:
         for add in adders:
             add(p)
     args = ap.parse_args(argv)
+    if getattr(args, "drop_images", False) and not args.download_images:
+        sys.exit("--drop-images only deletes images this run downloads; pass --download-images too")
     if getattr(args, "upload", False) and args.no_embeddings:
         sys.exit("--upload with --no-embeddings would replace the published packs with metadata-only ones")
 
@@ -458,7 +512,8 @@ def main(argv: list[str] | None = None) -> None:
                        cdn_gap=not args.no_cdn_gap)
     if args.cmd == "embed" or (args.cmd == "all" and not args.no_embeddings):
         embed(args.work, args.langs, model_rel=args.model, corners_rel=args.corners,
-              download_images=args.download_images, threads=args.threads)
+              download_images=args.download_images, threads=args.threads, drop_images=args.drop_images,
+              chunk=args.chunk)
     if args.cmd in ("build", "all"):
         _, files = build(args.work, args.out, args.langs, base=args.base, embeddings=not args.no_embeddings)
         # Only a published catalog becomes the baseline: a local build (or a dry run) stays staged, so a later
