@@ -6,7 +6,7 @@ CREATE TABLE contributions (
   card_id         TEXT NOT NULL,           -- confirmed TCGdex card id, e.g. 'sv03.5-025'
   lang            TEXT NOT NULL,           -- language of the scanned print (TCGdex code), e.g. 'de'
   consent_version TEXT NOT NULL,           -- consent text the contributor accepted, e.g. 'cc0-1'
-  object_key      TEXT NOT NULL,           -- R2 key, e.g. 'scans/<id>.jpg'
+  object_key      TEXT NOT NULL,           -- R2 key, 'scans/<id>' (rows from before 2026-11-17 may have .jpg/.webp)
   content_type    TEXT NOT NULL,           -- 'image/jpeg' or 'image/webp'
   size            INTEGER NOT NULL,        -- bytes after metadata stripping
   width           INTEGER NOT NULL,
