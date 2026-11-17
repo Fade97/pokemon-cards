@@ -1,0 +1,12 @@
+[Unit]
+Description=Pokémon cards: nightly price import (TCGdex, Cardmarket, TCGCSV) and price files to R2
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+# Replaced by deploy.sh with the node binary it was run with.
+Environment=PATH=@NODE_DIR@:/usr/local/bin:/usr/bin:/bin
+ExecStart=%h/.local/share/pokemon-cards-prices/app/run-nightly.sh
+Nice=10
+TimeoutStartSec=3h

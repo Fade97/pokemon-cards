@@ -1,6 +1,6 @@
 # 0005. Backend on Cloudflare Workers + D1 + R2
 
-Status: accepted (2026-11-15)
+Status: accepted (2026-11-15); the nightly import moved to Vulcan and D1 is no longer used for prices (ADR 0011)
 
 ## Context
 
