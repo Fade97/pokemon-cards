@@ -10,6 +10,7 @@ import copy
 import gzip
 import hashlib
 import json
+import urllib.parse
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -80,6 +81,33 @@ def card_records(s: dict) -> list[dict]:
          "image": c.get("image")}
         for c in s.get("cards") or []
     ]
+
+
+CDN = "https://assets.tcgdex.net"
+# Sets whose CDN files show the wrong cards: never link them, even when the file exists.
+# ja/M1S: from 057 on the files are other cards (tcgdex/cards-database#2395).
+CDN_GAP_EXCLUDE = {"ja": {"M1S"}}
+
+
+def cdn_gap_candidates(lang: str, sets: list[dict], cards: list[dict]) -> dict[str, str]:
+    """Cards without `image` whose own CDN path may still hold a file: TCGdex sometimes has the image on the CDN
+    but not in its `datas.json`, so the API leaves `image` out (tcgdex/cards-database#2362, #2477; ~3.3k JP cards).
+    Returns card id -> the image base URL the API would give, built as `<cdn>/<lang>/<serie>/<set>/<localId>`."""
+    series = {s["id"]: s["serieId"] for s in sets}
+    skip = CDN_GAP_EXCLUDE.get(lang, set())
+    out = {}
+    for c in cards:
+        serie = series.get(c["setId"])
+        if c["image"] or not serie or c["setId"] in skip or not c["localId"]:
+            continue
+        out[c["id"]] = "/".join([CDN, lang, *(urllib.parse.quote(p, safe="") for p in
+                                               (serie, c["setId"], c["localId"]))])
+    return out
+
+
+def fill_cdn_gap(cards: list[dict], found: dict[str, str]) -> list[dict]:
+    """The cards with `image` set from `found` (card id -> base URL) where the API had none."""
+    return [{**c, "image": found[c["id"]]} if not c["image"] and c["id"] in found else c for c in cards]
 
 
 def sort_cards(cards: list[dict]) -> list[dict]:
