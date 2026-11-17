@@ -8,8 +8,9 @@ stay in <data>/external/forb and are never committed or published. See docs/rese
 Gallery: the full EN language pack (every TCGdex EN card with an image, ~22k), i.e. what the app searches when
 English is installed, not just the 870 trained cards.
 
-  map    FORB ground truth (pokemon.com scan, "SM7_EN_52") -> TCGdex id. Each scan is embedded and matched against
-         the gallery; a mapping is accepted only when the top-1 shares the collector number. -> forb_map.json
+  map    FORB ground truth (pokemon.com scan, "SM7_EN_52") -> TCGdex id: the print with the URL's set code and
+         number when the gallery has it, else the best of the scan's top-10 gallery matches with the same number
+         and similarity >= 0.6. -> forb_map.json
   eval   photo -> detector (classic or learned corners, on the whole photo: the seller framed the card) ->
          rectify -> embedding (both 180-degree orientations) -> kNN over the gallery. Scored by split (a fixed
          20 % of the cards is held out from any training) and by FORB difficulty.
@@ -36,6 +37,7 @@ FORB = DATA_DIR / "external" / "forb"
 WORK = DATA_DIR / "packs-work"
 MAP = FORB / "forb_map.json"
 HOLDOUT_PERCENT = 20
+MIN_MAP_SIM = 0.6
 
 
 def split_of(card_id: str) -> str:
@@ -52,6 +54,21 @@ def forb_number(url: str) -> str | None:
     """'.../SM7_EN_52.png' -> '52'; None for the two ground-truth images from shops, which carry no number."""
     stem = url.rsplit("/", 1)[-1].rsplit(".", 1)[0]
     return stem.split("_EN_", 1)[1] if "_EN_" in stem else None
+
+
+# pokemon.com set code (upper-cased, as in the FORB ground-truth URL) -> TCGdex EN set id, where lower-casing and
+# "SM35" -> "sm3.5" do not give it.
+FORB_SETS = {"CEL": "cel25", "CELC": "cel25cc", "HSP": "hgssp", "POP%20Series%202": "pop2", "POP%20Series_3": "pop3"}
+
+
+def forb_set(url: str, known_sets: set[str]) -> str | None:
+    """'.../SM35/SM35_EN_14.png' -> 'sm3.5'; None when no TCGdex set fits."""
+    code = url.rsplit("/", 1)[-1].split("_EN_", 1)[0]
+    cands = [FORB_SETS.get(code, code.lower())]
+    m = re.fullmatch(r"([a-z]+\d+)5", cands[0])
+    if m:
+        cands.append(f"{m.group(1)}.5")
+    return next((c for c in reversed(cands) if c in known_sets), None)
 
 
 def gallery(lang: str = "en", model_name: str | None = None):
@@ -72,6 +89,9 @@ def cmd_map(emb: Embedder, ids, R, cards):
     scans = {}
     for g in gt:
         scans.setdefault(g["groundtruth_images"][0], g["groundtruth_urls"][0])
+    by_set_number = {(c["setId"], norm_number(c["localId"])): cid for cid, c in cards.items()}
+    known_sets = {c["setId"] for c in cards.values()}
+    pos = {cid: i for i, cid in enumerate(ids)}
     out, reasons = {}, defaultdict(int)
     for img, url in sorted(scans.items()):
         bgr = cv2.imread(str(FORB / img))
@@ -83,16 +103,27 @@ def cmd_map(emb: Embedder, ids, R, cards):
             reasons["no collector number in the ground truth"] += 1
             continue
         num = norm_number(forb_number(url))
+        # The URL names set and number: when TCGdex has that print, take it directly.
+        direct = by_set_number.get((forb_set(url, known_sets), num))
+        if direct in pos:
+            out[img] = {"url": url, "id": direct, "sim": round(float(sims[pos[direct]]), 3), "by": "set+number"}
+            reasons["mapped by set and number"] += 1
+            continue
         top = np.argsort(-sims)[:10]
         # The scan is clean, so the right print is near the top; several prints share an artwork (reprints,
         # promos), so take the best candidate whose collector number matches.
         hit = next((i for i in top if norm_number(cards[ids[i]]["localId"]) == num), None)
+        # Only where TCGdex files the print elsewhere (XY alternate arts "XYA 107a" -> xy9-107a, sim >= 0.85); a weak
+        # match with the same number is another card (sm3.5 has no images: SM35_EN_14 -> sm2-14 at 0.45).
+        if hit is not None and sims[hit] < MIN_MAP_SIM:
+            hit = None
         if hit is None:
             reasons["no number match in top-10"] += 1
             out[img] = {"url": url, "id": None, "top1": ids[top[0]], "sim": round(float(sims[top[0]]), 3)}
             continue
-        out[img] = {"url": url, "id": ids[hit], "sim": round(float(sims[hit]), 3), "rank": int(np.where(top == hit)[0][0])}
-        reasons["mapped"] += 1
+        out[img] = {"url": url, "id": ids[hit], "sim": round(float(sims[hit]), 3), "rank": int(np.where(top == hit)[0][0]),
+                    "by": "embedding"}
+        reasons["mapped by embedding + number"] += 1
     MAP.write_text(json.dumps(out, indent=1))
     print(dict(reasons), "->", MAP)
 
@@ -158,10 +189,10 @@ def main():
     ap.add_argument("--detector", choices=["classic", "learned"], default="learned")
     ap.add_argument("--limit", type=int, default=None, help="only the first N FORB queries (quick check)")
     args = ap.parse_args()
-    emb = Embedder(args.embedder)
-    ids, R, cards = gallery("en", f"{args.embedder}_w8.tflite")
     if not (EXPORT_DIR / f"{args.embedder}_w8.tflite").exists():
         raise SystemExit("embedder not found")
+    emb = Embedder(args.embedder)
+    ids, R, cards = gallery("en", f"{args.embedder}_w8.tflite")
     if args.cmd == "map":
         cmd_map(emb, ids, R, cards)
     else:

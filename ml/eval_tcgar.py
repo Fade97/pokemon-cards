@@ -30,7 +30,7 @@ from eval_real_manual import Embedder, LearnedDetector
 ROOT = DATA_DIR / "external" / "tcg-ar" / "real" / "real"
 
 # pokemontcg.io set id -> TCGdex set id where the simple rules below do not apply.
-SET_EXCEPTIONS = {"pgo": "swsh10.5", "base6": "base6", "swsh45": "swsh4.5", "sm35": "sm3.5", "sm75": "sm7.5",
+SET_EXCEPTIONS = {"pgo": "swsh10.5", "base6": "lc", "swsh45": "swsh4.5", "sm35": "sm3.5", "sm75": "sm7.5",
                   "sm115": "sm11.5", "swsh35": "swsh3.5"}
 
 
@@ -64,9 +64,12 @@ def annotations():
 
 
 def upright(img, quad):
-    """The user holds the phone along the card: when the card lies sideways, rotate the photo by 90 degrees."""
-    q = order_quad(quad)
-    if np.linalg.norm(q[0] - q[1]) <= np.linalg.norm(q[1] - q[2]):
+    """The user holds the phone along the card: when the card lies sideways, rotate the photo by 90 degrees.
+    Decided on the raw quad (order_quad always returns a portrait order): sideways = the long sides run closer to
+    horizontal than to vertical."""
+    sides = np.roll(quad, -1, 0) - quad
+    long_side = sides[np.argmax(np.linalg.norm(sides, axis=1))]
+    if abs(long_side[1]) >= abs(long_side[0]):
         return img, quad
     h = img.shape[0]
     return cv2.rotate(img, cv2.ROTATE_90_CLOCKWISE), np.stack([h - 1 - quad[:, 1], quad[:, 0]], 1)
