@@ -282,7 +282,7 @@ def publish_pack(catalog: dict, pack: Pack, base: Pack | None, *, model: dict | 
             new_model = model["id"] if model and pack.rows else None
             if prev.get("model") != new_model:
                 # Same embedder (so the same index), new model bundle (e.g. corner detector): the pack only points
-                # to it; no new pack files, and the app downloads just the model.
+                # to it, with no new pack files. (The app still re-downloads its packs on any model change.)
                 catalog["packs"][lang] = {**prev, "model": new_model}
                 catalog["models"][new_model] = {k: v for k, v in model.items() if k != "id"}
             return catalog, []

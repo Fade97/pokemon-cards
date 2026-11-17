@@ -25,8 +25,9 @@ R2 bucket PACKS                         served as
 - `<v>` is the pack version, an integer per language that goes up by one with every publish.
 - One model serves all languages. Its id is the embedder's file stem plus the first 12 hex digits of the SHA-256
   of the embedder and the corner detector together, e.g. `mnv3_256_real_w8-1a2b3c4d5e6f`. A new corner detector
-  alone is a new model: unchanged packs only point to it (same version, same files), and the app downloads just
-  the model, because `modelSha256` (the embedder) and so the installed indexes stay the same.
+  alone is a new model: unchanged packs only point to it (same version, same files, same `modelSha256`). The app
+  treats any new model id as a model change and downloads the model and the full packs again (#45); that costs
+  bandwidth once, not correctness.
 
 ### Immutability
 
