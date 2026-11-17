@@ -164,7 +164,10 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   under that label.
 - **Queue** (`data/contributions/`, Room table `contributions`): `ContributionWorker` (WorkManager, network
   required) sends withdrawals first, then uploads. A `429` is waited out as `Retry-After` says, three times per
-  run; other network errors retry with backoff. `400/413/415/422` drop that scan.
+  run; other network errors retry with backoff. `400/409/413/415/422` drop that scan. Each scan gets its id (UUID
+  v4) and withdraw token (32 random bytes, base64url) when it is queued, and every attempt sends the same ones
+  (`?id=`, `Authorization: Bearer`): after a lost answer the retry gets the stored copy back (`200`) instead of
+  making a second one without a token on the phone.
 - **My contributions** lists every scan with its state; withdraw one or all. Withdrawing a scan not sent yet only
   deletes it locally. For a sent one the app calls `DELETE` with the stored token (`404` counts as done) and then
   forgets it. The withdraw token lives only in the app's database and is redacted from `toString()`, so it never

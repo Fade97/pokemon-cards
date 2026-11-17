@@ -109,11 +109,16 @@ class ContributionsTest {
         assertEquals(listOf("sv03.5-006", "de", "cc0-1"), listOf(upload.cardId, upload.lang, upload.consent))
         assertFalse(JpegMetadata.hasMetadata(upload.jpeg))
         val stored = db.contributionDao().byId(id)!!
-        assertEquals("r1", stored.remoteId)
-        assertEquals("token-r1", stored.withdrawToken)
+        // Id and token were chosen when the scan was queued and sent as they are.
+        assertEquals(queued.remoteId, stored.remoteId)
+        assertEquals(queued.withdrawToken, stored.withdrawToken)
+        assertEquals(stored.remoteId to stored.withdrawToken, upload.id to upload.token)
+        assertTrue(UUID_V4.matches(stored.remoteId!!))
+        assertTrue(TOKEN.matches(stored.withdrawToken!!))
+        assertEquals(Instant.parse("2026-11-17T10:00:00Z"), stored.uploadedAt)
         assertNull(stored.cropPath)
         assertFalse(file.exists())
-        assertFalse("the token must not show up in logs", stored.toString().contains("token-r1"))
+        assertFalse("the token must not show up in logs", stored.toString().contains(stored.withdrawToken!!))
         val item = repo.observe().first().single()
         assertEquals("Card 006", item.cardName)
     }
@@ -123,7 +128,7 @@ class ContributionsTest {
         repo.contribute("sv03.5-006", "de", jpegWithMetadata)
         api.failNext += IOException("offline")
         assertEquals(QueueOutcome.Retry, repo.processQueue())
-        assertNull(db.contributionDao().pendingUploads().single().remoteId)
+        assertNull(db.contributionDao().pendingUploads().single().uploadedAt)
 
         api.failNext += ContributionRateLimitedException(60)
         assertEquals(QueueOutcome.Done, repo.processQueue())
@@ -138,6 +143,29 @@ class ContributionsTest {
         assertEquals(QueueOutcome.Retry, repo.processQueue())
         assertEquals(3, slept.size)
         assertEquals(1, db.contributionDao().pendingUploads().size)
+    }
+
+    @Test
+    fun lostAnswerThenRetry_leavesOneServerCopyThatTheStoredTokenWithdraws() = runTest {
+        val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val queued = db.contributionDao().byId(id)!!
+        api.loseNextAnswer = true
+        // The server stored it, the answer never arrived.
+        assertEquals(QueueOutcome.Retry, repo.processQueue())
+        assertEquals(1, api.uploads.size)
+        assertNull(db.contributionDao().byId(id)!!.uploadedAt)
+
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertEquals(2, api.requests)
+        assertEquals("still one copy on the server", 1, api.uploads.size)
+        val stored = db.contributionDao().byId(id)!!
+        assertEquals(queued.remoteId to queued.withdrawToken, stored.remoteId to stored.withdrawToken)
+        assertEquals(api.uploads.single().id to api.uploads.single().token, stored.remoteId to stored.withdrawToken)
+
+        repo.withdraw(id)
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertEquals(listOf(stored.remoteId to stored.withdrawToken), api.withdrawals)
+        assertTrue(api.withdrawn(stored.remoteId!!))
     }
 
     @Test
@@ -169,15 +197,17 @@ class ContributionsTest {
         assertNull(db.contributionDao().byId(queued))
 
         repo.withdraw(uploaded)
-        assertTrue(db.contributionDao().byId(uploaded)!!.withdrawRequested)
+        val row = db.contributionDao().byId(uploaded)!!
+        assertTrue(row.withdrawRequested)
         assertEquals(QueueOutcome.Done, repo.processQueue())
-        assertEquals(listOf("r1" to "token-r1"), api.withdrawals)
+        assertEquals(listOf(row.remoteId to row.withdrawToken), api.withdrawals)
         assertTrue(repo.observe().first().isEmpty())
     }
 
     @Test
     fun withdrawDuringTheUpload_waitsForIt_andThenWithdrawsOnTheServer() = runTest {
         val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val row = db.contributionDao().byId(id)!!
         val gate = CompletableDeferred<Unit>()
         api.beforeUploadReturns = { gate.await() }
 
@@ -194,22 +224,23 @@ class ContributionsTest {
         assertEquals(QueueOutcome.Done, repo.processQueue())
 
         assertEquals(1, api.uploads.size)
-        assertEquals(listOf("r1" to "token-r1"), api.withdrawals)
+        assertEquals(listOf(row.remoteId to row.withdrawToken), api.withdrawals)
         assertNull(db.contributionDao().byId(id))
         assertTrue(repo.observe().first().isEmpty())
     }
 
     @Test
     fun withdrawAllCoversQueuedAndUploaded() = runTest {
-        repo.contribute("sv03.5-006", "de", jpegWithMetadata)
-        repo.contribute("sv03.5-025", "de", jpegWithMetadata)
+        val first = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val second = repo.contribute("sv03.5-025", "de", jpegWithMetadata)!!
         repo.processQueue()
         repo.contribute("sv03.5-001", "en", jpegWithMetadata)
+        val sent = listOf(first, second).map { db.contributionDao().byId(it)!!.remoteId }
 
         repo.withdrawAll()
         assertEquals(QueueOutcome.Done, repo.processQueue())
 
-        assertEquals(listOf("r1", "r2"), api.withdrawals.map { it.first })
+        assertEquals(sent, api.withdrawals.map { it.first })
         assertEquals(2, api.uploads.size)
         assertTrue(repo.observe().first().isEmpty())
     }
@@ -217,24 +248,33 @@ class ContributionsTest {
     @Test
     fun httpClientSendsExactlyTheContract() = runTest {
         val server = MockWebServer()
-        server.enqueue(MockResponse().setResponseCode(201).setBody("""{"id":"abc","withdrawToken":"t0k"}"""))
+        val id = "0b6f5c1e-8a4d-4f2b-9c3e-1d2a3b4c5d6e"
+        val token = "A".repeat(43)
+        server.enqueue(MockResponse().setResponseCode(201).setBody("""{"id":"$id","withdrawToken":"$token"}"""))
+        server.enqueue(MockResponse().setResponseCode(200).setBody("""{"id":"$id","withdrawToken":"$token"}"""))
         server.enqueue(MockResponse().setResponseCode(429).setHeader("Retry-After", "30"))
         server.enqueue(MockResponse().setResponseCode(404))
         server.enqueue(MockResponse().setResponseCode(422))
+        server.enqueue(MockResponse().setResponseCode(409))
         server.start()
         try {
             val http = HttpContributionApi(server.url("/").toString(), OkHttpClient())
-            val result = http.upload("sv03.5-006", "de", "cc0-1", byteArrayOf(1, 2, 3))
-            assertEquals("abc", result.id)
-            assertFalse(result.toString().contains("t0k"))
+            val result = http.upload("sv03.5-006", "de", "cc0-1", id, token, byteArrayOf(1, 2, 3))
+            assertEquals(id, result.id)
+            assertFalse(result.toString().contains(token))
             val post = server.takeRequest()
             assertEquals("POST", post.method)
-            assertEquals("/v1/contributions?cardId=sv03.5-006&lang=de&consent=cc0-1", post.path)
+            assertEquals("/v1/contributions?cardId=sv03.5-006&lang=de&consent=cc0-1&id=$id", post.path)
             assertEquals("image/jpeg", post.getHeader("Content-Type"))
-            assertNull(post.getHeader("Authorization"))
+            assertEquals("Bearer $token", post.getHeader("Authorization"))
+
+            // The same upload again (its answer was lost): 200 with the same values.
+            val again = http.upload("sv03.5-006", "de", "cc0-1", id, token, byteArrayOf(1, 2, 3))
+            assertEquals(id to token, again.id to again.withdrawToken)
+            server.takeRequest()
 
             val limited = assertThrows(ContributionRateLimitedException::class.java) {
-                kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "cc0-1", byteArrayOf(1)) }
+                kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "cc0-1", id, token, byteArrayOf(1)) }
             }
             assertEquals(30L, limited.retryAfterSeconds)
             server.takeRequest()
@@ -246,34 +286,69 @@ class ContributionsTest {
             assertEquals("Bearer t0k", delete.getHeader("Authorization"))
 
             assertThrows(ContributionRejectedException::class.java) {
-                kotlinx.coroutines.runBlocking { http.upload("x", "de", "cc0-1", byteArrayOf(1)) }
+                kotlinx.coroutines.runBlocking { http.upload("x", "de", "cc0-1", id, token, byteArrayOf(1)) }
             }
+            server.takeRequest()
+            // The id is taken by another token: sending it again won't help.
+            val taken = assertThrows(ContributionRejectedException::class.java) {
+                kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "cc0-1", id, "B".repeat(43), byteArrayOf(1)) }
+            }
+            assertEquals(409, taken.code)
         } finally {
             server.shutdown()
         }
     }
 
-    private class Upload(val cardId: String, val lang: String, val consent: String, val jpeg: ByteArray)
+    private class Upload(val cardId: String, val lang: String, val consent: String, val id: String, val token: String, val jpeg: ByteArray)
 
+    /** The backend's contract: one stored contribution per id; the same id and token again get it back. */
     private class FakeApi : ContributionApi {
+        /** Contributions stored on the server. */
         val uploads = mutableListOf<Upload>()
+        var requests = 0
         val withdrawals = mutableListOf<Pair<String, String>>()
         val failNext = ArrayDeque<IOException>()
         var beforeUploadReturns: suspend () -> Unit = {}
 
-        override suspend fun upload(cardId: String, lang: String, consent: String, jpeg: ByteArray): UploadedContribution {
+        /** The next upload is stored, but its answer is lost on the way back. */
+        var loseNextAnswer = false
+
+        override suspend fun upload(
+            cardId: String,
+            lang: String,
+            consent: String,
+            id: String,
+            withdrawToken: String,
+            jpeg: ByteArray,
+        ): UploadedContribution {
+            requests++
             failNext.removeFirstOrNull()?.let { throw it }
             beforeUploadReturns()
-            uploads += Upload(cardId, lang, consent, jpeg)
-            val id = "r${uploads.size}"
-            return UploadedContribution(id, "token-$id")
+            val existing = uploads.firstOrNull { it.id == id }
+            if (existing == null) {
+                uploads += Upload(cardId, lang, consent, id, withdrawToken, jpeg)
+            } else if (existing.token != withdrawToken) {
+                throw ContributionRejectedException(409)
+            }
+            if (loseNextAnswer) {
+                loseNextAnswer = false
+                throw IOException("timeout")
+            }
+            return UploadedContribution(id, withdrawToken)
         }
 
         override suspend fun withdraw(id: String, withdrawToken: String) {
             failNext.removeFirstOrNull()?.let { throw it }
             withdrawals += id to withdrawToken
         }
+
+        fun withdrawn(id: String): Boolean = uploads.any { it.id == id && (it.id to it.token) in withdrawals }
     }
 
     private fun bytes(vararg values: Int) = ByteArray(values.size) { values[it].toByte() }
+
+    private companion object {
+        val UUID_V4 = Regex("^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$")
+        val TOKEN = Regex("^[A-Za-z0-9_-]{43}$")
+    }
 }

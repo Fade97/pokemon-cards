@@ -166,7 +166,7 @@ private fun ContributionRow(item: ContributionItem, onWithdraw: () -> Unit) {
                 dateFormat.format(c.createdAt) + " · " + stringResource(
                     when {
                         c.withdrawRequested -> R.string.contribute_state_withdrawing
-                        c.remoteId == null -> R.string.contribute_state_queued
+                        c.uploadedAt == null -> R.string.contribute_state_queued
                         else -> R.string.contribute_state_shared
                     },
                 ),

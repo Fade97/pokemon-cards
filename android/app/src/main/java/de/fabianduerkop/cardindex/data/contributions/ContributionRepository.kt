@@ -12,7 +12,9 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.IOException
+import java.security.SecureRandom
 import java.time.Instant
+import java.util.Base64
 import java.util.UUID
 
 /** The consent text the user accepted; the backend accepts only versions it knows (`CONSENT_VERSIONS`). */
@@ -69,7 +71,13 @@ class ContributionRepository(
         file.parentFile?.mkdirs()
         file.writeBytes(clean)
         val id = try {
-            dao.insert(ContributionEntity(cardId = cardId, language = lang, cropPath = relative, consentVersion = consent, createdAt = clock()))
+            // Id and token are chosen here, before the first attempt, so every retry sends the same ones.
+            dao.insert(
+                ContributionEntity(
+                    cardId = cardId, language = lang, cropPath = relative, consentVersion = consent, createdAt = clock(),
+                    remoteId = UUID.randomUUID().toString(), withdrawToken = newWithdrawToken(),
+                ),
+            )
         } catch (t: Throwable) {
             file.delete()
             throw t
@@ -81,7 +89,7 @@ class ContributionRepository(
     /** Takes one contribution back: a queued one is dropped here, an uploaded one is withdrawn on the server. */
     suspend fun withdraw(id: Long) = lock.withLock {
         val item = dao.byId(id) ?: return@withLock
-        if (item.remoteId == null) {
+        if (item.uploadedAt == null) {
             drop(item)
         } else {
             dao.requestWithdrawal(id)
@@ -123,8 +131,7 @@ class ContributionRepository(
 
     /**
      * One request; false when nothing is left. An upload whose answer is lost (timeout after the server stored it)
-     * is sent again on the next run; the first copy then has no token on the device. Accepted: rare, and dataset
-     * releases are checked by hand.
+     * is sent again on the next run with the same id and token, and the server answers with the copy it has.
      */
     private suspend fun step(): Boolean = lock.withLock { stepLocked() }
 
@@ -152,7 +159,11 @@ class ContributionRepository(
             return true
         }
         try {
-            val uploaded = api.upload(item.cardId, item.language, item.consentVersion, file.readBytes())
+            val uploaded = api.upload(
+                item.cardId, item.language, item.consentVersion, item.remoteId!!, item.withdrawToken!!, file.readBytes(),
+            )
+            // The answer repeats the stored id and token; a backend without client ids would send its own, which are
+            // then the ones that withdraw it.
             dao.markUploaded(item.id, uploaded.id, uploaded.withdrawToken, clock())
             file.delete()
         } catch (e: ContributionRejectedException) {
@@ -172,5 +183,10 @@ class ContributionRepository(
         const val DIR = "contributions"
         private const val TAG = "Contributions"
         private const val MAX_RATE_LIMIT_WAITS = 3
+        private val random = SecureRandom()
+
+        /** 32 random bytes, base64url without padding: the 43 characters the backend expects. */
+        internal fun newWithdrawToken(): String =
+            Base64.getUrlEncoder().withoutPadding().encodeToString(ByteArray(32).also(random::nextBytes))
     }
 }

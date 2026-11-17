@@ -12,9 +12,10 @@ import kotlinx.coroutines.flow.Flow
 import java.time.Instant
 
 /**
- * A scan the user contributed to the open dataset (issue #14). Queued with [cropPath] until it is uploaded; then
- * [remoteId] and [withdrawToken] (shown by the server only once) are kept so the user can withdraw it. Not a foreign
- * key to `cards`: the contribution outlives whatever happens to the catalog row.
+ * A scan the user contributed to the open dataset (issue #14). Queued with [cropPath] until it is uploaded
+ * ([uploadedAt] set). [remoteId] (a UUID v4) and [withdrawToken] are chosen by the app when the scan is queued, so a
+ * retried upload is recognised by the server, and kept so the user can withdraw it. Not a foreign key to `cards`: the
+ * contribution outlives whatever happens to the catalog row.
  */
 @Entity(tableName = "contributions", indices = [Index("remoteId", unique = true)])
 data class ContributionEntity(
@@ -62,10 +63,10 @@ interface ContributionDao {
     )
     fun observeAll(): Flow<List<ContributionItem>>
 
-    @Query("SELECT * FROM contributions WHERE remoteId IS NULL AND withdrawRequested = 0 ORDER BY id")
+    @Query("SELECT * FROM contributions WHERE uploadedAt IS NULL AND withdrawRequested = 0 ORDER BY id")
     suspend fun pendingUploads(): List<ContributionEntity>
 
-    @Query("SELECT * FROM contributions WHERE remoteId IS NOT NULL AND withdrawRequested = 1 ORDER BY id")
+    @Query("SELECT * FROM contributions WHERE uploadedAt IS NOT NULL AND withdrawRequested = 1 ORDER BY id")
     suspend fun pendingWithdrawals(): List<ContributionEntity>
 
     @Query(
@@ -78,7 +79,7 @@ interface ContributionDao {
     suspend fun requestWithdrawal(id: Long)
 
     /** Marks every uploaded contribution for withdrawal; returns how many. */
-    @Query("UPDATE contributions SET withdrawRequested = 1 WHERE remoteId IS NOT NULL")
+    @Query("UPDATE contributions SET withdrawRequested = 1 WHERE uploadedAt IS NOT NULL")
     suspend fun requestWithdrawalOfAll(): Int
 
     @Query("DELETE FROM contributions WHERE id = :id")
