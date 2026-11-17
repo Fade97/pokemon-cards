@@ -59,7 +59,8 @@ private fun size(bytes: Long): String = Formatter.formatShortFileSize(LocalConte
 fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = languagesViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val deviceLanguage = LocalConfiguration.current.locales[0].language
-    var picked by rememberSaveable { mutableStateOf(setOf(if (deviceLanguage in PACK_LANGUAGES) deviceLanguage else "en")) }
+    var touched by rememberSaveable { mutableStateOf<Set<String>?>(null) }
+    val picked = state.pickerChoice(touched, deviceLanguage)
     Surface(Modifier.fillMaxSize()) {
         Column(
             Modifier
@@ -78,7 +79,7 @@ fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = lan
             Column {
                 state.rows.forEach { row ->
                     LanguageCheckRow(row, checked = row.code in picked) {
-                        picked = if (row.code in picked) picked - row.code else picked + row.code
+                        touched = if (row.code in picked) picked - row.code else picked + row.code
                     }
                 }
             }
