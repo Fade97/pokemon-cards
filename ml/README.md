@@ -34,6 +34,8 @@ Windows) are optional. The core steps don't need them.
 | 10 | `uv run python train_corners.py --run corners_mnv3` | Trains the learned corner detector on GPU-synthetic scenes (`corner_scenes.py`: binder pages, sleeves, toploaders, loose cards, fingers). Also scores the classic detector on the same fixed test scenes. |
 | 11 | `uv run --extra litert python eval_real_manual.py --all` | Real photos with manual labels: old/new embedding × classic/learned detector, exactly as the Android test app runs it (guide crop, `.tflite` w8). |
 | 12 | `uv run --extra litert python evaluate.py --run mnv3_256_real [--detector learned]` | Synthetic test sets incl. the language-twin case `de/me04`; `--detector learned` crops with the corner model. |
+| 13 | `python eval_forb.py map`, then `eval --detector learned` | FORB real photos (EN, eBay) against the full EN pack gallery from `build_packs.py embed`. Images in `<data>/external/forb` (FORB zip, `animated_cards/` only). Writes `results/forb_<model>_<detector>.json`. |
+| 14 | `python eval_tcgar.py` | TCG-AR real set: corner error of both detectors per card plus recognition over the EN gallery. Images in `<data>/external/tcg-ar`. Writes `results/tcgar_<model>.json`. |
 
 `trainset.py` is the older CPU pre-render of training crops. It is kept for reference, but training no longer
 uses it.

@@ -1,0 +1,29 @@
+{
+ "cards": 832,
+ "unmapped_ids": {
+  "base6-82": 1,
+  "base6-108": 1
+ },
+ "detector_classic": {
+  "found": 95.2,
+  "err_median_pct_diag": 13.5,
+  "within_3pct": 23.6,
+  "within_5pct": 31.2
+ },
+ "detector_learned": {
+  "found": 100.0,
+  "err_median_pct_diag": 1.72,
+  "within_3pct": 63.9,
+  "within_5pct": 71.9
+ },
+ "recognition": {
+  "n": 633,
+  "top1_gt": 71.7,
+  "top5_gt": 82.1,
+  "name_gt": 78.5,
+  "top1_learned": 68.6,
+  "top5_learned": 79.6,
+  "name_learned": 76.8
+ },
+ "median_card_width_px": 144.0
+}
