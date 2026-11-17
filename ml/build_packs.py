@@ -20,6 +20,7 @@ can be copied between machines:
 from __future__ import annotations
 
 import argparse
+import http.client
 import json
 import shutil
 import subprocess
@@ -77,9 +78,12 @@ def http_exists(url: str, *, timeout: int = 30, tries: int = 3) -> bool | None:
         except urllib.error.HTTPError as e:
             if e.code in (403, 404, 410):
                 return False
-        except (urllib.error.URLError, TimeoutError):
+        except (OSError, http.client.HTTPException):
+            # URLError, timeouts, and RemoteDisconnected/ConnectionReset from getresponse(), which urllib does not
+            # wrap: one flaky connection must not abort the whole language.
             pass
-        time.sleep(2 ** attempt)
+        if attempt + 1 < tries:
+            time.sleep(2 ** attempt)
     return None
 
 
@@ -89,7 +93,10 @@ def probe_cdn_gap(lang: str, sets: list[dict], cards: list[dict], cache: Path, *
     (packs.cdn_gap_candidates). One HEAD per candidate on `/high.webp`; answers are cached in `cache` and checked
     again after `max_age_days`, so a weekly fetch costs one request per card without image."""
     candidates = packs.cdn_gap_candidates(lang, sets, cards)
-    known = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
+    try:
+        known = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
+    except (json.JSONDecodeError, UnicodeDecodeError):
+        known = {}  # a broken cache only costs one round of requests
     now = time.time()
 
     def stale(cid: str, url: str) -> bool:
@@ -103,12 +110,17 @@ def probe_cdn_gap(lang: str, sets: list[dict], cards: list[dict], cache: Path, *
     for (cid, url), ok in zip(todo, answers):
         if ok is None:
             unclear += 1
-            known.pop(cid, None)  # ask again next time instead of trusting an old answer
+            # Keep a previous answer for the same URL (it stays stale, so it is asked again next fetch): a timeout
+            # must not drop a known image from this publish and bring it back with the next one.
+            if cid in known and known[cid]["url"] != url:
+                del known[cid]
         else:
             known[cid] = {"url": url, "ok": ok, "checked": now}
-    known = {cid: k for cid, k in known.items() if cid in candidates}
+    # Forget cards that got an image from the API (or a new URL); keep cards outside this fetch (`fetch --sets`).
+    fetched = {c["id"] for c in cards}
+    known = {cid: k for cid, k in known.items() if cid in candidates or cid not in fetched}
     cache.write_text(json.dumps(known, sort_keys=True, indent=0), encoding="utf-8")
-    found = {cid: k["url"] for cid, k in known.items() if k["ok"]}
+    found = {cid: k["url"] for cid, k in known.items() if k["ok"] and cid in candidates}
     print(f"{lang}: CDN gap: {len(candidates)} cards without image, {len(todo)} probed, {len(found)} on the CDN"
           + (f", {unclear} unclear (retried next fetch)" if unclear else ""))
     return found
