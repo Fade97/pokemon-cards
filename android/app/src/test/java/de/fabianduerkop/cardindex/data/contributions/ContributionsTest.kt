@@ -5,7 +5,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.testing.inMemoryDatabase
 import de.fabianduerkop.cardindex.testing.seedCatalog
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockResponse
@@ -173,6 +176,30 @@ class ContributionsTest {
     }
 
     @Test
+    fun withdrawDuringTheUpload_waitsForIt_andThenWithdrawsOnTheServer() = runTest {
+        val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val gate = CompletableDeferred<Unit>()
+        api.beforeUploadReturns = { gate.await() }
+
+        val queue = launch { repo.processQueue() }
+        advanceUntilIdle() // the upload is in flight
+        val undo = launch { repo.withdraw(id) }
+        advanceUntilIdle()
+        assertTrue("the withdrawal must wait for the upload", undo.isActive)
+
+        gate.complete(Unit)
+        queue.join()
+        undo.join()
+        // The running queue usually sends the DELETE itself right after the upload; a later run covers the rest.
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+
+        assertEquals(1, api.uploads.size)
+        assertEquals(listOf("r1" to "token-r1"), api.withdrawals)
+        assertNull(db.contributionDao().byId(id))
+        assertTrue(repo.observe().first().isEmpty())
+    }
+
+    @Test
     fun withdrawAllCoversQueuedAndUploaded() = runTest {
         repo.contribute("sv03.5-006", "de", jpegWithMetadata)
         repo.contribute("sv03.5-025", "de", jpegWithMetadata)
@@ -232,9 +259,11 @@ class ContributionsTest {
         val uploads = mutableListOf<Upload>()
         val withdrawals = mutableListOf<Pair<String, String>>()
         val failNext = ArrayDeque<IOException>()
+        var beforeUploadReturns: suspend () -> Unit = {}
 
         override suspend fun upload(cardId: String, lang: String, consent: String, jpeg: ByteArray): UploadedContribution {
             failNext.removeFirstOrNull()?.let { throw it }
+            beforeUploadReturns()
             uploads += Upload(cardId, lang, consent, jpeg)
             val id = "r${uploads.size}"
             return UploadedContribution(id, "token-$id")

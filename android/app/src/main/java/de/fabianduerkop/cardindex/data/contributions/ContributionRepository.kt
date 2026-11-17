@@ -8,6 +8,8 @@ import de.fabianduerkop.cardindex.data.db.ContributionItem
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import java.io.File
 import java.io.IOException
 import java.time.Instant
@@ -45,6 +47,13 @@ class ContributionRepository(
 ) {
     private val dao get() = db.contributionDao()
 
+    /**
+     * Serializes queue steps and withdrawals. Without it, a withdrawal during an upload would delete the row while
+     * the request is in flight: the server keeps the scan and the token in the answer has nowhere to go. With it,
+     * the withdrawal waits for the upload, then finds the server id and queues the DELETE.
+     */
+    private val lock = Mutex()
+
     fun observe(): Flow<List<ContributionItem>> = dao.observeAll()
 
     /**
@@ -70,8 +79,8 @@ class ContributionRepository(
     }
 
     /** Takes one contribution back: a queued one is dropped here, an uploaded one is withdrawn on the server. */
-    suspend fun withdraw(id: Long) {
-        val item = dao.byId(id) ?: return
+    suspend fun withdraw(id: Long) = lock.withLock {
+        val item = dao.byId(id) ?: return@withLock
         if (item.remoteId == null) {
             drop(item)
         } else {
@@ -80,13 +89,13 @@ class ContributionRepository(
         }
     }
 
-    suspend fun withdrawAll() {
+    suspend fun withdrawAll() = lock.withLock {
         dao.pendingUploads().forEach { drop(it) }
         if (dao.requestWithdrawalOfAll() > 0) requestRun()
     }
 
     /** Contributing was turned off: scans not sent yet are no longer covered by the consent, so they go. */
-    suspend fun dropQueued() {
+    suspend fun dropQueued() = lock.withLock {
         dao.pendingUploads().forEach { drop(it) }
     }
 
@@ -112,8 +121,14 @@ class ContributionRepository(
         }
     }
 
-    /** One request; false when nothing is left. */
-    private suspend fun step(): Boolean {
+    /**
+     * One request; false when nothing is left. An upload whose answer is lost (timeout after the server stored it)
+     * is sent again on the next run; the first copy then has no token on the device. Accepted: rare, and dataset
+     * releases are checked by hand.
+     */
+    private suspend fun step(): Boolean = lock.withLock { stepLocked() }
+
+    private suspend fun stepLocked(): Boolean {
         dao.pendingWithdrawals().firstOrNull()?.let { item ->
             try {
                 api.withdraw(item.remoteId!!, item.withdrawToken!!)
