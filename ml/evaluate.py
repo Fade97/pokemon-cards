@@ -48,8 +48,7 @@ def real_ocr(name, labels, truth, scores, cards, every, ocr):
 
 def learned_crops(name: str, key2i: dict):
     """Synthetic test frames (3:4 portrait, like the model input) -> learned corners -> rectified crops."""
-    from detect import rectify
-    from eval_real_manual import LearnedDetector
+    from detect import LearnedDetector, rectify
     det = LearnedDetector()
     labels = json.loads((SYNTH_DIR / name / "labels.json").read_text())
     crops = []

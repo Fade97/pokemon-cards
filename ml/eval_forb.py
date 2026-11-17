@@ -29,8 +29,8 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR, split_of
-from detect import center_crop_fallback, detect, rectify
-from eval_real_manual import THRESH, Embedder, LearnedDetector, summarize
+from detect import LearnedDetector, center_crop_fallback, detect, rectify
+from eval_real_manual import THRESH, Embedder, summarize
 
 FORB = DATA_DIR / "external" / "forb"
 WORK = DATA_DIR / "packs-work"
