@@ -4,6 +4,11 @@ Context: the recognition pipeline (`ml/REPORT.md`) is trained and scored almost 
 There are only 34 own phone photos. Research date: 2026-11-17. No dataset over a few MB was downloaded and no
 marketplace was scraped. **Annahme** = not verified on the primary page. Not legal advice.
 
+> **Status 2026-11-17:** Fabian has permission to use FORB and the TCG-AR real set for evaluation **and training**.
+> The images are still never committed or redistributed. Both are in use: `ml/eval_forb.py` and `ml/eval_tcgar.py`
+> (PR #53), and the fine-tune on them (PR #57). This supersedes the "grey area" and "ask the authors" notes below,
+> which describe the state before that.
+
 ## Conclusion
 
 - **There is no large, clean, permissively licensed dataset of real Pokémon card photos.** The open alternatives
