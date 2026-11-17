@@ -22,7 +22,8 @@ Run everything from this folder (`android/`):
 ./gradlew :app:assembleRelease      # R8 + resource shrinking, unsigned (no signing config yet)
 ```
 
-CI (`.github/workflows/android.yml`) runs the first three on every push and pull request that touches `android/`.
+CI (`.github/workflows/android.yml`) runs all four on every push and pull request that touches `android/`; the
+release build checks the R8 keep rules.
 
 ## Run on a device or emulator
 
