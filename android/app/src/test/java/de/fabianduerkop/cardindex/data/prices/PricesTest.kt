@@ -216,6 +216,16 @@ class PriceRepositoryTest {
     }
 
     @Test
+    fun refresh_skipsIdsTheBackendWouldReject_insteadOfFailingTheBatch() = runTest {
+        val api = FakeApi(mutableListOf({ batch -> PriceBatch(batch.associateWith { listOf(row(it, PriceVariant.NORMAL, 7)) }, emptyList()) }))
+
+        val result = repo(api).refresh(listOf("sv03.5-025", "exu-?", "x".repeat(41)))
+
+        assertEquals(RefreshResult.Updated(1), result)
+        assertEquals(listOf(listOf("sv03.5-025")), api.calls)
+    }
+
+    @Test
     fun refresh_offline_keepsTheCache() = runTest {
         db.catalogDao().upsertPrices(listOf(row("a", PriceVariant.NORMAL, 5, Instant.EPOCH)))
         val api = FakeApi(mutableListOf({ _ -> throw IOException("offline") }))

@@ -44,7 +44,11 @@ class PriceRepository(
     fun observe(cardId: String): Flow<List<CachedPriceEntity>> = dao.observePrices(cardId)
 
     suspend fun refresh(cardIds: Collection<String>, force: Boolean = false): RefreshResult = mutex.withLock {
-        val ids = cardIds.distinct().filterNot { it in unknown }
+        // The backend rejects a whole batch with 400 if one id breaks its pattern, which would stop every later chunk
+        // too. Such cards can't have prices there anyway, so they are treated as unknown.
+        val (valid, invalid) = cardIds.distinct().partition { BACKEND_CARD_ID.matches(it) }
+        unknown += invalid
+        val ids = valid.filterNot { it in unknown }
         val due = if (force) ids else stale(ids)
         var updated = 0
         for (chunk in due.chunked(PriceApi.MAX_BATCH)) {
@@ -82,5 +86,8 @@ class PriceRepository(
 
     private companion object {
         const val MAX_ATTEMPTS = 3
+
+        /** The id pattern the backend accepts (`CARD_ID` in backend/src/price-data.ts). */
+        val BACKEND_CARD_ID = Regex("^[A-Za-z0-9._-]{1,40}$")
     }
 }
