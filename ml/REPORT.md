@@ -401,54 +401,72 @@ Recognition over the EN gallery: 71.7 % top-1 with the annotated corners, **71.2
 
 ## Fine-tune on real photos: `mnv3_256_forb` (2026-11-17)
 
-`mnv3_256_real` was fine-tuned on the FORB and TCG-AR **train split**, with a larger class set, and scored on the
-held-out **test split** against the full EN pack gallery (22,127 cards). Everything ran on Fabian-PC (RTX 3080). The
-baseline was re-run here first, with the same gallery and the same FORB mapping, so both columns come from one setup.
-The re-run replaces `forb_mnv3_256_real_w8_learned.json` and `tcgar_mnv3_256_real_w8.json` (the section above quotes
-the Vulcan run: 5,561 vs. 5,546 scored photos; test split 72.6 % top-1 on both machines). The synthetic baselines
-(`eval_mnv3_256_real*.json`) reproduced byte for byte.
+I fine-tuned `mnv3_256_real` on the FORB and TCG-AR **train split** with a larger class set. Both models are scored
+on the held-out **test split**, searching the full EN pack gallery (22,127 cards). Both columns below were run on
+Fabian-PC, with the same gallery and the same ground truth (the set+number FORB mapping and the TCG-AR rotation fix
+from #53). The baseline column comes from `results/baseline_fabianpc/`. The baseline files directly in `results/`
+are the Vulcan run of the section above (gallery 22,213); their test-split numbers are the same.
 
 ### Data and split
 
 - **Card roles** (`realset.role_of`, fixed per card id):
-  - **test** is the 20 % holdout of `split_of` (now in `common.py`). A test card is not used in training at all: no
-    photo, no crop, no ArcFace class. That also removes the **183 test-split cards of the 870 manifest cards** from
-    the class set. They stay in the gallery.
-  - **val** is 10 % of the remaining cards, picked with a separate hash. Val cards get the same treatment as test
-    cards (no photo, no class). Their 535 real crops (124 cards) select the epoch.
-  - **train** is everything else.
-- **FORB ground truth:** 1,309 of 1,392 prints map to a TCGdex id. This is 2 fewer than on Vulcan, because the
-  gallery here holds 22,127 cards with an image. The mapping was made once with the baseline and then kept fixed
-  (`forb_map.json`), so the new model cannot move its own ground truth.
-- **Crops** (`realset.py build`) are made exactly like the evaluators do it:
+  - **test**: the 20 % holdout of `split_of` (`common.py`). A test card gets no photo, no crop and no ArcFace
+    class.
+  - **val**: 10 % of the remaining cards, picked with a separate hash. Val cards get the same treatment as test
+    cards. Their 535 real crops (124 cards) choose the epoch.
+  - **train**: all other cards.
+- **What this run did not exclude** (found in review, fixed in code for the next run, no retrain here):
+  1. **Inherited backbone.** The run starts from `mnv3_256_real`, whose backbone saw all 870 manifest cards as
+     classes, including the 183 with a test-split id. Only their ArcFace rows were dropped. No FORB or TCG-AR test
+     card is a manifest card (`leak_check_mnv3_256_forb.json`: 0 of 1,132 and 0 of 139), so the real-photo test
+     scores are not affected.
+  2. **Language twins.** ja `SV2a-NNN` and en/de `sv03.5-NNN` share the art but have different ids, so they got
+     separate roles. 113 classes of this run are the twin of a test card: mostly sv03.5 ↔ SV2a pairs, plus
+     reprints. Cosine cannot find these pairs, because the baseline separates languages on purpose (cos ≈ 0
+     between the JP and EN print of one card). `realset.py twins` therefore matches them by collector number (and
+     by dex id among secret rares).
+  3. **Reprints with the same art** under another id, found by baseline cos ≥ 0.9. Two TCG-AR test cards have one
+     as a class: sv05-157 ↔ sv08.5-119 (Prime Catcher) and swsh4.5-9 ↔ swsh1-9 (Dhelmise V), 10 photos. The
+     TCG-AR row below therefore also gives the score without them. No FORB test photo is affected.
+
+  `train.py --real` now gives no class to any twin or reprint of a test or val card. That blocks 513 class
+  candidates, 198 of them manifest cards.
+- **Ground truth.** FORB maps 1,314 of 1,392 prints, giving 5,578 scored photos. The mapping was made once with the
+  baseline (`eval_forb.py map`) and then kept fixed. The training ran on the old mapping: 16 crops of 2 prints were
+  labelled wrong there (`SM35_EN_14` → sm2-14, `SM35_EN_8` → sv06-008); the new mapping leaves both unmapped. The
+  TCG-AR training crops were made before the rotation fix, so the detector saw sideways cards sideways. The
+  rectified crop is upright either way, but its corners are worse. A production retrain re-crops both.
+- **Crops** (`realset.py build`) are made exactly as the evaluators make them:
   - FORB: learned corners on the whole photo, long side 2048 px.
   - TCG-AR: learned corners inside the app guide box around the annotated card.
-  - Each crop is then rectified and turned to whichever 180° orientation matches the reference better.
+  - Then rectify, and turn the crop to whichever 180° orientation matches the reference better.
 
-  That gives 4,373 train crops (3,953 FORB + 420 TCG-AR) of 1,071 cards. Train crops whose baseline similarity to
-  the true reference is below 0.10 were dropped: 85 crops, about 2 %. I checked a grid of the lowest-scoring crops
-  by eye; they were card backs, several cards in one photo, slab close-ups and background. These are detector
-  failures, not hard photos. Val keeps every crop, like test does.
-- **Leak check** on the final checkpoint: 0 of its 1,688 classes and 0 of the training crops are test-split cards.
-  0 of the 1,132 FORB test photos show a card that is a class.
+  This gave 4,373 train crops (3,953 FORB + 420 TCG-AR). 85 crops with baseline similarity below 0.10 to the true
+  reference were dropped: card backs, several cards in one photo, slab close-ups, background (checked by eye on a
+  grid). That leaves **4,288 crops of 1,068 cards**. Val keeps all its crops, like test (`realset_mnv3_256_forb.json`).
+
+  New for the next run, not used here: a train crop whose baseline top-1 is a test or val card is also dropped (the
+  detector caught a neighbouring card). The crops are redone when the card id or the cropping code changes.
+- **Leak check** (`leak_check.py`): 0 classes with a test or val id, 0 training crops of test or val cards, and 0
+  test photos whose true card is a class.
 
 ### Training (`train.py --real`)
 
-- **Init:** `mnv3_256_real`. The ArcFace head keeps the trained rows of the 619 manifest cards that remain classes.
-  Each of the 1,069 new EN cards starts from the embedding of its reference image.
-- **Synthetic part:** the existing GPU pipeline (`gpu_aug.py --realistic`) runs on every class's reference image,
-  so the new cards also get the synthetic phone effects.
-- **Real part:** 25 % of every batch (32 of 128) are real crops. They are sampled so that each card is drawn equally
-  often, however many photos it has. Their augmentation is light only (`gpu_aug.augment_real`: about 1.5 % corner
-  jitter, scale ±3 %, colour and contrast ±12 %, some blur and JPEG). The photos already carry real light, glare,
-  sleeves and detector error. Stronger synthetic effects on top would mostly add noise.
-- **Model selection** uses the real val crops against the full EN gallery after every epoch (`val_real.py`
-  computes the same score for any checkpoint). The synthetic val set is logged next to it.
-- **Run:** 10 epochs, lr 5e-4, cosine schedule, 34 min. Real val rose from 72.9 % (baseline) to 85.0 % after epoch
-  1 and reached its best, 88.2 %, at epoch 6. Epochs 7–10 stayed between 87.3 and 87.7 %. Synthetic val stayed
-  between 93.4 and 94.1 %, above the baseline's best (92.8 %).
-- **Export:** LiteRT in WSL (`mnv3_256_forb_w8.tflite` 5.0 MB, `_f32.tflite` 18.2 MB). The w8 model is as close
-  to PyTorch as the baseline's w8 was: mean cosine 0.974 vs. 0.968.
+- **Init:** `mnv3_256_real`. The ArcFace head keeps the trained rows of the 619 manifest cards that remain
+  classes. Each of the 1,069 new EN cards starts at the embedding of its reference image.
+- **Synthetic part:** the existing GPU pipeline (`gpu_aug.py --realistic`) runs on the reference image of every
+  class.
+- **Real part:** 25 % of every batch (32 of 128) are real crops. They are sampled so that every card is drawn
+  equally often, however many photos it has. Their augmentation is light (`gpu_aug.augment_real`: ~1.5 % corner
+  jitter, ±3 % scale, ±12 % colour and contrast, some blur and JPEG). The photos already carry real light, glare,
+  sleeves and detector error.
+- **Model selection:** after every epoch, the real val crops are searched against the full EN gallery
+  (`val_real.py` gives the same score for any checkpoint).
+- **Run:** 10 epochs, lr 5e-4, cosine schedule, 34 min. Real val top-1 went from 72.9 % (baseline) to 85.0 % after
+  epoch 1 and peaked at **88.2 % at epoch 6**. Epochs 7–10 scored 87.1–87.7 %. Synthetic val stayed between 93.3
+  and 94.1 % in every epoch; the baseline's best was 92.8 % (`train_mnv3_256_forb.json`).
+- **Export:** LiteRT in WSL. `mnv3_256_forb_w8.tflite` is 5.0 MB and `_f32.tflite` 18.2 MB. The w8 model stays as
+  close to PyTorch as the baseline's did (mean cosine 0.974 vs. 0.968).
 
 ### Results (w8 `.tflite`, learned detector, full EN gallery, no OCR rerank)
 
@@ -457,56 +475,58 @@ the Vulcan run: 5,561 vs. 5,546 scored photos; test split 72.6 % top-1 on both m
 | **FORB test split** top-1 / top-5 (n = 1,132) | 72.6 / 80.7 | **87.7 / 91.8** |
 | FORB test: easy (137) / medium (915) / hard (80) | 89.1 / 74.3 / 25.0 | 97.1 / 90.4 / 41.2 |
 | FORB test, shown at sim ≥ 0.5 (wrong) | 823 (76) | 932 (19) |
-| **TCG-AR test split** top-1 / top-5, learned corners (n = 139) | 64.7 / 77.7 | **82.0 / 91.4** |
-| TCG-AR test, annotated corners | 66.9 | 91.4 |
+| **TCG-AR test split** top-1 / top-5, learned corners (n = 139) | 64.0 / 79.1 | **86.3 / 94.2** |
+| TCG-AR test without the 2 reprinted cards (n = 129) | 68.2 | 87.6 |
+| TCG-AR test, annotated corners | 66.2 | 92.1 |
 | Real val crops (535, never trained) | 72.9 | 88.2 |
-| *FORB train split (trained on, not a fair score)* | *71.8* | *95.7* |
-| *TCG-AR train split (trained on)* | *69.6* | *92.3* |
+| *FORB non-test split: train + val cards, mostly trained on (4,446)* | *71.9* | *95.5* |
+| *TCG-AR non-test split: train + val cards (496)* | *73.2* | *92.9* |
 | Own photos de/30th top-1, shown at ≥ 0.5 | 21/21, 19 | 21/21, 18 |
-| Own photos de/me04 (twin) exact top-1 | 7/8 | 8/8 |
+| Own photos de/me04 (twin), exact top-1 | 7/8 | 8/8 |
 | Synthetic `evaluate.py`, main (870) | 94.8 | 95.0 |
 | Synthetic, trained sets in the full gallery | 93.5 | 93.6 |
 | Synthetic, unseen de/30th | 94.3 | 95.4 |
 | Synthetic, language twin de/me04 | 88.9 | 91.5 |
 | Synthetic with learned detector: main / twin | 100 / 98.2 | 99.98 / 98.5 |
 
-- **FORB test misses** fell from 310 to 139. The promo and special sets the baseline missed most improved a lot:
-  `sma` (Shiny Vault) went from 22 to 3 misses, `smp` from 37 to 12, `swshp` from 47 to 23, `xyp` from 16 to 6.
-  `xy0` did not move (14 of 27 missed), and `ex1` is still weak (14 of 78). Only 20 of the 139 remaining misses have
-  the right name, so most misses are still crop or embedding failures, not near-identical prints.
-- **The display threshold got safer.** At 0.5 the new model shows 82 % of the test photos with 2.0 % wrong; the
-  baseline showed 73 % with 9.2 % wrong.
-- **The two synthetic groups**, split by whether a card is still a class in this run, score the same: 95.2 % for the
-  3,095 test images whose card is a class, 94.6 % for the 1,255 whose card is not (the test/val cards removed from
-  the class set). So leaving out those 251 manifest cards cost nothing that shows.
-- **Own phone photos:** no regression. The one twin miss is now correct. One de/30th photo is still right but its
-  similarity fell from 0.503 to 0.407, so it is no longer shown at 0.5. The median similarity of correct matches
+Sources: `results/baseline_fabianpc/{forb,tcgar}_mnv3_256_real*.json` and `results/{forb,tcgar}_mnv3_256_forb*.json`.
+The test × difficulty table and the misses by set are in the summary JSON. `leak_check_mnv3_256_forb.json` holds
+the twin and reprint numbers.
+
+- **FORB test misses** fell from 310 to 139. The promo and special sets improved most: `sma` (Shiny Vault) 22 → 3,
+  `smp` 37 → 12, `swshp` 47 → 23, `sm1` 29 → 13, `xyp` 16 → 6. `xy0` did not change (14 of 27), and `ex1` is still
+  weak (23 → 14 of 78). 20 of the 139 remaining misses have the right name, so most are still crop or embedding
+  failures, not near-identical prints.
+- **The display threshold is safer.** At 0.5 the new model shows 82 % of the test photos and 2.0 % of what it shows
+  is wrong. The baseline showed 73 %, with 9.2 % wrong.
+- **TCG-AR:** the reprints inflate the gain a little. Without the 10 reprint photos the gain is +19.4 pp; with them
+  it is +22.3 pp (the new model gets 7 of the 10 right, the baseline 1). With the rotation fix from #53, learned
+  corners (86.3 %) now come close to annotated corners (92.1 %). The corner median error is 1.62 % of the diagonal.
+- **Manifest cards that are no longer a class** (synthetic test, classic detector) score about the same as the
+  classes: 95.2 % for the 3,095 class images, 94.6 % for the 1,255 non-class images. The non-class group splits
+  into 94.1 % for the 690 whose twin is still a class and 95.2 % for the 565 without one. So the twins do not
+  inflate this number. It still does **not** show that unseen cards come free: the init model had all 870 cards as
+  classes. It only shows that the fine-tune did not forget them.
+- **Our own phone photos:** no regression. The one twin miss is now correct. One de/30th photo is still right, but
+  its similarity fell from 0.503 to 0.407, so it is no longer shown at 0.5. The median similarity of correct matches
   rose from 0.67 to 0.72.
-- **Corners are now the TCG-AR bottleneck.** With annotated corners the new model reaches 91.4 % on the test
-  split; with learned corners it reaches 82.0 %. The detector itself did not change (median error 1.71 % of the
-  diagonal).
 
 ### Decision
 
-**`mnv3_256_forb` is clearly better than `mnv3_256_real` on real photos of cards it never trained on** (FORB test
-+15.1 pp top-1, TCG-AR test +17.3 pp). Synthetic results and our own phone photos do not get worse. It is the
-recommended embedding. The app is unchanged by this PR, and nothing was uploaded.
+**`mnv3_256_forb` is clearly better than `mnv3_256_real` on real photos of cards it never trained on.** On the test
+split, top-1 rises by 15.1 pp on FORB and by 22.3 pp on TCG-AR (+19.4 pp without the reprints). It does not
+regress on the synthetic sets or on our own photos. It is the recommended embedding. This PR changes nothing in the
+app and uploads nothing.
 
 Before shipping:
 
-1. Train a **production model with the same recipe and no holdout**. Its classes would be every card with a real
-   photo plus all 870 manifest cards, and model selection would use the fixed epoch count found here (~6). The test
-   split was only needed to *measure* the recipe.
-2. Rebuild the EN pack (and the other languages) with the new embeddings. The embedding space changed, so pack
-   rows and the model must ship together (`build_packs.py embed`).
-3. The 0.5 threshold can stay. The new model is better calibrated (above).
+1. **Production model:** the same recipe without a holdout. Classes are every card with a real photo plus all 870
+   manifest cards. Re-crop first (`realset.py build`: new ground truth, TCG-AR rotation fix). Train for a fixed
+   ~6 epochs. The test split was only needed to *measure* the recipe.
+2. Re-embed the language packs with that model. Pack rows and model must ship together (`build_packs.py embed`).
+3. The 0.5 threshold can stay. The new model is better calibrated (see above).
 
-Still open: hard FORB photos (41 %), `xy0`/`ex1`, and learned-corner error on small cards. The optional corner-model
-fine-tune with TCG-AR corners was not done in this round.
-
-Results: `results/forb_mnv3_256_{real,forb}_w8_learned.json`, `tcgar_mnv3_256_{real,forb}_w8.json`,
-`eval_mnv3_256_forb{,_learned_detector}.json`, `real_manual_mnv3_256_{real,forb}_learned.json`,
-`val_real_mnv3_256_{real,forb}.json`, `train_mnv3_256_forb.json`, `export_mnv3_256_forb.json`.
+Still open: hard FORB photos (41 %), `xy0` and `ex1`. The optional corner fine-tune with TCG-AR corners was not done.
 
 ## Reproduce
 
