@@ -1,0 +1,44 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package de.fabianduerkop.cardindex.data.settings
+
+import android.content.Context
+import android.content.SharedPreferences
+import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
+import kotlinx.coroutines.channels.awaitClose
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.callbackFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+
+/** User settings in SharedPreferences; a handful of flags don't justify DataStore yet. */
+class AppSettings(context: Context) {
+    private val prefs: SharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
+
+    /** Show the user's own photo of a copy instead of the CDN image wherever both exist. */
+    var preferOwnPhotos: Boolean
+        get() = prefs.getBoolean(KEY_PREFER_OWN_PHOTOS, false)
+        set(value) = prefs.edit().putBoolean(KEY_PREFER_OWN_PHOTOS, value).apply()
+
+    val preferOwnPhotosFlow: Flow<Boolean> = observe { preferOwnPhotos }
+
+    /** Main price market; AUTO follows the region (EU → Cardmarket, US → TCGplayer). */
+    var priceSource: PriceSourcePreference
+        get() = prefs.getString(KEY_PRICE_SOURCE, null)
+            ?.let { name -> PriceSourcePreference.entries.firstOrNull { it.name == name } }
+            ?: PriceSourcePreference.AUTO
+        set(value) = prefs.edit().putString(KEY_PRICE_SOURCE, value.name).apply()
+
+    val priceSourceFlow: Flow<PriceSourcePreference> = observe { priceSource }
+
+    /** Emits [read] now and after every change; the listener is held strongly while collected. */
+    private fun <T> observe(read: () -> T): Flow<T> = callbackFlow {
+        val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read()) }
+        prefs.registerOnSharedPreferenceChangeListener(listener)
+        trySend(read())
+        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+    }.distinctUntilChanged()
+
+    private companion object {
+        const val KEY_PREFER_OWN_PHOTOS = "prefer_own_photos"
+        const val KEY_PRICE_SOURCE = "price_source"
+    }
+}
