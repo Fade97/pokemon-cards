@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "a10b93dc7142bea0019e01a43786bf67",
+    "identityHash": "a7b925d1d8ddfab3346570427cc50fa5",
     "entities": [
       {
         "tableName": "card_sets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `series` TEXT NOT NULL, `language` TEXT NOT NULL, `printedTotal` INTEGER NOT NULL, `region` TEXT NOT NULL, PRIMARY KEY(`id`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `name` TEXT NOT NULL, `series` TEXT NOT NULL, `language` TEXT NOT NULL, `printedTotal` INTEGER NOT NULL, `region` TEXT NOT NULL, `retired` INTEGER NOT NULL, PRIMARY KEY(`id`))",
         "fields": [
           {
             "fieldPath": "id",
@@ -43,6 +43,12 @@
             "columnName": "region",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "retired",
+            "columnName": "retired",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -54,7 +60,7 @@
       },
       {
         "tableName": "cards",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `setId` TEXT NOT NULL, `localId` TEXT NOT NULL, `name` TEXT NOT NULL, `language` TEXT NOT NULL, `rarity` TEXT, `energyType` TEXT, `imageUrl` TEXT, PRIMARY KEY(`id`, `language`), FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` TEXT NOT NULL, `setId` TEXT NOT NULL, `localId` TEXT NOT NULL, `name` TEXT NOT NULL, `language` TEXT NOT NULL, `rarity` TEXT, `energyType` TEXT, `imageUrl` TEXT, `retired` INTEGER NOT NULL, PRIMARY KEY(`id`, `language`), FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -100,6 +106,12 @@
             "fieldPath": "imageUrl",
             "columnName": "imageUrl",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "retired",
+            "columnName": "retired",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -147,12 +159,18 @@
       },
       {
         "tableName": "owned_copies",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cardId` TEXT NOT NULL, `cardLanguage` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `variant` TEXT NOT NULL, `condition` TEXT, `grader` TEXT, `grade` TEXT, `purchasePriceCents` INTEGER, `purchaseCurrency` TEXT, `purchaseDate` TEXT, `createdAt` INTEGER NOT NULL, FOREIGN KEY(`cardId`, `cardLanguage`) REFERENCES `cards`(`id`, `language`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `cardId` TEXT NOT NULL, `cardLanguage` TEXT NOT NULL, `quantity` INTEGER NOT NULL, `finish` TEXT NOT NULL, `edition` TEXT NOT NULL, `condition` TEXT, `grader` TEXT, `grade` TEXT, `purchasePriceCents` INTEGER, `purchaseCurrency` TEXT, `purchaseDate` TEXT, `createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`cardId`, `cardLanguage`) REFERENCES `cards`(`id`, `language`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -174,8 +192,14 @@
             "notNull": true
           },
           {
-            "fieldPath": "variant",
-            "columnName": "variant",
+            "fieldPath": "finish",
+            "columnName": "finish",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "edition",
+            "columnName": "edition",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -214,6 +238,12 @@
             "columnName": "createdAt",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -232,6 +262,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_owned_copies_cardId_cardLanguage` ON `${TABLE_NAME}` (`cardId`, `cardLanguage`)"
+          },
+          {
+            "name": "index_owned_copies_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_owned_copies_uuid` ON `${TABLE_NAME}` (`uuid`)"
           }
         ],
         "foreignKeys": [
@@ -252,12 +291,18 @@
       },
       {
         "tableName": "collections",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `kind` TEXT NOT NULL, `setId` TEXT, FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `kind` TEXT NOT NULL, `setId` TEXT, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
             "columnName": "id",
             "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "uuid",
+            "columnName": "uuid",
+            "affinity": "TEXT",
             "notNull": true
           },
           {
@@ -281,6 +326,12 @@
             "fieldPath": "setId",
             "columnName": "setId",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "updatedAt",
+            "columnName": "updatedAt",
+            "affinity": "INTEGER",
+            "notNull": true
           }
         ],
         "primaryKey": {
@@ -298,6 +349,15 @@
             ],
             "orders": [],
             "createSql": "CREATE INDEX IF NOT EXISTS `index_collections_setId` ON `${TABLE_NAME}` (`setId`)"
+          },
+          {
+            "name": "index_collections_uuid",
+            "unique": true,
+            "columnNames": [
+              "uuid"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_collections_uuid` ON `${TABLE_NAME}` (`uuid`)"
           }
         ],
         "foreignKeys": [
@@ -376,7 +436,7 @@
       },
       {
         "tableName": "cached_prices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`cardId`, `source`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `priceDate` INTEGER, `fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`cardId`, `source`, `variant`))",
         "fields": [
           {
             "fieldPath": "cardId",
@@ -387,6 +447,12 @@
           {
             "fieldPath": "source",
             "columnName": "source",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "variant",
+            "columnName": "variant",
             "affinity": "TEXT",
             "notNull": true
           },
@@ -412,6 +478,11 @@
             "affinity": "INTEGER"
           },
           {
+            "fieldPath": "priceDate",
+            "columnName": "priceDate",
+            "affinity": "INTEGER"
+          },
+          {
             "fieldPath": "fetchedAt",
             "columnName": "fetchedAt",
             "affinity": "INTEGER",
@@ -422,14 +493,15 @@
           "autoGenerate": false,
           "columnNames": [
             "cardId",
-            "source"
+            "source",
+            "variant"
           ]
         }
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a10b93dc7142bea0019e01a43786bf67')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'a7b925d1d8ddfab3346570427cc50fa5')"
     ]
   }
 }

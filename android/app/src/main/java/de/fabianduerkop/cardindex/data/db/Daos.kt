@@ -14,9 +14,9 @@ private const val COPY_WITH_CARD_COLUMNS = """
     o.*,
     c.id AS card_id, c.setId AS card_setId, c.localId AS card_localId, c.name AS card_name,
     c.language AS card_language, c.rarity AS card_rarity, c.energyType AS card_energyType,
-    c.imageUrl AS card_imageUrl,
+    c.imageUrl AS card_imageUrl, c.retired AS card_retired,
     s.id AS set_id, s.name AS set_name, s.series AS set_series, s.language AS set_language,
-    s.printedTotal AS set_printedTotal, s.region AS set_region
+    s.printedTotal AS set_printedTotal, s.region AS set_region, s.retired AS set_retired
 """
 
 private const val COPY_WITH_CARD_JOIN = """
@@ -51,6 +51,10 @@ interface CopyDao {
 
     @Delete
     suspend fun delete(copy: OwnedCopyEntity)
+
+    /** Export/import and sync address copies by uuid, not by the device-local row id. */
+    @Query("SELECT * FROM owned_copies WHERE uuid = :uuid")
+    suspend fun byUuid(uuid: String): OwnedCopyEntity?
 
     /** The All Cards collection: every owned copy, newest first. */
     @Query("SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN ORDER BY o.createdAt DESC, o.id DESC")

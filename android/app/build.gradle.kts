@@ -44,6 +44,10 @@ android {
     buildFeatures { compose = true }
 
     testOptions { unitTests.isIncludeAndroidResources = true }
+
+    // MigrationTestHelper reads the exported schemas as assets. Robolectric unit tests only see the app's merged
+    // assets (test source-set assets are ignored), so the schemas go into debug builds. Release builds stay clean.
+    sourceSets { getByName("debug").assets.directories.add("$projectDir/schemas") }
 }
 
 room { schemaDirectory("$projectDir/schemas") }
