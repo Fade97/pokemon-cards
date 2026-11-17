@@ -46,6 +46,7 @@
         <item quantity="other">%1$d to review</item>
     </plurals>
     <string name="scan_nothing_to_review">Nothing to review</string>
+    <string name="scan_open_review">Open the review queue</string>
     <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning.</string>
     <!-- Set name, language -->
     <string name="scan_added">Added: %1$s, %2$s</string>
@@ -57,6 +58,60 @@
     <string name="review_reason_number_differs">the number doesn\'t match the picture</string>
     <string name="review_reason_similar_cards">two cards look alike</string>
     <string name="review_reason_check_variant">check the edition</string>
+
+    <!-- Review queue -->
+    <string name="review_title">Review</string>
+    <string name="review_back">Back to scanning</string>
+    <!-- Position in the current pass, e.g. "1 of 3" -->
+    <string name="review_position">%1$d of %2$d</string>
+    <string name="review_crop">Your scan of the card</string>
+    <string name="review_why_number_not_read">The number couldn\'t be read. Pick the right card.</string>
+    <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
+    <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
+    <string name="review_why_check_variant">Card found. This set has 1st edition prints, which look alike in photos, so check the variant.</string>
+    <string name="review_best_matches">Best matches</string>
+    <string name="review_card">Card</string>
+    <!-- Set name, language -->
+    <string name="review_set_language">%1$s, %2$s</string>
+    <!-- Similarity of the scan to a candidate, in percent -->
+    <string name="review_similarity">%1$d %%</string>
+    <string name="review_variant">Variant</string>
+    <string name="review_check_this">Check this</string>
+    <string name="review_pick_variant">Pick the finish and the edition to confirm.</string>
+    <string name="review_condition">Condition</string>
+    <string name="review_quantity">Quantity</string>
+    <string name="review_quantity_less">One less</string>
+    <string name="review_quantity_more">One more</string>
+    <string name="review_skip">Skip</string>
+    <string name="review_confirm">Confirm</string>
+    <string name="review_discard">Not a card, remove it</string>
+    <string name="review_empty">Nothing to review. Unsure scans wait here, so scanning never has to stop.</string>
+    <string name="review_done">Review done</string>
+    <plurals name="review_done_added">
+        <item quantity="one">%1$d added</item>
+        <item quantity="other">%1$d added</item>
+    </plurals>
+    <plurals name="review_done_skipped">
+        <item quantity="one">%1$d skipped</item>
+        <item quantity="other">%1$d skipped</item>
+    </plurals>
+    <!-- "2 added, 1 skipped." from the two plurals above -->
+    <string name="review_done_summary">%1$s, %2$s.</string>
+    <string name="review_skipped_wait">Skipped cards wait in Review, so you can sort them out later.</string>
+    <string name="review_again">Go through skipped cards</string>
+    <string name="review_back_to_scanning">Back to scanning</string>
+    <string name="review_finish_normal">Normal</string>
+    <string name="review_finish_holo">Holo</string>
+    <string name="review_finish_reverse_holo">Reverse holo</string>
+    <string name="review_finish_other">Other finish</string>
+    <string name="review_edition_unlimited">Unlimited</string>
+    <string name="review_edition_first">1st edition</string>
+    <string name="review_edition_shadowless">Shadowless</string>
+    <string name="review_condition_nm">Near mint</string>
+    <string name="review_condition_lp">Lightly played</string>
+    <string name="review_condition_mp">Moderately played</string>
+    <string name="review_condition_hp">Heavily played</string>
+    <string name="review_condition_poor">Poor</string>
 
     <!-- Recognition lab (debug builds, opened from the Scan screen) -->
     <string name="scan_camera_rationale">The lab needs the camera to recognize cards. Pictures stay on this device.</string>

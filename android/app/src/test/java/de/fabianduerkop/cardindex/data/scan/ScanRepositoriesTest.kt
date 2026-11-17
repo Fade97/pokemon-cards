@@ -112,4 +112,71 @@ class ScanRepositoriesTest {
         assertEquals(listOf("de/sv03.5-006", "en/sv03.5-006", "de/sv03.5-199"), stored.map { "${it.card.language}/${it.card.id}" })
         assertEquals(1, queue.observeCount().first())
     }
+
+    private suspend fun enqueueOne(localId: String = "006", checkVariant: Boolean = false): Long = queue.enqueue(
+        byteArrayOf(9),
+        listOf(Match(0, ref(localId), 0.6f), Match(1, ref(localId, lang = "en"), 0.59f)),
+        reading = null,
+        reason = ReviewReason.NUMBER_NOT_READ,
+        checkVariant = checkVariant,
+    )
+
+    @Test
+    fun confirmSavesTheChosenCandidateVariantConditionAndQuantity() = runTest {
+        val id = enqueueOne()
+        val crop = queue.cropFile(db.reviewDao().item(id)!!)
+        assertTrue(crop.exists())
+
+        queue.confirm(id, rank = 1, Finish.REVERSE_HOLO, Edition.FIRST_EDITION, Condition.LIGHTLY_PLAYED, quantity = 3)
+
+        val copy = db.copyDao().observeAllCopies().first().single().copy
+        assertEquals("en", copy.cardLanguage)
+        assertEquals(Finish.REVERSE_HOLO, copy.finish)
+        assertEquals(Edition.FIRST_EDITION, copy.edition)
+        assertEquals(Condition.LIGHTLY_PLAYED, copy.condition)
+        assertEquals(3, copy.quantity)
+        assertEquals(0, queue.observeCount().first())
+        assertTrue(queue.observeItems().first().isEmpty())
+        assertTrue(db.reviewDao().observeCandidates().first().isEmpty())
+        assertFalse(crop.exists())
+    }
+
+    @Test
+    fun confirmOfAGoneItemOrUnknownCandidateAddsNothing() = runTest {
+        val id = enqueueOne()
+        val unknownRank = runCatching { queue.confirm(id, 7, Finish.NORMAL, Edition.UNLIMITED, Condition.NEAR_MINT, 1) }
+        assertTrue(unknownRank.exceptionOrNull() is IllegalArgumentException)
+        assertEquals(1, queue.observeCount().first())
+        queue.discard(id)
+        val gone = runCatching { queue.confirm(id, 0, Finish.NORMAL, Edition.UNLIMITED, Condition.NEAR_MINT, 1) }
+        assertTrue(gone.exceptionOrNull() is NoSuchElementException)
+        assertEquals(0, db.copyDao().observeAllCopies().first().size)
+    }
+
+    @Test
+    fun skipMovesTheItemToTheBackAndKeepsItCounted() = runTest {
+        val first = enqueueOne("001")
+        clock += 1
+        val second = enqueueOne("002")
+        assertEquals(listOf(first, second), queue.observeItems().first().map { it.entity.id })
+
+        clock += 1
+        assertTrue(queue.skip(first))
+        val items = queue.observeItems().first()
+        assertEquals(listOf(second, first), items.map { it.entity.id })
+        // The badge counts every item the review screen can reach, skipped ones included.
+        assertEquals(items.size, queue.observeCount().first())
+        assertEquals(2, items.first().candidates.size)
+    }
+
+    @Test
+    fun discardRemovesItemAndCrop() = runTest {
+        val id = enqueueOne(checkVariant = true)
+        val item = queue.observeItems().first().single()
+        assertTrue(item.entity.checkVariant)
+        assertTrue(queue.discard(id))
+        assertFalse(item.cropFile.exists())
+        assertFalse(queue.discard(id))
+        assertEquals(0, queue.observeCount().first())
+    }
 }
