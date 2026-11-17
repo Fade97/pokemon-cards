@@ -278,3 +278,49 @@ def save_grid(path, refs, bg_pool, n=32, seed=0, realistic=False):
         rows.append(torch.cat(list(c[i:i + 8]), -1))
     grid = (torch.cat(rows, -2).clamp(0, 1) * 255).byte().permute(1, 2, 0).cpu().numpy()
     cv2.imwrite(str(path), cv2.cvtColor(grid, cv2.COLOR_RGB2BGR))
+
+
+def load_real_crops(paths, rots) -> torch.Tensor:
+    """Cached real crops (rectified card, any size) -> [N, 3, INPUT, INPUT] uint8 RGB on the CPU, squashed to the
+    model input like the app, turned by `rot` (0/180) so that the card is upright."""
+    arr = np.empty((len(paths), 3, INPUT, INPUT), np.uint8)
+    for i, (p, r) in enumerate(zip(paths, rots)):
+        bgr = cv2.imread(str(p))
+        if r == 180:
+            bgr = cv2.rotate(bgr, cv2.ROTATE_180)
+        arr[i] = cv2.cvtColor(cv2.resize(bgr, (INPUT, INPUT), interpolation=cv2.INTER_AREA), cv2.COLOR_BGR2RGB
+                              ).transpose(2, 0, 1)
+    return torch.from_numpy(arr)
+
+
+@torch.no_grad()
+def augment_real(crops: torch.Tensor) -> torch.Tensor:
+    """Light augmentation of real crops ([B, 3, INPUT, INPUT] uint8 on the GPU) -> normalized model input.
+
+    The photos already carry real light, glare, sleeves and detector error, so only small changes: corner jitter
+    (~1.5 % of the side, residual detector noise), scale 0.97-1.03, brightness/contrast/colour +-10 %, a little
+    blur and JPEG. No flips: cards are not symmetric.
+    """
+    dev = crops.device
+    b = crops.shape[0]
+    x = crops.float() / 255
+    c = _corners(INPUT, INPUT, dev, b)
+    mid = c.mean(1, keepdim=True)
+    sc = _rand(b, 0.97, 1.03, dev)[:, None, None]
+    src = mid + (c - mid) * sc + (torch.randn(b, 4, 2, device=dev) * 0.015 * INPUT).clamp(-0.04 * INPUT, 0.04 * INPUT)
+    x = warp_perspective(x, get_perspective_transform(src, c), (INPUT, INPUT), mode="bilinear",
+                         padding_mode="border", align_corners=True)
+    gain = _rand(b, 0.88, 1.12, dev)[:, None] * (1 + 0.04 * torch.randn(b, 3, device=dev))
+    x = x * gain[..., None, None]
+    m = x.mean((1, 2, 3), keepdim=True)
+    x = ((x - m) * _rand(b, 0.88, 1.12, dev)[:, None, None, None] + m).clamp(0, 1)
+    with torch.backends.cudnn.flags(enabled=True, benchmark=False):
+        bl = torch.rand(b, device=dev) < 0.2
+        if bl.any():
+            x[bl] = gaussian_blur2d(x[bl], (7, 7), _rand(int(bl.sum()), 0.5, 1.2, dev)[:, None].expand(-1, 2))
+        jp = torch.rand(b, device=dev) < 0.3
+        if jp.any():
+            x[jp] = jpeg_codec_differentiable(x[jp], _rand(int(jp.sum()), 50, 95, dev)).clamp(0, 1)
+    mean = torch.tensor(MEAN, device=dev)[None, :, None, None]
+    std = torch.tensor(STD, device=dev)[None, :, None, None]
+    return (x - mean) / std

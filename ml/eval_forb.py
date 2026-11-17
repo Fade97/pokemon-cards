@@ -21,7 +21,6 @@ English is installed, not just the 870 trained cards.
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import re
 from collections import defaultdict
@@ -29,20 +28,14 @@ from collections import defaultdict
 import cv2
 import numpy as np
 
-from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR
+from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR, split_of
 from detect import center_crop_fallback, detect, rectify
 from eval_real_manual import THRESH, Embedder, LearnedDetector, summarize
 
 FORB = DATA_DIR / "external" / "forb"
 WORK = DATA_DIR / "packs-work"
 MAP = FORB / "forb_map.json"
-HOLDOUT_PERCENT = 20
 MIN_MAP_SIM = 0.6
-
-
-def split_of(card_id: str) -> str:
-    """Fixed card-level split: the same card is always in the same split, whatever else changes."""
-    return "test" if int(hashlib.sha1(card_id.encode()).hexdigest(), 16) % 100 < HOLDOUT_PERCENT else "train"
 
 
 def norm_number(s: str) -> str:
@@ -128,6 +121,16 @@ def cmd_map(emb: Embedder, ids, R, cards):
     print(dict(reasons), "->", MAP)
 
 
+def misses_by_set(rows: list[dict]) -> dict[str, dict[str, int]]:
+    """Per TCGdex set of the true card: photos and top-1 misses, sets with the most misses first."""
+    n: dict[str, list[int]] = {}
+    for r in rows:
+        v = n.setdefault(r["truth"].rsplit("-", 1)[0], [0, 0])
+        v[0] += 1
+        v[1] += not r["ok_exact"]
+    return {s: {"n": a, "miss": m} for s, (a, m) in sorted(n.items(), key=lambda kv: (-kv[1][1], kv[0])) if m}
+
+
 def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None):
     mapping = json.loads(MAP.read_text())
     det = LearnedDetector() if detector == "learned" else "classic"
@@ -167,8 +170,11 @@ def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None):
     for key in ("split", "difficulty"):
         for r in rows:
             groups.setdefault(f"{key}={r[key]}", []).append(r)
+    for r in rows:  # the test split by difficulty: the fair score once the train split is used for training
+        groups.setdefault(f"split={r['split']},difficulty={r['difficulty']}", []).append(r)
     summary = {k: {**summarize(v), "name_top1": sum(r["ok_name"] for r in v),
                    "name_top5": sum(r["top5_name"] for r in v)} for k, v in groups.items()}
+    summary["test_misses_by_set"] = misses_by_set([r for r in rows if r["split"] == "test"])
     tag = f"forb_{emb.tag}_{detector}"
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (RESULTS_DIR / f"{tag}.json").write_text(json.dumps(

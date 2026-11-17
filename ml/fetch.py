@@ -14,6 +14,7 @@ from concurrent.futures import ThreadPoolExecutor
 import requests
 from PIL import Image
 from tqdm import tqdm
+from urllib3.util.retry import Retry
 
 from common import API_CACHE, MANIFEST, SETS, Card
 
@@ -21,6 +22,10 @@ API = "https://api.tcgdex.net/v2"
 UA = {"User-Agent": "cardindex-ml-prototype/0.1 (open-source research)"}
 session = requests.Session()
 session.headers.update(UA)
+# The CDN answers 503 now and then during long runs (~22k EN images): back off and retry instead of aborting.
+session.mount("https://", requests.adapters.HTTPAdapter(max_retries=Retry(
+    total=6, backoff_factor=2, status_forcelist=(429, 500, 502, 503, 504), allowed_methods=("GET",),
+    raise_on_status=False)))
 
 
 def get_set(lang: str, set_id: str) -> dict:

@@ -1,0 +1,16 @@
+{
+ "samples": "samples_mnv3_256_forb.json",
+ "crops_by_source_role": {
+  "forb/train": 3953,
+  "forb/val": 461,
+  "tcgar/train": 420,
+  "tcgar/val": 74
+ },
+ "train_crops_before_filter": 4373,
+ "train_crops": 4288,
+ "train_dropped_low_sim": 85,
+ "train_cards": 1068,
+ "val_crops": 535,
+ "val_cards": 124,
+ "test_split_crops": 0
+}

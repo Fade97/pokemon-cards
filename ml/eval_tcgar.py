@@ -150,9 +150,14 @@ def main():
             "within_3pct": pct([e is not None and e <= 3 for e in errs]),
             "within_5pct": pct([e is not None and e <= 5 for e in errs])}
     rec = [r for r in rows if "truth" in r]
-    summary["recognition"] = {"n": len(rec), **{
-        f"{k}_{name}": pct([r[f"{k}_{name}"] for r in rec]) for name in ("gt", "learned")
-        for k in ("top1", "top5", "name")}}
+    def rec_summary(rs):
+        return {"n": len(rs), **{f"{k}_{name}": pct([r[f"{k}_{name}"] for r in rs]) for name in ("gt", "learned")
+                                 for k in ("top1", "top5", "name")}}
+
+    summary["recognition"] = rec_summary(rec)
+    # TCG-AR train-split cards may be used in training (train.py --real): only the test split is a fair score then.
+    for split in ("train", "test"):
+        summary[f"recognition_split={split}"] = rec_summary([r for r in rec if r["split"] == split])
     summary["median_card_width_px"] = round(float(np.median([r["card_px"] for r in rows])), 1)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     out = RESULTS_DIR / f"tcgar_{args.embedder}_w8.json"
