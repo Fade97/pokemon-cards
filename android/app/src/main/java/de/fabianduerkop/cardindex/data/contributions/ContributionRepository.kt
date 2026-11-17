@@ -89,28 +89,35 @@ class ContributionRepository(
     /** Takes one contribution back: a queued one is dropped here, an uploaded one is withdrawn on the server. */
     suspend fun withdraw(id: Long) = lock.withLock {
         val item = dao.byId(id) ?: return@withLock
-        if (item.remoteId == null) {
-            drop(item)
-            return@withLock
-        }
-        // A queued scan may already be on the server: an earlier attempt can have stored it with the answer lost.
-        // So it is withdrawn like an uploaded one, with the stored id and token; a server that never got it answers
-        // 404, which counts as done. Its crop goes right away and it is never sent again.
-        item.cropPath?.let { File(filesDir, it).delete() }
-        dao.requestWithdrawal(id)
-        requestRun()
+        // Uploaded or queued: both may be on the server (see retract); the crop goes right away.
+        if (retract(item)) requestRun()
     }
 
     suspend fun withdrawAll() = lock.withLock {
-        for (item in dao.pendingUploads()) {
-            if (item.remoteId == null) drop(item) else item.cropPath?.let { File(filesDir, it).delete() }
-        }
+        for (item in dao.pendingUploads()) retract(item)
         if (dao.requestWithdrawalOfAll() > 0) requestRun()
     }
 
     /** Contributing was turned off: scans not sent yet are no longer covered by the consent, so they go. */
     suspend fun dropQueued() = lock.withLock {
-        dao.pendingUploads().forEach { drop(it) }
+        var marked = false
+        for (item in dao.pendingUploads()) marked = retract(item) || marked
+        if (marked) requestRun()
+    }
+
+    /**
+     * Takes back a scan that was never confirmed as uploaded. One with a server id may still be on the server (an
+     * earlier attempt stored it, the answer got lost), so it is withdrawn there too; a 404 counts as done.
+     * Returns true when a DELETE was queued.
+     */
+    private suspend fun retract(item: ContributionEntity): Boolean {
+        if (item.remoteId == null) {
+            drop(item)
+            return false
+        }
+        item.cropPath?.let { File(filesDir, it).delete() }
+        dao.requestWithdrawal(item.id)
+        return true
     }
 
     /**
@@ -155,8 +162,8 @@ class ContributionRepository(
         val item = dao.pendingUploads().firstOrNull() ?: return false
         val consent = acceptedConsent()
         if (consent == null) {
-            // Turned off while queued: never send it.
-            drop(item)
+            // Turned off while queued: never send it, and withdraw any copy an earlier attempt left on the server.
+            retract(item)
             return true
         }
         val file = File(filesDir, item.cropPath!!)

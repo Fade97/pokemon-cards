@@ -188,6 +188,23 @@ class ContributionsTest {
     }
 
     @Test
+    fun lostAnswerThenContributingTurnedOff_removesTheServerCopy() = runTest {
+        val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
+        val queued = db.contributionDao().byId(id)!!
+        api.loseNextAnswer = true
+        assertEquals(QueueOutcome.Retry, repo.processQueue()) // stored on the server, answer lost
+
+        repo.dropQueued() // the user turns contributing off
+        consent = null
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+
+        assertEquals(1, api.uploads.size)
+        assertTrue(api.withdrawn(queued.remoteId!!))
+        assertTrue(repo.observe().first().isEmpty())
+        assertTrue(File(tmp.root, ContributionRepository.DIR).listFiles().orEmpty().isEmpty())
+    }
+
+    @Test
     fun withdrawOfAQueuedOneNeverSendsIt_andTheServerIsAskedToForgetBoth() = runTest {
         val uploaded = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!
         repo.processQueue()
