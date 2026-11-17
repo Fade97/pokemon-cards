@@ -55,7 +55,7 @@ def main():
     import litert_torch
     from ai_edge_quantizer import quantizer, recipe
 
-    ck = torch.load(DATA / "checkpoints" / f"{args.run}.pt", map_location="cpu", weights_only=False)
+    ck = torch.load(DATA / "checkpoints" / f"{args.run}.pt", map_location="cpu", weights_only=True)
     net = CornerNet(ck["backbone"], pretrained=False)
     net.load_state_dict(ck["model"])
     model = PhoneCornerNet(net).eval()
@@ -69,7 +69,7 @@ def main():
     qt.load_quantization_recipe(recipe.dynamic_wi8_afp32())
     qt.quantize().export_model(str(w8), overwrite=True)
 
-    test = torch.load(DATA / "synth" / "corners_test.pt")
+    test = torch.load(DATA / "synth" / "corners_test.pt", weights_only=True)
     n = min(args.n_check, len(test["x"]))
     xs = [(test["x"][i].permute(1, 2, 0).float().numpy() / 255)[None].astype(np.float32) for i in range(n)]
     gt = test["c"][:n].numpy()

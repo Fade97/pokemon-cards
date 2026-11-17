@@ -54,6 +54,21 @@ the L2-normalized embedding. ImageNet normalization is built into the model.
 wsl -d Ubuntu -- ~/cardindex-export/.venv/bin/python /mnt/d/AI/pokemon-cards/ml/export_corners.py --run corners_mnv3
 ```
 
+### Published weights (ADR 0008)
+
+Published weights are `.tflite` (above) and `.safetensors` only, never the `.pt` training checkpoints: a `.pt` file
+is a pickle and can run code when loaded. `export_safetensors.py` writes `<data>/export/<run>.safetensors` (the
+model's `state_dict`, plus the ArcFace weights under `arc.` for embedding models; backbone, dim, epoch and classes
+in the header metadata):
+
+```powershell
+uv run python export_safetensors.py --run mnv3_256_real
+uv run python export_safetensors.py --run corners_mnv3
+```
+
+All scripts load checkpoints with `torch.load(..., weights_only=True)`; checkpoints hold only tensors and plain
+types (str, int, list) so that this works.
+
 ### Learned corner detector: exact I/O
 
 Files: `<data>/export/corners_mnv3_w8.tflite` (3.5 MB, int8 weights, float activations; recommended) and

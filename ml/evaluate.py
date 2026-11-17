@@ -95,7 +95,7 @@ def main():
         r.pop("by_group", None)
         res["twin_de_me04_in_full"] = r
 
-    ck = torch.load(CKPT_DIR / f"{args.run}.pt", map_location="cpu", weights_only=False)
+    ck = torch.load(CKPT_DIR / f"{args.run}.pt", map_location="cpu", weights_only=True)
     if ck["classes"] == [c.key for c in cards[:n_trained]]:
         W = torch.nn.functional.normalize(ck["arc"]["W"], dim=-1).numpy()
         Q = embed_arrays(model, [preprocess(c) for c in test], dev)

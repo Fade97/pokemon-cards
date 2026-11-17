@@ -21,6 +21,7 @@ dependencies = [
     "onnxruntime",
     "onnxscript",
     "kornia>=0.8",
+    "safetensors>=0.4",
 ]
 
 [project.optional-dependencies]

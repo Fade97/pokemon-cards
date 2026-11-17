@@ -131,7 +131,7 @@ def main():
     model = EmbeddingNet(args.backbone, args.dim).to(dev)
     arc = ArcFace(args.dim, len(train_classes)).to(dev)
     if args.init:
-        ck0 = torch.load(CKPT_DIR / f"{args.init}.pt", map_location="cpu", weights_only=False)
+        ck0 = torch.load(CKPT_DIR / f"{args.init}.pt", map_location="cpu", weights_only=True)
         assert ck0["classes"] == [cards[int(i)].key for i in train_classes] and ck0["dim"] == args.dim
         model.load_state_dict(ck0["model"])
         arc.load_state_dict(ck0["arc"])

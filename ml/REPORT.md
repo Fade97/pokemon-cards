@@ -295,6 +295,13 @@ On the hard GPU binder, sleeve and loose scenes (2,000 fixed scenes, unseen card
 | learned (w8) | — | 0.67 % | — | — |
 | classic | 33 % | 20 % | 16 % | 31 % |
 
+> **Rerun needed:** these learned-detector numbers come from the checkpoint that was *selected* on the same 2,000
+> test scenes (best of the evaluations every 5 epochs), so they are slightly optimistic and not an independent
+> test score. `train_corners.py` now selects on a separate validation set (500 scenes, seed 90001, trained cards
+> only) and scores the test set once with the selected checkpoint (`test_selected` in
+> `results/train_corners_mnv3.json`). The run and `export_corners.py` must be repeated on the training PC to
+> replace the rows above; the classic row is unaffected (it is not trained).
+
 The classic detector also finds a card in only 85 % of these scenes. Adding the German twin sets to the gallery
 lowers the trained EN sets slightly (EN 94.0 → 90.8 % with the classic detector), because the language twins now
 compete.
