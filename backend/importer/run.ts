@@ -48,8 +48,13 @@ async function main(): Promise<number> {
     await queue.drain(ctx, log);
     log(`import: ${queue.done} jobs done, ${queue.failed.length} failed${queue.failed.length ? `: ${queue.failed.join(", ")}` : ""}`);
 
+    // The last attempt of each top-level job decides: a job that failed once and then succeeded on retry is ok.
     const { results: runs } = await db
-      .prepare("SELECT job, status, detail FROM import_runs WHERE started_at >= ? AND job NOT LIKE '%-%' ORDER BY id")
+      .prepare(
+        `SELECT job, status, detail FROM import_runs
+          WHERE id IN (SELECT MAX(id) FROM import_runs WHERE started_at >= ? AND job NOT LIKE '%-%' GROUP BY job)
+          ORDER BY id`,
+      )
       .bind(now.toISOString())
       .all<{ job: string; status: string; detail: string | null }>();
     for (const r of runs) log(`${r.job}: ${r.status} ${r.detail ?? ""}`);

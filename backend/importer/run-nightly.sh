@@ -10,12 +10,16 @@ token_file=${VAULT_TOKEN_FILE:-$HOME/.config/vault/apps-token}
 secret_path=${PRICES_VAULT_PATH:-secret/data/services/pokemon-cards}
 
 if [[ -r $token_file ]]; then
-  if secret=$(curl -fsS --max-time 20 -H "X-Vault-Token: $(<"$token_file")" "$vault_addr/v1/$secret_path" 2>/dev/null); then
-    # Keys carry the ENV names (R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET).
+  # The header comes from a file descriptor, so the token never appears in the process list.
+  if secret=$(curl -fsS --max-time 20 -H @<(printf 'X-Vault-Token: %s\n' "$(<"$token_file")") \
+      "$vault_addr/v1/$secret_path" 2>/dev/null); then
+    # Keys carry the ENV names (R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET). Values are
+    # single-quoted for the shell, so `$` or backticks in a secret stay literal.
     eval "$(node -e '
       const d = JSON.parse(require("fs").readFileSync(0, "utf8")).data.data;
+      const q = (v) => "'"'"'" + String(v).replaceAll("'"'"'", "'"'"'\\'"'"''"'"'") + "'"'"'";
       for (const k of ["R2_ENDPOINT", "R2_ACCESS_KEY_ID", "R2_SECRET_ACCESS_KEY", "R2_BUCKET"])
-        if (d[k]) console.log(`export ${k}=${JSON.stringify(String(d[k]))}`);
+        if (d[k]) console.log(`export ${k}=${q(d[k])}`);
     ' <<<"$secret")"
   else
     echo "vault: no R2 credentials at $secret_path, publishing locally only" >&2
