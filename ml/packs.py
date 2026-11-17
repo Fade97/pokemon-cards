@@ -279,6 +279,12 @@ def publish_pack(catalog: dict, pack: Pack, base: Pack | None, *, model: dict | 
     if prev and base is not None and prev.get("modelSha256") == model_sha:
         delta = compute_delta(base, pack)
         if delta is not None and delta_is_empty(delta):
+            new_model = model["id"] if model and pack.rows else None
+            if prev.get("model") != new_model:
+                # Same embedder (so the same index), new model bundle (e.g. corner detector): the pack only points
+                # to it; no new pack files, and the app downloads just the model.
+                catalog["packs"][lang] = {**prev, "model": new_model}
+                catalog["models"][new_model] = {k: v for k, v in model.items() if k != "id"}
             return catalog, []
     version = (prev["version"] + 1) if prev else 1
 
@@ -338,7 +344,8 @@ def publish_pack(catalog: dict, pack: Pack, base: Pack | None, *, model: dict | 
 def model_entry(embedder_name: str, embedder: bytes, *, dim: int, input_size: int,
                 corners: bytes | None = None) -> tuple[dict, list[PublishedFile]]:
     """Catalog entry and files of the shared recognition model (same for every language)."""
-    mid = model_id(embedder_name, embedder)
+    # The id covers the corner detector too, so a new detector alone is a new model the app downloads.
+    mid = model_id(embedder_name, embedder + (corners or b""))
     files = [PublishedFile(f"models/{mid}.tflite", embedder, "application/octet-stream")]
     entry = {"id": mid, "embedder": file_entry(files[0].key, embedder), "dim": dim, "inputSize": input_size,
              "corners": None}

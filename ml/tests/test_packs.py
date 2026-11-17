@@ -163,7 +163,8 @@ def model(sha_seed: bytes = b"model-1"):
 def test_model_entry_names_files_by_hash():
     entry, files = model()
     sha = packs.sha256_bytes(b"model-1")
-    assert entry["id"] == f"mnv3_256_real_w8-{sha[:12]}"
+    # The id covers embedder and corner detector; the embedder file keeps its own checksum.
+    assert entry["id"] == f"mnv3_256_real_w8-{packs.sha256_bytes(b'model-1' + b'corners')[:12]}"
     assert entry["embedder"] == {"path": f"models/{entry['id']}.tflite", "size": 7, "sha256": sha}
     assert entry["corners"]["path"].startswith("models/corners-")
     assert [f.key for f in files] == [entry["embedder"]["path"], entry["corners"]["path"]]
@@ -310,6 +311,25 @@ def test_build_against_local_mirror(tmp_path):
     write_work(work, A, rows=ROWS_A)
     with pytest.raises(SystemExit, match="checksums"):
         build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
+
+
+def test_a_new_corner_detector_alone_is_published_as_a_new_model(tmp_path):
+    work, out = tmp_path / "work", tmp_path / "out"
+    write_work(work, A, rows=ROWS_A)
+    (work / "model" / "corners.tflite").write_bytes(b"corners-1")
+    cat1, _ = build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
+    build_packs.promote_catalog(out)
+
+    (work / "model" / "corners.tflite").write_bytes(b"corners-2")
+    cat2, files = build_packs.build(work, out, ["en"], base=None, embeddings=True, built_at=BUILT)
+    old, new = cat1["packs"]["en"], cat2["packs"]["en"]
+    assert new["model"] != old["model"]
+    assert new["version"] == old["version"] and new["files"] == old["files"]  # no new pack files
+    assert new["modelSha256"] == old["modelSha256"]  # same embedder, so the installed index stays valid
+    assert set(cat2["models"]) == {new["model"]}
+    corners_key = cat2["models"][new["model"]]["corners"]["path"]
+    assert {f.key for f in files} >= {corners_key, "catalog.json"}
+    assert not any(k.startswith("en/") for k in {f.key for f in files})
 
 
 def test_build_refuses_embeddings_from_another_model(tmp_path):

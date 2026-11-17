@@ -23,8 +23,10 @@ R2 bucket PACKS                         served as
 - `<lang>` is the TCGdex language code: `en de fr it es pt nl pl ja` in v1. TCGdex has only a few NL/PL sets
   (3 and 2 on 2026-11-17), and only about 30 % of the JP cards have an image, so those packs index fewer cards.
 - `<v>` is the pack version, an integer per language that goes up by one with every publish.
-- One model serves all languages. Its id is the file stem plus the first 12 hex digits of its SHA-256, e.g.
-  `mnv3_256_real_w8-1a2b3c4d5e6f`.
+- One model serves all languages. Its id is the embedder's file stem plus the first 12 hex digits of the SHA-256
+  of the embedder and the corner detector together, e.g. `mnv3_256_real_w8-1a2b3c4d5e6f`. A new corner detector
+  alone is a new model: unchanged packs only point to it (same version, same files), and the app downloads just
+  the model, because `modelSha256` (the embedder) and so the installed indexes stay the same.
 
 ### Immutability
 

@@ -294,7 +294,8 @@ def build(work: Path, out: Path, langs: list[str], *, base: str | None, embeddin
               f"{entry['size'] / 1e6:.1f} MB" + (f", delta from v{delta['from']} {delta['size'] / 1e6:.2f} MB"
                                                   if delta else ", no delta"))
         changed += files
-    if not changed:
+    # A pack can point to a new model without new pack files; then only the catalog (and model) are published.
+    if not changed and catalog["packs"] == source.catalog()["packs"]:
         print("nothing changed")
         return catalog, []
     catalog = packs.prune_models(catalog)
