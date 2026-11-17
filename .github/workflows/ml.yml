@@ -1,0 +1,42 @@
+name: ML
+
+on:
+  push:
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml.yml"
+  pull_request:
+    paths:
+      - "ml/**"
+      - ".github/workflows/ml.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ml-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: ml/requirements-ci.txt
+      # Plain pip with a CPU-only set: pyproject.toml pins CUDA torch for training, which CI does not need.
+      - name: Install CPU dependencies
+        run: pip install -r requirements-ci.txt
+      - name: Ruff
+        run: ruff check --output-format=github .
+      - name: Compile all scripts
+        run: python -m py_compile *.py
+      - name: Tests (CPU, no data)
+        run: python -m pytest -q

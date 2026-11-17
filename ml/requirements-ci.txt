@@ -1,0 +1,12 @@
+# SPDX-License-Identifier: GPL-3.0-or-later
+# Minimal CPU-only set for CI (.github/workflows/ml.yml): lint plus the pure-logic tests in tests/.
+# Training needs the full project (pyproject.toml, CUDA torch via uv); this file is not for that.
+# Versions follow uv.lock.
+--extra-index-url https://download.pytorch.org/whl/cpu
+torch==2.14.1+cpu
+torchvision==0.29.1+cpu
+timm==1.0.31
+numpy==2.5.5
+opencv-python-headless==5.0.0.93
+pytest
+ruff==0.17.5
