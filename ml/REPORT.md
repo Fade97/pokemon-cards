@@ -347,6 +347,58 @@ phone latency is not measured yet. The index for 1,274 cards × 256 is 637 KB in
   whether float16 is affordable.
 - **Phone latency** of the detector (target ≤ 30 ms) and of the embedding has not been measured on the device.
 
+## Public real-photo sets (2026-11-17)
+
+First evaluation on real photos at scale, with the gallery the app actually searches: the **full EN language pack**
+(22,213 TCGdex EN cards, model `mnv3_256_real_w8`), not the 870 trained cards. Both sets are used with permission
+for eval and training; the images stay in `<data>/external/` and are never committed (research: #48). No number
+OCR rerank here, so the app should do somewhat better on cards with a readable number.
+
+### FORB "animated cards" (`eval_forb.py`)
+
+6,025 real photos of EN cards, 97 % from eBay listings: hands, sleeves, top loaders, graded slabs, busy
+backgrounds. 1,314 of the 1,392 ground-truth prints map to a TCGdex id: 1,309 directly by the set code and number
+in the pokemon.com URL, 5 XY alternate arts (which TCGdex files under their original set) by the scan's embedding
+with the same number and similarity ≥ 0.6. 76 do not map, mostly promos without a TCGdex image, and 2 have no
+number. That leaves 5,578 scored photos. The detector runs on the whole photo, because the seller framed the card.
+
+| Detector | Top-1 | Top-5 | Name top-1 | Easy (683) | Medium (4,494) | Hard (401) | Shown at sim ≥ 0.5 (wrong) |
+|---|---|---|---|---|---|---|---|
+| classic | 54.1 | 60.4 | 55.9 | 84.2 | 52.7 | 18.0 | 3,005 (317) |
+| **learned** | **72.4** | **78.9** | **74.4** | **88.7** | **74.0** | **26.7** | 4,005 (337) |
+
+- The train/test split (fixed 20 % of the cards, `split_of`) scores the same today (learned: 72.4 vs 72.6), as it
+  should before any training on FORB. From now on, only the **test** split counts once FORB photos go into training.
+- Of the 1,538 learned-detector misses, only 110 had the right Pokémon name, so most misses are not near-duplicate
+  prints but plain failures (crop or embedding).
+- Misses concentrate on promos and special sets: `swshp` 261, `smp` 242, `xyp` 135, `sma` (Shiny Vault) 123,
+  `ex1` 108. Many of these are far from the 870 trained cards in style.
+- At the 0.5 threshold the learned path shows 72 % of the photos, and 8.4 % of what it shows is wrong.
+
+### TCG-AR real set (`eval_tcgar.py`)
+
+51 overhead 1920×1080 webcam photos of play mats, 832 annotated cards (4 corners each, 635 with an EN id mapped to
+TCGdex). Cards are small (median 144 px wide), so this is a stress test, not an app estimate. Per card, the
+app's guide box (card at 78 % of its height, 7 % margin) is cut around it with the neighbours inside, and sideways
+cards (72, judged on the annotated quad) are turned upright.
+
+| Detector | Found | Median corner error (% of the diagonal) | ≤ 3 % | ≤ 5 % |
+|---|---|---|---|---|
+| classic | 95.1 % | 13.4 | 23.4 % | 31.2 % |
+| **learned** | **100 %** | **1.62** | **67.3 %** | **75.8 %** |
+
+Recognition over the EN gallery: 71.7 % top-1 with the annotated corners, **71.2 %** with the learned detector
+(top-5 82.4 / 83.0 %).
+
+### Takeaways
+
+1. **The learned corner detector is the right default.** It adds 18 pp top-1 on FORB, and its corners on TCG-AR
+   come close to the hand annotations.
+2. **The embedding is now the bottleneck on real photos**: hard FORB photos (27 %), promos and Shiny Vault. Next is
+   fine-tuning on the FORB/TCG-AR train split plus more classes than the 870, scored on the held-out split.
+3. FORB numbers (EN, mostly vintage/promo, eBay framing) and our own S25 photos (DE, binder, guide) measure different
+   things. Keep both.
+
 ## Reproduce
 
 See [README.md](README.md). Data and checkpoints are in `D:\AI\pokemon-cards-data\`, not in the repo.
