@@ -4,9 +4,11 @@
 //   GET  /health                 age of the price files, for uptime checks (503 when they are stale)
 //   GET  /v1/prices/:tcgdexId    prices of one card
 //   POST /v1/prices {ids: [...]} prices of up to 100 cards, e.g. to refresh a collection
+//   GET  /v1/packs/catalog.json  language-pack catalog; /v1/packs/<lang>/<file> the pack files (src/packs.ts)
 //
 // Every route is rate-limited per client IP (#30).
 
+import { packKey, servePack } from "./packs";
 import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
 
 /** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
@@ -88,6 +90,13 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     const response = json(price, { "Cache-Control": CACHE_ONE_CARD });
     ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
     return response;
+  }
+
+  if (pathname.startsWith("/v1/packs/")) {
+    if (request.method !== "GET" && request.method !== "HEAD") return methodNotAllowed("GET, HEAD");
+    const key = packKey(pathname);
+    if (!key) return error(404, "not found");
+    return servePack(request, env.PACKS, key);
   }
 
   return error(404, "not found");
