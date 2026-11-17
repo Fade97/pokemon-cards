@@ -1,18 +1,24 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 """Pack format, deltas and the build step, on CPU without torch:
 
-    cd ml && uv run --no-project --with pytest pytest tests
+    cd ml && uv run --no-project --with pytest pytest tests/test_packs.py
 """
 from __future__ import annotations
 
 import gzip
 import json
 import struct
+import sys
+from pathlib import Path
 
 import pytest
 
-import build_packs
-import packs
+# The ml/ scripts import each other as top-level modules (python build_packs.py ...). Set here, not in a
+# conftest.py, so this file also runs on its own with only pytest installed (.github/workflows/ml-packs.yml).
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import build_packs  # noqa: E402
+import packs  # noqa: E402
 
 DIM = 4
 BUILT = "2026-11-17T00:00:00Z"

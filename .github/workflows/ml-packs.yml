@@ -6,13 +6,13 @@ on:
     paths:
       - "ml/packs.py"
       - "ml/build_packs.py"
-      - "ml/tests/**"
+      - "ml/tests/test_packs.py"
       - ".github/workflows/ml-packs.yml"
   pull_request:
     paths:
       - "ml/packs.py"
       - "ml/build_packs.py"
-      - "ml/tests/**"
+      - "ml/tests/test_packs.py"
       - ".github/workflows/ml-packs.yml"
 
 permissions:
@@ -34,4 +34,5 @@ jobs:
         with:
           python-version: "3.12"
       - run: pip install pytest
-      - run: python -m pytest tests -q
+      # Only the pack tests: the other ml/ tests need numpy and run in ml.yml.
+      - run: python -m pytest tests/test_packs.py -q
