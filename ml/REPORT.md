@@ -357,37 +357,38 @@ OCR rerank here, so the app should do somewhat better on cards with a readable n
 ### FORB "animated cards" (`eval_forb.py`)
 
 6,025 real photos of EN cards, 97 % from eBay listings: hands, sleeves, top loaders, graded slabs, busy
-backgrounds. 1,311 of the 1,392 ground-truth prints map to a TCGdex id (scan embedded, top-10 filtered by
-collector number). 79 do not, mostly promos, and 2 have no number. That leaves 5,561 scored photos. The detector runs on the
-whole photo, because the seller framed the card.
+backgrounds. 1,314 of the 1,392 ground-truth prints map to a TCGdex id: 1,309 directly by the set code and number
+in the pokemon.com URL, 5 XY alternate arts (which TCGdex files under their original set) by the scan's embedding
+with the same number and similarity ≥ 0.6. 76 do not map, mostly promos without a TCGdex image, and 2 have no
+number. That leaves 5,578 scored photos. The detector runs on the whole photo, because the seller framed the card.
 
-| Detector | Top-1 | Top-5 | Name top-1 | Easy (684) | Medium (4,478) | Hard (399) | Shown at sim ≥ 0.5 (wrong) |
+| Detector | Top-1 | Top-5 | Name top-1 | Easy (683) | Medium (4,494) | Hard (401) | Shown at sim ≥ 0.5 (wrong) |
 |---|---|---|---|---|---|---|---|
-| classic | 54.0 | 60.4 | 55.9 | 84.1 | 52.6 | 17.8 | 2,997 (321) |
-| **learned** | **72.3** | **78.8** | **74.2** | **88.6** | **73.9** | **26.8** | 3,992 (342) |
+| classic | 54.1 | 60.4 | 55.9 | 84.2 | 52.7 | 18.0 | 3,005 (317) |
+| **learned** | **72.4** | **78.9** | **74.4** | **88.7** | **74.0** | **26.7** | 4,005 (337) |
 
-- The train/test split (fixed 20 % of the cards, `split_of`) scores the same today (learned: 72.2 vs 72.6), as it
+- The train/test split (fixed 20 % of the cards, `split_of`) scores the same today (learned: 72.4 vs 72.6), as it
   should before any training on FORB. From now on, only the **test** split counts once FORB photos go into training.
-- Of the 1,540 learned-detector misses, only 108 had the right Pokémon name, so most misses are not near-duplicate
+- Of the 1,538 learned-detector misses, only 110 had the right Pokémon name, so most misses are not near-duplicate
   prints but plain failures (crop or embedding).
-- Misses concentrate on promos and special sets: `swshp` 261, `smp` 239, `xyp` 135, `sma` (Shiny Vault) 123,
+- Misses concentrate on promos and special sets: `swshp` 261, `smp` 242, `xyp` 135, `sma` (Shiny Vault) 123,
   `ex1` 108. Many of these are far from the 870 trained cards in style.
-- At the 0.5 threshold the learned path shows 72 % of the photos, and 8.6 % of what it shows is wrong.
+- At the 0.5 threshold the learned path shows 72 % of the photos, and 8.4 % of what it shows is wrong.
 
 ### TCG-AR real set (`eval_tcgar.py`)
 
-51 overhead 1920×1080 webcam photos of play mats, 832 annotated cards (4 corners each, 633 with an EN id mapped to
+51 overhead 1920×1080 webcam photos of play mats, 832 annotated cards (4 corners each, 635 with an EN id mapped to
 TCGdex). Cards are small (median 144 px wide), so this is a stress test, not an app estimate. Per card, the
 app's guide box (card at 78 % of its height, 7 % margin) is cut around it with the neighbours inside, and sideways
-cards are turned upright.
+cards (72, judged on the annotated quad) are turned upright.
 
 | Detector | Found | Median corner error (% of the diagonal) | ≤ 3 % | ≤ 5 % |
 |---|---|---|---|---|
-| classic | 95.2 % | 13.5 | 23.6 % | 31.2 % |
-| **learned** | **100 %** | **1.72** | **63.9 %** | **71.9 %** |
+| classic | 95.1 % | 13.4 | 23.4 % | 31.2 % |
+| **learned** | **100 %** | **1.62** | **67.3 %** | **75.8 %** |
 
-Recognition over the EN gallery: 71.7 % top-1 with the annotated corners, **68.6 %** with the learned detector
-(top-5 82.1 / 79.6 %).
+Recognition over the EN gallery: 71.7 % top-1 with the annotated corners, **71.2 %** with the learned detector
+(top-5 82.4 / 83.0 %).
 
 ### Takeaways
 
