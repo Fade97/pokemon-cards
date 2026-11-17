@@ -135,3 +135,33 @@ the same way.
 
 `app_assets.py` builds the model, index and card list for the recognition lab in the app, and `app_parity.py` writes
 reference results for its parity test. See [`android/README.md`](../android/README.md#recognition-lab-scan-tab).
+
+### Language packs
+
+`build_packs.py` builds the per-language packs the app downloads (issue #5). Format and app-side checks:
+[`docs/packs.md`](../docs/packs.md). The steps run where their inputs are and share a work dir you can copy
+between machines:
+
+```sh
+# 1. TCGdex metadata, any machine, standard library only (cached; set answers refetched after 7 days or when the
+#    card count changes)
+python build_packs.py fetch --work packs-work                       # all 9 languages; --langs en,de --sets sv03.5
+# 2. Embeddings with the app's .tflite model, on the machine with CARDINDEX_DATA (numpy, OpenCV, ai-edge-litert).
+#    Rows are cached per model and image hash in <data>/packs-embcache, so unchanged cards stay byte-identical.
+python build_packs.py embed --work packs-work --download-images
+# 3. Packs, deltas and catalog.json against what is published, any machine, standard library only
+python build_packs.py build --work packs-work --out packs-out --base https://<api>/v1/packs
+python build_packs.py build ... --upload            # wrangler r2 object put --remote, catalog.json last; --dry-run
+```
+
+`--base` defaults to `--out`, which then acts as a local mirror of the bucket: its `catalog.json` is what was last
+published. A build writes the new catalog as `catalog.next.json`; only a successful `--upload` turns it into
+`catalog.json`, so a local build or a failed upload never makes the next run believe something was published.
+`build --no-embeddings` makes
+metadata-only packs for testing; it cannot be combined with `--upload`. `all` runs the three steps in a row.
+
+Tests for the pure parts (format, deltas, catalog, build step) need no torch:
+
+```sh
+uv run --no-project --with pytest pytest tests
+```

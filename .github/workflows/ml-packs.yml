@@ -1,0 +1,38 @@
+name: Pack builder
+
+# Only the pure, CPU-only parts of the language-pack builder (no torch, no data dir).
+on:
+  push:
+    paths:
+      - "ml/packs.py"
+      - "ml/build_packs.py"
+      - "ml/tests/test_packs.py"
+      - ".github/workflows/ml-packs.yml"
+  pull_request:
+    paths:
+      - "ml/packs.py"
+      - "ml/build_packs.py"
+      - "ml/tests/test_packs.py"
+      - ".github/workflows/ml-packs.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ml-packs-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ml
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v6
+        with:
+          python-version: "3.12"
+      - run: pip install pytest
+      # Only the pack tests: the other ml/ tests need numpy and run in ml.yml.
+      - run: python -m pytest tests/test_packs.py -q

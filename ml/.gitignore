@@ -14,3 +14,6 @@ __pycache__/
 *.npy
 *.faiss
 !results/*.png
+# build_packs.py work and output dirs (packs are published to R2, not committed)
+packs-work/
+packs-out/

@@ -70,6 +70,8 @@ and never written to disk.
 | `GET /health` | `{ "ok": true, "pricesGeneratedAt", "cardmarketPriceDate", "tcgplayerPriceDate" }`; `503` with `ok: false` when the files or either source's prices are older than 72 h, or missing |
 | `GET /v1/prices/:tcgdexId` | Prices of one card; `404` if the importer doesn't know it. Cached for an hour, at the edge and in the client. |
 | `POST /v1/prices` with `{ "ids": [...] }` | `{ "prices": { id: … }, "missing": [ids] }` for up to 100 cards |
+| `GET /v1/packs/catalog.json` | Language-pack catalog ([`docs/packs.md`](../docs/packs.md)), cached 5 min |
+| `GET /v1/packs/<lang>/<file>`, `GET /v1/packs/models/<file>` | A pack or model file from R2 `PACKS`, cached for a year (versioned names, never overwritten). `ETag`/`If-None-Match` → `304`, a single `Range: bytes=…` → `206` (`416` past the end), `HEAD` gives the size. |
 | any, over the rate limit | `429` with `Retry-After: 60` |
 
 A card price looks like this. A market is `null` when the card has no product there (TCGplayer covers EN
@@ -100,7 +102,8 @@ cards only), and `holo` is `null` when the guide has no foil price.
 ## Storage
 
 - **R2 `PRICES`** (`pokemon-cards-prices`): `current/` price files and `snapshots/`, written by the importer.
-- **R2 `PACKS`** (`pokemon-cards-packs`): language packs (model, reference index, card DB, deltas).
+- **R2 `PACKS`** (`pokemon-cards-packs`): language packs (model, reference index, card DB, deltas), written by
+  [`ml/build_packs.py`](../ml/README.md#language-packs) with `wrangler r2 object put`, never by the Worker.
 
 ## Develop
 

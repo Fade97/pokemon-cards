@@ -64,7 +64,7 @@ user scans.
 
 The APK stays small. On first launch the user picks languages, and the app downloads a pack for each one from
 R2: card metadata, the reference embedding index and model files. New sets arrive as **delta** packs, without
-an app release.
+an app release. Format, deltas and the app's checksum checks: [packs.md](packs.md).
 
 ## Collections and data model
 
