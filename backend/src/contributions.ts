@@ -25,7 +25,6 @@ const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const STALE_CLAIM_MS = 2 * 60 * 1000;
 /** 32 random bytes as base64url, like the tokens the server makes. */
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
-const EXT = { "image/jpeg": "jpg", "image/webp": "webp" } as const;
 
 export async function handleContributions(
   request: Request,
@@ -95,7 +94,9 @@ async function create(request: Request, env: Env, ctx: ExecutionContext): Promis
     return json({ error: `image must be ${MIN_SIDE}-${MAX_SIDE} px per side, got ${width}x${height}` }, 422);
   }
 
-  const key = `scans/${id}.${EXT[declared]}`;
+  // One key per id, whatever the type: every writer of this id (an original upload, a takeover) and every
+  // withdrawal hit the same object, so none can leave an image behind under another name.
+  const key = `scans/${id}`;
   const tokenHash = await sha256Hex(new TextEncoder().encode(token));
   const sha256 = await sha256Hex(clean.bytes);
   // The row claims the id before the image is written, so of two requests with one id only one writes, and a
@@ -115,7 +116,7 @@ interface Claim {
   cardId: string;
   lang: string;
   consent: string;
-  declared: keyof typeof EXT;
+  declared: "image/jpeg" | "image/webp";
   clean: { bytes: Uint8Array<ArrayBuffer> };
   width: number;
   height: number;
@@ -125,7 +126,10 @@ interface Claim {
 async function storeClaimed(env: Env, c: Claim): Promise<Response> {
   const { id, token, tokenHash, key, cardId, lang, consent, declared, clean, width, height, sha256 } = c;
   const now = new Date();
-  const values = [cardId, lang, consent, key, declared, clean.bytes.length, width, height, sha256, now.toISOString()];
+  // The claim time doubles as this attempt's id: cleanup and "stored" below only touch the row while it still
+  // carries it, so an attempt whose claim was taken over can't delete or complete the new owner's row.
+  const claimAt = now.toISOString();
+  const values = [cardId, lang, consent, key, declared, clean.bytes.length, width, height, sha256, claimAt];
   const claimed = await env.DB.prepare(
     `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
        width, height, sha256, created_at)
@@ -152,7 +156,9 @@ async function storeClaimed(env: Env, c: Claim): Promise<Response> {
     await env.CONTRIBUTIONS.put(key, clean.bytes, { httpMetadata: { contentType: declared }, sha256 });
   } catch (e) {
     // No record without its image; a withdrawal that came in meanwhile keeps its row.
-    await env.DB.prepare("DELETE FROM contributions WHERE id = ? AND withdrawn_at IS NULL").bind(id).run();
+    await env.DB.prepare("DELETE FROM contributions WHERE id = ? AND withdrawn_at IS NULL AND created_at = ?")
+      .bind(id, claimAt)
+      .run();
     throw e;
   }
   // withdraw() marks before it deletes the image. So either the mark is already visible here and this request
@@ -164,8 +170,10 @@ async function storeClaimed(env: Env, c: Claim): Promise<Response> {
     await env.CONTRIBUTIONS.delete(key);
     return json({ id, withdrawToken: token, withdrawnAt: after.withdrawn_at }, 200);
   }
-  await env.DB.prepare("UPDATE contributions SET stored_at = ? WHERE id = ? AND withdrawn_at IS NULL")
-    .bind(new Date().toISOString(), id)
+  await env.DB.prepare(
+    "UPDATE contributions SET stored_at = ? WHERE id = ? AND withdrawn_at IS NULL AND created_at = ?",
+  )
+    .bind(new Date().toISOString(), id, claimAt)
     .run();
   return json({ id, withdrawToken: token }, 201);
 }
@@ -238,17 +246,19 @@ async function withdraw(request: Request, env: Env, id: string): Promise<Respons
   }
   // The mark goes first, then the image: an upload of this id that is still writing either sees the mark after
   // its write and deletes the image itself, or wrote before the mark and loses the image to the delete below.
-  // A repeated withdrawal deletes again, so a delete that failed once is retried. The row stays, marked, so
-  // dataset releases skip it.
-  let withdrawnAt = row.withdrawn_at;
-  if (!withdrawnAt) {
-    withdrawnAt = new Date().toISOString();
-    await env.DB.prepare("UPDATE contributions SET withdrawn_at = ? WHERE id = ? AND withdrawn_at IS NULL")
-      .bind(withdrawnAt, id)
-      .run();
-  }
-  if (row.object_key) await env.CONTRIBUTIONS.delete(row.object_key);
-  return json({ id, withdrawnAt });
+  // The mark returns the row as it is now, so the key deleted is the current one. A repeated withdrawal keeps
+  // the first time and deletes again, so a delete that failed once is retried. The row stays, marked, so dataset
+  // releases skip it.
+  const marked = await env.DB.prepare(
+    `UPDATE contributions SET withdrawn_at = COALESCE(withdrawn_at, ?) WHERE id = ?
+     RETURNING withdrawn_at, object_key`,
+  )
+    .bind(new Date().toISOString(), id)
+    .first<{ withdrawn_at: string; object_key: string }>();
+  // The row went away since it was read (a failed upload cleaned up its claim): leave a tombstone instead.
+  if (!marked) return tombstone(request, env, id, token);
+  if (marked.object_key) await env.CONTRIBUTIONS.delete(marked.object_key);
+  return json({ id, withdrawnAt: marked.withdrawn_at });
 }
 
 /** The body, or null once it exceeds `limit` bytes; stops reading at the limit. */

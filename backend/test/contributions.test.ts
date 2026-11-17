@@ -166,7 +166,7 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
 
     // The client's token withdraws it.
     expect((await withdraw(id, token)).status).toBe(200);
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).toBeNull();
   });
 
   it("a withdrawal that overtakes its upload leaves a tombstone, so the late upload stores nothing", async () => {
@@ -175,7 +175,7 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     const late = await upload(jpeg(), { query: query(id), token });
     expect(late.status).toBe(200);
     expect(((await late.json()) as any).withdrawnAt).toBeTruthy();
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).toBeNull();
     const row = await env.DB.prepare("SELECT withdrawn_at FROM contributions WHERE id = ?").bind(id).first<any>();
     expect(row.withdrawn_at).toBeTruthy();
     // Someone else's token can't take the id either.
@@ -191,7 +191,7 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
          width, height, sha256, created_at)
        VALUES (?, ?, 'sv03.5-025', 'de', 'cc0-1', ?, 'image/jpeg', 1, 252, 352, 'x', ?)`,
     )
-      .bind(id, hash, `scans/${id}.jpg`, createdAt)
+      .bind(id, hash, `scans/${id}`, createdAt)
       .run();
   }
 
@@ -216,9 +216,19 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     await claimOnly(id, new Date(Date.now() - 10 * 60 * 1000).toISOString());
     const retry = await upload(jpeg(), { query: query(id), token });
     expect(retry.status).toBe(201);
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).not.toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).not.toBeNull();
     const row = await env.DB.prepare("SELECT stored_at FROM contributions WHERE id = ?").bind(id).first<any>();
     expect(row.stored_at).toBeTruthy();
+  });
+
+  it("withdraws a claim whose image was never written, and its late retry stores nothing", async () => {
+    const id = crypto.randomUUID();
+    await claimOnly(id, new Date(Date.now() - 10 * 60 * 1000).toISOString());
+    expect((await withdraw(id, token)).status).toBe(200);
+    const retry = await upload(jpeg(), { query: query(id), token });
+    expect(retry.status).toBe(200);
+    expect(((await retry.json()) as any).withdrawnAt).toBeTruthy();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).toBeNull();
   });
 
   it("deletes the image again on a repeated withdrawal", async () => {
@@ -226,9 +236,9 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     expect((await upload(jpeg(), { query: query(id), token })).status).toBe(201);
     expect((await withdraw(id, token)).status).toBe(200);
     // An image that came back after the first withdrawal (e.g. a write that raced it) goes on the next one.
-    await env.CONTRIBUTIONS.put(`scans/${id}.jpg`, jpeg());
+    await env.CONTRIBUTIONS.put(`scans/${id}`, jpeg());
     expect((await withdraw(id, token)).status).toBe(200);
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).toBeNull();
   });
 
   it("leaves no tombstone for a token that isn't a client token", async () => {
@@ -248,7 +258,7 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     const winner = a.status === 201 ? 252 : 300;
     const row = await env.DB.prepare("SELECT width FROM contributions WHERE id = ?").bind(id).first<any>();
     expect(row.width).toBe(winner);
-    const stored = await env.CONTRIBUTIONS.get(`scans/${id}.jpg`);
+    const stored = await env.CONTRIBUTIONS.get(`scans/${id}`);
     expect(new Uint8Array(await stored!.arrayBuffer())).toEqual(jpeg({ w: winner }));
   });
 
@@ -272,7 +282,7 @@ describe("POST /v1/contributions", () => {
 
     const row = await env.DB.prepare("SELECT * FROM contributions WHERE id = ?").bind(id).first<Record<string, unknown>>();
     expect(row).toMatchObject({
-      card_id: "sv03.5-025", lang: "de", consent_version: "cc0-1", object_key: `scans/${id}.jpg`,
+      card_id: "sv03.5-025", lang: "de", consent_version: "cc0-1", object_key: `scans/${id}`,
       content_type: "image/jpeg", width: 252, height: 352, withdrawn_at: null,
     });
     expect(row!.token_hash).not.toBe(withdrawToken);
@@ -283,7 +293,7 @@ describe("POST /v1/contributions", () => {
       "size", "stored_at", "token_hash", "width", "withdrawn_at",
     ]);
 
-    const obj = await env.CONTRIBUTIONS.get(`scans/${id}.jpg`);
+    const obj = await env.CONTRIBUTIONS.get(`scans/${id}`);
     const stored = new Uint8Array(await obj!.arrayBuffer());
     expect(stored).toEqual(jpeg());
     expect(obj!.httpMetadata?.contentType).toBe("image/jpeg");
@@ -294,7 +304,7 @@ describe("POST /v1/contributions", () => {
     const res = await upload(webp({ exif: true }), { type: "image/webp" });
     expect(res.status).toBe(201);
     const { id } = await res.json<{ id: string }>();
-    const obj = await env.CONTRIBUTIONS.get(`scans/${id}.webp`);
+    const obj = await env.CONTRIBUTIONS.get(`scans/${id}`);
     expect(new Uint8Array(await obj!.arrayBuffer())).toEqual(webp());
   });
 
@@ -340,13 +350,13 @@ describe("DELETE /v1/contributions/:id", () => {
 
     expect((await withdraw(id)).status).toBe(401);
     expect((await withdraw(id, "wrong-token")).status).toBe(404);
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).not.toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).not.toBeNull();
 
     const res = await withdraw(id, withdrawToken);
     expect(res.status).toBe(200);
     const body = await res.json<{ id: string; withdrawnAt: string }>();
     expect(body.id).toBe(id);
-    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}`)).toBeNull();
     const row = await env.DB.prepare("SELECT withdrawn_at FROM contributions WHERE id = ?").bind(id).first();
     expect(row).toEqual({ withdrawn_at: body.withdrawnAt });
 
