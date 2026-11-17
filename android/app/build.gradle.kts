@@ -79,6 +79,7 @@ dependencies {
     implementation(libs.mlkit.text.recognition.latin)
     implementation(libs.mlkit.text.recognition.japanese)
     implementation(libs.litert)
+    implementation(libs.litert.gpu)
     implementation(libs.opencv)
     implementation(libs.coil.compose)
     implementation(libs.coil.network.okhttp)

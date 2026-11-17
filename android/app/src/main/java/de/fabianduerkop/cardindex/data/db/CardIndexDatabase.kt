@@ -17,6 +17,8 @@ import androidx.room.migration.Migration
         CollectionEntity::class,
         CollectionCopyCrossRef::class,
         CachedPriceEntity::class,
+        ReviewItemEntity::class,
+        ReviewCandidateEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -26,6 +28,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun catalogDao(): CatalogDao
     abstract fun copyDao(): CopyDao
     abstract fun collectionDao(): CollectionDao
+    abstract fun reviewDao(): ReviewDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
@@ -35,6 +38,13 @@ abstract class CardIndexDatabase : RoomDatabase() {
         val MIGRATIONS: Array<Migration> = emptyArray()
 
         private const val NAME = "cardindex.db"
+
+        @Volatile
+        private var instance: CardIndexDatabase? = null
+
+        /** The app's one database; Room's invalidation tracking only works when every screen shares it. */
+        fun get(context: Context): CardIndexDatabase =
+            instance ?: synchronized(this) { instance ?: build(context).also { instance = it } }
 
         fun build(context: Context): CardIndexDatabase =
             Room.databaseBuilder(context.applicationContext, CardIndexDatabase::class.java, NAME)

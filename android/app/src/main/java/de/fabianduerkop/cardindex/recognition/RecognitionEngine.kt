@@ -54,8 +54,8 @@ data class RecognitionResult(
     val margin: Float get() = candidates[0].similarity - candidates[1].similarity
 }
 
-/** Model metadata from meta.json. */
-data class ModelInfo(val model: String, val dim: Int, val cards: Int, val corners: String?)
+/** Model metadata from meta.json. [backend] is where the embedder actually runs. */
+data class ModelInfo(val model: String, val dim: Int, val cards: Int, val corners: String?, val backend: EmbedderBackend)
 
 /**
  * The on-device recognition pipeline of the test app, mirroring ml/pipeline.py: classic-CV detection → rectify to
@@ -152,19 +152,7 @@ class RecognitionEngine private constructor(
         if (flipped) quad = quad.roll(2)
         val t3 = SystemClock.elapsedRealtime()
 
-        var reading: NumberReading? = null
-        var ocrText: String? = null
-        if (readNumber) {
-            // OCR only reranks: if it fails or hangs, the embedding candidates still stand.
-            val lines = runCatching { readNumberStrip(bgr, quad) }
-                .onFailure { Log.w(TAG, "number OCR failed", it) }
-                .getOrDefault(emptyList())
-            ocrText = lines.joinToString(" | ").ifEmpty { null }
-            reading = parseCollectorNumber(lines)
-        }
-        val t4 = SystemClock.elapsedRealtime()
-
-        return RecognitionResult(
+        val result = RecognitionResult(
             frameWidth = bgr.cols(),
             frameHeight = bgr.rows(),
             found = detection != null,
@@ -172,11 +160,33 @@ class RecognitionEngine private constructor(
             detectionScore = detection?.score ?: 0.0,
             flipped = flipped,
             candidates = candidates,
-            reranked = rerank(candidates, reading),
-            reading = reading,
-            ocrText = ocrText,
+            reranked = candidates,
+            reading = null,
+            ocrText = null,
             crop = cropBitmap,
-            timings = Timings(t1 - t0, t2 - t1, t3 - t2, t4 - t3, t4 - t0),
+            timings = Timings(t1 - t0, t2 - t1, t3 - t2, 0, t3 - t0),
+        )
+        return if (readNumber) readNumber(bgr, result) else result
+    }
+
+    /**
+     * Adds the collector-number OCR and the rerank to a result of [identify] without the number. Live scanning
+     * calls it only for cards it still has to decide, since OCR costs more than the embedding.
+     */
+    @WorkerThread
+    fun readNumber(bgr: Mat, result: RecognitionResult): RecognitionResult {
+        val t0 = SystemClock.elapsedRealtime()
+        // OCR only reranks: if it fails or hangs, the embedding candidates still stand.
+        val lines = runCatching { readNumberStrip(bgr, result.quad) }
+            .onFailure { Log.w(TAG, "number OCR failed", it) }
+            .getOrDefault(emptyList())
+        val reading = parseCollectorNumber(lines)
+        val ocrMs = SystemClock.elapsedRealtime() - t0
+        return result.copy(
+            reranked = rerank(result.candidates, reading),
+            reading = reading,
+            ocrText = lines.joinToString(" | ").ifEmpty { null },
+            timings = result.timings.copy(ocr = ocrMs, total = result.timings.total + ocrMs),
         )
     }
 
@@ -215,9 +225,14 @@ class RecognitionEngine private constructor(
         /** Upper bound for one number OCR, so a stuck ML Kit task cannot block the recognition worker. */
         private const val OCR_TIMEOUT_S = 5L
 
-        /** Loads OpenCV, the model and the index from `assets/recognition/` (built by ml/app_assets.py). */
+        /**
+         * Loads OpenCV, the model and the index from `assets/recognition/` (built by ml/app_assets.py). The model
+         * and the index must match the SHA-256 sums in meta.json ([PackIntegrityException] otherwise). With
+         * [preferGpu] the embedder runs on the GPU when it can (see [Embedder.create]); the CPU default is what the
+         * parity tests compare with Python.
+         */
         @WorkerThread
-        fun load(context: Context): RecognitionEngine {
+        fun load(context: Context, preferGpu: Boolean = false): RecognitionEngine {
             check(OpenCVLoader.initLocal()) { "OpenCV native library failed to load" }
             val assets = context.assets
             val names = assets.list(ASSET_DIR).orEmpty().toSet()
@@ -225,13 +240,17 @@ class RecognitionEngine private constructor(
             val missing = required.filterNot(names::contains)
             if (missing.isNotEmpty()) throw FileNotFoundException("missing in assets/$ASSET_DIR: ${missing.joinToString()}")
             fun bytes(name: String) = assets.open("$ASSET_DIR/$name").use { it.readBytes() }
-            val model = direct(bytes("embedder.tflite"))
             val meta = JSONObject(String(bytes("meta.json")))
+            val modelBytes = bytes("embedder.tflite")
+            val indexBytes = bytes("index.bin")
+            verifyChecksum("embedder.tflite", modelBytes, meta.optString("modelSha256"))
+            verifyChecksum("index.bin", indexBytes, meta.optString("indexSha256"))
             val corners = meta.optString("corners").ifEmpty { null }
-            val info = ModelInfo(meta.getString("model"), meta.getInt("dim"), meta.getInt("cards"), corners)
             val cards = ReferenceIndex.parseCards(String(bytes("cards.json")))
-            val index = ReferenceIndex(cards, ReferenceIndex.parseVectors(bytes("index.bin")), info.dim)
-            val embedder = Embedder(model)
+            val dim = meta.getInt("dim")
+            val index = ReferenceIndex(cards, ReferenceIndex.parseVectors(indexBytes), dim)
+            val embedder = Embedder.create(direct(modelBytes), assets, "$ASSET_DIR/embedder.tflite", preferGpu)
+            val info = ModelInfo(meta.getString("model"), dim, meta.getInt("cards"), corners, embedder.backend)
             check(embedder.dim == info.dim) { "model dim ${embedder.dim} != index dim ${info.dim}" }
             val cornerDetector = if ("corners.tflite" in names) CornerDetector(direct(bytes("corners.tflite"))) else null
             return RecognitionEngine(embedder, cornerDetector, index, info)
