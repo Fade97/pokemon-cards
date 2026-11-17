@@ -70,6 +70,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.packs.languageName
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
@@ -89,6 +90,7 @@ fun ScanScreen(
     modifier: Modifier = Modifier,
     onOpenReview: () -> Unit = {},
     onOpenLab: () -> Unit = {},
+    onOpenLanguages: () -> Unit = {},
     viewModel: ScanViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -104,6 +106,15 @@ fun ScanScreen(
         when {
             engine is ScanEngineState.Failed -> Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 PlaceholderText(stringResource(R.string.scan_engine_failed, (engine as ScanEngineState.Failed).message))
+                if (debuggable) OutlinedButton(onClick = onOpenLab) { Text(stringResource(R.string.scan_open_lab)) }
+            }
+            engine is ScanEngineState.NoLanguages -> Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                PlaceholderText(stringResource(R.string.scan_no_languages))
+                val broken = (engine as ScanEngineState.NoLanguages).broken
+                if (broken.isNotEmpty()) {
+                    PlaceholderText(stringResource(R.string.scan_broken_languages, broken.sorted().joinToString { languageName(it) }))
+                }
+                Button(onClick = onOpenLanguages) { Text(stringResource(R.string.scan_open_languages)) }
                 if (debuggable) OutlinedButton(onClick = onOpenLab) { Text(stringResource(R.string.scan_open_lab)) }
             }
             !granted -> Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {

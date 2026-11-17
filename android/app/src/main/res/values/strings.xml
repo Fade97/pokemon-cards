@@ -132,7 +132,7 @@
     <string name="condition_poor">Poor</string>
     <string name="grader_other">Other</string>
     <string name="search_placeholder">Search every card in your installed language packs by name, set or collector number.</string>
-    <string name="settings_placeholder">Language packs and open-source licenses will live here.</string>
+    <string name="settings_placeholder">Open-source licenses will live here.</string>
     <string name="settings_prices">Prices</string>
     <string name="settings_main_price">Main price</string>
     <string name="settings_price_auto">Automatic</string>
@@ -158,6 +158,40 @@
     <string name="settings_prefer_own_photos">Prefer my own photos</string>
     <string name="settings_prefer_own_photos_hint">Card images come from the TCGdex image service and are cached on this phone. Turn this on to show your own photo of a copy instead, wherever you added one.</string>
     <string name="collector_number_description">Number %1$s of %2$s</string>
+
+    <!-- Language packs (issue #39) -->
+    <string name="packs_picker_title">Which card languages do you collect?</string>
+    <string name="packs_picker_hint">Card recognition works offline. Each language is a download with its cards and their fingerprints; card images load when you look at them. You can add or remove languages later in Settings.</string>
+    <!-- Total download size, e.g. "Download: 25 MB" -->
+    <string name="packs_picker_total">Download: %1$s</string>
+    <string name="packs_picker_download">Download</string>
+    <string name="packs_picker_later">Not now</string>
+    <string name="packs_not_available">Not available yet</string>
+    <string name="packs_catalog_loading">Checking the available languages…</string>
+    <string name="packs_catalog_unreachable">The language download service is not reachable. Check the connection and try again, or add languages later in Settings.</string>
+    <string name="packs_catalog_update_app">These language packs need a newer version of the app. Your installed languages keep working.</string>
+    <string name="packs_retry">Try again</string>
+    <string name="settings_languages">Card languages</string>
+    <string name="packs_section_hint">Cards are recognized in the languages installed here. Downloads continue in the background and new sets arrive as small updates.</string>
+    <string name="packs_none">No language installed yet, so scanning can\'t recognize cards.</string>
+    <string name="packs_add">Add languages</string>
+    <string name="packs_remove">Remove</string>
+    <string name="packs_remove_title">Remove %1$s?</string>
+    <string name="packs_remove_text">Cards in this language are no longer recognized. Your copies and collections stay.</string>
+    <string name="packs_download_again">Download again</string>
+    <!-- Version number, storage size -->
+    <string name="packs_installed">Version %1$d · %2$s</string>
+    <string name="packs_downloading">Downloading %1$s of %2$s</string>
+    <string name="packs_installing">Installing…</string>
+    <string name="packs_waiting">Waiting for a connection</string>
+    <string name="packs_failed">Download failed: %1$s</string>
+    <string name="packs_broken">Damaged, so recognition skips this language. Download it again.</string>
+    <string name="packs_model_storage">Recognition model: %1$s</string>
+    <string name="packs_model_broken">The recognition model is damaged and will be downloaded again.</string>
+    <string name="packs_sync_failed">Last update failed: %1$s</string>
+    <string name="scan_no_languages">No card language is installed, so cards can\'t be recognized yet.</string>
+    <string name="scan_broken_languages">These languages failed their check and are skipped: %1$s.</string>
+    <string name="scan_open_languages">Choose languages</string>
 
     <!-- Live scan (Scan tab) -->
     <string name="scan_camera_rationale_live">Scanning needs the camera. Pictures stay on this device.</string>

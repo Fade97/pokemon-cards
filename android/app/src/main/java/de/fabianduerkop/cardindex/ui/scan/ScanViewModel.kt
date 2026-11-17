@@ -9,7 +9,9 @@ import android.util.Log
 import androidx.camera.core.ImageProxy
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.packs.PackLoader
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
 import de.fabianduerkop.cardindex.model.ReviewReason
@@ -36,6 +38,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -47,6 +51,10 @@ import java.util.concurrent.Executors
 sealed interface ScanEngineState {
     data object Loading : ScanEngineState
     data class Ready(val cards: Int, val backend: EmbedderBackend) : ScanEngineState
+
+    /** No language pack is installed and usable; [broken] are the ones that failed their checks. */
+    data class NoLanguages(val broken: Set<String>) : ScanEngineState
+
     data class Failed(val message: String) : ScanEngineState
 }
 
@@ -122,25 +130,56 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private var previousDetection: Detection? = null
     private var lastFrameAt = 0L
 
+    private val packs = application.appContainer.packs
+
     init {
-        worker.execute {
-            _engine.value = try {
-                RecognitionEngine.load(application, preferGpu = true).let { e ->
+        // Reload when a pack or the model is installed, replaced or removed; not when a pack is only marked broken
+        // (that comes from loading, and the loaded engine already left it out).
+        viewModelScope.launch {
+            packs.installed
+                .map { p -> p.model?.dir to p.packs.mapValues { it.value.dir } }
+                .distinctUntilChanged()
+                .collect { worker.execute(::loadEngine) }
+        }
+    }
+
+    /**
+     * Installed language packs; without any, the recognition-lab assets of a debug build (so scanning works before
+     * the pack service is deployed).
+     */
+    private fun loadEngine() {
+        val application = getApplication<Application>()
+        engine?.close()
+        engine = null
+        _engine.value = ScanEngineState.Loading
+        _engine.value = try {
+            val installed = packs.installed.value
+            val loaded = if (installed.isEmpty && RecognitionEngine.hasBundledAssets(application)) {
+                RecognitionEngine.load(application, preferGpu = true)
+            } else {
+                val load = PackLoader.load(installed)
+                packs.reportLoad(load)
+                load.loaded?.let { RecognitionEngine.load(it, preferGpu = true) }
+            }
+            if (loaded == null) {
+                ScanEngineState.NoLanguages(packs.installed.value.broken)
+            } else {
+                loaded.let { e ->
                     engine = e
-                    if (e.hasLearnedDetector) {
-                        detector = DetectorKind.LEARNED
-                        minOutlineScore = CornerDetector.DEFAULT_MIN_SCORE
-                    }
+                    detector = if (e.hasLearnedDetector) DetectorKind.LEARNED else DetectorKind.CLASSIC
+                    minOutlineScore = if (e.hasLearnedDetector) CornerDetector.DEFAULT_MIN_SCORE else DEFAULT_MIN_OUTLINE_SCORE
+                    decider.reset()
+                    previousDetection = null
                     // Without the GPU every frame costs several times more; fewer frames keep the phone cool
                     // and the preview smooth, at the price of a slightly slower decision.
                     frameIntervalMs = if (e.info.backend == EmbedderBackend.GPU) 0L else CPU_FRAME_INTERVAL_MS
-                    Log.i(TAG, "engine ready: ${e.info.model} on ${e.info.backend}")
+                    Log.i(TAG, "engine ready: ${e.info.model} on ${e.info.backend}, ${e.index.languages}")
                     ScanEngineState.Ready(e.index.size, e.info.backend)
                 }
-            } catch (t: Throwable) {
-                Log.e(TAG, "recognition engine failed to load", t)
-                ScanEngineState.Failed(t.message ?: t.javaClass.simpleName)
             }
+        } catch (t: Throwable) {
+            Log.e(TAG, "recognition engine failed to load", t)
+            ScanEngineState.Failed(t.message ?: t.javaClass.simpleName)
         }
     }
 

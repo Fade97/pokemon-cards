@@ -50,6 +50,23 @@ interface CatalogDao {
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCardsIfMissing(cards: List<CardEntity>)
 
+    @Query("SELECT * FROM card_sets WHERE id IN (:ids)")
+    suspend fun setsByIds(ids: List<String>): List<CardSetEntity>
+
+    @Query("SELECT * FROM cards WHERE language = :language")
+    suspend fun cardsInLanguage(language: String): List<CardEntity>
+
+    /** Before a language pack is written: whatever it doesn't list anymore stays retired (see Entities.kt). */
+    @Query("UPDATE cards SET retired = 1 WHERE language = :language")
+    suspend fun retireCardsInLanguage(language: String)
+
+    /** A set is retired when none of its cards is current, in any language. */
+    @Query(
+        """UPDATE card_sets SET retired =
+           NOT EXISTS (SELECT 1 FROM cards c WHERE c.setId = card_sets.id AND c.retired = 0)""",
+    )
+    suspend fun refreshSetRetirement()
+
     @Query("SELECT * FROM cached_prices WHERE cardId = :cardId")
     fun observePrices(cardId: String): Flow<List<CachedPriceEntity>>
 

@@ -49,8 +49,9 @@ import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
+import de.fabianduerkop.cardindex.ui.packs.LanguagesSection
 
-/** Settings (mockup "Settings"): one card per topic. Language packs and licenses come later. */
+/** Settings (mockup "Settings"): one card per topic. Licenses come later. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -76,6 +77,7 @@ fun SettingsScreen(
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = 18.dp, vertical = 8.dp),
         ) {
+            SettingsSection(stringResource(R.string.settings_languages)) { LanguagesSection() }
             SettingsSection(stringResource(R.string.settings_prices)) {
                 PriceSourcePicker(state, viewModel::setPriceSource)
                 Text(

@@ -19,11 +19,14 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        // Price API (backend/, issue #11). Not deployed yet, so the default is a placeholder that never resolves and
-        // the app shows cached prices only. Point a build at a running backend with
-        // `-Pcardindex.priceApiBaseUrl=https://…` (or the same line in ~/.gradle/gradle.properties).
-        val priceApi = providers.gradleProperty("cardindex.priceApiBaseUrl").getOrElse("https://prices.cardindex.invalid")
-        buildConfigField("String", "PRICE_API_BASE_URL", "\"$priceApi\"")
+        // Backend API (backend/): prices (#11), language packs (#39), contributions (#14), deployed at cards-api.fdu.gg
+        // until the final app domain exists (#15). Point a build at another backend (e.g. `wrangler dev`) with
+        // `-Pcardindex.apiBaseUrl=https://…` (or the same line in ~/.gradle/gradle.properties);
+        // the older `cardindex.priceApiBaseUrl` still works.
+        val api = providers.gradleProperty("cardindex.apiBaseUrl")
+            .orElse(providers.gradleProperty("cardindex.priceApiBaseUrl"))
+            .getOrElse("https://cards-api.fdu.gg")
+        buildConfigField("String", "API_BASE_URL", "\"$api\"")
     }
 
     buildTypes {
@@ -95,6 +98,7 @@ dependencies {
     implementation(libs.okhttp)
 
     implementation(libs.kotlinx.coroutines.android)
+    implementation(libs.androidx.work.runtime)
 
     testImplementation(libs.junit)
     testImplementation(libs.robolectric)
