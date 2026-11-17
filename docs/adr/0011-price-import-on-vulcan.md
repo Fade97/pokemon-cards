@@ -15,7 +15,7 @@ before. After each run it publishes one JSON price file per TCGdex set, a `meta.
 R2 over the S3 API, and keeps a local copy. The Worker only reads those files, so it stays on the free plan and
 needs no D1 for prices.
 
-If Vulcan is down, the app keeps getting the last published prices; `/health` reports them as stale after 48 h.
+If Vulcan is down, the app keeps getting the last published prices; `/health` reports them as stale after 72 h, counting the files' age and each source's price date.
 
 ## Alternatives considered
 

@@ -12,8 +12,11 @@ import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
 /** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
 const CACHE_ONE_CARD = "public, max-age=3600";
 
-/** The importer runs nightly; after two missed nights /health reports the price files as stale. */
-const STALE_AFTER_MS = 48 * 3600 * 1000;
+/**
+ * The importer runs nightly and both sources publish daily (TCGCSV the evening before), so after two missed days
+ * /health reports the prices as stale.
+ */
+const STALE_AFTER_MS = 72 * 3600 * 1000;
 
 /** Generous for 100 ids of ~20 characters; bigger bodies are not read at all. */
 const MAX_BODY_BYTES = 16 * 1024;
@@ -41,9 +44,21 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   if (pathname === "/health") {
     if (request.method !== "GET") return methodNotAllowed("GET");
     const meta = await getMeta(env.PRICES);
-    const age = meta ? Date.now() - Date.parse(meta.generatedAt) : Infinity;
-    const ok = age <= STALE_AFTER_MS;
-    return json({ ok, pricesGeneratedAt: meta?.generatedAt ?? null }, {}, ok ? 200 : 503);
+    // The files are rewritten every night even when a source failed, so the source dates count too.
+    const ages = meta
+      ? [meta.generatedAt, meta.cardmarketPriceDate, meta.tcgplayerPriceDate].map((d) => Date.now() - Date.parse(d ?? ""))
+      : [Infinity];
+    const ok = ages.every((age) => age <= STALE_AFTER_MS);
+    return json(
+      {
+        ok,
+        pricesGeneratedAt: meta?.generatedAt ?? null,
+        cardmarketPriceDate: meta?.cardmarketPriceDate ?? null,
+        tcgplayerPriceDate: meta?.tcgplayerPriceDate ?? null,
+      },
+      {},
+      ok ? 200 : 503,
+    );
   }
 
   if (pathname === "/v1/prices") {

@@ -427,6 +427,25 @@ describe("LocalQueue", () => {
     expect(n).toEqual({ n: 1 });
   });
 
+  it("makes a set due again when one of its card chunks fails for good", async () => {
+    const routes = { ...ROUTES };
+    delete routes[`${TCGDEX_API}/en/cards/sv03.5-026`];
+    const { ctx } = makeContext(routes);
+    const queue = new LocalQueue(0);
+    ctx.queue = queue;
+    await queue.sendBatch([{ body: { type: "tcgdex-set", lang: "en", setId: "sv03.5" } }]);
+    await queue.drain(ctx);
+    expect(queue.failed).toEqual(["tcgdex-cards:en/sv03.5:sv03.5-025"]);
+    const set = await db.prepare("SELECT card_count FROM tcgdex_sets WHERE set_id = 'sv03.5'").first();
+    expect(set).toEqual({ card_count: -1 });
+
+    // The next night picks it up again, even though it was synced moments ago.
+    const sent: ImportMessage[] = [];
+    ctx.queue = { async sendBatch(ms) { for (const m of ms) sent.push(m.body); } };
+    await runJob({ type: "tcgdex-sets", lang: "en" }, ctx);
+    expect(sent).toContainEqual({ type: "tcgdex-set", lang: "en", setId: "sv03.5" });
+  });
+
   it("retries a failing job, records its final failure and carries on", async () => {
     const { ctx } = makeContext({}); // every request is a 404
     const queue = new LocalQueue(0);

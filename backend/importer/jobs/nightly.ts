@@ -74,6 +74,18 @@ export function jobName(msg: ImportMessage): string {
   }
 }
 
+/**
+ * A set is recorded as synced when its chunks are queued. If one chunk then fails for good, a card count that can't
+ * match makes the set due again the next night, instead of leaving its cards unmapped for 30 days.
+ */
+async function resyncSetOf(msg: ImportMessage, ctx: ImportContext): Promise<void> {
+  if (msg.type !== "tcgdex-cards") return;
+  await ctx.db
+    .prepare("UPDATE tcgdex_sets SET card_count = -1 WHERE lang = ? AND set_id = ?")
+    .bind(msg.lang, msg.setId)
+    .run();
+}
+
 interface Pending {
   body: ImportMessage;
   delaySeconds: number;
@@ -120,6 +132,7 @@ export class LocalQueue implements ImportQueue {
         if (attempt >= MAX_ATTEMPTS) {
           this.failed.push(jobName(msg));
           await recordFailure(ctx, jobName(msg), errorText(e)).catch(() => {});
+          await resyncSetOf(msg, ctx).catch(() => {});
           return;
         }
         await new Promise((r) => setTimeout(r, this.retryPauseMs * attempt));

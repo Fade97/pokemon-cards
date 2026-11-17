@@ -60,7 +60,7 @@ async function putJson(key: string, value: unknown) {
  * Price files as the importer writes them: Pikachu 151 (EN prices on both markets), a JP card (Cardmarket only),
  * a card without any product and Raichu for the cache test.
  */
-async function seed(generatedAt = new Date().toISOString()) {
+async function seed(generatedAt = new Date().toISOString(), sourceDate?: string) {
   const listed = await env.PRICES.list();
   await Promise.all(listed.objects.map((o) => env.PRICES.delete(o.key)));
   await putJson("current/sv03.5.json", {
@@ -82,8 +82,8 @@ async function seed(generatedAt = new Date().toISOString()) {
     generatedAt,
     cards: 4,
     shards: 2,
-    cardmarketPriceDate: "2026-11-16T02:00:00Z",
-    tcgplayerPriceDate: "2026-11-15T20:00:00Z",
+    cardmarketPriceDate: sourceDate ?? generatedAt,
+    tcgplayerPriceDate: generatedAt,
   });
 }
 
@@ -100,9 +100,21 @@ describe("GET /health", () => {
     await seed("2026-01-01T00:00:00.000Z");
     const stale = await call("/health");
     expect(stale.status).toBe(503);
-    expect(await stale.json()).toEqual({ ok: false, pricesGeneratedAt: "2026-01-01T00:00:00.000Z" });
+    expect(await stale.json()).toEqual({
+      ok: false,
+      pricesGeneratedAt: "2026-01-01T00:00:00.000Z",
+      cardmarketPriceDate: "2026-01-01T00:00:00.000Z",
+      tcgplayerPriceDate: "2026-01-01T00:00:00.000Z",
+    });
     await env.PRICES.delete("current/meta.json");
     expect((await call("/health")).status).toBe(503);
+  });
+
+  it("answers 503 when the files are fresh but a source has not updated for days", async () => {
+    await seed(new Date().toISOString(), "2026-01-01T00:00:00.000Z");
+    const res = await call("/health");
+    expect(res.status).toBe(503);
+    expect(((await res.json()) as any).cardmarketPriceDate).toBe("2026-01-01T00:00:00.000Z");
   });
 });
 

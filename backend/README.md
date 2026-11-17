@@ -67,7 +67,7 @@ and never written to disk.
 
 | Request | Answer |
 |---|---|
-| `GET /health` | `{ "ok": true, "pricesGeneratedAt": … }`; `503` with `ok: false` when the price files are older than 48 h or missing |
+| `GET /health` | `{ "ok": true, "pricesGeneratedAt", "cardmarketPriceDate", "tcgplayerPriceDate" }`; `503` with `ok: false` when the files or either source's prices are older than 72 h, or missing |
 | `GET /v1/prices/:tcgdexId` | Prices of one card; `404` if the importer doesn't know it. Cached for an hour, at the edge and in the client. |
 | `POST /v1/prices` with `{ "ids": [...] }` | `{ "prices": { id: … }, "missing": [ids] }` for up to 100 cards |
 | any, over the rate limit | `429` with `Retry-After: 60` |
