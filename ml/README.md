@@ -139,7 +139,10 @@ python build_packs.py build --work packs-work --out packs-out --base https://<ap
 python build_packs.py build ... --upload            # wrangler r2 object put --remote, catalog.json last; --dry-run
 ```
 
-`--base` defaults to `--out`, which then acts as a local mirror of the bucket. `build --no-embeddings` makes
+`--base` defaults to `--out`, which then acts as a local mirror of the bucket: its `catalog.json` is what was last
+published. A build writes the new catalog as `catalog.next.json`; only a successful `--upload` turns it into
+`catalog.json`, so a local build or a failed upload never makes the next run believe something was published.
+`build --no-embeddings` makes
 metadata-only packs for testing; it cannot be combined with `--upload`. `all` runs the three steps in a row.
 
 Tests for the pure parts (format, deltas, catalog, build step) need no torch:

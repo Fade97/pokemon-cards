@@ -394,13 +394,15 @@ def main(argv: list[str] | None = None) -> None:
               download_images=args.download_images, threads=args.threads)
     if args.cmd in ("build", "all"):
         _, files = build(args.work, args.out, args.langs, base=args.base, embeddings=not args.no_embeddings)
+        # Only a published catalog becomes the baseline: a local build (or a dry run) stays staged, so a later
+        # --upload rebuilds the same versions and publishes them, and model files are never assumed uploaded.
+        # A failed upload raises before the promotion.
         if files and args.upload:
-            # A failed upload raises, so the old baseline stays and the next run builds the same versions again.
             upload(files, args.out, bucket=args.bucket, remote=not args.local, dry_run=args.dry_run)
             if not args.dry_run:
                 promote_catalog(args.out)
         elif files:
-            promote_catalog(args.out)
+            print(f"not uploaded: {PENDING_CATALOG} stays staged; run again with --upload to publish")
 
 
 if __name__ == "__main__":

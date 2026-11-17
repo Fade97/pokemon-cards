@@ -360,6 +360,22 @@ def test_failed_upload_keeps_the_baseline_so_a_rerun_publishes_again(tmp_path, m
     assert (out / "catalog.json").exists() and not (out / build_packs.PENDING_CATALOG).exists()
 
 
+def test_a_local_build_does_not_move_the_baseline_so_a_later_upload_publishes(tmp_path, monkeypatch):
+    work, out = tmp_path / "work", tmp_path / "out"
+    write_work(work, A, rows=ROWS_A)
+    base = ["build", "--work", str(work), "--out", str(out), "--langs", "en"]
+    build_packs.main(base)  # local only
+    assert not (out / "catalog.json").exists()
+
+    uploaded = []
+    monkeypatch.setattr(build_packs.subprocess, "run", lambda cmd, **kwargs: uploaded.append(cmd[6]))
+    build_packs.main([*base, "--upload"])
+    assert "pokemon-cards-packs/en/index-1.bin" in uploaded
+    assert any(k.startswith("pokemon-cards-packs/models/") for k in uploaded)
+    assert uploaded[-1] == "pokemon-cards-packs/catalog.json"
+    assert (out / "catalog.json").exists()
+
+
 def test_build_no_embeddings(tmp_path):
     work, out = tmp_path / "work", tmp_path / "out"
     write_work(work, A)
