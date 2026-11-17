@@ -137,7 +137,8 @@ Two of the three wrong matches with all languages are the right card in English;
   **Settings → Prefer my own photos** is on.
 - **Prices** (`data/prices/`): the backend's `POST /v1/prices` (≤ 100 ids per call; a `429` is waited out as its
   `Retry-After` says), cached in `cached_prices` per card, market and printing and refreshed when older than
-  12 hours. `PriceSelection` values a copy through `PriceVariant.candidates`. The main market follows the region
+  12 hours. `PriceSelection` values a copy through `PriceVariant.candidates`; TCGplayer (TCGCSV's English category) prices
+  English copies only, other languages get Cardmarket. The main market follows the region
   (Cardmarket EUR, TCGplayer USD in the US, Canada and US territories) and can be switched in Settings. The API base
   URL is the `PRICE_API_BASE_URL` BuildConfig field; until the backend is deployed it is a placeholder that never
   resolves, so only cached prices show. Build against a running backend with
@@ -155,7 +156,9 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
 - Collection membership is merged as a union: an import adds copies to collections, it never removes them.
 - Catalog rows (sets, cards) in the file only fill gaps; data from language packs wins. Copies of cards that
   neither the file nor the phone knows are skipped and counted.
-- Own photos are not part of the export (they are in the Android device backup).
+- Own photos (`filesDir/scans/`) are in neither the JSON/CSV export nor the Android backup or device transfer
+  (`backup_rules.xml`, `data_extraction_rules.xml`: database and settings only, which keeps the app far below
+  Auto Backup's 25 MB quota). Copying a phone's collection keeps the copies; their photos stay on the old phone.
 
 ### JSON format, version 1
 

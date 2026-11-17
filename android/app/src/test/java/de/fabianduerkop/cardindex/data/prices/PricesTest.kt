@@ -100,7 +100,7 @@ class PricesTest {
         assertEquals(5550L, PriceSelection.quote(prices, PriceSource.TCGPLAYER, Finish.HOLO, Edition.FIRST_EDITION)?.amountMinor)
         assertNull(PriceSelection.quote(prices, PriceSource.TCGPLAYER, Finish.REVERSE_HOLO, Edition.UNLIMITED))
 
-        val (main, secondary) = PriceSelection.pair(prices, PriceSource.TCGPLAYER, Finish.NORMAL, Edition.UNLIMITED)
+        val (main, secondary) = PriceSelection.pair(prices, PriceSource.TCGPLAYER, Finish.NORMAL, Edition.UNLIMITED, "en")
         assertEquals(PriceSource.TCGPLAYER to "USD", main!!.source to main.currency)
         assertEquals(PriceSource.CARDMARKET, secondary!!.source)
         assertTrue(secondary.mixesLanguages)
@@ -118,6 +118,29 @@ class PricesTest {
         assertEquals(3 * 120L + 240L, value.amountMinor)
         assertEquals("EUR", value.currency)
         assertEquals(3, value.unpricedCopies)
+    }
+
+    @Test
+    fun tcgplayer_pricesOnlyEnglishCopies() {
+        val prices = rows()
+        val de = OwnedCopyEntity(cardId = "sv03.5-025", cardLanguage = "de", quantity = 2, createdAt = fetchedAt)
+        val en = OwnedCopyEntity(cardId = "sv03.5-025", cardLanguage = "en", createdAt = fetchedAt)
+
+        // The German copy shares the TCGdex id, but the USD price is the English print's: not its value.
+        assertNull(PriceSelection.quote(prices, PriceSource.TCGPLAYER, de))
+        val total = PriceSelection.total(listOf(de, en), mapOf("sv03.5-025" to prices), PriceSource.TCGPLAYER)
+        assertEquals(80L, total.amountMinor)
+        assertEquals(2, total.unpricedCopies)
+        // In Cardmarket's (mixed-language) guide both count.
+        assertEquals(3 * 120L, PriceSelection.total(listOf(de, en), mapOf("sv03.5-025" to prices), PriceSource.CARDMARKET).amountMinor)
+
+        // Its own price in a list and on the card detail comes from Cardmarket, with no TCGplayer price next to it.
+        assertEquals(PriceSource.CARDMARKET, PriceSelection.copyQuote(prices, PriceSource.TCGPLAYER, de)!!.source)
+        assertEquals(PriceSource.TCGPLAYER, PriceSelection.copyQuote(prices, PriceSource.TCGPLAYER, en)!!.source)
+        val (main, secondary) = PriceSelection.pair(prices, PriceSource.TCGPLAYER, Finish.NORMAL, Edition.UNLIMITED, "de")
+        assertEquals(PriceSource.CARDMARKET to 120L, main!!.source to main.amountMinor)
+        assertNull(secondary)
+        assertNull(PriceSelection.pair(prices, PriceSource.CARDMARKET, Finish.NORMAL, Edition.UNLIMITED, "de").second)
     }
 
     @Test

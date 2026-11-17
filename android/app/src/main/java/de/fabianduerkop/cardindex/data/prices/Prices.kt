@@ -37,19 +37,34 @@ object PriceSelection {
             }
         }
 
+    /** The price of [copy] from [source]; null when that market has none for the copy's language or printing. */
     fun quote(prices: List<CachedPriceEntity>, source: PriceSource, copy: OwnedCopyEntity): PriceQuote? =
-        quote(prices, source, copy.finish, copy.edition)
+        if (source.prices(copy.cardLanguage)) quote(prices, source, copy.finish, copy.edition) else null
 
-    /** Main and secondary price of a printing, main from the user's [primary] market (DESIGN.md: secondary smaller). */
+    /** A copy's own price, from [primary] or, where TCGplayer has none for its language, from Cardmarket. */
+    fun copyQuote(prices: List<CachedPriceEntity>, primary: PriceSource, copy: OwnedCopyEntity): PriceQuote? =
+        quote(prices, primary.forLanguage(copy.cardLanguage), copy)
+
+    /**
+     * Main and secondary price of a printing in [cardLanguage], main from the user's [primary] market (DESIGN.md:
+     * secondary smaller). A print TCGplayer doesn't price gets Cardmarket as its main price and no secondary one.
+     */
     fun pair(
         prices: List<CachedPriceEntity>,
         primary: PriceSource,
         finish: Finish,
         edition: Edition,
-    ): Pair<PriceQuote?, PriceQuote?> =
-        quote(prices, primary, finish, edition) to quote(prices, primary.other(), finish, edition)
+        cardLanguage: String,
+    ): Pair<PriceQuote?, PriceQuote?> {
+        val main = primary.forLanguage(cardLanguage)
+        val secondary = main.other().takeIf { it.prices(cardLanguage) }
+        return quote(prices, main, finish, edition) to secondary?.let { quote(prices, it, finish, edition) }
+    }
 
-    /** Sum of [quote] × quantity over copies with a price from [source], and how many copies had none. */
+    /**
+     * Sum of [quote] × quantity over copies with a price from [source], and how many copies had none. Copies
+     * TCGplayer doesn't price count as unpriced in a TCGplayer total: their Cardmarket price is in another currency.
+     */
     fun total(
         copies: List<OwnedCopyEntity>,
         pricesByCard: Map<String, List<CachedPriceEntity>>,
@@ -71,6 +86,18 @@ data class CollectionValue(val amountMinor: Long, val source: PriceSource, val u
 }
 
 val PriceSource.currency: String get() = if (this == PriceSource.CARDMARKET) "EUR" else "USD"
+
+/**
+ * Whether this market prices cards in [cardLanguage]. TCGplayer's prices come from its English Pokémon category
+ * (TCGCSV category 3), but English and other prints share the TCGdex id, so its price would value a German copy as
+ * the English print. Cardmarket's guide mixes all languages and is labelled so.
+ */
+fun PriceSource.prices(cardLanguage: String): Boolean =
+    this != PriceSource.TCGPLAYER || cardLanguage.lowercase(Locale.ROOT) == "en"
+
+/** This market, or Cardmarket for a card language it doesn't price. */
+fun PriceSource.forLanguage(cardLanguage: String): PriceSource =
+    if (prices(cardLanguage)) this else PriceSource.CARDMARKET
 
 fun PriceSource.other(): PriceSource =
     if (this == PriceSource.CARDMARKET) PriceSource.TCGPLAYER else PriceSource.CARDMARKET

@@ -144,7 +144,7 @@
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
     <string name="settings_price_failed">The price service is not reachable. Saved prices stay.</string>
     <string name="settings_backup">Backup</string>
-    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included.</string>
+    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included, and Android\'s backup does not keep them either.</string>
     <string name="settings_export_json">Export JSON</string>
     <string name="settings_export_csv">Export CSV</string>
     <string name="settings_import">Import</string>

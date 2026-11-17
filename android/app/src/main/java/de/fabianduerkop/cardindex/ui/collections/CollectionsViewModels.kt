@@ -309,7 +309,7 @@ class CollectionDetailViewModel(
         primarySource,
     ) { (collection, copies), sort, priceMap, market ->
         val quotes = copies.mapNotNull { item ->
-            PriceSelection.quote(priceMap[item.card.id].orEmpty(), market, item.copy)?.let { item.copy.id to it }
+            PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), market, item.copy)?.let { item.copy.id to it }
         }.toMap()
         CollectionDetailUiState(
             loading = false,

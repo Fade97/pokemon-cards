@@ -118,7 +118,7 @@ internal fun PriceBox(
     cardLanguage: String,
     modifier: Modifier = Modifier,
 ) {
-    val (main, secondary) = PriceSelection.pair(prices, primary, finish, edition)
+    val (main, secondary) = PriceSelection.pair(prices, primary, finish, edition, cardLanguage)
     val uriHandler = LocalUriHandler.current
     OutlinedCard(modifier.fillMaxWidth()) {
         Column(Modifier.padding(14.dp)) {

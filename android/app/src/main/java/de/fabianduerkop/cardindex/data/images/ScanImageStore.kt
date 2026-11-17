@@ -16,8 +16,8 @@ import kotlinx.coroutines.withContext
 /**
  * The user's own photos of their copies, one JPEG per copy named by the copy's uuid in app-private storage. They
  * stand in for the CDN image (ADR 0009), e.g. for JP cards TCGdex has no image of. Keyed by uuid rather than a DB
- * column so the scan flow can store a photo without a schema change; the photos are in the device backup with the
- * database but not in the JSON/CSV export.
+ * column so the scan flow can store a photo without a schema change. The photos are in no backup: neither the
+ * JSON/CSV export nor the Android backup rules include them (README, Backup).
  */
 class ScanImageStore(
     private val directory: File,
