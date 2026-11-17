@@ -180,7 +180,8 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
             modifier = Modifier.padding(top = 8.dp),
         )
     }
-    state.syncError?.takeIf { !state.syncing }?.let {
+    // When the catalog itself is unreachable that notice already says why; the sync error would repeat it.
+    state.syncError?.takeIf { !state.syncing && state.catalog == CatalogStatus.Ready }?.let {
         Text(
             stringResource(R.string.packs_sync_failed, it),
             style = MaterialTheme.typography.bodySmall,

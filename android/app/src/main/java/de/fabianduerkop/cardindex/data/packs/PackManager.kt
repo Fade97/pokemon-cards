@@ -133,6 +133,8 @@ class PackManager(
      * then the Room catalog for every pack whose cards are not in it yet.
      */
     suspend fun sync(poll: Boolean): SyncOutcome = mutex.withLock {
+        // Nobody chose a language yet: the daily poll has nothing to update, so it doesn't touch the network.
+        if (prefs.wanted.isEmpty() && store.installed.value.isEmpty) return@withLock SyncOutcome.Done
         _state.value = PackSyncState(running = true)
         val outcome = try {
             store.cleanUp()
