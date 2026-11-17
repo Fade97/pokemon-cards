@@ -1,5 +1,6 @@
 // Price API, nightly import and language-pack storage (ADR 0005).
 // Resource names use the working title; they change with the final app name (#15).
+// Needs the Workers Paid plan: parsing the 16 MB price guide takes far more than the free plan's 10 ms of CPU.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "pokemon-cards-api",
@@ -7,8 +8,10 @@
   "compatibility_date": "2026-11-01",
   "observability": { "enabled": true },
 
-  // Nightly import (#4). The Cardmarket price guide and TCGCSV both refresh once a day.
-  "triggers": { "crons": ["30 4 * * *"] },
+  // 04:30 UTC: nightly import (#4). The Cardmarket price guide and TCGCSV both refresh once a day, before that.
+  // 07:30 UTC: daily price snapshot to R2, after the queued import jobs have finished.
+  // Keep in sync with CRON_IMPORT and CRON_SNAPSHOT in src/nightly.ts.
+  "triggers": { "crons": ["30 4 * * *", "30 7 * * *"] },
 
   "d1_databases": [
     {
@@ -26,5 +29,28 @@
     { "binding": "PACKS", "bucket_name": "pokemon-cards-packs" },
     // Daily price snapshots, kept from day one for Pro history (ADR 0004, #4).
     { "binding": "SNAPSHOTS", "bucket_name": "pokemon-cards-snapshots" }
-  ]
+  ],
+
+  // The nightly import fans out into small jobs (#30). One message per invocation gives every job its own
+  // subrequest and CPU budget; three consumers at a time keep the load on TCGdex and TCGCSV low.
+  "queues": {
+    "producers": [{ "binding": "IMPORT_QUEUE", "queue": "pokemon-cards-import" }],
+    "consumers": [
+      {
+        "queue": "pokemon-cards-import",
+        "max_batch_size": 1,
+        "max_concurrency": 3,
+        "max_retries": 3, // MAX_RETRIES in src/nightly.ts
+        "dead_letter_queue": "pokemon-cards-import-dlq"
+      }
+    ]
+  },
+
+  // Per-IP limit for all routes (#30). Generous for an app refreshing a collection in batches of 100 cards.
+  "ratelimits": [{ "name": "API_RATE_LIMIT", "namespace_id": "1001", "simple": { "limit": 120, "period": 60 } }],
+
+  "vars": {
+    // TCGdex sets synced per language and night. The first backfill (~220 EN and ~200 JP sets) takes a week.
+    "TCGDEX_SETS_PER_NIGHT": "40"
+  }
 }

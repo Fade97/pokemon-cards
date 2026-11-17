@@ -1,12 +1,15 @@
-import { createExecutionContext, createScheduledController, waitOnExecutionContext } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { beforeEach, describe, expect, it } from "vitest";
-import worker from "../src/index";
 
 const NOW = "2026-11-16T04:30:00.000Z";
 
-function call(path: string, init?: RequestInit) {
-  return exports.default.fetch(`https://api.test${path}`, init);
+let clients = 0;
+
+/** Each call comes from its own client IP unless one is given, so the rate limit only bites where a test wants it. */
+function call(path: string, init: RequestInit = {}, ip = `198.51.100.${++clients}`) {
+  const headers = new Headers(init.headers);
+  headers.set("CF-Connecting-IP", ip);
+  return exports.default.fetch(`https://api.test${path}`, { ...init, headers });
 }
 
 function postIds(ids: unknown) {
@@ -29,23 +32,27 @@ async function seed() {
     ].map((sql) => env.DB.prepare(sql)),
   );
   const card = env.DB.prepare(
-    "INSERT INTO cards (tcgdex_id, set_id, local_id, name, updated_at) VALUES (?, ?, ?, ?, ?)",
+    "INSERT INTO cards (tcgdex_id, lang, set_id, local_id, name, updated_at) VALUES (?, ?, ?, ?, ?, ?)",
   );
   const mapping = env.DB.prepare(
-    "INSERT INTO card_mapping (tcgdex_id, cardmarket_id, tcgplayer_id, source, updated_at) VALUES (?, ?, ?, ?, ?)",
+    `INSERT INTO card_mapping (tcgdex_id, cardmarket_id, tcgplayer_id, cardmarket_source, tcgplayer_source, updated_at)
+     VALUES (?, ?, ?, ?, ?, ?)`,
   );
   await env.DB.batch([
-    card.bind("sv03.5-025", "sv03.5", "025", "Pikachu", NOW),
-    card.bind("SV2a-025", "SV2a", "025", "Pikachu", NOW),
-    card.bind("sv03.5-999", "sv03.5", "999", "Nobody", NOW),
-    mapping.bind("sv03.5-025", 712345, 501234, "tcgdex", NOW),
-    mapping.bind("SV2a-025", 698765, null, "match", NOW),
-    mapping.bind("sv03.5-999", null, null, "match", NOW),
+    card.bind("sv03.5-025", "en", "sv03.5", "025", "Pikachu", NOW),
+    card.bind("SV2a-025", "ja", "SV2a", "025", "Pikachu", NOW),
+    card.bind("sv03.5-999", "en", "sv03.5", "999", "Nobody", NOW),
+    card.bind("sv03.5-026", "en", "sv03.5", "026", "Raichu", NOW),
+    mapping.bind("sv03.5-025", 712345, 501234, "tcgdex", "tcgdex", NOW),
+    mapping.bind("SV2a-025", 698765, null, "tcgdex", null, NOW),
+    mapping.bind("sv03.5-999", null, null, null, null, NOW),
+    mapping.bind("sv03.5-026", 712346, null, "tcgdex", null, NOW),
     env.DB.prepare(
       `INSERT INTO cardmarket_prices (id_product, low, trend, avg, avg1, avg7, avg30,
          holo_low, holo_trend, holo_avg, holo_avg1, holo_avg7, holo_avg30, price_date)
        VALUES (712345, 0.5, 1.2, 1.1, 1.0, 1.15, 1.3, 1.5, 2.4, 2.2, 2.0, 2.3, 2.5, '2026-11-16T02:00:00Z'),
-              (698765, 2.0, 3.1, 3.0, NULL, 3.2, 3.3, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-16T02:00:00Z')`,
+              (698765, 2.0, 3.1, 3.0, NULL, 3.2, 3.3, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-16T02:00:00Z'),
+              (712346, 1.0, 1.0, 1.0, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, '2026-11-16T02:00:00Z')`,
     ),
     env.DB.prepare(
       `INSERT INTO tcgplayer_prices (product_id, sub_type, low, mid, high, market, direct_low, price_date)
@@ -157,12 +164,25 @@ it("returns 404 for other paths", async () => {
   expect((await call("/")).status).toBe(404);
 });
 
-describe("cron", () => {
-  it("records a nightly run", async () => {
-    const ctx = createExecutionContext();
-    await worker.scheduled(createScheduledController({ cron: "30 4 * * *" }), env, ctx);
-    await waitOnExecutionContext(ctx);
-    const run = await env.DB.prepare("SELECT status, detail FROM import_runs").first();
-    expect(run).toEqual({ status: "skipped", detail: "import not implemented yet (#4)" });
+describe("limits (#30)", () => {
+  it("rate-limits each client IP", async () => {
+    const statuses: number[] = [];
+    for (let i = 0; i < 121; i++) statuses.push((await call("/health", {}, "203.0.113.7")).status);
+    expect(statuses.slice(0, 120).every((s) => s === 200)).toBe(true);
+    const limited = await call("/health", {}, "203.0.113.7");
+    expect(limited.status).toBe(429);
+    expect(limited.headers.get("Retry-After")).toBe("60");
+    expect(await limited.json()).toEqual({ error: "too many requests" });
+    // Another client is not affected.
+    expect((await call("/health", {}, "203.0.113.8")).status).toBe(200);
+  });
+
+  it("serves a single card from the edge cache after the first request", async () => {
+    const first = (await (await call("/v1/prices/sv03.5-026")).json()) as any;
+    expect(first.cardmarket.trend).toBeUndefined();
+    expect(first.cardmarket.normal.trend).toBe(1.0);
+    await env.DB.prepare("UPDATE cardmarket_prices SET trend = 9.0 WHERE id_product = 712346").run();
+    const second = (await (await call("/v1/prices/sv03.5-026")).json()) as any;
+    expect(second.cardmarket.normal.trend).toBe(1.0);
   });
 });

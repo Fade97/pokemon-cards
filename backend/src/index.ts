@@ -1,22 +1,25 @@
-// Price API for the app plus the nightly import trigger (ADR 0005).
+// Price API for the app plus the nightly import (ADR 0005).
 //
 //   GET  /health                 D1 round trip, for uptime checks
 //   GET  /v1/prices/:tcgdexId    prices of one card
 //   POST /v1/prices {ids: [...]} prices of up to 100 cards, e.g. to refresh a collection
+//
+// Every route is rate-limited per client IP (#30). The cron and the queue consumer run the nightly import.
 
-import { runNightlyImport } from "./nightly";
+import { contextFromEnv, type ImportMessage } from "./import/context";
+import { consumeBatch, runScheduled } from "./nightly";
 import { getPrices, isCardId, MAX_BATCH } from "./prices";
 
-/** Prices change once a day, so clients may reuse a single-card answer for an hour (the Worker itself does not cache). */
+/** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
 const CACHE_ONE_CARD = "public, max-age=3600";
 
 /** Generous for 100 ids of ~20 characters; bigger bodies are not read at all. */
 const MAX_BODY_BYTES = 16 * 1024;
 
 export default {
-  async fetch(request, env): Promise<Response> {
+  async fetch(request, env, ctx): Promise<Response> {
     try {
-      return await route(request, env);
+      return await route(request, env, ctx);
     } catch (e) {
       // Keep the API contract (JSON errors) instead of Cloudflare's HTML error page.
       console.error("unhandled", e);
@@ -24,13 +27,22 @@ export default {
     }
   },
 
-  async scheduled(_controller, env, ctx): Promise<void> {
-    ctx.waitUntil(runNightlyImport(env));
+  async scheduled(controller, env, ctx): Promise<void> {
+    ctx.waitUntil(runScheduled(controller.cron, contextFromEnv(env)));
   },
-} satisfies ExportedHandler<Env>;
 
-async function route(request: Request, env: Env): Promise<Response> {
+  async queue(batch, env): Promise<void> {
+    await consumeBatch(batch, contextFromEnv(env));
+  },
+} satisfies ExportedHandler<Env, ImportMessage>;
+
+async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const { pathname } = new URL(request.url);
+
+  // Cloudflare sets CF-Connecting-IP on every request that reaches the Worker from the internet.
+  const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
+  const { success } = await env.API_RATE_LIMIT.limit({ key: client });
+  if (!success) return json({ error: "too many requests" }, { "Retry-After": "60" }, 429);
 
   if (pathname === "/health") {
     if (request.method !== "GET") return methodNotAllowed("GET");
@@ -55,9 +67,16 @@ async function route(request: Request, env: Env): Promise<Response> {
     // Valid IDs need no percent-decoding, so the raw path segment is checked as is.
     const id = single[1]!;
     if (!isCardId(id)) return error(400, "invalid card id");
+    // Cache-Control alone does not make Cloudflare cache a Worker's response; the Cache API does.
+    // Keyed by URL only, so request headers cannot split or poison the entry.
+    const cacheKey = new Request(request.url);
+    const cached = await caches.default.match(cacheKey);
+    if (cached) return cached;
     const price = (await getPrices(env.DB, [id])).get(id);
     if (!price) return error(404, "unknown card");
-    return json(price, { "Cache-Control": CACHE_ONE_CARD });
+    const response = json(price, { "Cache-Control": CACHE_ONE_CARD });
+    ctx.waitUntil(caches.default.put(cacheKey, response.clone()));
+    return response;
   }
 
   return error(404, "not found");
