@@ -67,7 +67,55 @@ def get_json(url: str):
 # ---------------------------------------------------------------------------------------------------------------
 # Step 1: fetch
 
-def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_days: float, workers: int) -> dict:
+def http_exists(url: str, *, timeout: int = 30, tries: int = 3) -> bool | None:
+    """HEAD request: True on 2xx, False on 403/404/410, None when the answer stays unclear after `tries`."""
+    for attempt in range(tries):
+        try:
+            req = urllib.request.Request(url, method="HEAD", headers={"User-Agent": UA})
+            with urllib.request.urlopen(req, timeout=timeout):
+                return True
+        except urllib.error.HTTPError as e:
+            if e.code in (403, 404, 410):
+                return False
+        except (urllib.error.URLError, TimeoutError):
+            pass
+        time.sleep(2 ** attempt)
+    return None
+
+
+def probe_cdn_gap(lang: str, sets: list[dict], cards: list[dict], cache: Path, *, max_age_days: float,
+                  workers: int) -> dict[str, str]:
+    """Card id -> image base URL for cards the API serves without `image` although their file is on the CDN
+    (packs.cdn_gap_candidates). One HEAD per candidate on `/high.webp`; answers are cached in `cache` and checked
+    again after `max_age_days`, so a weekly fetch costs one request per card without image."""
+    candidates = packs.cdn_gap_candidates(lang, sets, cards)
+    known = json.loads(cache.read_text(encoding="utf-8")) if cache.exists() else {}
+    now = time.time()
+
+    def stale(cid: str, url: str) -> bool:
+        k = known.get(cid)
+        return not k or k["url"] != url or now - k["checked"] > max_age_days * 86400
+
+    todo = [(cid, url) for cid, url in candidates.items() if stale(cid, url)]
+    with ThreadPoolExecutor(max_workers=max(1, min(workers, 4))) as ex:
+        answers = list(ex.map(lambda t: http_exists(t[1] + "/high.webp"), todo))
+    unclear = 0
+    for (cid, url), ok in zip(todo, answers):
+        if ok is None:
+            unclear += 1
+            known.pop(cid, None)  # ask again next time instead of trusting an old answer
+        else:
+            known[cid] = {"url": url, "ok": ok, "checked": now}
+    known = {cid: k for cid, k in known.items() if cid in candidates}
+    cache.write_text(json.dumps(known, sort_keys=True, indent=0), encoding="utf-8")
+    found = {cid: k["url"] for cid, k in known.items() if k["ok"]}
+    print(f"{lang}: CDN gap: {len(candidates)} cards without image, {len(todo)} probed, {len(found)} on the CDN"
+          + (f", {unclear} unclear (retried next fetch)" if unclear else ""))
+    return found
+
+
+def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_days: float, workers: int,
+               cdn_gap: bool = True) -> dict:
     """Card metadata of one language. Set answers are cached in <work>/tcgdex/<lang>/ and fetched again when the
     set list reports a different card count or the cache is older than `max_age_days`."""
     listing = get_json(f"{API}/{lang}/sets")
@@ -92,6 +140,10 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
         answers = list(ex.map(one, listing))
     sets = [packs.set_record(s) for s in answers]
     cards = [c for s in answers for c in packs.card_records(s)]
+    if cdn_gap:
+        found = probe_cdn_gap(lang, sets, cards, cache.parent / f"{lang}.cdn-gap.json",
+                              max_age_days=max_age_days, workers=workers)
+        cards = packs.fill_cdn_gap(cards, found)
     meta = {"lang": lang, "fetchedAt": now_iso(), "sets": packs.sort_sets(sets), "cards": packs.sort_cards(cards)}
     out = work / lang / "metadata.json"
     out.parent.mkdir(parents=True, exist_ok=True)
@@ -353,6 +405,8 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--sets", default="", help="only these set ids (comma-separated), e.g. for a quick test")
         p.add_argument("--max-age-days", type=float, default=7, help="refetch cached set answers older than this")
         p.add_argument("--workers", type=int, default=4)
+        p.add_argument("--no-cdn-gap", action="store_true",
+                       help="do not probe the CDN for images the API leaves out (tcgdex/cards-database#2477)")
 
     def embed_args(p):
         p.add_argument("--model", default="export/mnv3_256_real_w8.tflite", help="relative to CARDINDEX_DATA")
@@ -388,7 +442,8 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd in ("fetch", "all"):
         only = {s for s in args.sets.split(",") if s} or None
         for lang in args.langs:
-            fetch_lang(lang, args.work, only_sets=only, max_age_days=args.max_age_days, workers=args.workers)
+            fetch_lang(lang, args.work, only_sets=only, max_age_days=args.max_age_days, workers=args.workers,
+                       cdn_gap=not args.no_cdn_gap)
     if args.cmd == "embed" or (args.cmd == "all" and not args.no_embeddings):
         embed(args.work, args.langs, model_rel=args.model, corners_rel=args.corners,
               download_images=args.download_images, threads=args.threads)

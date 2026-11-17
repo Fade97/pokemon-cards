@@ -388,3 +388,56 @@ def test_cli_refuses_uploading_metadata_only(tmp_path):
     with pytest.raises(SystemExit, match="metadata-only"):
         build_packs.main(["build", "--work", str(tmp_path), "--out", str(tmp_path / "o"), "--no-embeddings",
                           "--upload", "--langs", "en"])
+
+
+# CDN gap (tcgdex/cards-database#2477): images on the CDN that the API leaves out
+
+def gap_fixture():
+    sets = [{"id": "SM12a", "serieId": "SM"}, {"id": "M1S", "serieId": "M"}, {"id": "odd", "serieId": None}]
+    cards = [
+        {"id": "SM12a-001", "setId": "SM12a", "localId": "001", "name": "a", "image": None},
+        {"id": "SM12a-002", "setId": "SM12a", "localId": "002", "name": "b",
+         "image": "https://assets.tcgdex.net/ja/SM/SM12a/002"},
+        {"id": "SM12a-A/1", "setId": "SM12a", "localId": "A/1", "name": "c", "image": None},
+        {"id": "M1S-001", "setId": "M1S", "localId": "001", "name": "d", "image": None},
+        {"id": "odd-001", "setId": "odd", "localId": "001", "name": "e", "image": None},
+    ]
+    return sets, cards
+
+
+def test_cdn_gap_candidates_skip_cards_with_image_excluded_sets_and_unknown_series():
+    sets, cards = gap_fixture()
+    assert packs.cdn_gap_candidates("ja", sets, cards) == {
+        "SM12a-001": "https://assets.tcgdex.net/ja/SM/SM12a/001",
+        "SM12a-A/1": "https://assets.tcgdex.net/ja/SM/SM12a/A%2F1",
+    }
+    # The exclusion is per language: an EN set called M1S would be probed.
+    assert "M1S-001" in packs.cdn_gap_candidates("en", sets, cards)
+
+
+def test_fill_cdn_gap_sets_only_missing_images():
+    _, cards = gap_fixture()
+    filled = packs.fill_cdn_gap(cards, {"SM12a-001": "u1", "SM12a-002": "never used"})
+    assert [c["image"] for c in filled][:2] == ["u1", "https://assets.tcgdex.net/ja/SM/SM12a/002"]
+    assert filled[2] == cards[2]
+
+
+def test_probe_cdn_gap_caches_answers_and_retries_unclear_ones(tmp_path, monkeypatch):
+    sets, cards = gap_fixture()
+    calls = []
+    answers = {"https://assets.tcgdex.net/ja/SM/SM12a/001/high.webp": True,
+               "https://assets.tcgdex.net/ja/SM/SM12a/A%2F1/high.webp": None}
+    monkeypatch.setattr(build_packs, "http_exists", lambda url: calls.append(url) or answers[url])
+    cache = tmp_path / "ja.cdn-gap.json"
+    found = build_packs.probe_cdn_gap("ja", sets, cards, cache, max_age_days=7, workers=2)
+    assert found == {"SM12a-001": "https://assets.tcgdex.net/ja/SM/SM12a/001"}
+    assert len(calls) == 2
+    # Second run: the definite answer comes from the cache, only the unclear one is asked again.
+    calls.clear()
+    answers["https://assets.tcgdex.net/ja/SM/SM12a/A%2F1/high.webp"] = False
+    assert build_packs.probe_cdn_gap("ja", sets, cards, cache, max_age_days=7, workers=2) == found
+    assert calls == ["https://assets.tcgdex.net/ja/SM/SM12a/A%2F1/high.webp"]
+    # Too old: everything is asked again.
+    calls.clear()
+    assert build_packs.probe_cdn_gap("ja", sets, cards, cache, max_age_days=0, workers=2) == found
+    assert len(calls) == 2
