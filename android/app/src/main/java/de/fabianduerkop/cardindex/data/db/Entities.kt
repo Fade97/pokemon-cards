@@ -8,17 +8,27 @@ import androidx.room.Index
 import androidx.room.PrimaryKey
 import de.fabianduerkop.cardindex.model.CollectionKind
 import de.fabianduerkop.cardindex.model.Condition
+import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.EnergyType
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.Region
-import de.fabianduerkop.cardindex.model.Variant
 import java.time.Instant
 import java.time.LocalDate
+import java.util.UUID
 
 /*
- * Local-first schema (ADR 0006). Catalog rows (sets, cards, prices) come from language packs and the price API and
- * are written with upserts: a REPLACE would delete the old row first and break the user's copies that point to it.
+ * Local-first schema (ADR 0006). Two kinds of rows:
+ *
+ * - Catalog rows (sets, cards, prices) come from language packs and the price API and are written with upserts: a
+ *   REPLACE would delete the old row first and break the user's copies that point to it. Catalog rows are never
+ *   deleted. A card or set that drops out of a pack is marked `retired` and stays, so every owned copy keeps its
+ *   card; the foreign keys have no ON DELETE action, so a delete of a referenced row fails instead of orphaning it.
+ * - User rows (copies, collections) carry a random [UUID] next to the local row id, plus `updatedAt`. The row id
+ *   is only valid on this device; export/import (#13) and sync (#16) match rows by uuid and resolve conflicts by
+ *   updatedAt. Whoever changes a user row sets updatedAt.
  */
 
 /**
@@ -33,6 +43,8 @@ data class CardSetEntity(
     val language: String,
     val printedTotal: Int,
     val region: Region,
+    /** No longer in the language pack. Kept for owned copies; see the policy at the top of this file. */
+    val retired: Boolean = false,
 )
 
 /**
@@ -54,6 +66,8 @@ data class CardEntity(
     val rarity: String?,
     val energyType: EnergyType?,
     val imageUrl: String?,
+    /** No longer in the language pack. Kept for owned copies; see the policy at the top of this file. */
+    val retired: Boolean = false,
 )
 
 /** A physical copy the user owns. Either [condition] (raw card) or [grader] + [grade] (slab) is set. */
@@ -66,14 +80,17 @@ data class CardEntity(
             childColumns = ["cardId", "cardLanguage"],
         ),
     ],
-    indices = [Index("cardId", "cardLanguage")],
+    indices = [Index("cardId", "cardLanguage"), Index("uuid", unique = true)],
 )
 data class OwnedCopyEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Stable id across devices, exports and sync. */
+    val uuid: String = UUID.randomUUID().toString(),
     val cardId: String,
     val cardLanguage: String,
     val quantity: Int = 1,
-    val variant: Variant = Variant.NORMAL,
+    val finish: Finish = Finish.NORMAL,
+    val edition: Edition = Edition.UNLIMITED,
     val condition: Condition? = Condition.NEAR_MINT,
     val grader: Grader? = null,
     /** Grade as printed on the slab, e.g. `9.5`. */
@@ -84,20 +101,24 @@ data class OwnedCopyEntity(
     val purchaseCurrency: String? = null,
     val purchaseDate: LocalDate? = null,
     val createdAt: Instant,
+    val updatedAt: Instant = createdAt,
 )
 
 /** A collection. ALL and SET collections are created automatically; [setId] is set only for [CollectionKind.SET]. */
 @Entity(
     tableName = "collections",
     foreignKeys = [ForeignKey(entity = CardSetEntity::class, parentColumns = ["id"], childColumns = ["setId"])],
-    indices = [Index("setId")],
+    indices = [Index("setId"), Index("uuid", unique = true)],
 )
 data class CollectionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
+    /** Stable id across devices, exports and sync. */
+    val uuid: String = UUID.randomUUID().toString(),
     val name: String,
     val description: String? = null,
     val kind: CollectionKind,
     val setId: String? = null,
+    val updatedAt: Instant,
 )
 
 /** Membership of a copy in a custom collection (a binder, a trade pile, a wishlist). */
@@ -126,17 +147,21 @@ data class CollectionCopyCrossRef(
 )
 
 /**
- * Last known price of a card from one source, kept for offline use. Prices are per TCGdex card id, not per
- * language: the Cardmarket price guide mixes all languages (DESIGN.md, Prices). Amounts are in minor units.
+ * Last known price of one printing of a card from one source, kept for offline use. Prices are per TCGdex card id,
+ * not per language: the Cardmarket price guide mixes all languages (DESIGN.md, Prices). Amounts are in minor units.
+ * [PriceVariant.candidates] picks the rows that value an owned copy.
  */
-@Entity(tableName = "cached_prices", primaryKeys = ["cardId", "source"])
+@Entity(tableName = "cached_prices", primaryKeys = ["cardId", "source", "variant"])
 data class CachedPriceEntity(
     val cardId: String,
     val source: PriceSource,
+    val variant: PriceVariant,
     /** ISO 4217 code: EUR for Cardmarket, USD for TCGplayer. */
     val currency: String,
     @ColumnInfo(name = "trendMinor") val trend: Long?,
     @ColumnInfo(name = "lowMinor") val low: Long?,
     @ColumnInfo(name = "avgMinor") val avg: Long?,
+    /** When the source published this price (the price guide's date), as opposed to [fetchedAt]. */
+    val priceDate: Instant?,
     val fetchedAt: Instant,
 )

@@ -6,6 +6,7 @@ import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
+import androidx.room.migration.Migration
 
 /** The local collection database (ADR 0006). Schemas are exported to `android/app/schemas` for migrations. */
 @Database(
@@ -17,7 +18,7 @@ import androidx.room.TypeConverters
         CollectionCopyCrossRef::class,
         CachedPriceEntity::class,
     ],
-    version = 1,
+    version = CardIndexDatabase.VERSION,
     exportSchema = true,
 )
 @TypeConverters(Converters::class)
@@ -27,9 +28,17 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun collectionDao(): CollectionDao
 
     companion object {
+        /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
+        const val VERSION = 1
+
+        /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
+        val MIGRATIONS: Array<Migration> = emptyArray()
+
         private const val NAME = "cardindex.db"
 
         fun build(context: Context): CardIndexDatabase =
-            Room.databaseBuilder(context.applicationContext, CardIndexDatabase::class.java, NAME).build()
+            Room.databaseBuilder(context.applicationContext, CardIndexDatabase::class.java, NAME)
+                .addMigrations(*MIGRATIONS)
+                .build()
     }
 }
