@@ -17,8 +17,9 @@ litert = "2.3.2"
 # opencv-python 5.1 is not on PyPI yet. Re-run RecognitionParityTest after changing either side; align when possible.
 opencv = "5.1.0"
 coil = "3.6.3"
-# The version coil-network-okhttp is built against; the price client shares its OkHttpClient.
-okhttp = "4.12.0"
+# Shared with coil-network-okhttp (built against 4.12; OkHttp 5 is binary compatible): the price and pack
+# clients share its OkHttpClient. Checked 2026-11-17 on the emulator: pack download, prices, card images.
+okhttp = "5.5.1"
 coroutines = "1.11.0"
 work = "2.10.1"
 junit = "4.13.2"
