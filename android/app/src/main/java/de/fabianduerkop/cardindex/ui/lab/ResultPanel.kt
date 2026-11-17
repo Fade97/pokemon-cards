@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
-package de.fabianduerkop.cardindex.ui.scan
+package de.fabianduerkop.cardindex.ui.lab
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
@@ -130,7 +130,7 @@ private fun BestMatch(result: RecognitionResult, identified: Boolean, stable: Bo
 
 /** Lab switches and thresholds, under "Details". */
 @Composable
-fun LabSettings(viewModel: ScanViewModel) {
+fun LabSettings(viewModel: LabViewModel) {
     val readNumber by viewModel.readNumber.collectAsStateWithLifecycle()
     val saveCaptures by viewModel.saveCaptures.collectAsStateWithLifecycle()
     val minScore by viewModel.minScore.collectAsStateWithLifecycle()

@@ -40,10 +40,31 @@ adb install -r /tmp/cardindex-release.apk
 adb shell am start -n de.fabianduerkop.cardindex/.MainActivity
 ```
 
-## Recognition lab (Scan tab)
+## Live scan (Scan tab)
 
-The Scan tab is a test bench for the recognition models from [`ml/`](../ml/) (issues #7, #8). It runs the pipeline of
-`ml/pipeline.py` on the phone:
+The Scan tab scans without a shutter (issue #8). Every camera frame (CameraX, latest frame only) goes through the
+pipeline below; `LiveScanDecider` turns the frames into one decision per physical card:
+
+- **Added**: the collector number confirms the best match (after the rerank), its similarity reaches 0.45, no
+  other candidate with the same number is within 0.02, and two frames in a row agree. The card goes into All Cards
+  as its own copy (normal, unlimited, near mint), with Undo in the tray.
+- **Review**: the card stays unsure for 2 s, or is taken away unsure; the crop and the top 3 go to the review queue
+  (Room tables `review_items` / `review_candidates`, crop JPEGs under `files/review/`). Cards from sets with 1st
+  edition prints always go there, since a photo can't tell the edition.
+- **Once per card**: a decided card is ignored while it stays in view and for 2.5 s after it was last seen; a
+  different card replaces it after an empty guide (0.8 s) or three agreeing frames. Cards already decided skip the
+  number OCR.
+
+The embedder runs on the GPU (LiteRT `CompiledModel`, `litert-gpu`) when the GPU reproduces the CPU embedding of a
+probe image (cosine ≥ 0.995); otherwise on the CPU at about 4 frames per second. `RecognitionEngine.load` checks
+`embedder.tflite` and `index.bin` against `modelSha256` / `indexSha256` in meta.json and refuses a pack that
+doesn't match. The thresholds are first guesses; tune them with `RealPhotoTest` and on devices.
+
+## Recognition lab (debug builds)
+
+Debug builds have a **Lab** button on the Scan screen. The lab is a test bench for the recognition models from
+[`ml/`](../ml/) (issues #7, #8) that shows every intermediate result. It runs the pipeline of `ml/pipeline.py` on
+the phone (on the CPU, like the parity tests):
 
 1. **Card outline** inside a dashed 63:88 guide (`ScanGuide.kt`; only the guide plus a 7 % margin is searched, so
    neighbouring cards on a binder page are ignored). Two detectors, switchable under **Details → Outline**:
@@ -62,7 +83,8 @@ The Scan tab is a test bench for the recognition models from [`ml/`](../ml/) (is
 in `Pictures/CardIndexLab` for evaluation. **Gallery** photos use the classic detector on the whole image.
 
 The models, index and card list are not in the repository. Build them into `app/src/main/assets/recognition/`
-(git-ignored) before building the app; without them the tab says so:
+(git-ignored) before building the app; without them the Scan tab says so (the build and the unit tests
+don't need them):
 
 ```sh
 cd ml

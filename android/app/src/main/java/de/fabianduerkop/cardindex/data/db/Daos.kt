@@ -37,6 +37,16 @@ interface CatalogDao {
     @Upsert
     suspend fun upsertPrices(prices: List<CachedPriceEntity>)
 
+    /**
+     * Catalog rows the recognition index knows but no language pack has delivered yet. IGNORE keeps richer pack
+     * data that is already there; see [de.fabianduerkop.cardindex.data.scan.ScanCatalog].
+     */
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertSetsIfMissing(sets: List<CardSetEntity>)
+
+    @Insert(onConflict = OnConflictStrategy.IGNORE)
+    suspend fun insertCardsIfMissing(cards: List<CardEntity>)
+
     @Query("SELECT * FROM cached_prices WHERE cardId = :cardId")
     fun observePrices(cardId: String): Flow<List<CachedPriceEntity>>
 }
@@ -51,6 +61,10 @@ interface CopyDao {
 
     @Delete
     suspend fun delete(copy: OwnedCopyEntity)
+
+    /** Undo of a scan that was just added. */
+    @Query("DELETE FROM owned_copies WHERE id = :id")
+    suspend fun deleteById(id: Long): Int
 
     /** Export/import and sync address copies by uuid, not by the device-local row id. */
     @Query("SELECT * FROM owned_copies WHERE uuid = :uuid")

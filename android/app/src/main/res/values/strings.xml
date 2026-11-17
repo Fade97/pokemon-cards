@@ -23,7 +23,42 @@
     <string name="settings_placeholder">Language packs, price source and currency, data export and open-source licenses will live here.</string>
     <string name="collector_number_description">Number %1$s of %2$s</string>
 
-    <!-- Recognition lab (Scan tab, test build for the recognition model) -->
+    <!-- Live scan (Scan tab) -->
+    <string name="scan_camera_rationale_live">Scanning needs the camera. Pictures stay on this device.</string>
+    <string name="scan_engine_failed">Card recognition can\'t start: %1$s</string>
+    <string name="scan_open_lab">Lab</string>
+    <string name="scan_loading">Loading card recognition…</string>
+    <string name="scan_auto">Auto scan</string>
+    <string name="scan_paused">Paused</string>
+    <string name="scan_pause">Pause</string>
+    <string name="scan_resume">Resume</string>
+    <string name="scan_light">Light</string>
+    <string name="scan_light_off">Light off</string>
+    <string name="scan_hint_looking">Hold a card inside the frame</string>
+    <string name="scan_hint_hold_still">Hold still</string>
+    <string name="scan_hint_unknown">Card not recognized. Is its language pack installed?</string>
+    <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
+    <string name="scan_card_line">%1$s, %2$s, %3$s</string>
+    <!-- After the big count of cards scanned in this session -->
+    <string name="scan_scanned">scanned</string>
+    <plurals name="scan_to_review">
+        <item quantity="one">%1$d to review</item>
+        <item quantity="other">%1$d to review</item>
+    </plurals>
+    <string name="scan_nothing_to_review">Nothing to review</string>
+    <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning.</string>
+    <!-- Set name, language -->
+    <string name="scan_added">Added: %1$s, %2$s</string>
+    <string name="scan_queued">Saved for review: %1$s</string>
+    <string name="scan_undo">Undo</string>
+    <string name="scan_undo_description">Undo adding %1$s</string>
+    <string name="scan_removed">Removed %1$s. Keep scanning.</string>
+    <string name="review_reason_number_not_read">the number couldn\'t be read</string>
+    <string name="review_reason_number_differs">the number doesn\'t match the picture</string>
+    <string name="review_reason_similar_cards">two cards look alike</string>
+    <string name="review_reason_check_variant">check the edition</string>
+
+    <!-- Recognition lab (debug builds, opened from the Scan screen) -->
     <string name="scan_camera_rationale">The lab needs the camera to recognize cards. Pictures stay on this device.</string>
     <string name="scan_camera_allow">Allow camera</string>
     <string name="scan_lab_assets_missing">The recognition model isn\'t in this build (%1$s). Build the assets with ml/app_assets.py and rebuild the app.</string>

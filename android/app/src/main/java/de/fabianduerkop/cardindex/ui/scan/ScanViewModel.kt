@@ -2,272 +2,263 @@
 package de.fabianduerkop.cardindex.ui.scan
 
 import android.app.Application
-import android.content.ContentValues
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
-import android.graphics.ImageDecoder
 import android.graphics.Matrix
-import android.net.Uri
-import android.os.Build
 import android.os.SystemClock
-import android.provider.MediaStore
 import android.util.Log
 import androidx.camera.core.ImageProxy
-import androidx.core.graphics.scale
 import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.viewModelScope
+import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
+import de.fabianduerkop.cardindex.data.scan.ScanRepository
+import de.fabianduerkop.cardindex.model.ReviewReason
+import de.fabianduerkop.cardindex.model.needsVariantCheck
 import de.fabianduerkop.cardindex.recognition.CornerDetector
 import de.fabianduerkop.cardindex.recognition.DEFAULT_MIN_OUTLINE_SCORE
-import de.fabianduerkop.cardindex.recognition.DetectorKind
 import de.fabianduerkop.cardindex.recognition.DEFAULT_MIN_SIMILARITY
-import de.fabianduerkop.cardindex.recognition.MatchStability
-import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.recognition.Detection
+import de.fabianduerkop.cardindex.recognition.DetectorKind
+import de.fabianduerkop.cardindex.recognition.EmbedderBackend
+import de.fabianduerkop.cardindex.recognition.FrameSignal
 import de.fabianduerkop.cardindex.recognition.GateResult
+import de.fabianduerkop.cardindex.recognition.LiveScanDecider
+import de.fabianduerkop.cardindex.recognition.Quad
 import de.fabianduerkop.cardindex.recognition.RecognitionEngine
-import de.fabianduerkop.cardindex.recognition.outlineGate
 import de.fabianduerkop.cardindex.recognition.RecognitionResult
+import de.fabianduerkop.cardindex.recognition.RefCard
+import de.fabianduerkop.cardindex.recognition.ScanEvent
+import de.fabianduerkop.cardindex.recognition.ScanGuide
+import de.fabianduerkop.cardindex.recognition.judgeMatch
+import de.fabianduerkop.cardindex.recognition.outlineGate
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import org.opencv.core.Mat
+import java.io.ByteArrayOutputStream
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
-import kotlin.math.max
-import kotlin.math.roundToInt
 
-sealed interface EngineState {
-    data object Loading : EngineState
-    data class Ready(val model: String, val cards: Int, val unseenCards: Int, val learnedDetector: Boolean) : EngineState
-    data class Failed(val message: String) : EngineState
+sealed interface ScanEngineState {
+    data object Loading : ScanEngineState
+    data class Ready(val cards: Int, val backend: EmbedderBackend) : ScanEngineState
+    data class Failed(val message: String) : ScanEngineState
 }
 
-/** Live camera recognition: the current outline, the gate, and the last identified card. */
-data class LiveState(
-    /** The last frame that identified a card (similarity above the minimum); kept while later frames don't. */
-    val result: RecognitionResult? = null,
-    /** The same card was identified in every identified frame of the last ~1 s (see [MatchStability]). */
-    val stable: Boolean = false,
-    val framesPerSecond: Float = 0f,
-    /** The current frame's outline (null = none) and frame size, drawn even when the gate rejects it. */
-    val outline: Detection? = null,
+/** What the viewfinder tells the user about the current frame. */
+enum class ScanHint {
+    /** No card in the guide. */
+    LOOKING,
+
+    /** A card, but moving or only partly in the guide. */
+    HOLD_STILL,
+
+    /** A card that matches nothing in the installed languages well enough. */
+    UNKNOWN,
+
+    /** Identified; reading the number and waiting for a second agreeing frame. */
+    READING,
+
+    /** This card was just added or queued; take the next one. */
+    DONE,
+}
+
+/** The current frame: outline and guide for the overlay, and the card it shows, if identified. */
+data class Viewfinder(
     val frameWidth: Int = 0,
     val frameHeight: Int = 0,
-    val gate: GateResult = GateResult.NoOutline,
-    /** Best similarity of the current frame when it was identified but below the minimum; null otherwise. */
-    val noMatchSimilarity: Float? = null,
-) {
-    /** The shown card is not the current frame's: the gate rejected it or the match was too weak. */
-    val outdated: Boolean get() = gate != GateResult.Accepted || noMatchSimilarity != null
-}
-
-/** A captured or picked photo and its result. [usedGuide]: only the guide area was searched (shutter photos). */
-data class StillState(
-    val photo: Bitmap,
-    val result: RecognitionResult?,
-    val savedTo: String?,
-    val error: String?,
-    val usedGuide: Boolean,
+    val outline: Quad? = null,
+    val hint: ScanHint = ScanHint.LOOKING,
+    val card: RefCard? = null,
 )
 
+/** The most recent decision, shown in the tray until the next one. */
+sealed interface LastScan {
+    val card: RefCard
+
+    data class Added(override val card: RefCard, val copyId: Long, val undone: Boolean = false) : LastScan
+
+    data class Queued(override val card: RefCard, val reason: ReviewReason) : LastScan
+}
+
 /**
- * Runs the recognition engine on one worker thread: camera frames (latest only), captured photos and gallery
- * images all go through [worker], so the engine is never used concurrently.
+ * Live scanning (#8): every camera frame (latest only) goes through detect → gate → embed → kNN; cards that are not
+ * decided yet also get the number OCR and rerank. [LiveScanDecider] turns frames into one decision per card:
+ * confident cards go straight into All Cards (undoable), unsure ones into the review queue. All engine work runs on
+ * [worker], so the engine is never used concurrently; database writes run on the IO dispatcher.
  */
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
-    val worker: ExecutorService = Executors.newSingleThreadExecutor { Thread(it, "recognition") }
+    val worker: ExecutorService = Executors.newSingleThreadExecutor { Thread(it, "live-scan") }
     private var engine: RecognitionEngine? = null
+    private var detector = DetectorKind.CLASSIC
+    private var minOutlineScore = DEFAULT_MIN_OUTLINE_SCORE
+    private var frameIntervalMs = 0L
 
-    private val _engineState = MutableStateFlow<EngineState>(EngineState.Loading)
-    val engineState: StateFlow<EngineState> = _engineState.asStateFlow()
-    private val _live = MutableStateFlow(LiveState())
-    val live: StateFlow<LiveState> = _live.asStateFlow()
-    private val _still = MutableStateFlow<StillState?>(null)
-    val still: StateFlow<StillState?> = _still.asStateFlow()
+    private val db = CardIndexDatabase.get(application)
+    private val scans = ScanRepository(db)
+    private val reviewQueue = ReviewQueueRepository(db, application.filesDir)
+
+    private val _engine = MutableStateFlow<ScanEngineState>(ScanEngineState.Loading)
+    val engineState: StateFlow<ScanEngineState> = _engine.asStateFlow()
+    private val _viewfinder = MutableStateFlow(Viewfinder())
+    val viewfinder: StateFlow<Viewfinder> = _viewfinder.asStateFlow()
+    private val _lastScan = MutableStateFlow<LastScan?>(null)
+    val lastScan: StateFlow<LastScan?> = _lastScan.asStateFlow()
+
+    /** Cards added or queued since the screen opened, minus undone ones. */
+    private val _scanned = MutableStateFlow(0)
+    val scanned: StateFlow<Int> = _scanned.asStateFlow()
     private val _paused = MutableStateFlow(false)
     val paused: StateFlow<Boolean> = _paused.asStateFlow()
-    private val _readNumber = MutableStateFlow(true)
-    val readNumber: StateFlow<Boolean> = _readNumber.asStateFlow()
-    private val _saveCaptures = MutableStateFlow(false)
-    val saveCaptures: StateFlow<Boolean> = _saveCaptures.asStateFlow()
+    val reviewCount: StateFlow<Int> = reviewQueue.observeCount()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
-    private val _detector = MutableStateFlow(DetectorKind.LEARNED)
-    val detector: StateFlow<DetectorKind> = _detector.asStateFlow()
-    private val _minScore = MutableStateFlow(CornerDetector.DEFAULT_MIN_SCORE.toFloat())
-    val minScore: StateFlow<Float> = _minScore.asStateFlow()
-    /** Languages searched (empty until the engine loads = all). */
-    private val _languages = MutableStateFlow<Set<String>>(emptySet())
-    val languages: StateFlow<Set<String>> = _languages.asStateFlow()
-    private val _availableLanguages = MutableStateFlow<List<String>>(emptyList())
-    val availableLanguages: StateFlow<List<String>> = _availableLanguages.asStateFlow()
-    private val _minSimilarity = MutableStateFlow(DEFAULT_MIN_SIMILARITY.toFloat())
-    val minSimilarity: StateFlow<Float> = _minSimilarity.asStateFlow()
-
-    private val stability = MatchStability()
-    private var lastFrameAt = 0L
+    private val decider = LiveScanDecider<RecognitionResult>()
     private var previousDetection: Detection? = null
+    private var lastFrameAt = 0L
 
     init {
         worker.execute {
-            _engineState.value = try {
-                RecognitionEngine.load(application).also { engine = it }.let { e ->
-                    if (!e.hasLearnedDetector) setDetector(DetectorKind.CLASSIC)
-                    _availableLanguages.value = e.index.languages
-                    _languages.value = e.index.languages.toSet()
-                    EngineState.Ready(e.info.model, e.index.size, e.index.cards.count { it.unseen }, e.hasLearnedDetector)
+            _engine.value = try {
+                RecognitionEngine.load(application, preferGpu = true).let { e ->
+                    engine = e
+                    if (e.hasLearnedDetector) {
+                        detector = DetectorKind.LEARNED
+                        minOutlineScore = CornerDetector.DEFAULT_MIN_SCORE
+                    }
+                    // Without the GPU every frame costs several times more; fewer frames keep the phone cool
+                    // and the preview smooth, at the price of a slightly slower decision.
+                    frameIntervalMs = if (e.info.backend == EmbedderBackend.GPU) 0L else CPU_FRAME_INTERVAL_MS
+                    Log.i(TAG, "engine ready: ${e.info.model} on ${e.info.backend}")
+                    ScanEngineState.Ready(e.index.size, e.info.backend)
                 }
             } catch (t: Throwable) {
                 Log.e(TAG, "recognition engine failed to load", t)
-                EngineState.Failed(t.message ?: t.javaClass.simpleName)
+                ScanEngineState.Failed(t.message ?: t.javaClass.simpleName)
             }
         }
     }
 
-    fun setPaused(value: Boolean) = _paused.update { value }
-    fun setReadNumber(value: Boolean) = _readNumber.update { value }
-    fun setSaveCaptures(value: Boolean) = _saveCaptures.update { value }
-    fun setMinScore(value: Float) = _minScore.update { value }
-
-    /** Turns a language on or off; at least one stays on. */
-    fun toggleLanguage(lang: String) = _languages.update { if (lang in it) (it - lang).ifEmpty { it } else it + lang }
-    private fun languageFilter(): Set<String>? = _languages.value.takeIf { it.size < _availableLanguages.value.size }
-
-    /** Switches the outline detector; the minimum outline score resets to that detector's default (different scales). */
-    fun setDetector(kind: DetectorKind) {
-        _detector.value = kind
-        _minScore.value = when (kind) {
-            DetectorKind.LEARNED -> CornerDetector.DEFAULT_MIN_SCORE
-            DetectorKind.CLASSIC -> DEFAULT_MIN_OUTLINE_SCORE
-        }.toFloat()
-        previousDetection = null
+    fun setPaused(value: Boolean) {
+        _paused.value = value
+        // After a pause the card in view is a new situation; don't let an old track decide it.
+        if (!value) worker.execute { decider.reset(); previousDetection = null }
     }
-    fun setMinSimilarity(value: Float) = _minSimilarity.update { value }
-    fun backToLive() = _still.update { null }
 
-    /** CameraX analyzer, called on [worker]. */
+    /** CameraX analyzer, called on [worker] with the latest frame only. */
     fun analyze(image: ImageProxy) {
         val e = engine
-        if (e == null || _paused.value || _still.value != null) {
+        val now = SystemClock.elapsedRealtime()
+        if (e == null || _paused.value || now - lastFrameAt < frameIntervalMs) {
             image.close()
             return
         }
+        lastFrameAt = now
         val bitmap = image.use { upright(it.toBitmap(), it.imageInfo.rotationDegrees) }
         val bgr = RecognitionEngine.toBgr(bitmap)
         try {
             val w = bgr.cols()
             val h = bgr.rows()
-            val t0 = SystemClock.elapsedRealtime()
-            val detection = e.detect(bgr, ScanGuide.forFrame(w, h).searchArea, _detector.value)
-            val detectMs = SystemClock.elapsedRealtime() - t0
-            val gate = outlineGate(detection, previousDetection, _minScore.value.toDouble())
+            val detection = e.detect(bgr, ScanGuide.forFrame(w, h).searchArea, detector)
+            val gate = outlineGate(detection, previousDetection, minOutlineScore)
             previousDetection = detection
-            val now = SystemClock.elapsedRealtime()
-            val fps = if (lastFrameAt == 0L) 0f else 1000f / max(1L, now - lastFrameAt)
-            lastFrameAt = now
-            val before = _live.value
-            if (gate != GateResult.Accepted) {
-                _live.value = before.copy(
-                    stable = stability.isStable(now), framesPerSecond = fps, outline = detection,
-                    frameWidth = w, frameHeight = h, gate = gate, noMatchSimilarity = null,
-                )
-                return
+            var card: RefCard? = null
+            val signal: FrameSignal<RecognitionResult> = when (gate) {
+                GateResult.NoOutline, is GateResult.LowScore -> FrameSignal.Empty
+                GateResult.Moving -> FrameSignal.Unreadable
+                GateResult.Accepted -> {
+                    val result = runCatching { identify(e, bgr, detection) }
+                        .onFailure { Log.e(TAG, "frame failed", it) }
+                        .getOrNull()
+                    if (result == null) {
+                        FrameSignal.Unreadable
+                    } else {
+                        card = result.best.card
+                        FrameSignal.Identified(
+                            key = result.best.card.key,
+                            related = result.reranked.take(3).map { it.card.key }.toSet(),
+                            similarity = result.best.similarity,
+                            // A card already decided skipped the OCR; the decider ignores its verdict anyway.
+                            unsure = if (decider.isHandled(result.best.card.key)) {
+                                ReviewReason.NUMBER_NOT_READ
+                            } else {
+                                judgeMatch(result.reranked, result.reading, MIN_SIMILARITY)
+                            },
+                            payload = result,
+                        )
+                    }
+                }
             }
-            val result = runCatching { e.identify(bgr, detection, _readNumber.value, detectMs, languageFilter()) }
-                .onFailure { Log.e(TAG, "frame failed", it) }
-                .getOrNull() ?: return
-            if (result.best.similarity < _minSimilarity.value) {
-                _live.value = before.copy(
-                    stable = stability.isStable(now), framesPerSecond = fps, outline = detection,
-                    frameWidth = w, frameHeight = h, gate = gate, noMatchSimilarity = result.best.similarity,
-                )
-                return
+            val event = decider.onFrame(now, signal)
+            val key = (signal as? FrameSignal.Identified)?.key
+            val hint = when {
+                event != null || (key != null && decider.isHandled(key)) -> ScanHint.DONE
+                signal is FrameSignal.Identified -> ScanHint.READING
+                gate == GateResult.Accepted -> ScanHint.UNKNOWN
+                gate == GateResult.Moving -> ScanHint.HOLD_STILL
+                else -> ScanHint.LOOKING
             }
-            val stable = stability.add(now, result.best.card.key)
-            _live.value = LiveState(result, stable, fps, detection, w, h, gate, null)
+            _viewfinder.value = Viewfinder(w, h, detection?.quad, hint, card)
+            event?.let(::onDecision)
         } finally {
             bgr.release()
         }
     }
 
-    /** A full-resolution photo from the shutter button, called on [worker]. Searches the guide area like live. */
-    fun onCaptured(image: ImageProxy) {
-        val bitmap = image.use { upright(it.toBitmap(), it.imageInfo.rotationDegrees) }
-        val savedTo = if (_saveCaptures.value) save(bitmap) else null
-        recognizeStill(downscale(bitmap), savedTo, useGuide = true)
+    /**
+     * Embedding and kNN; the number OCR only for a card that still has to be decided. Returns null when nothing in
+     * the index is similar enough.
+     */
+    private fun identify(e: RecognitionEngine, bgr: Mat, detection: Detection?): RecognitionResult? {
+        val base = e.identify(bgr, detection, readNumber = false)
+        if (base.candidates.first().similarity < MIN_SIMILARITY) return null
+        return if (decider.isHandled(base.best.card.key)) base else e.readNumber(bgr, base)
     }
 
-    fun onCaptureFailed(message: String) {
-        _still.value = null
-        Log.w(TAG, "capture failed: $message")
-    }
-
-    /** A photo picked from the gallery. */
-    fun recognizeUri(uri: Uri) = worker.execute {
-        val bitmap = runCatching { decode(uri) }.getOrElse {
-            Log.e(TAG, "decode failed", it)
-            return@execute
-        }
-        recognizeStill(downscale(bitmap), null, useGuide = false)
-    }
-
-    private fun recognizeStill(photo: Bitmap, savedTo: String?, useGuide: Boolean) {
-        val e = engine ?: return
-        _still.value = StillState(photo, null, savedTo, null, useGuide)
-        _still.value = runCatching {
-            val bgr = RecognitionEngine.toBgr(photo)
-            try {
-                val t0 = SystemClock.elapsedRealtime()
-                val area = if (useGuide) ScanGuide.forFrame(bgr.cols(), bgr.rows()).searchArea else null
-                val detection = e.detect(bgr, area, _detector.value)
-                e.identify(bgr, detection, _readNumber.value, SystemClock.elapsedRealtime() - t0, languageFilter())
-            } finally {
-                bgr.release()
+    private fun onDecision(event: ScanEvent<RecognitionResult>) {
+        val result = event.payload
+        val card = result.best.card
+        val checkVariant = needsVariantCheck(card.setId)
+        when {
+            event is ScanEvent.Add && !checkVariant -> viewModelScope.launch(Dispatchers.IO) {
+                runCatching { scans.addFromScan(card) }
+                    .onSuccess { id ->
+                        _lastScan.value = LastScan.Added(card, id)
+                        _scanned.update { it + 1 }
+                    }
+                    .onFailure { Log.e(TAG, "adding ${card.key} failed", it) }
             }
-        }.fold(
-            onSuccess = { StillState(photo, it, savedTo, null, useGuide) },
-            onFailure = { StillState(photo, null, savedTo, it.message ?: it.javaClass.simpleName, useGuide) },
-        )
-    }
-
-    /** Decodes a gallery photo already shrunk towards [STILL_MAX_SIDE], so a 50 MP photo never sits in memory whole. */
-    private fun decode(uri: Uri): Bitmap {
-        val resolver = getApplication<Application>().contentResolver
-        return if (Build.VERSION.SDK_INT >= 28) {
-            val bitmap = ImageDecoder.decodeBitmap(ImageDecoder.createSource(resolver, uri)) { decoder, info, _ ->
-                decoder.allocator = ImageDecoder.ALLOCATOR_SOFTWARE // OpenCV needs CPU-readable pixels
-                val side = max(info.size.width, info.size.height)
-                if (side > STILL_MAX_SIDE) {
-                    val s = STILL_MAX_SIDE.toFloat() / side
-                    decoder.setTargetSize((info.size.width * s).roundToInt(), (info.size.height * s).roundToInt())
+            else -> {
+                val reason = (event as? ScanEvent.Review)?.reason ?: ReviewReason.CHECK_VARIANT
+                viewModelScope.launch(Dispatchers.IO) {
+                    runCatching {
+                        reviewQueue.enqueue(jpeg(result.crop), result.reranked, result.reading, reason, checkVariant)
+                    }
+                        .onSuccess {
+                            _lastScan.value = LastScan.Queued(card, reason)
+                            _scanned.update { it + 1 }
+                        }
+                        .onFailure { Log.e(TAG, "queueing ${card.key} failed", it) }
                 }
             }
-            if (bitmap.config == Bitmap.Config.ARGB_8888) bitmap
-            else bitmap.copy(Bitmap.Config.ARGB_8888, false).also { bitmap.recycle() }
-        } else {
-            val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-            resolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, bounds) }
-            var sample = 1
-            while (max(bounds.outWidth, bounds.outHeight) / (sample * 2) >= STILL_MAX_SIDE) sample *= 2
-            val options = BitmapFactory.Options().apply { inSampleSize = sample }
-            resolver.openInputStream(uri).use { BitmapFactory.decodeStream(it, null, options) }
-                ?: throw IllegalArgumentException("not an image: $uri")
         }
     }
 
-    /** Saves the original photo to Pictures/CardIndexLab, so it can join the real-photo evaluation on the PC. */
-    private fun save(bitmap: Bitmap): String? {
-        if (Build.VERSION.SDK_INT < 29) return null
-        val resolver = getApplication<Application>().contentResolver
-        val name = "card-${System.currentTimeMillis()}.jpg"
-        val values = ContentValues().apply {
-            put(MediaStore.Images.Media.DISPLAY_NAME, name)
-            put(MediaStore.Images.Media.MIME_TYPE, "image/jpeg")
-            put(MediaStore.Images.Media.RELATIVE_PATH, "Pictures/CardIndexLab")
+    /** Takes back the last added card. */
+    fun undo() {
+        val added = _lastScan.value as? LastScan.Added ?: return
+        if (added.undone) return
+        viewModelScope.launch(Dispatchers.IO) {
+            if (scans.undo(added.copyId)) {
+                _lastScan.update { if (it == added) added.copy(undone = true) else it }
+                _scanned.update { maxOf(0, it - 1) }
+            }
         }
-        return runCatching {
-            val uri = resolver.insert(MediaStore.Images.Media.EXTERNAL_CONTENT_URI, values) ?: return null
-            resolver.openOutputStream(uri).use { bitmap.compress(Bitmap.CompressFormat.JPEG, 95, it!!) }
-            "Pictures/CardIndexLab/$name"
-        }.onFailure { Log.e(TAG, "save failed", it) }.getOrNull()
     }
 
     override fun onCleared() {
@@ -277,8 +268,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     companion object {
         private const val TAG = "ScanViewModel"
-        /** Longest side for photos; detection works at 640 px, the number OCR profits from more. */
-        private const val STILL_MAX_SIDE = 2048
+
+        /** About 4 frames per second when the embedder runs on the CPU. */
+        private const val CPU_FRAME_INTERVAL_MS = 250L
+        private val MIN_SIMILARITY = DEFAULT_MIN_SIMILARITY.toFloat()
 
         fun upright(bitmap: Bitmap, rotationDegrees: Int): Bitmap {
             if (rotationDegrees == 0) return bitmap
@@ -286,11 +279,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             return Bitmap.createBitmap(bitmap, 0, 0, bitmap.width, bitmap.height, m, true)
         }
 
-        fun downscale(bitmap: Bitmap): Bitmap {
-            val side = max(bitmap.width, bitmap.height)
-            if (side <= STILL_MAX_SIDE) return bitmap
-            val s = STILL_MAX_SIDE.toFloat() / side
-            return bitmap.scale((bitmap.width * s).roundToInt(), (bitmap.height * s).roundToInt())
-        }
+        private fun jpeg(bitmap: Bitmap): ByteArray =
+            ByteArrayOutputStream().also { bitmap.compress(Bitmap.CompressFormat.JPEG, 90, it) }.toByteArray()
     }
 }

@@ -24,6 +24,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import de.fabianduerkop.cardindex.ui.collections.CollectionsScreen
+import de.fabianduerkop.cardindex.ui.lab.LabScreen
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
 import de.fabianduerkop.cardindex.ui.scan.ScanScreen
 import de.fabianduerkop.cardindex.ui.search.SearchScreen
@@ -44,13 +45,17 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
             startDestination = TopLevelDestination.SCAN.route,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
-            composable(TopLevelDestination.SCAN.route) { ScanScreen() }
+            composable(TopLevelDestination.SCAN.route) { ScanScreen(onOpenLab = { navController.navigate(LAB_ROUTE) }) }
             composable(TopLevelDestination.COLLECTIONS.route) { CollectionsScreen() }
             composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
             composable(TopLevelDestination.SETTINGS.route) { SettingsScreen() }
+            composable(LAB_ROUTE) { LabScreen() }
         }
     }
 }
+
+/** The recognition lab, a debug-only test bench reached from the Scan screen. */
+private const val LAB_ROUTE = "lab"
 
 @Composable
 private fun BottomBar(navController: NavHostController) {

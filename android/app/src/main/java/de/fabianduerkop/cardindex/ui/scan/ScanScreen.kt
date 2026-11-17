@@ -2,119 +2,130 @@
 package de.fabianduerkop.cardindex.ui.scan
 
 import android.Manifest
+import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
-import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.ImageAnalysis
-import androidx.camera.core.ImageCapture
-import androidx.camera.core.ImageCaptureException
-import androidx.camera.core.ImageProxy
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
 import androidx.camera.core.resolutionselector.ResolutionSelector
 import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.graphics.asImageBitmap
-import androidx.compose.ui.graphics.drawscope.DrawScope
-import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
-import de.fabianduerkop.cardindex.recognition.GateResult
-import de.fabianduerkop.cardindex.recognition.Quad
+import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.ScanGuide
+import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.theme.IndexTokens
+import java.util.Locale
 
 /**
- * Recognition lab: live camera recognition with the on-device pipeline, for testing the model on real cards.
- * The camera view shows the whole analysed frame with a card guide; only the guide area is searched. A card is
- * shown as identified when its similarity reaches the minimum. Candidates, timings and thresholds sit under
- * "Details". A photo (shutter or gallery) runs the same pipeline at higher resolution.
+ * Live scan (DESIGN.md, Recognition; mockup c-index "Live scan"): no shutter. A card held in the guide is added to
+ * All Cards as soon as its number confirms it, unsure cards go to Review, and the camera never stops for either.
+ * The tray shows the count, the review queue and the last decision with Undo.
  */
 @Composable
-fun ScanScreen(modifier: Modifier = Modifier, viewModel: ScanViewModel = viewModel()) {
+fun ScanScreen(
+    modifier: Modifier = Modifier,
+    onOpenLab: () -> Unit = {},
+    viewModel: ScanViewModel = viewModel(),
+) {
     val context = LocalContext.current
     var granted by remember {
         mutableStateOf(ContextCompat.checkSelfPermission(context, Manifest.permission.CAMERA) == PackageManager.PERMISSION_GRANTED)
     }
     val permission = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { granted = it }
     val engine by viewModel.engineState.collectAsStateWithLifecycle()
+    // The lab is a test bench for the models; release builds don't offer it.
+    val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
     Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
         when {
-            engine is EngineState.Failed -> PlaceholderText(
-                stringResource(R.string.scan_lab_assets_missing, (engine as EngineState.Failed).message),
-                Modifier.padding(18.dp),
-            )
+            engine is ScanEngineState.Failed -> Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                PlaceholderText(stringResource(R.string.scan_engine_failed, (engine as ScanEngineState.Failed).message))
+                if (debuggable) OutlinedButton(onClick = onOpenLab) { Text(stringResource(R.string.scan_open_lab)) }
+            }
             !granted -> Column(Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                PlaceholderText(stringResource(R.string.scan_camera_rationale))
+                PlaceholderText(stringResource(R.string.scan_camera_rationale_live))
                 Button(onClick = { permission.launch(Manifest.permission.CAMERA) }) {
                     Text(stringResource(R.string.scan_camera_allow))
                 }
             }
-            else -> LabContent(viewModel, engine)
+            else -> LiveScan(viewModel, engine, onOpenLab.takeIf { debuggable })
         }
     }
 }
 
 @Composable
-private fun LabContent(viewModel: ScanViewModel, engine: EngineState) {
+private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenLab: (() -> Unit)?) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
-    val live by viewModel.live.collectAsStateWithLifecycle()
-    val still by viewModel.still.collectAsStateWithLifecycle()
+    val viewfinder by viewModel.viewfinder.collectAsStateWithLifecycle()
     val paused by viewModel.paused.collectAsStateWithLifecycle()
-    val minSimilarity by viewModel.minSimilarity.collectAsStateWithLifecycle()
     var torch by remember { mutableStateOf(false) }
-    var details by remember { mutableStateOf(false) }
 
     val controller = remember {
         val fourThree = AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY
         LifecycleCameraController(context).apply {
-            setEnabledUseCases(CameraController.IMAGE_ANALYSIS or CameraController.IMAGE_CAPTURE)
+            setEnabledUseCases(CameraController.IMAGE_ANALYSIS)
             previewResolutionSelector = ResolutionSelector.Builder().setAspectRatioStrategy(fourThree).build()
             imageAnalysisResolutionSelector = ResolutionSelector.Builder()
                 .setAspectRatioStrategy(fourThree)
@@ -122,9 +133,10 @@ private fun LabContent(viewModel: ScanViewModel, engine: EngineState) {
                     ResolutionStrategy(Size(1280, 960), ResolutionStrategy.FALLBACK_RULE_CLOSEST_HIGHER_THEN_LOWER),
                 )
                 .build()
+            // While a frame is analysed newer ones replace each other: the decision is always about the card
+            // in view now, never about a backlog.
             imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
             imageAnalysisOutputImageFormat = ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
-            imageCaptureMode = ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
             setImageAnalysisAnalyzer(viewModel.worker, viewModel::analyze)
         }
     }
@@ -132,196 +144,223 @@ private fun LabContent(viewModel: ScanViewModel, engine: EngineState) {
         controller.bindToLifecycle(lifecycleOwner)
         onDispose { controller.unbind() }
     }
-    val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
-        if (uri != null) viewModel.recognizeUri(uri)
-    }
 
     Column(Modifier.fillMaxSize()) {
-        // Camera or photo: the whole 4:3 frame is visible (fit), so the guide and outlines match what is analysed.
         Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(IndexTokens.Camera)) {
-            val s = still
-            if (s == null) {
-                AndroidView(
-                    factory = {
-                        PreviewView(it).apply {
-                            // TextureView: a SurfaceView would draw outside the clipped box over the result panel.
-                            implementationMode = PreviewView.ImplementationMode.COMPATIBLE
-                            scaleType = PreviewView.ScaleType.FIT_CENTER
-                            this.controller = controller
-                        }
-                    },
-                    modifier = Modifier.fillMaxSize(),
-                )
-                if (live.frameWidth > 0) {
-                    FrameOverlay(
-                        frameWidth = live.frameWidth,
-                        frameHeight = live.frameHeight,
-                        guide = ScanGuide.forFrame(live.frameWidth, live.frameHeight).box,
-                        outline = live.outline?.quad,
-                        outlineColor = outlineColor(live),
-                    )
-                }
-            } else {
-                Image(s.photo.asImageBitmap(), contentDescription = null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
-                s.result?.let {
-                    FrameOverlay(
-                        frameWidth = it.frameWidth,
-                        frameHeight = it.frameHeight,
-                        guide = if (s.usedGuide) ScanGuide.forFrame(it.frameWidth, it.frameHeight).box else null,
-                        outline = it.quad,
-                        outlineColor = when {
-                            !it.found -> NoOutlineColor
-                            it.best.similarity >= minSimilarity -> StableColor
-                            else -> RejectedColor
-                        },
-                    )
-                }
-            }
-            StatusLine(engine, live, still, paused, minSimilarity, Modifier.align(Alignment.TopStart).padding(8.dp))
-            CameraControls(
-                still = still != null,
-                paused = paused,
-                torch = torch,
-                onCapture = {
-                    controller.takePicture(viewModel.worker, object : ImageCapture.OnImageCapturedCallback() {
-                        override fun onCaptureSuccess(image: ImageProxy) = viewModel.onCaptured(image)
-                        override fun onError(exception: ImageCaptureException) =
-                            viewModel.onCaptureFailed(exception.message ?: "capture failed")
-                    })
+            AndroidView(
+                factory = {
+                    PreviewView(it).apply {
+                        // TextureView: a SurfaceView would draw outside the clipped box over the tray.
+                        implementationMode = PreviewView.ImplementationMode.COMPATIBLE
+                        // Fit: the whole analysed frame is visible, so guide and outline line up with it.
+                        scaleType = PreviewView.ScaleType.FIT_CENTER
+                        this.controller = controller
+                    }
                 },
-                onPause = { viewModel.setPaused(!paused) },
-                onTorch = { torch = !torch; controller.enableTorch(torch) },
-                onGallery = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
-                onBack = viewModel::backToLive,
-                modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp),
+                modifier = Modifier.fillMaxSize(),
             )
+            if (viewfinder.frameWidth > 0) {
+                FrameOverlay(
+                    frameWidth = viewfinder.frameWidth,
+                    frameHeight = viewfinder.frameHeight,
+                    guide = ScanGuide.forFrame(viewfinder.frameWidth, viewfinder.frameHeight).box,
+                    outline = viewfinder.outline,
+                    outlineColor = outlineColor(viewfinder.hint),
+                )
+            }
+            Reading(engine, viewfinder, paused, Modifier.align(Alignment.TopCenter).padding(top = 52.dp, start = 16.dp, end = 16.dp))
+            AutoPill(paused, Modifier.align(Alignment.TopStart).padding(12.dp))
+            Row(
+                Modifier.align(Alignment.BottomCenter).padding(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                val pad = PaddingValues(horizontal = 16.dp, vertical = 8.dp)
+                FilledTonalButton(onClick = { viewModel.setPaused(!paused) }, contentPadding = pad) {
+                    Text(stringResource(if (paused) R.string.scan_resume else R.string.scan_pause))
+                }
+                FilledTonalButton(onClick = { torch = !torch; controller.enableTorch(torch) }, contentPadding = pad) {
+                    Text(stringResource(if (torch) R.string.scan_light_off else R.string.scan_light))
+                }
+                if (onOpenLab != null) {
+                    FilledTonalButton(onClick = onOpenLab, contentPadding = pad) { Text(stringResource(R.string.scan_open_lab)) }
+                }
+            }
         }
-        // Result below the camera; "Details" adds candidates, timings and the lab settings (scrollable).
-        Column(
-            Modifier.fillMaxWidth().heightIn(max = if (details) 380.dp else 150.dp).verticalScroll(rememberScrollState()),
-        ) {
-            val result = still?.result ?: if (still == null) live.result else null
-            val identified = result != null && result.best.similarity >= minSimilarity
-            ResultPanel(
-                result = result,
-                identified = identified,
-                stable = if (still != null) identified else live.stable,
-                outdated = still == null && live.outdated,
-                details = details,
-                onToggleDetails = { details = !details },
-                message = still?.error ?: still?.savedTo?.let { stringResource(R.string.scan_lab_saved, it) },
-            )
-            if (details) LabSettings(viewModel)
-        }
+        Tray(viewModel)
     }
 }
 
+/** The card in view as the big collector number, or what the user should do. */
 @Composable
-private fun CameraControls(
-    still: Boolean,
-    paused: Boolean,
-    torch: Boolean,
-    onCapture: () -> Unit,
-    onPause: () -> Unit,
-    onTorch: () -> Unit,
-    onGallery: () -> Unit,
-    onBack: () -> Unit,
-    modifier: Modifier,
-) {
-    val pad = PaddingValues(horizontal = 14.dp, vertical = 8.dp)
-    Row(modifier, horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        if (still) {
-            Button(onClick = onBack, contentPadding = pad) { Text(stringResource(R.string.scan_lab_back_to_live), maxLines = 1) }
+private fun Reading(engine: ScanEngineState, viewfinder: Viewfinder, paused: Boolean, modifier: Modifier) {
+    val card = viewfinder.card
+    Column(modifier, horizontalAlignment = Alignment.CenterHorizontally) {
+        if (card != null && !paused && (viewfinder.hint == ScanHint.READING || viewfinder.hint == ScanHint.DONE)) {
+            CollectorNumber(
+                localId = card.localId,
+                printedTotal = card.official,
+                style = MaterialTheme.typography.displayMedium,
+                color = Color.White,
+                totalColor = IndexTokens.CameraMuted,
+            )
+            Text(
+                stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
+                color = IndexTokens.CameraInk,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
         } else {
-            FilledTonalButton(onClick = onPause, contentPadding = pad) {
-                Text(stringResource(if (paused) R.string.scan_lab_resume else R.string.scan_lab_pause), maxLines = 1)
+            val text = when {
+                engine is ScanEngineState.Loading -> stringResource(R.string.scan_loading)
+                paused -> stringResource(R.string.scan_paused)
+                viewfinder.hint == ScanHint.HOLD_STILL -> stringResource(R.string.scan_hint_hold_still)
+                viewfinder.hint == ScanHint.UNKNOWN -> stringResource(R.string.scan_hint_unknown)
+                else -> stringResource(R.string.scan_hint_looking)
             }
-            Button(onClick = onCapture, contentPadding = pad) { Text(stringResource(R.string.scan_lab_capture), maxLines = 1) }
-            FilledTonalButton(onClick = onTorch, contentPadding = pad) {
-                Text(stringResource(if (torch) R.string.scan_lab_torch_off else R.string.scan_lab_torch), maxLines = 1)
-            }
+            Text(
+                text,
+                Modifier.background(Color(0x99000000), RoundedCornerShape(999.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
+                color = IndexTokens.CameraInk,
+                style = MaterialTheme.typography.bodyMedium,
+                textAlign = TextAlign.Center,
+            )
         }
-        FilledTonalButton(onClick = onGallery, contentPadding = pad) { Text(stringResource(R.string.scan_lab_gallery), maxLines = 1) }
     }
 }
 
 @Composable
-private fun StatusLine(
-    engine: EngineState,
-    live: LiveState,
-    still: StillState?,
-    paused: Boolean,
-    minSimilarity: Float,
-    modifier: Modifier,
-) {
-    val gate = live.gate
-    val text = when {
-        engine is EngineState.Loading -> stringResource(R.string.scan_lab_loading)
-        still != null && still.result == null && still.error == null -> stringResource(R.string.scan_lab_working)
-        still != null -> stringResource(R.string.scan_lab_photo)
-        paused -> stringResource(R.string.scan_lab_paused)
-        gate is GateResult.NoOutline -> stringResource(R.string.scan_lab_gate_none)
-        gate is GateResult.LowScore -> stringResource(R.string.scan_lab_gate_low, gate.score)
-        gate is GateResult.Moving -> stringResource(R.string.scan_lab_gate_moving)
-        live.noMatchSimilarity != null -> stringResource(R.string.scan_lab_no_match, live.noMatchSimilarity, minSimilarity)
-        engine is EngineState.Ready -> stringResource(
-            R.string.scan_lab_status, engine.cards, engine.unseenCards, live.framesPerSecond,
-        )
-        else -> ""
-    }
-    if (text.isNotEmpty()) {
+private fun AutoPill(paused: Boolean, modifier: Modifier) {
+    Row(
+        modifier.background(Color(0x1FFFFFFF), RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+        Box(Modifier.size(8.dp).background(if (paused) IndexTokens.CameraMuted else LiveDot, CircleShape))
         Text(
-            text,
-            modifier.background(Color(0xAA000000), MaterialTheme.shapes.small).padding(horizontal = 8.dp, vertical = 4.dp),
+            stringResource(if (paused) R.string.scan_paused else R.string.scan_auto),
             color = IndexTokens.CameraInk,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelLarge,
         )
     }
 }
 
-/**
- * Draws the card guide (dashed) and the detected outline over a frame shown with ContentScale.Fit; a dot marks
- * the outline's first corner.
- */
+/** Count, review queue and the last decision with Undo. */
 @Composable
-private fun FrameOverlay(frameWidth: Int, frameHeight: Int, guide: Quad?, outline: Quad?, outlineColor: Color) {
-    Canvas(Modifier.fillMaxSize()) {
-        val fw = frameWidth.toFloat()
-        val fh = frameHeight.toFloat()
-        val s = minOf(size.width / fw, size.height / fh)
-        val ox = (size.width - fw * s) / 2
-        val oy = (size.height - fh * s) / 2
-        fun map(q: Quad) = q.map { Offset(ox + it.x.toFloat() * s, oy + it.y.toFloat() * s) }
-        guide?.let {
-            val dash = PathEffect.dashPathEffect(floatArrayOf(18f, 12f))
-            drawQuad(map(it), GuideColor, Stroke(width = 2.dp.toPx(), pathEffect = dash))
-        }
-        outline?.let {
-            val pts = map(it)
-            drawQuad(pts, outlineColor, Stroke(width = 3.dp.toPx()))
-            drawCircle(outlineColor, radius = 5.dp.toPx(), center = pts[0])
+private fun Tray(viewModel: ScanViewModel) {
+    val scanned by viewModel.scanned.collectAsStateWithLifecycle()
+    val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
+    val last by viewModel.lastScan.collectAsStateWithLifecycle()
+    val haptics = LocalHapticFeedback.current
+    LaunchedEffect(last) {
+        val l = last
+        if (l != null && !(l is LastScan.Added && l.undone)) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+    }
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+    ) {
+        Column(Modifier.fillMaxWidth().padding(horizontal = 18.dp, vertical = 14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    scanned.toString(),
+                    style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                )
+                Text(
+                    stringResource(R.string.scan_scanned),
+                    Modifier.padding(start = 6.dp),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.weight(1f))
+                ReviewCount(toReview)
+            }
+            LastScanRow(last, viewModel::undo)
         }
     }
 }
 
-private fun DrawScope.drawQuad(pts: List<Offset>, color: Color, stroke: Stroke) {
-    val path = Path().apply {
-        moveTo(pts[0].x, pts[0].y)
-        pts.drop(1).forEach { lineTo(it.x, it.y) }
-        close()
-    }
-    drawPath(path, color, style = stroke)
+@Composable
+private fun ReviewCount(count: Int) {
+    val empty = count == 0
+    Text(
+        if (empty) stringResource(R.string.scan_nothing_to_review) else pluralStringResource(R.plurals.scan_to_review, count, count),
+        Modifier
+            .background(
+                if (empty) MaterialTheme.colorScheme.surfaceVariant else MaterialTheme.colorScheme.tertiaryContainer,
+                RoundedCornerShape(999.dp),
+            )
+            .padding(horizontal = 16.dp, vertical = 12.dp),
+        color = if (empty) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onTertiaryContainer,
+        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+    )
 }
 
-private val GuideColor = Color(0xCCFFFFFF)
-private val StableColor = Color(0xFF3DDC84)
-private val IdentifyingColor = Color(0xFF7FB2FF)
-private val RejectedColor = Color(0x66FFFFFF)
-private val NoOutlineColor = Color(0xFFFFB020)
+@Composable
+private fun LastScanRow(last: LastScan?, onUndo: () -> Unit) {
+    val rowModifier = Modifier
+        .fillMaxWidth()
+        .heightIn(min = 64.dp)
+        .background(MaterialTheme.colorScheme.surfaceContainerLow, MaterialTheme.shapes.medium)
+        .padding(horizontal = 10.dp, vertical = 8.dp)
+        // Spoken when a card is added, queued or taken back, without moving focus off the camera.
+        .semantics { liveRegion = LiveRegionMode.Polite }
+    if (last == null) {
+        Text(
+            stringResource(R.string.scan_tray_empty),
+            rowModifier,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        return
+    }
+    val title = "${padCollectorNumber(last.card.localId, last.card.official)}/${last.card.official} ${last.card.name}"
+    if (last is LastScan.Added && last.undone) {
+        Text(stringResource(R.string.scan_removed, title), rowModifier, style = MaterialTheme.typography.bodyMedium)
+        return
+    }
+    Row(rowModifier, verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        AsyncImage(
+            model = last.card.thumbnailUrl,
+            contentDescription = null,
+            modifier = Modifier.width(40.dp).aspectRatio(63f / 88f).clip(RoundedCornerShape(4.dp)),
+            contentScale = ContentScale.Fit,
+        )
+        Column(Modifier.weight(1f)) {
+            Text(title, style = MaterialTheme.typography.titleSmall, maxLines = 1)
+            val detail = when (last) {
+                is LastScan.Added -> stringResource(R.string.scan_added, last.card.setName, languageName(last.card.lang))
+                is LastScan.Queued -> stringResource(R.string.scan_queued, stringResource(reasonText(last.reason)))
+            }
+            Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+        }
+        if (last is LastScan.Added) {
+            val description = stringResource(R.string.scan_undo_description, title)
+            OutlinedButton(onClick = onUndo, modifier = Modifier.semantics { contentDescription = description }) {
+                Text(stringResource(R.string.scan_undo))
+            }
+        }
+    }
+}
 
-/** Green: identified and stable; blue: identified; faint white: outline rejected or match too weak. */
-private fun outlineColor(live: LiveState): Color = when {
-    live.outdated -> RejectedColor
-    live.stable -> StableColor
-    else -> IdentifyingColor
+/** Short reason for the tray ("Saved for review: …"). */
+fun reasonText(reason: ReviewReason): Int = when (reason) {
+    ReviewReason.NUMBER_NOT_READ -> R.string.review_reason_number_not_read
+    ReviewReason.NUMBER_DIFFERS -> R.string.review_reason_number_differs
+    ReviewReason.SIMILAR_CARDS -> R.string.review_reason_similar_cards
+    ReviewReason.CHECK_VARIANT -> R.string.review_reason_check_variant
+}
+
+/** "German" for `de`, in the device language. */
+fun languageName(lang: String): String =
+    Locale.forLanguageTag(lang).getDisplayLanguage(Locale.getDefault()).ifEmpty { lang.uppercase(Locale.ROOT) }
+
+private val LiveDot = Color(0xFF62D27A)
+private val DoneColor = Color(0xFF3DDC84)
+private val ReadingColor = Color(0xFF7FB2FF)
+private val FaintColor = Color(0x66FFFFFF)
+
+private fun outlineColor(hint: ScanHint): Color = when (hint) {
+    ScanHint.DONE -> DoneColor
+    ScanHint.READING -> ReadingColor
+    else -> FaintColor
 }
