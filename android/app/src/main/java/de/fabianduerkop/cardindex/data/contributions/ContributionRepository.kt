@@ -168,7 +168,9 @@ class ContributionRepository(
         }
         val file = File(filesDir, item.cropPath!!)
         if (!file.isFile) {
-            dao.delete(item.id)
+            // Nothing left to send (e.g. a restored database without the crops), but an earlier attempt may have
+            // stored it: withdraw rather than forget the token.
+            retract(item)
             return true
         }
         try {
