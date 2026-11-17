@@ -6,11 +6,17 @@ import de.fabianduerkop.cardindex.BuildConfig
 import de.fabianduerkop.cardindex.CardIndexApplication
 import de.fabianduerkop.cardindex.data.backup.BackupRepository
 import de.fabianduerkop.cardindex.data.catalog.CatalogSource
+import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.data.catalog.RoomCatalogSource
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.images.ScanImageStore
+import de.fabianduerkop.cardindex.data.packs.PackHttp
+import de.fabianduerkop.cardindex.data.packs.PackManager
+import de.fabianduerkop.cardindex.data.packs.PackPreferences
+import de.fabianduerkop.cardindex.data.packs.PackStore
+import de.fabianduerkop.cardindex.data.packs.PackSyncWorker
 import de.fabianduerkop.cardindex.data.prices.HttpPriceApi
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
@@ -20,10 +26,12 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
+import java.util.Locale
 
 /** App-wide objects, created on first use. Plain constructor wiring; the app is small enough not to need a DI library. */
 class AppContainer(private val context: Context) {
-    val database: CardIndexDatabase by lazy { CardIndexDatabase.build(context) }
+    // The same instance the view models get from CardIndexDatabase.get: Room only notifies observers of its own writes.
+    val database: CardIndexDatabase by lazy { CardIndexDatabase.get(context) }
     val catalog: CatalogSource by lazy { RoomCatalogSource(database.catalogDao()) }
     val settings: AppSettings by lazy { AppSettings(context) }
     val scans: ScanImageStore by lazy { ScanImageStore(context.filesDir.resolve("scans")) }
@@ -40,10 +48,23 @@ class AppContainer(private val context: Context) {
     val httpClient: OkHttpClient by lazy { OkHttpClient() }
 
     val prices: PriceRepository by lazy {
-        PriceRepository(database.catalogDao(), HttpPriceApi(BuildConfig.PRICE_API_BASE_URL, httpClient))
+        PriceRepository(database.catalogDao(), HttpPriceApi(BuildConfig.API_BASE_URL, httpClient))
     }
 
     val backup: BackupRepository by lazy { BackupRepository(database) }
+
+    /** Language packs in app-private storage that is not backed up: they can always be downloaded again. */
+    val packs: PackManager by lazy {
+        val store = PackStore(context.noBackupFilesDir.resolve("packs"))
+        PackManager(
+            store = store,
+            prefs = PackPreferences(context),
+            http = PackHttp(BuildConfig.API_BASE_URL, httpClient, store.downloadDir),
+            // Set names in the phone's language when that pack is installed, else in English.
+            importer = PackCatalogImporter(database) { listOf(Locale.getDefault().language, "en") },
+            requestSync = { PackSyncWorker.enqueue(context) },
+        )
+    }
 
     /** The market whose price leads; the other one is shown smaller. */
     val primaryPriceSource: Flow<PriceSource> by lazy { settings.priceSourceFlow.map { PriceRegion.effective(it) } }

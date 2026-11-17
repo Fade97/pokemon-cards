@@ -24,6 +24,9 @@ import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.recognition.Detection
 import de.fabianduerkop.cardindex.recognition.GateResult
 import de.fabianduerkop.cardindex.recognition.RecognitionEngine
+import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.data.packs.PackLoader
+import java.io.FileNotFoundException
 import de.fabianduerkop.cardindex.recognition.outlineGate
 import de.fabianduerkop.cardindex.recognition.RecognitionResult
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -109,7 +112,7 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
     init {
         worker.execute {
             _engineState.value = try {
-                RecognitionEngine.load(application).also { engine = it }.let { e ->
+                loadEngine(application).also { engine = it }.let { e ->
                     if (!e.hasLearnedDetector) setDetector(DetectorKind.CLASSIC)
                     _availableLanguages.value = e.index.languages
                     _languages.value = e.index.languages.toSet()
@@ -120,6 +123,18 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
                 EngineState.Failed(t.message ?: t.javaClass.simpleName)
             }
         }
+    }
+
+    /**
+     * The lab compares the app with the Python pipeline, so it prefers the bundled assets that ml/app_assets.py built
+     * from the same model; without them it tests the installed language packs.
+     */
+    private fun loadEngine(application: Application): RecognitionEngine {
+        if (RecognitionEngine.hasBundledAssets(application)) return RecognitionEngine.load(application)
+        val packs = application.appContainer.packs
+        val load = PackLoader.load(packs.installed.value)
+        packs.reportLoad(load)
+        return RecognitionEngine.load(load.loaded ?: throw FileNotFoundException("no lab assets and no usable language pack"))
     }
 
     fun setPaused(value: Boolean) = _paused.update { value }

@@ -56,9 +56,36 @@ pipeline below; `LiveScanDecider` turns the frames into one decision per physica
   number OCR.
 
 The embedder runs on the GPU (LiteRT `CompiledModel`, `litert-gpu`) when the GPU reproduces the CPU embedding of a
-probe image (cosine ≥ 0.995); otherwise on the CPU at about 4 frames per second. `RecognitionEngine.load` checks
-`embedder.tflite` and `index.bin` against `modelSha256` / `indexSha256` in meta.json and refuses a pack that
-doesn't match. The thresholds are first guesses; tune them with `RealPhotoTest` and on devices.
+probe image (cosine ≥ 0.995); otherwise on the CPU at about 4 frames per second. The thresholds are first guesses;
+tune them with `RealPhotoTest` and on devices.
+
+The Scan tab recognizes the cards of the installed language packs. Without any, a debug build with the lab assets
+(below) uses those instead, so scanning works before the pack service is deployed.
+
+## Language packs (issue #39)
+
+Format, checks and download rules: [`docs/packs.md`](../docs/packs.md). The app side is in `data/packs/`:
+
+- **First run** asks for the card languages (`ui/packs/`), with each pack's download size from `catalog.json` plus
+  the model once. "Not now" leaves it to **Settings → Card languages**, which adds and removes languages, shows the
+  installed version and storage, and offers **Download again** for a pack that failed its checks.
+- **Sync** (`PackManager`, run by `PackSyncWorker` on WorkManager, network required): full pack or delta chain
+  (`PackPlanner`), downloads resumed with `Range` (`PackHttp`), size + SHA-256 checked after every download (a file
+  that fails is fetched again at most twice), deltas applied in memory and checked against their `result`, a delta
+  that fails falls back to the full pack. A new model downloads the model plus the full packs of every installed
+  language and switches in one commit; the old model and packs stay in use until all new files are verified.
+- **Polling**: the catalog is requested with `If-None-Match` once a day (periodic work) and when the language
+  settings open.
+- **Storage**: `noBackupFilesDir/packs/` (re-downloadable, so not in the Android backup). `state.json` names the
+  active model and pack directories and is replaced atomically; anything it doesn't name is deleted. The chosen
+  languages are in SharedPreferences, which are backed up, so a restored phone downloads them again.
+- **On load** (`PackLoader`): SHA-256 of the model and of each `index.bin`, index size = `cards × dim × 4`, and the
+  card file's indexed ids = `keysSha256`. A pass is remembered with the file's size and mtime. A pack that fails is
+  marked broken: recognition skips that language and Settings offers a fresh download.
+- **Card catalog**: each installed pack's sets and cards go into Room (`PackCatalogImporter`), replacing the rows
+  scans and backups only filled in. Cards a pack drops are retired, never deleted (owned copies keep them). A set
+  row takes its name from the pack in the phone's language if installed, else English.
+- The backend base URL is the `API_BASE_URL` BuildConfig field (prices and packs, same Worker); see Prices below.
 
 ## Recognition lab (debug builds)
 
@@ -83,8 +110,8 @@ the phone (on the CPU, like the parity tests):
 in `Pictures/CardIndexLab` for evaluation. **Gallery** photos use the classic detector on the whole image.
 
 The models, index and card list are not in the repository. Build them into `app/src/main/assets/recognition/`
-(git-ignored) before building the app; without them the Scan tab says so (the build and the unit tests
-don't need them):
+(git-ignored) before building the app. The lab and the parity tests use these assets; without them the lab loads
+the installed language packs instead (the build and the unit tests need neither):
 
 ```sh
 cd ml
@@ -128,7 +155,7 @@ Two of the three wrong matches with all languages are the right card in English;
 - **Collections** (`ui/collections/`, `data/collections/`): All Cards, one automatic set collection per owned set
   (completion counts distinct collector numbers, so EN/DE prints of one number count once; JP sets are separate
   sets), and custom collections. Card metadata comes through the `CatalogSource` seam (`data/catalog/`), which reads
-  the card rows in Room until language packs (#5) exist. Debug builds have **Add sample data** on the empty
+  the card rows in Room; the installed language packs fill them (see above). Debug builds have **Add sample data** on the empty
   Collections screen (source set `src/debug/`), so the screens can be tried without scanning.
 - **Card images** (`data/images/`, `ui/components/CardImage.kt`): `{imageUrl}/low.webp` in grids and
   `{imageUrl}/high.webp` on the card screen, from the TCGdex CDN. Coil keeps them in a 250 MB disk cache
@@ -140,9 +167,9 @@ Two of the three wrong matches with all languages are the right card in English;
   12 hours. `PriceSelection` values a copy through `PriceVariant.candidates`; TCGplayer (TCGCSV's English category) prices
   English copies only, other languages get Cardmarket. The main market follows the region
   (Cardmarket EUR, TCGplayer USD in the US, Canada and US territories) and can be switched in Settings. The API base
-  URL is the `PRICE_API_BASE_URL` BuildConfig field; until the backend is deployed it is a placeholder that never
-  resolves, so only cached prices show. Build against a running backend with
-  `./gradlew :app:assembleDebug -Pcardindex.priceApiBaseUrl=https://…`.
+  URL is the `API_BASE_URL` BuildConfig field; until the backend is deployed it is a placeholder that never
+  resolves, so only cached prices show and no packs can be downloaded. Build against a running backend with
+  `./gradlew :app:assembleDebug -Pcardindex.apiBaseUrl=https://…` (`cardindex.priceApiBaseUrl` still works).
 
 ## Backup (JSON and CSV)
 
@@ -209,6 +236,7 @@ by ` | `, matched by name on import (case-insensitive) and created when missing.
 | `app/src/main/java/.../recognition/` | On-device recognition pipeline (detector, embedder, index, number OCR) |
 | `app/src/main/java/.../data/db/` | Room schema and DAOs (ADR 0006) |
 | `app/src/main/java/.../data/collections/`, `data/catalog/` | Collection repository, set slots, the catalog seam |
+| `app/src/main/java/.../data/packs/`, `ui/packs/` | Language packs: catalog, planner, downloads, deltas, store, worker, picker and settings |
 | `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links |
 | `app/src/main/java/.../data/images/` | CDN image URLs, the user's own photos |
 | `app/src/main/java/.../data/backup/` | JSON/CSV export and import |

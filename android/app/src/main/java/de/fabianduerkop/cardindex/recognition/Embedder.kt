@@ -10,6 +10,7 @@ import org.opencv.core.Mat
 import org.opencv.core.Size
 import org.opencv.imgproc.Imgproc
 import org.tensorflow.lite.Interpreter
+import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import kotlin.math.sqrt
@@ -68,12 +69,10 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
         override fun close() = interpreter.close()
     }
 
-    private class GpuRunner(assets: AssetManager, assetPath: String) : Runner {
+    private class GpuRunner(compile: (CompiledModel.Options) -> CompiledModel) : Runner {
         // FP32: on the Galaxy S25 Ultra the default (FP16) embedding of the probe reached only cosine 0.89 to the
         // CPU's, enough to swap near-identical cards.
-        private val model = CompiledModel.create(
-            assets,
-            assetPath,
+        private val model = compile(
             CompiledModel.Options(Accelerator.GPU).apply {
                 gpuOptions = CompiledModel.GpuOptions(precision = CompiledModel.GpuOptions.Precision.FP32)
             },
@@ -114,11 +113,18 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
          * With [preferGpu], tries the GPU and keeps it only if it loads and agrees with the CPU on a probe image;
          * otherwise (no GPU accelerator, unsupported ops, drifting results) the CPU embedder is returned.
          */
-        fun create(model: ByteBuffer, assets: AssetManager, assetPath: String, preferGpu: Boolean): Embedder {
+        fun create(model: ByteBuffer, assets: AssetManager, assetPath: String, preferGpu: Boolean): Embedder =
+            create(model, preferGpu) { options -> CompiledModel.create(assets, assetPath, options) }
+
+        /** As above for a model file in app storage (an installed language-pack model). */
+        fun create(model: ByteBuffer, modelFile: File, preferGpu: Boolean): Embedder =
+            create(model, preferGpu) { options -> CompiledModel.create(modelFile.absolutePath, options) }
+
+        private fun create(model: ByteBuffer, preferGpu: Boolean, compile: (CompiledModel.Options) -> CompiledModel): Embedder {
             val cpu = CpuRunner(model, threads = 4)
             if (!preferGpu) return Embedder(cpu)
             val gpu = try {
-                GpuRunner(assets, assetPath)
+                GpuRunner(compile)
             } catch (t: Throwable) {
                 // UnsatisfiedLinkError on ABIs without the accelerator library, LiteRtException without a usable GPU.
                 Log.i(TAG, "GPU embedder unavailable, using the CPU", t)

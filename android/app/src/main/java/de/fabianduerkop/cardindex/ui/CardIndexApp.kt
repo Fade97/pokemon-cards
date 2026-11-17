@@ -13,6 +13,12 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalContext
+import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.ui.packs.LanguagePickerScreen
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -37,6 +43,13 @@ import de.fabianduerkop.cardindex.ui.settings.SettingsScreen
  */
 @Composable
 fun CardIndexApp(navController: NavHostController = rememberNavController()) {
+    val packs = LocalContext.current.appContainer.packs
+    // First run (#39): pick the card languages before anything else. Answered once; Settings changes it later.
+    var picking by rememberSaveable { mutableStateOf(!packs.pickerDone && packs.wanted.isEmpty() && packs.installed.value.isEmpty) }
+    if (picking) {
+        LanguagePickerScreen(onDone = { picking = false })
+        return
+    }
     Scaffold(
         contentWindowInsets = WindowInsets(0),
         bottomBar = { BottomBar(navController) },
@@ -50,6 +63,7 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                 ScanScreen(
                     onOpenReview = { navController.navigate(REVIEW_ROUTE) },
                     onOpenLab = { navController.navigate(LAB_ROUTE) },
+                    onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
                 )
             }
             collectionsGraph(navController)
@@ -77,17 +91,17 @@ private fun BottomBar(navController: NavHostController) {
             TopLevelDestination.entries.forEach { destination ->
                 NavigationBarItem(
                     selected = current?.hierarchy?.any { it.route == destination.route } == true,
-                    onClick = {
-                        navController.navigate(destination.route) {
-                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
-                    },
+                    onClick = { navController.navigateTopLevel(destination) },
                     icon = { Icon(painterResource(destination.icon), contentDescription = null) },
                     label = { Text(stringResource(destination.label)) },
                 )
             }
         }
     }
+}
+
+private fun NavHostController.navigateTopLevel(destination: TopLevelDestination) = navigate(destination.route) {
+    popUpTo(graph.findStartDestination().id) { saveState = true }
+    launchSingleTop = true
+    restoreState = true
 }

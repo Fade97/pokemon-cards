@@ -11,6 +11,7 @@ import com.google.android.gms.tasks.Tasks
 import com.google.mlkit.vision.common.InputImage
 import com.google.mlkit.vision.text.TextRecognition
 import com.google.mlkit.vision.text.latin.TextRecognizerOptions
+import de.fabianduerkop.cardindex.data.packs.LoadedPacks
 import org.json.JSONObject
 import org.opencv.android.OpenCVLoader
 import org.opencv.android.Utils
@@ -224,6 +225,29 @@ class RecognitionEngine private constructor(
 
         /** Upper bound for one number OCR, so a stuck ML Kit task cannot block the recognition worker. */
         private const val OCR_TIMEOUT_S = 5L
+
+        /** Whether this build has the recognition-lab assets (debug builds made after ml/app_assets.py). */
+        fun hasBundledAssets(context: Context): Boolean =
+            runCatching { context.assets.list(ASSET_DIR).orEmpty().contains("meta.json") }.getOrDefault(false)
+
+        /**
+         * Loads the installed language packs, already checked by
+         * [de.fabianduerkop.cardindex.data.packs.PackLoader] (model and index SHA-256, index size, card ids).
+         */
+        @WorkerThread
+        fun load(packs: LoadedPacks, preferGpu: Boolean = false): RecognitionEngine {
+            check(OpenCVLoader.initLocal()) { "OpenCV native library failed to load" }
+            val index = ReferenceIndex(packs.cards, packs.vectors, packs.dim)
+            val embedder = Embedder.create(direct(packs.modelBytes), packs.model.embedderFile, preferGpu)
+            val corners = packs.model.cornersFile
+            val info = ModelInfo(packs.model.id, packs.dim, packs.cards.size, corners?.name, embedder.backend)
+            if (embedder.dim != info.dim) {
+                embedder.close()
+                throw PackIntegrityException("model dim ${embedder.dim} != index dim ${info.dim}")
+            }
+            val cornerDetector = corners?.let { CornerDetector(direct(it.readBytes())) }
+            return RecognitionEngine(embedder, cornerDetector, index, info)
+        }
 
         /**
          * Loads OpenCV, the model and the index from `assets/recognition/` (built by ml/app_assets.py). The model
