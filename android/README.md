@@ -123,6 +123,79 @@ retrained model, 29 photos of German cards, similarity minimum 0.45:
 
 Two of the three wrong matches with all languages are the right card in English; the third is a badly cut outline.
 
+## Collections, images and prices
+
+- **Collections** (`ui/collections/`, `data/collections/`): All Cards, one automatic set collection per owned set
+  (completion counts distinct collector numbers, so EN/DE prints of one number count once; JP sets are separate
+  sets), and custom collections. Card metadata comes through the `CatalogSource` seam (`data/catalog/`), which reads
+  the card rows in Room until language packs (#5) exist. Debug builds have **Add sample data** on the empty
+  Collections screen (source set `src/debug/`), so the screens can be tried without scanning.
+- **Card images** (`data/images/`, `ui/components/CardImage.kt`): `{imageUrl}/low.webp` in grids and
+  `{imageUrl}/high.webp` on the card screen, from the TCGdex CDN. Coil keeps them in a 250 MB disk cache
+  (`cacheDir/card_images`) regardless of cache headers. No art is in the APK. The user's own photo of a copy
+  (`filesDir/scans/<copy uuid>.jpg`, set in the copy sheet) replaces the CDN image when the card has none or when
+  **Settings → Prefer my own photos** is on.
+- **Prices** (`data/prices/`): the backend's `POST /v1/prices` (≤ 100 ids per call; a `429` is waited out as its
+  `Retry-After` says), cached in `cached_prices` per card, market and printing and refreshed when older than
+  12 hours. `PriceSelection` values a copy through `PriceVariant.candidates`. The main market follows the region
+  (Cardmarket EUR, TCGplayer USD in the US, Canada and US territories) and can be switched in Settings. The API base
+  URL is the `PRICE_API_BASE_URL` BuildConfig field; until the backend is deployed it is a placeholder that never
+  resolves, so only cached prices show. Build against a running backend with
+  `./gradlew :app:assembleDebug -Pcardindex.priceApiBaseUrl=https://…`.
+
+## Backup (JSON and CSV)
+
+**Settings → Backup** exports all copies and custom collections through the Storage Access Framework and imports
+them back. Both formats are matched **by copy and collection uuid**, never by the local row id, so importing the
+same file twice changes nothing, and a backup can be merged into a phone whose collection changed since:
+
+- A row from the file replaces the local one when its `updatedAt` is not older and its content differs. A newer
+  local edit stays. When an import changes a row whose timestamp equals the local one (e.g. a CSV edited in a
+  spreadsheet), the row gets the import time as `updatedAt`.
+- Collection membership is merged as a union: an import adds copies to collections, it never removes them.
+- Catalog rows (sets, cards) in the file only fill gaps; data from language packs wins. Copies of cards that
+  neither the file nor the phone knows are skipped and counted.
+- Own photos are not part of the export (they are in the Android device backup).
+
+### JSON format, version 1
+
+```json
+{
+  "format": "cardindex-backup",
+  "version": 1,
+  "exportedAt": "2026-11-17T10:00:00Z",
+  "sets": [{ "id": "sv03.5", "name": "151", "series": "Scarlet & Violet", "language": "en",
+             "printedTotal": 165, "region": "INTERNATIONAL" }],
+  "cards": [{ "id": "sv03.5-006", "language": "de", "setId": "sv03.5", "localId": "006", "name": "Glurak-ex",
+              "rarity": null, "energyType": "FIRE", "imageUrl": "https://assets.tcgdex.net/de/sv/sv03.5/006" }],
+  "copies": [{ "uuid": "6f1c3c2e-…", "cardId": "sv03.5-006", "cardLanguage": "de", "quantity": 2,
+               "finish": "HOLO", "edition": "UNLIMITED", "condition": "LIGHTLY_PLAYED", "grader": null,
+               "grade": null, "purchasePriceMinor": 2450, "purchaseCurrency": "EUR", "purchaseDate": "2025-08-02",
+               "createdAt": "2025-08-02T18:00:00Z", "updatedAt": "2026-03-12T09:30:00Z" }],
+  "collections": [{ "uuid": "0b9e…", "name": "Trade binder", "description": null,
+                    "updatedAt": "2026-03-12T09:30:00Z", "copies": ["6f1c3c2e-…"] }]
+}
+```
+
+- Enums are stored by name: `finish` NORMAL, HOLO, REVERSE_HOLO, OTHER; `edition` UNLIMITED, FIRST_EDITION,
+  SHADOWLESS; `condition` NEAR_MINT … POOR (null for graded copies); `grader` PSA, CGC, BGS, OTHER;
+  `region` INTERNATIONAL, JP.
+- Money is in minor units (cents) with an ISO 4217 code; dates are ISO-8601 (`LocalDate` for the purchase date,
+  UTC instants for the timestamps). Fields that are null may be left out.
+- `version` is bumped only when an older app would misread the file; new optional fields don't bump it. The app
+  refuses files with a higher version than it knows.
+
+### CSV format
+
+One row per copy, UTF-8 with a byte order mark (so Excel shows Japanese names), comma separated, RFC 4180 quoting:
+
+`uuid, card_id, language, set_id, set_name, set_total, set_region, number, name, quantity, finish, edition,
+condition, grader, grade, purchase_price, purchase_currency, purchase_date, collections, created_at, updated_at`
+
+`purchase_price` is a decimal (`24.50`; `24,50` is read too), `collections` lists custom collection names separated
+by ` | `, matched by name on import (case-insensitive) and created when missing. Only `card_id`, `language`,
+`set_id`, `number` and `name` are required on import; a row without `uuid` is a new copy each time it is imported.
+
 ## Layout
 
 | Path | What |
@@ -132,6 +205,11 @@ Two of the three wrong matches with all languages are the right card in English;
 | `app/src/main/java/.../ui/` | App shell (bottom navigation) and one package per top-level screen |
 | `app/src/main/java/.../recognition/` | On-device recognition pipeline (detector, embedder, index, number OCR) |
 | `app/src/main/java/.../data/db/` | Room schema and DAOs (ADR 0006) |
+| `app/src/main/java/.../data/collections/`, `data/catalog/` | Collection repository, set slots, the catalog seam |
+| `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links |
+| `app/src/main/java/.../data/images/` | CDN image URLs, the user's own photos |
+| `app/src/main/java/.../data/backup/` | JSON/CSV export and import |
+| `app/src/debug/` | Debug-only sample data |
 | `app/schemas/` | Exported Room schema JSON, one file per database version. Commit it with every schema change. |
 | `app/proguard-rules.pro` | R8 keep rules for Room and ML Kit |
 
