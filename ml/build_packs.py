@@ -29,7 +29,7 @@ import urllib.error
 import urllib.parse
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 
 import packs
@@ -313,7 +313,7 @@ def upload(files: list[packs.PublishedFile], out: Path, *, bucket: str, remote: 
 # ---------------------------------------------------------------------------------------------------------------
 
 def now_iso() -> str:
-    return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    return datetime.now(UTC).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
 def parse_langs(value: str) -> list[str]:
@@ -353,14 +353,17 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--local", action="store_true", help="upload to wrangler's local R2 instead of --remote")
         p.add_argument("--dry-run", action="store_true", help="with --upload: print the wrangler commands only")
 
-    p = sub.add_parser("fetch", help="TCGdex metadata into the work dir")
-    common_args(p); fetch_args(p)
-    p = sub.add_parser("embed", help="reference embeddings into the work dir (needs CARDINDEX_DATA)")
-    common_args(p); embed_args(p)
-    p = sub.add_parser("build", help="packs, deltas and catalog.json from the work dir")
-    common_args(p); build_args(p)
-    p = sub.add_parser("all", help="fetch + embed + build")
-    common_args(p); fetch_args(p); embed_args(p); build_args(p)
+    steps = {
+        "fetch": ("TCGdex metadata into the work dir", [fetch_args]),
+        "embed": ("reference embeddings into the work dir (needs CARDINDEX_DATA)", [embed_args]),
+        "build": ("packs, deltas and catalog.json from the work dir", [build_args]),
+        "all": ("fetch + embed + build", [fetch_args, embed_args, build_args]),
+    }
+    for name, (help_text, adders) in steps.items():
+        p = sub.add_parser(name, help=help_text)
+        common_args(p)
+        for add in adders:
+            add(p)
     args = ap.parse_args(argv)
     if getattr(args, "upload", False) and args.no_embeddings:
         sys.exit("--upload with --no-embeddings would replace the published packs with metadata-only ones")
