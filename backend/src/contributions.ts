@@ -25,13 +25,19 @@ const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const EXT = { "image/jpeg": "jpg", "image/webp": "webp" } as const;
 
-export async function handleContributions(request: Request, env: Env, pathname: string, client: string) {
+export async function handleContributions(
+  request: Request,
+  env: Env,
+  ctx: ExecutionContext,
+  pathname: string,
+  client: string,
+) {
   if (pathname === "/v1/contributions") {
     if (request.method !== "POST") return methodNotAllowed("POST");
     // Counted before the body is read, so a client over the limit costs almost nothing.
     const { success } = await env.CONTRIBUTION_RATE_LIMIT.limit({ key: client });
     if (!success) return json({ error: "too many uploads" }, 429, { "Retry-After": "60" });
-    return create(request, env);
+    return create(request, env, ctx);
   }
   const m = pathname.match(/^\/v1\/contributions\/([^/]+)$/);
   if (m) {
@@ -41,7 +47,7 @@ export async function handleContributions(request: Request, env: Env, pathname: 
   return json({ error: "not found" }, 404);
 }
 
-async function create(request: Request, env: Env): Promise<Response> {
+async function create(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const q = new URL(request.url).searchParams;
   const cardId = q.get("cardId");
   const lang = q.get("lang");
@@ -92,6 +98,30 @@ async function create(request: Request, env: Env): Promise<Response> {
   const sha256 = await sha256Hex(clean.bytes);
   // The row claims the id before the image is written, so of two requests with one id only one writes, and a
   // withdrawal (or its tombstone, see withdraw) always wins over an upload still on its way.
+  // claim → write → re-check runs under waitUntil: a client that gives up mid-request must not stop the Worker
+  // between the steps (a claimed row without its image, or a withdrawn row whose image stays).
+  const store = storeClaimed(env, { id, token, tokenHash, key, cardId, lang, consent, declared, clean, width, height, sha256 });
+  ctx.waitUntil(store.catch(() => {}));
+  return store;
+}
+
+interface Claim {
+  id: string;
+  token: string;
+  tokenHash: string;
+  key: string;
+  cardId: string;
+  lang: string;
+  consent: string;
+  declared: keyof typeof EXT;
+  clean: { bytes: Uint8Array<ArrayBuffer> };
+  width: number;
+  height: number;
+  sha256: string;
+}
+
+async function storeClaimed(env: Env, c: Claim): Promise<Response> {
+  const { id, token, tokenHash, key, cardId, lang, consent, declared, clean, width, height, sha256 } = c;
   const claimed = await env.DB.prepare(
     `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
        width, height, sha256, created_at)

@@ -66,7 +66,7 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
   }
 
   if (pathname === "/v1/contributions" || pathname.startsWith("/v1/contributions/")) {
-    return handleContributions(request, env, pathname, client);
+    return handleContributions(request, env, ctx, pathname, client);
   }
 
   if (pathname === "/v1/prices") {
