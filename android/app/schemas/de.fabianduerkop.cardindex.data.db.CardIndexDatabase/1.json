@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "c9b8b400c0448d1721e39bafdfd830d1",
+    "identityHash": "fbf731f14def730ed826d0f10bee5938",
     "entities": [
       {
         "tableName": "card_sets",
@@ -662,11 +662,90 @@
             ]
           }
         ]
+      },
+      {
+        "tableName": "contributions",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `cardId` TEXT NOT NULL, `language` TEXT NOT NULL, `cropPath` TEXT, `consentVersion` TEXT NOT NULL, `createdAt` INTEGER NOT NULL, `remoteId` TEXT, `withdrawToken` TEXT, `uploadedAt` INTEGER, `withdrawRequested` INTEGER NOT NULL)",
+        "fields": [
+          {
+            "fieldPath": "id",
+            "columnName": "id",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cardId",
+            "columnName": "cardId",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "language",
+            "columnName": "language",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "cropPath",
+            "columnName": "cropPath",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "consentVersion",
+            "columnName": "consentVersion",
+            "affinity": "TEXT",
+            "notNull": true
+          },
+          {
+            "fieldPath": "createdAt",
+            "columnName": "createdAt",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "remoteId",
+            "columnName": "remoteId",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "withdrawToken",
+            "columnName": "withdrawToken",
+            "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "uploadedAt",
+            "columnName": "uploadedAt",
+            "affinity": "INTEGER"
+          },
+          {
+            "fieldPath": "withdrawRequested",
+            "columnName": "withdrawRequested",
+            "affinity": "INTEGER",
+            "notNull": true
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "id"
+          ]
+        },
+        "indices": [
+          {
+            "name": "index_contributions_remoteId",
+            "unique": true,
+            "columnNames": [
+              "remoteId"
+            ],
+            "orders": [],
+            "createSql": "CREATE UNIQUE INDEX IF NOT EXISTS `index_contributions_remoteId` ON `${TABLE_NAME}` (`remoteId`)"
+          }
+        ]
       }
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c9b8b400c0448d1721e39bafdfd830d1')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'fbf731f14def730ed826d0f10bee5938')"
     ]
   }
 }

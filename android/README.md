@@ -150,6 +150,26 @@ retrained model, 29 photos of German cards, similarity minimum 0.45:
 
 Two of the three wrong matches with all languages are the right card in English; the third is a badly cut outline.
 
+## Scan contributions (issue #14)
+
+Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14 and `backend/README.md` (PR #41).
+
+- **Settings → Open dataset → Contribute my scans** is off by default. Turning it on opens the consent screen
+  (CC0 1.0, version `cc0-1`, sent with every upload). It also says that withdrawing doesn't remove a scan from
+  dataset releases that are already published. Turning it off deletes scans that haven't been sent.
+- **What is sent**: the rectified crop of a scan the user confirmed, either auto-added in live scan or confirmed in
+  Review, with the confirmed card id, the print's language and the consent version. The JPEG passes through
+  `JpegMetadata.strip` (only JFIF and image segments stay), and no location, device or account data is sent.
+  **Undo** on an auto-added card withdraws its contribution, because a wrong match must not stay in the dataset
+  under that label.
+- **Queue** (`data/contributions/`, Room table `contributions`): `ContributionWorker` (WorkManager, network
+  required) sends withdrawals first, then uploads. A `429` is waited out as `Retry-After` says, three times per
+  run; other network errors retry with backoff. `400/413/415/422` drop that scan.
+- **My contributions** lists every scan with its state; withdraw one or all. Withdrawing a scan not sent yet only
+  deletes it locally. For a sent one the app calls `DELETE` with the stored token (`404` counts as done) and then
+  forgets it. The withdraw token lives only in the app's database and is redacted from `toString()`, so it never
+  reaches a log. The database is in the user's own Android backup, so a restored phone can still withdraw.
+
 ## Collections, images and prices
 
 - **Collections** (`ui/collections/`, `data/collections/`): All Cards, one automatic set collection per owned set
@@ -237,6 +257,7 @@ by ` | `, matched by name on import (case-insensitive) and created when missing.
 | `app/src/main/java/.../data/db/` | Room schema and DAOs (ADR 0006) |
 | `app/src/main/java/.../data/collections/`, `data/catalog/` | Collection repository, set slots, the catalog seam |
 | `app/src/main/java/.../data/packs/`, `ui/packs/` | Language packs: catalog, planner, downloads, deltas, store, worker, picker and settings |
+| `app/src/main/java/.../data/contributions/`, `ui/contributions/` | Scan contributions: queue, API client, worker, consent and list |
 | `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links |
 | `app/src/main/java/.../data/images/` | CDN image URLs, the user's own photos |
 | `app/src/main/java/.../data/backup/` | JSON/CSV export and import |

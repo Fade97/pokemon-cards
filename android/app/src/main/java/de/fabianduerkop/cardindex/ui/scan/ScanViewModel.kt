@@ -89,7 +89,13 @@ data class Viewfinder(
 sealed interface LastScan {
     val card: RefCard
 
-    data class Added(override val card: RefCard, val copyId: Long, val undone: Boolean = false) : LastScan
+    /** [contributionId]: the crop queued for the open dataset, if the user contributes. */
+    data class Added(
+        override val card: RefCard,
+        val copyId: Long,
+        val undone: Boolean = false,
+        val contributionId: Long? = null,
+    ) : LastScan
 
     data class Queued(override val card: RefCard, val reason: ReviewReason) : LastScan
 }
@@ -131,6 +137,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private var lastFrameAt = 0L
 
     private val packs = application.appContainer.packs
+    private val contributions = application.appContainer.contributions
 
     init {
         // Reload when a pack or the model is installed, replaced or removed; not when a pack is only marked broken
@@ -267,7 +274,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             event is ScanEvent.Add && !checkVariant -> viewModelScope.launch(Dispatchers.IO) {
                 runCatching { scans.addFromScan(card) }
                     .onSuccess { id ->
-                        _lastScan.value = LastScan.Added(card, id)
+                        // An auto-added card counts as confirmed (issue #14); Undo below withdraws it again.
+                        val contribution = runCatching { contributions.contribute(card.cardId, card.lang, jpeg(result.crop)) }
+                            .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
+                            .getOrNull()
+                        _lastScan.value = LastScan.Added(card, id, contributionId = contribution)
                         _scanned.update { it + 1 }
                     }
                     .onFailure { Log.e(TAG, "adding ${card.key} failed", it) }
@@ -293,6 +304,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val added = _lastScan.value as? LastScan.Added ?: return
         if (added.undone) return
         viewModelScope.launch(Dispatchers.IO) {
+            // An undone scan was a wrong match: it must not end up in the dataset with that label.
+            added.contributionId?.let { runCatching { contributions.withdraw(it) } }
             if (scans.undo(added.copyId)) {
                 _lastScan.update { if (it == added) added.copy(undone = true) else it }
                 _scanned.update { maxOf(0, it - 1) }

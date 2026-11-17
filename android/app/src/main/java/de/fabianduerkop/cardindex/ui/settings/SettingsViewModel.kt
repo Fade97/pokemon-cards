@@ -9,6 +9,7 @@ import de.fabianduerkop.cardindex.data.AppContainer
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
 import de.fabianduerkop.cardindex.data.backup.BackupFormatException
 import de.fabianduerkop.cardindex.data.backup.ImportResult
+import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
@@ -31,6 +32,8 @@ data class SettingsUiState(
     val refreshResult: RefreshResult? = null,
     val backupBusy: Boolean = false,
     val backupMessage: BackupMessage? = null,
+    /** Scan contributions are on (the current consent text was accepted). */
+    val contributing: Boolean = false,
 )
 
 /** Outcome of the last export or import, shown under the backup buttons. */
@@ -50,7 +53,8 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         settings.priceSourceFlow,
         refresh,
         backup,
-    ) { photos, source, (refreshing, result), (backupBusy, message) ->
+        settings.contributionConsentFlow,
+    ) { photos, source, (refreshing, result), (backupBusy, message), consent ->
         SettingsUiState(
             preferOwnPhotos = photos,
             priceSource = source,
@@ -58,6 +62,7 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
             refreshResult = result,
             backupBusy = backupBusy,
             backupMessage = message,
+            contributing = consent == ContributionConsent.VERSION,
         )
     }.stateIn(
         viewModelScope,
@@ -68,6 +73,12 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
     fun setPreferOwnPhotos(value: Boolean) { settings.preferOwnPhotos = value }
 
     fun setPriceSource(value: PriceSourcePreference) { settings.priceSource = value }
+
+    /** Turning contributions on goes through the consent screen; off works right here and drops unsent scans. */
+    fun stopContributing() {
+        settings.stopContributing()
+        viewModelScope.launch { container.contributions.dropQueued() }
+    }
 
     fun export(resolver: ContentResolver, uri: Uri, type: BackupFileType) = runBackup {
         val out = resolver.openOutputStream(uri, "wt") ?: throw IOException("Cannot write the file")

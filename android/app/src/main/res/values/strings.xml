@@ -193,6 +193,27 @@
     <string name="scan_broken_languages">These languages failed their check and are skipped: %1$s.</string>
     <string name="scan_open_languages">Choose languages</string>
 
+    <!-- Scan contributions (issue #14) -->
+    <string name="contribute_section">Open dataset</string>
+    <string name="contribute_toggle">Contribute my scans</string>
+    <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card you confirm is shared to help train open card recognition.</string>
+    <string name="contribute_mine">My contributions</string>
+    <string name="contribute_consent_title">Contribute scans</string>
+    <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nYou release these pictures into the public domain under CC0 1.0 (creativecommons.org/publicdomain/zero/1.0). Anyone may use them for any purpose, including training recognition models, without credit.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and left out of every future dataset release. Releases already published keep it, because copies of them can\'t be called back.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
+    <!-- Version of the consent text, sent with every upload -->
+    <string name="contribute_consent_version">Consent text version %1$s</string>
+    <string name="contribute_agree">I agree, contribute</string>
+    <string name="contribute_decline">Not now</string>
+    <string name="contribute_back">Back</string>
+    <string name="contribute_withdraw_hint">Withdrawing deletes a picture from the server and keeps it out of future dataset releases. Releases already published keep it.</string>
+    <string name="contribute_none">No contributions yet.</string>
+    <string name="contribute_withdraw">Withdraw</string>
+    <string name="contribute_withdraw_all">Withdraw all</string>
+    <string name="contribute_withdraw_all_text">All your pictures are deleted from the server and left out of future releases. Releases already published keep them.</string>
+    <string name="contribute_state_queued">waiting to upload</string>
+    <string name="contribute_state_shared">shared</string>
+    <string name="contribute_state_withdrawing">being withdrawn</string>
+
     <!-- Live scan (Scan tab) -->
     <string name="scan_camera_rationale_live">Scanning needs the camera. Pictures stay on this device.</string>
     <string name="scan_engine_failed">Card recognition can\'t start: %1$s</string>

@@ -30,6 +30,8 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
 import de.fabianduerkop.cardindex.ui.collections.collectionsGraph
+import de.fabianduerkop.cardindex.ui.contributions.ContributionConsentScreen
+import de.fabianduerkop.cardindex.ui.contributions.ContributionsScreen
 import de.fabianduerkop.cardindex.ui.lab.LabScreen
 import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
@@ -68,7 +70,14 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
             }
             collectionsGraph(navController)
             composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
-            composable(TopLevelDestination.SETTINGS.route) { SettingsScreen() }
+            composable(TopLevelDestination.SETTINGS.route) {
+                SettingsScreen(
+                    onOpenConsent = { navController.navigate(CONSENT_ROUTE) },
+                    onOpenContributions = { navController.navigate(CONTRIBUTIONS_ROUTE) },
+                )
+            }
+            composable(CONSENT_ROUTE) { ContributionConsentScreen(onBack = { navController.popBackStack() }) }
+            composable(CONTRIBUTIONS_ROUTE) { ContributionsScreen(onBack = { navController.popBackStack() }) }
             composable(LAB_ROUTE) { LabScreen() }
             composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
         }
@@ -80,6 +89,10 @@ private const val LAB_ROUTE = "lab"
 
 /** The review queue of unsure scans, opened from the Scan screen's tray. */
 private const val REVIEW_ROUTE = "review"
+
+/** Scan contributions (#14): the consent text, and the list of the user's uploads. */
+private const val CONSENT_ROUTE = "contribute/consent"
+private const val CONTRIBUTIONS_ROUTE = "contribute/mine"
 
 @Composable
 private fun BottomBar(navController: NavHostController) {
