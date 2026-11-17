@@ -108,6 +108,7 @@ today `cc0-1`).
 | Request | Answer |
 |---|---|
 | `POST /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>` with the crop as body, `Content-Type: image/jpeg` or `image/webp` | `201 { "id", "withdrawToken" }` |
+| The same POST plus `&id=<uuid>` and `Authorization: Bearer <43-char token>` chosen by the app | `201 { "id", "withdrawToken" }` with those values; a retry with the same id and token answers `200` with the same values instead of storing a second copy; `409` if the id belongs to another token. The app uses this form, so a lost response never leaves a copy it can't withdraw. |
 | `DELETE /v1/contributions/:id` with `Authorization: Bearer <withdrawToken>` | `200 { "id", "withdrawnAt" }`, the same again on repeat; `404` for an unknown id or a wrong token, `401` without a token |
 
 - **Validation**: body at most 1 MiB (`413`); declared type and magic bytes must agree (`415`); 64–2048 px per side

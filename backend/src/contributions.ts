@@ -1,7 +1,10 @@
 // Opt-in scan contributions (#14, ADR 0008).
 //
-//   POST   /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>   body: the rectified crop
-//          (image/jpeg or image/webp, at most 1 MiB)  ->  201 { id, withdrawToken }
+//   POST   /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>[&id=<uuid>]   body: the rectified
+//          crop (image/jpeg or image/webp, at most 1 MiB)  ->  201 { id, withdrawToken }
+//          With `id` the client also sends its own token (Authorization: Bearer <43 chars base64url>); a repeated
+//          POST with the same id and token answers 200 with the same values instead of storing a second copy, so a
+//          retry after a lost response never leaves a copy the client cannot withdraw.
 //   DELETE /v1/contributions/:id   Authorization: Bearer <withdrawToken>  ->  200 { id, withdrawnAt }
 //
 // Metadata segments (EXIF, XMP, IPTC, comments) are stripped before storing. No IP address or device data is
@@ -18,6 +21,8 @@ const MAX_SIDE = 2048;
 export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["cc0-1"]);
 const LANG = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
+/** 32 random bytes as base64url, like the tokens the server makes. */
+const TOKEN = /^[A-Za-z0-9_-]{43}$/;
 const EXT = { "image/jpeg": "jpg", "image/webp": "webp" } as const;
 
 export async function handleContributions(request: Request, env: Env, pathname: string, client: string) {
@@ -45,6 +50,23 @@ async function create(request: Request, env: Env): Promise<Response> {
   if (!lang || !LANG.test(lang)) return json({ error: "invalid lang" }, 400);
   if (!consent || !CONSENT_VERSIONS.has(consent)) return json({ error: "unknown consent version" }, 400);
 
+  // Client-chosen id and token make the upload idempotent; without them the server picks both.
+  const clientId = q.get("id");
+  let id: string;
+  let token: string;
+  if (clientId !== null) {
+    const bearer = bearerToken(request);
+    if (!ID.test(clientId)) return json({ error: "invalid id" }, 400);
+    if (!TOKEN.test(bearer)) return json({ error: "id needs a 43-character withdraw token" }, 400);
+    const existing = await existingUpload(env, clientId, bearer);
+    if (existing) return existing;
+    id = clientId;
+    token = bearer;
+  } else {
+    id = crypto.randomUUID();
+    token = randomToken();
+  }
+
   const declared = (request.headers.get("Content-Type") ?? "").split(";")[0]!.trim().toLowerCase();
   if (declared !== "image/jpeg" && declared !== "image/webp") {
     return json({ error: "body must be image/jpeg or image/webp" }, 415);
@@ -65,8 +87,6 @@ async function create(request: Request, env: Env): Promise<Response> {
     return json({ error: `image must be ${MIN_SIDE}-${MAX_SIDE} px per side, got ${width}x${height}` }, 422);
   }
 
-  const id = crypto.randomUUID();
-  const token = randomToken();
   const key = `scans/${id}.${EXT[declared]}`;
   const sha256 = await sha256Hex(clean.bytes);
   await env.CONTRIBUTIONS.put(key, clean.bytes, { httpMetadata: { contentType: declared }, sha256 });
@@ -80,15 +100,34 @@ async function create(request: Request, env: Env): Promise<Response> {
         clean.bytes.length, width, height, sha256, new Date().toISOString())
       .run();
   } catch (e) {
+    // The same upload arriving twice at once: the first one stored the row and owns the image.
+    const raced = clientId !== null ? await existingUpload(env, id, token) : null;
+    if (raced) return raced;
     await env.CONTRIBUTIONS.delete(key); // no orphaned image without its withdraw record
     throw e;
   }
   return json({ id, withdrawToken: token }, 201);
 }
 
-async function withdraw(request: Request, env: Env, id: string): Promise<Response> {
+/** The answer for an id that is already stored: 200 with the same values for its owner, 409 for anyone else. */
+async function existingUpload(env: Env, id: string, token: string): Promise<Response | null> {
+  const row = await env.DB.prepare("SELECT token_hash, withdrawn_at FROM contributions WHERE id = ?")
+    .bind(id)
+    .first<{ token_hash: string; withdrawn_at: string | null }>();
+  if (!row) return null;
+  if (row.token_hash !== (await sha256Hex(new TextEncoder().encode(token)))) {
+    return json({ error: "id already used" }, 409);
+  }
+  return json({ id, withdrawToken: token, ...(row.withdrawn_at ? { withdrawnAt: row.withdrawn_at } : {}) }, 200);
+}
+
+function bearerToken(request: Request): string {
   const auth = request.headers.get("Authorization") ?? "";
-  const token = auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+  return auth.startsWith("Bearer ") ? auth.slice(7).trim() : "";
+}
+
+async function withdraw(request: Request, env: Env, id: string): Promise<Response> {
+  const token = bearerToken(request);
   if (!token) return json({ error: "withdraw token required" }, 401, { "WWW-Authenticate": "Bearer" });
   // Unknown id and wrong token answer the same, so ids cannot be probed.
   if (!ID.test(id)) return json({ error: "not found" }, 404);

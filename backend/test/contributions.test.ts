@@ -133,13 +133,11 @@ describe("stripMetadata", () => {
 
 // ---------------------------------------------------------------------------------------------------------------
 
-function upload(body: Uint8Array, opts: { type?: string; query?: string; ip?: string } = {}) {
+function upload(body: Uint8Array, opts: { type?: string; query?: string; ip?: string; token?: string } = {}) {
   const query = opts.query ?? "cardId=sv03.5-025&lang=de&consent=cc0-1";
-  return call(
-    `/v1/contributions?${query}`,
-    { method: "POST", headers: { "Content-Type": opts.type ?? "image/jpeg" }, body },
-    opts.ip,
-  );
+  const headers: Record<string, string> = { "Content-Type": opts.type ?? "image/jpeg" };
+  if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+  return call(`/v1/contributions?${query}`, { method: "POST", headers, body }, opts.ip);
 }
 
 function withdraw(id: string, token?: string) {
@@ -148,6 +146,38 @@ function withdraw(id: string, token?: string) {
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 }
+
+describe("POST /v1/contributions with a client id (idempotent)", () => {
+  const token = "A".repeat(43);
+  const query = (id: string) => `cardId=sv03.5-025&lang=de&consent=cc0-1&id=${id}`;
+
+  it("stores once and answers a retry with the same id and token", async () => {
+    const id = crypto.randomUUID();
+    const first = await upload(jpeg(), { query: query(id), token });
+    expect(first.status).toBe(201);
+    expect(await first.json()).toEqual({ id, withdrawToken: token });
+
+    // The response got lost; the app sends the same upload again.
+    const retry = await upload(jpeg(), { query: query(id), token });
+    expect(retry.status).toBe(200);
+    expect(await retry.json()).toEqual({ id, withdrawToken: token });
+    const rows = await env.DB.prepare("SELECT COUNT(*) AS n FROM contributions WHERE id = ?").bind(id).first();
+    expect(rows).toEqual({ n: 1 });
+
+    // The client's token withdraws it.
+    expect((await withdraw(id, token)).status).toBe(200);
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+  });
+
+  it("refuses an id taken with another token, and malformed ids or tokens", async () => {
+    const id = crypto.randomUUID();
+    expect((await upload(jpeg(), { query: query(id), token })).status).toBe(201);
+    expect((await upload(jpeg(), { query: query(id), token: "B".repeat(43) })).status).toBe(409);
+    expect((await upload(jpeg(), { query: query("not-a-uuid"), token })).status).toBe(400);
+    expect((await upload(jpeg(), { query: query(crypto.randomUUID()), token: "short" })).status).toBe(400);
+    expect((await upload(jpeg(), { query: query(crypto.randomUUID()) })).status).toBe(400);
+  });
+});
 
 describe("POST /v1/contributions", () => {
   it("stores the stripped crop and returns an id and a withdraw token", async () => {
