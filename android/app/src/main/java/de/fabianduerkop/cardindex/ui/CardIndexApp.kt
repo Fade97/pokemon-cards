@@ -23,7 +23,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
-import de.fabianduerkop.cardindex.ui.collections.CollectionsScreen
+import de.fabianduerkop.cardindex.ui.collections.collectionsGraph
 import de.fabianduerkop.cardindex.ui.lab.LabScreen
 import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
@@ -52,7 +52,7 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                     onOpenLab = { navController.navigate(LAB_ROUTE) },
                 )
             }
-            composable(TopLevelDestination.COLLECTIONS.route) { CollectionsScreen() }
+            collectionsGraph(navController)
             composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
             composable(TopLevelDestination.SETTINGS.route) { SettingsScreen() }
             composable(LAB_ROUTE) { LabScreen() }
