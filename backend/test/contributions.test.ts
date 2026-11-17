@@ -182,6 +182,55 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     expect((await upload(jpeg(), { query: query(id), token: "C".repeat(43) })).status).toBe(409);
   });
 
+  async function claimOnly(id: string, createdAt: string) {
+    const hash = [...new Uint8Array(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token)))]
+      .map((b) => b.toString(16).padStart(2, "0"))
+      .join("");
+    await env.DB.prepare(
+      `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
+         width, height, sha256, created_at)
+       VALUES (?, ?, 'sv03.5-025', 'de', 'cc0-1', ?, 'image/jpeg', 1, 252, 352, 'x', ?)`,
+    )
+      .bind(id, hash, `scans/${id}.jpg`, createdAt)
+      .run();
+  }
+
+  it("marks a finished upload as stored", async () => {
+    const id = crypto.randomUUID();
+    expect((await upload(jpeg(), { query: query(id), token })).status).toBe(201);
+    const row = await env.DB.prepare("SELECT stored_at FROM contributions WHERE id = ?").bind(id).first<any>();
+    expect(row.stored_at).toBeTruthy();
+  });
+
+  it("tells a retry to come back while the first upload is still writing", async () => {
+    const id = crypto.randomUUID();
+    await claimOnly(id, new Date().toISOString());
+    const retry = await upload(jpeg(), { query: query(id), token });
+    expect(retry.status).toBe(503);
+    expect(retry.headers.get("Retry-After")).toBe("30");
+    expect((await upload(jpeg(), { query: query(id), token: "E".repeat(43) })).status).toBe(409);
+  });
+
+  it("lets a retry take over a claim whose upload never finished", async () => {
+    const id = crypto.randomUUID();
+    await claimOnly(id, new Date(Date.now() - 10 * 60 * 1000).toISOString());
+    const retry = await upload(jpeg(), { query: query(id), token });
+    expect(retry.status).toBe(201);
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).not.toBeNull();
+    const row = await env.DB.prepare("SELECT stored_at FROM contributions WHERE id = ?").bind(id).first<any>();
+    expect(row.stored_at).toBeTruthy();
+  });
+
+  it("deletes the image again on a repeated withdrawal", async () => {
+    const id = crypto.randomUUID();
+    expect((await upload(jpeg(), { query: query(id), token })).status).toBe(201);
+    expect((await withdraw(id, token)).status).toBe(200);
+    // An image that came back after the first withdrawal (e.g. a write that raced it) goes on the next one.
+    await env.CONTRIBUTIONS.put(`scans/${id}.jpg`, jpeg());
+    expect((await withdraw(id, token)).status).toBe(200);
+    expect(await env.CONTRIBUTIONS.head(`scans/${id}.jpg`)).toBeNull();
+  });
+
   it("leaves no tombstone for a token that isn't a client token", async () => {
     const id = crypto.randomUUID();
     expect((await withdraw(id, "short")).status).toBe(404);
@@ -231,7 +280,7 @@ describe("POST /v1/contributions", () => {
     // Nothing about the client: no column could hold an IP address or device data.
     expect(Object.keys(row!).sort()).toEqual([
       "card_id", "consent_version", "content_type", "created_at", "height", "id", "lang", "object_key", "sha256",
-      "size", "token_hash", "width", "withdrawn_at",
+      "size", "stored_at", "token_hash", "width", "withdrawn_at",
     ]);
 
     const obj = await env.CONTRIBUTIONS.get(`scans/${id}.jpg`);

@@ -124,8 +124,12 @@ today `cc0-1`).
   yet (with a 43-char client token) leaves a **tombstone**, a withdrawn row without card data: an upload still on its
   way then finds the id taken and stores nothing. The answer stays `404`, and tombstones count against the upload
   rate limit.
-- **Withdrawal** deletes the image from R2 right away and sets `withdrawn_at`. Dataset releases (#20) take only
-  `WHERE withdrawn_at IS NULL`; a scan already in a published release stays there, later releases drop it.
+- **Stored or only claimed**: `stored_at` is set once the image is in R2. A retry of an upload still being written
+  gets `503` with `Retry-After: 30` (the app retries), not a false success; a claim stuck for over 2 minutes is
+  taken over by a retry with the same token.
+- **Withdrawal** sets `withdrawn_at` first and then deletes the image, so an upload still writing can't leave it
+  behind; a repeated withdrawal deletes again. Dataset releases (#20) take only
+  `WHERE withdrawn_at IS NULL AND stored_at IS NOT NULL`; a scan already in a published release stays there, later releases drop it.
 - **Rate limit**: 10 uploads per minute per client IP (`CONTRIBUTION_RATE_LIMIT`), on top of the API limit.
 
 ## Storage
