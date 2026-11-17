@@ -5,9 +5,11 @@
 //   GET  /v1/prices/:tcgdexId    prices of one card
 //   POST /v1/prices {ids: [...]} prices of up to 100 cards, e.g. to refresh a collection
 //   GET  /v1/packs/catalog.json  language-pack catalog; /v1/packs/<lang>/<file> the pack files (src/packs.ts)
+//   POST /v1/contributions, DELETE /v1/contributions/:id   opt-in scan uploads (src/contributions.ts)
 //
 // Every route is rate-limited per client IP (#30).
 
+import { handleContributions } from "./contributions";
 import { packKey, servePack } from "./packs";
 import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
 
@@ -61,6 +63,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
       {},
       ok ? 200 : 503,
     );
+  }
+
+  if (pathname === "/v1/contributions" || pathname.startsWith("/v1/contributions/")) {
+    return handleContributions(request, env, pathname, client);
   }
 
   if (pathname === "/v1/prices") {
