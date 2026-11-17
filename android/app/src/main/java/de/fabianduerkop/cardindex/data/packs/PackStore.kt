@@ -169,8 +169,13 @@ class PackStore(val root: File) {
     }
 
     /** Applies [change] atomically, then deletes directories that are no longer active. */
+    /**
+     * Writes the new state. With [collectGarbage] it also deletes directories the state no longer names; only a
+     * caller holding the sync lock may do that, or it would delete a pack a running sync has written but not
+     * committed yet.
+     */
     @Synchronized
-    fun commit(change: Change.() -> Unit) {
+    fun commit(collectGarbage: Boolean = true, change: Change.() -> Unit) {
         val c = Change().apply(change)
         val old = readState()
         val packs = if (c.replaceAllPacks) LinkedHashMap() else LinkedHashMap(old.packs)
@@ -184,7 +189,7 @@ class PackStore(val root: File) {
         )
         writeState(next)
         _installed.value = read()
-        collectGarbage(next)
+        if (collectGarbage) collectGarbage(next)
     }
 
     /** A new, empty directory for a pack; it becomes active only through [commit]. */

@@ -95,6 +95,20 @@ class PackSyncTest {
     // --- Downloads and checks --------------------------------------------------------------------------------
 
     @Test
+    fun repairAndLoadReports_doNotDeleteAPackASyncHasWrittenButNotCommitted() {
+        val pending = store.newPackDir("de", 1)
+        File(pending, "cards.json.gz").writeBytes(byteArrayOf(1))
+
+        newManager().repair("en")
+        newManager().reportLoad(PackLoad(loaded = null, broken = setOf("en"), modelBroken = true))
+        assertTrue(pending.exists())
+
+        // A commit under the sync lock cleans up as before.
+        store.commit { }
+        assertFalse(pending.exists())
+    }
+
+    @Test
     fun downloadChecksSizeAndChecksum() = runTest {
         val bytes = ByteArray(5000) { it.toByte() }
         fake.files["en/index-1.bin"] = bytes

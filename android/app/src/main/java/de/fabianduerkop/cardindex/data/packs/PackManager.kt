@@ -115,14 +115,15 @@ class PackManager(
 
     /** A broken pack: mark it so the next sync downloads it in full, and schedule that sync. */
     fun repair(lang: String) {
-        store.commit { addBroken += lang }
+        // Outside the sync lock, so no garbage collection here: the next sync cleans up.
+        store.commit(collectGarbage = false) { addBroken += lang }
         requestSync()
     }
 
     /** Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. */
     fun reportLoad(load: PackLoad) {
         if (load.broken.isEmpty() && !load.modelBroken) return
-        store.commit {
+        store.commit(collectGarbage = false) {
             addBroken += load.broken
             if (load.modelBroken) modelBroken = true
         }
