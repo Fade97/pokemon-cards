@@ -44,3 +44,21 @@ torchvision = { index = "pytorch-cu130" }
 name = "pytorch-cu130"
 url = "https://download.pytorch.org/whl/cu130"
 explicit = true
+
+[tool.ruff]
+# The code is wrapped at 120 columns. `ruff format` is not enforced: it would rewrite most files.
+line-length = 120
+target-version = "py312"
+src = [".", "tests"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "UP"]
+ignore = [
+    "E501",  # a few lines run past 120 (eval_real.py embeds an HTML page); not worth wrapping
+    "E731",  # small lambda helpers are fine
+    "E741",  # math-style names (l, I) are used on purpose
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = [".", "tests"]
