@@ -9,6 +9,10 @@ import de.fabianduerkop.cardindex.data.catalog.CatalogSource
 import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.data.catalog.RoomCatalogSource
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
+import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
+import de.fabianduerkop.cardindex.data.contributions.ContributionRepository
+import de.fabianduerkop.cardindex.data.contributions.ContributionWorker
+import de.fabianduerkop.cardindex.data.contributions.HttpContributionApi
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.images.ScanImageStore
@@ -52,6 +56,20 @@ class AppContainer(private val context: Context) {
     }
 
     val backup: BackupRepository by lazy { BackupRepository(database) }
+
+    /**
+     * Scan contributions (#14). Only while the consent version the user accepted is one this app shows: a newer text
+     * needs a new consent.
+     */
+    val contributions: ContributionRepository by lazy {
+        ContributionRepository(
+            db = database,
+            filesDir = context.filesDir,
+            api = HttpContributionApi(BuildConfig.API_BASE_URL, httpClient),
+            acceptedConsent = { settings.contributionConsent?.takeIf { it == ContributionConsent.VERSION } },
+            requestRun = { ContributionWorker.enqueue(context) },
+        )
+    }
 
     /** Language packs in app-private storage that is not backed up: they can always be downloaded again. */
     val packs: PackManager by lazy {

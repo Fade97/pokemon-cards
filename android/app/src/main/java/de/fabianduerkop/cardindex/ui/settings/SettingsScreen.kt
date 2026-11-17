@@ -56,6 +56,8 @@ import de.fabianduerkop.cardindex.ui.packs.LanguagesSection
 @Composable
 fun SettingsScreen(
     modifier: Modifier = Modifier,
+    onOpenConsent: () -> Unit = {},
+    onOpenContributions: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = containerViewModelFactory { container, _ -> SettingsViewModel(container) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -105,6 +107,17 @@ fun SettingsScreen(
                     checked = state.preferOwnPhotos,
                     onCheckedChange = viewModel::setPreferOwnPhotos,
                 )
+            }
+            SettingsSection(stringResource(R.string.contribute_section)) {
+                SwitchRow(
+                    title = stringResource(R.string.contribute_toggle),
+                    hint = stringResource(R.string.contribute_toggle_hint),
+                    checked = state.contributing,
+                    onCheckedChange = { on -> if (on) onOpenConsent() else viewModel.stopContributing() },
+                )
+                TextButton(onClick = onOpenContributions, modifier = Modifier.padding(top = 4.dp)) {
+                    Text(stringResource(R.string.contribute_mine))
+                }
             }
             SettingsSection(stringResource(R.string.settings_backup)) {
                 Text(

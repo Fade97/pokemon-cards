@@ -19,6 +19,7 @@ import androidx.room.migration.Migration
         CachedPriceEntity::class,
         ReviewItemEntity::class,
         ReviewCandidateEntity::class,
+        ContributionEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -29,6 +30,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun copyDao(): CopyDao
     abstract fun collectionDao(): CollectionDao
     abstract fun reviewDao(): ReviewDao
+    abstract fun contributionDao(): ContributionDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */

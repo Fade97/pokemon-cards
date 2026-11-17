@@ -3,6 +3,7 @@ package de.fabianduerkop.cardindex.data.settings
 
 import android.content.Context
 import android.content.SharedPreferences
+import androidx.core.content.edit
 import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -29,6 +30,19 @@ class AppSettings(context: Context) {
 
     val priceSourceFlow: Flow<PriceSourcePreference> = observe { priceSource }
 
+    /**
+     * The consent text version the user accepted for scan contributions (issue #14), or null when contributing is
+     * off. Off by default; only the consent screen turns it on.
+     */
+    val contributionConsent: String?
+        get() = prefs.getString(KEY_CONTRIBUTION_CONSENT, null)
+
+    val contributionConsentFlow: Flow<String?> = observe { contributionConsent }
+
+    fun acceptContributionConsent(version: String) = prefs.edit { putString(KEY_CONTRIBUTION_CONSENT, version) }
+
+    fun stopContributing() = prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
+
     /** Emits [read] now and after every change; the listener is held strongly while collected. */
     private fun <T> observe(read: () -> T): Flow<T> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read()) }
@@ -40,5 +54,6 @@ class AppSettings(context: Context) {
     private companion object {
         const val KEY_PREFER_OWN_PHOTOS = "prefer_own_photos"
         const val KEY_PRICE_SOURCE = "price_source"
+        const val KEY_CONTRIBUTION_CONSENT = "contribution_consent"
     }
 }

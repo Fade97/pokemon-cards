@@ -5,7 +5,10 @@ import android.app.Application
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.model.Condition
@@ -40,6 +43,7 @@ data class ReviewUiState(
  */
 class ReviewViewModel(application: Application) : AndroidViewModel(application) {
     private val queue = ReviewQueueRepository(CardIndexDatabase.get(application), application.filesDir)
+    private val contributions = application.appContainer.contributions
 
     private val skippedInPass = MutableStateFlow<Set<Long>>(emptySet())
     private val confirmedInPass = MutableStateFlow(0)
@@ -85,13 +89,20 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         if (!draft.canConfirm) return
         val id = item.entity.id
         busy.update { it + id }
+        val confirmed = item.candidates.firstOrNull { it.rank == draft.rank }?.card
         viewModelScope.launch {
+            // Read before confirming: the confirm deletes the crop.
+            val crop = runCatching { withContext(Dispatchers.IO) { item.cropFile.readBytes() } }.getOrNull()
             runCatching {
                 queue.confirm(id, draft.rank, draft.finish!!, draft.edition!!, draft.condition, draft.quantity)
             }
                 .onSuccess {
                     confirmedInPass.update { it + 1 }
                     drafts.update { it - id }
+                    if (confirmed != null && crop != null) {
+                        runCatching { contributions.contribute(confirmed.id, confirmed.language, crop) }
+                            .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
+                    }
                 }
                 .onFailure { Log.e(TAG, "confirming review item $id failed", it) }
             busy.update { it - id }
