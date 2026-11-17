@@ -47,7 +47,7 @@ snapshot in [`importer/publish.ts`](importer/publish.ts). The database schema is
 ### Operate (on Vulcan)
 
 ```sh
-backend/importer/deploy.sh            # build, install to ~/.local/share/pokemon-cards-prices/app, enable the timer
+backend/importer/deploy.sh            # (after `nvm use`) build, install to ~/.local/share/pokemon-cards-prices/app, enable the timer
 backend/importer/deploy.sh --run      # the same, then start a run now
 systemctl --user list-timers pokemon-cards-prices.timer
 journalctl --user -u pokemon-cards-prices.service -n 50
@@ -140,6 +140,8 @@ today `cc0-1`).
   [`ml/build_packs.py`](../ml/README.md#language-packs) with `wrangler r2 object put`, never by the Worker.
 
 ## Develop
+
+Node 26 (`backend/.nvmrc`: `nvm use`); the Worker itself runs on workerd.
 
 ```sh
 pnpm install

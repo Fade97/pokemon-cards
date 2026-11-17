@@ -6,6 +6,11 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
+# The unit pins the node binary this script runs with, so it must be the one in .nvmrc.
+want=$(cat .nvmrc)
+have=$(node -p 'process.versions.node.split(".")[0]')
+if (( have < want )); then echo "node $have found, need $want: run 'nvm use' in backend/" >&2; exit 1; fi
+
 app=$HOME/.local/share/pokemon-cards-prices/app
 units=$HOME/.config/systemd/user
 
