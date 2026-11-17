@@ -151,6 +151,20 @@ retrained model, 29 photos of German cards, similarity minimum 0.45:
 
 Two of the three wrong matches with all languages are the right card in English; the third is a badly cut outline.
 
+Without bundled lab assets the test uses the installed language packs, as the app does. Install the debug and
+test APKs with `adb install -r` (Gradle's `connectedAndroidTest` uninstalls the app afterwards, which deletes the
+packs and the photos), then run `adb shell am instrument --user 0 -w -e class
+de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.cardindex.debug.test/androidx.test.runner.AndroidJUnitRunner`.
+Result on 2026-11-17 with the German, English and Japanese packs (45,170 cards), 73 photos of German cards
+(64 de/30th, 9 de/me04), similarity minimum 0.45:
+
+| Outline | Languages | Right | Shown | Shown but wrong | Outline time |
+|---|---|---|---|---|---|
+| Learned | all | 61 | 69 | 8 | 25 ms |
+| **Learned** | **German only** | **64** | 68 | **6** | 32 ms |
+| Classic | all | 33 | 49 | 16 | 43 ms |
+| Classic | German only | 40 | 46 | 10 | 41 ms |
+
 ## Scan contributions (issue #14)
 
 Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14 and `backend/README.md` (PR #41).
