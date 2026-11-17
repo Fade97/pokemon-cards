@@ -69,7 +69,15 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
     }
 
     private class GpuRunner(assets: AssetManager, assetPath: String) : Runner {
-        private val model = CompiledModel.create(assets, assetPath, CompiledModel.Options(Accelerator.GPU))
+        // FP32: on the Galaxy S25 Ultra the default (FP16) embedding of the probe reached only cosine 0.89 to the
+        // CPU's, enough to swap near-identical cards.
+        private val model = CompiledModel.create(
+            assets,
+            assetPath,
+            CompiledModel.Options(Accelerator.GPU).apply {
+                gpuOptions = CompiledModel.GpuOptions(precision = CompiledModel.GpuOptions.Precision.FP32)
+            },
+        )
         private val inputs: List<TensorBuffer> = model.createInputBuffers()
         private val outputs: List<TensorBuffer> = model.createOutputBuffers()
         override val backend = EmbedderBackend.GPU
@@ -116,12 +124,13 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
                 Log.i(TAG, "GPU embedder unavailable, using the CPU", t)
                 return Embedder(cpu)
             }
+            val probe = probeImage()
             val agreement = runCatching {
-                val probe = probeImage()
                 if (gpu.dim != cpu.dim) return@runCatching -1f
                 dot(normalized(cpu.run(probe)), normalized(gpu.run(probe)))
             }.getOrDefault(-1f)
             return if (agreement >= MIN_GPU_AGREEMENT) {
+                Log.i(TAG, "GPU embedder agrees with the CPU (cosine $agreement); ${timeMs(gpu, probe)} ms vs ${timeMs(cpu, probe)} ms")
                 cpu.close()
                 Embedder(gpu)
             } else {
@@ -129,6 +138,12 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
                 gpu.close()
                 Embedder(cpu)
             }
+        }
+
+        private fun timeMs(runner: Runner, input: FloatArray): Long {
+            val t0 = System.nanoTime()
+            repeat(3) { runner.run(input) }
+            return (System.nanoTime() - t0) / 3_000_000
         }
 
         /** A deterministic, textured test image: smooth gradients alone would hide precision problems. */
