@@ -1,4 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="surface">#FF101722</color>
+    <!-- Pearl at night (ADR 0014). -->
+    <color name="surface">#FF111718</color>
 </resources>

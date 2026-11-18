@@ -1,6 +1,7 @@
 # 0010. UI direction: Index, with a value header
 
-Status: accepted (2026-11-16)
+Status: accepted (2026-11-16). Palette and chrome replaced by [ADR 0014](0014-ui-direction-pearl.md) (Pearl);
+the collector-number hierarchy, the slot grid and the value header stay.
 
 ## Context
 

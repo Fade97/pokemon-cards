@@ -69,6 +69,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     onOpenConsent: () -> Unit = {},
     onOpenContributions: () -> Unit = {},
+    onOpenDesignGallery: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = containerViewModelFactory { container, _ -> SettingsViewModel(container) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -200,6 +201,7 @@ fun SettingsScreen(
                     onClick = { scope.launch { DebugTools.addSampleData(context.appContainer) } },
                     modifier = Modifier.padding(top = 8.dp),
                 ) { Text(stringResource(R.string.collections_debug_sample)) }
+                TextButton(onClick = onOpenDesignGallery) { Text(stringResource(R.string.settings_debug_design_gallery)) }
                 val debugPro by viewModel.debugPro.collectAsStateWithLifecycle()
                 SettingsSection(stringResource(R.string.settings_debug_pro_title)) {
                     SwitchRow(

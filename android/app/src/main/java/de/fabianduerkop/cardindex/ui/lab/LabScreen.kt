@@ -60,7 +60,8 @@ import de.fabianduerkop.cardindex.recognition.GateResult
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.scan.FrameOverlay
-import de.fabianduerkop.cardindex.ui.theme.IndexTokens
+import de.fabianduerkop.cardindex.ui.theme.CameraColors
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 
 /**
  * Recognition lab (debug builds only, opened from the Scan screen): live camera recognition with every
@@ -133,7 +134,7 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
 
     Column(Modifier.fillMaxSize()) {
         // Camera or photo: the whole 4:3 frame is visible (fit), so the guide and outlines match what is analysed.
-        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(IndexTokens.Camera)) {
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(LumifoilTheme.colors.camera.background)) {
             val s = still
             if (s == null) {
                 AndroidView(
@@ -153,7 +154,7 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
                         frameHeight = live.frameHeight,
                         guide = ScanGuide.forFrame(live.frameWidth, live.frameHeight).box,
                         outline = live.outline?.quad,
-                        outlineColor = outlineColor(live),
+                        outlineColor = outlineColor(live, LumifoilTheme.colors.camera),
                     )
                 }
             } else {
@@ -165,9 +166,9 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
                         guide = if (s.usedGuide) ScanGuide.forFrame(it.frameWidth, it.frameHeight).box else null,
                         outline = it.quad,
                         outlineColor = when {
-                            !it.found -> NoOutlineColor
-                            it.best.similarity >= minSimilarity -> StableColor
-                            else -> RejectedColor
+                            !it.found -> LumifoilTheme.colors.camera.warning
+                            it.best.similarity >= minSimilarity -> LumifoilTheme.colors.camera.done
+                            else -> LumifoilTheme.colors.camera.faint
                         },
                     )
                 }
@@ -268,21 +269,17 @@ private fun StatusLine(
     if (text.isNotEmpty()) {
         Text(
             text,
-            modifier.background(Color(0xAA000000), MaterialTheme.shapes.small).padding(horizontal = 8.dp, vertical = 4.dp),
-            color = IndexTokens.CameraInk,
+            modifier.background(LumifoilTheme.colors.camera.scrim, MaterialTheme.shapes.small).padding(horizontal = 8.dp, vertical = 4.dp),
+            color = LumifoilTheme.colors.camera.content,
             style = MaterialTheme.typography.labelMedium,
         )
     }
 }
 
-private val StableColor = Color(0xFF3DDC84)
-private val IdentifyingColor = Color(0xFF7FB2FF)
-private val RejectedColor = Color(0x66FFFFFF)
-private val NoOutlineColor = Color(0xFFFFB020)
 
 /** Green: identified and stable; blue: identified; faint white: outline rejected or match too weak. */
-private fun outlineColor(live: LiveState): Color = when {
-    live.outdated -> RejectedColor
-    live.stable -> StableColor
-    else -> IdentifyingColor
+private fun outlineColor(live: LiveState, camera: CameraColors): Color = when {
+    live.outdated -> camera.faint
+    live.stable -> camera.done
+    else -> camera.reading
 }

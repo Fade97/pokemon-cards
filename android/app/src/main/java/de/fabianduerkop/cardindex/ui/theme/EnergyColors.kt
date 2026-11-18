@@ -38,7 +38,7 @@ object EnergyColors {
 
     /** Text colour on [fill]. */
     fun onFill(type: EnergyType): Color = when (type) {
-        EnergyType.LIGHTNING, EnergyType.COLORLESS, EnergyType.TRAINER -> IndexTokens.Ink
+        EnergyType.LIGHTNING, EnergyType.COLORLESS, EnergyType.TRAINER -> PearlLight.Ink
         else -> Color.White
     }
 }

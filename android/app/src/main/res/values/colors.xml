@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="surface">#FFF7F9FC</color>
+    <!-- Window background before Compose draws: Pearl paper (ADR 0014). -->
+    <color name="surface">#FFFAFBFC</color>
+    <!-- Launcher icon background; the launcher icon is unchanged by #96. -->
     <color name="ink">#FF14233D</color>
 </resources>

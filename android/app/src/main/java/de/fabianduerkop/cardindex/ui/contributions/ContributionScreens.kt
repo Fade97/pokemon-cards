@@ -12,14 +12,11 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,6 +34,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.AppContainer
 import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
 import de.fabianduerkop.cardindex.data.db.ContributionItem
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.languageName
 import de.fabianduerkop.cardindex.ui.settings.PrivacyPolicyLink
@@ -72,10 +70,9 @@ private fun contributionsViewModel(): ContributionsViewModel =
  * The consent screen (issue #14, ADR 0008): what is shared, under which license, and what withdrawing can and can't
  * undo. Agreeing turns contributing on; the version shown is the one sent with every upload.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewModel = contributionsViewModel()) {
-    Scaffold(topBar = { TopAppBar(title = { Text(stringResource(R.string.contribute_consent_title)) }) }) { padding ->
+    DetailScaffold(title = stringResource(R.string.contribute_consent_title), onBack = onBack) { padding ->
         Column(
             Modifier
                 .fillMaxSize()
@@ -104,19 +101,11 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
 }
 
 /** "My contributions": every upload with its state; withdraw one or all. */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ContributionsScreen(onBack: () -> Unit, viewModel: ContributionsViewModel = contributionsViewModel()) {
     val items by viewModel.items.collectAsStateWithLifecycle()
     var confirmAll by remember { mutableStateOf(false) }
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.contribute_mine)) },
-                navigationIcon = { TextButton(onClick = onBack) { Text(stringResource(R.string.contribute_back)) } },
-            )
-        },
-    ) { padding ->
+    DetailScaffold(title = stringResource(R.string.contribute_mine), onBack = onBack) { padding ->
         Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp)) {
             Text(
                 stringResource(R.string.contribute_withdraw_hint),

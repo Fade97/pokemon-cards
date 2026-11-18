@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Outline icon from design/mockups/c-index.html (24 px grid, 1.9 px stroke). -->
+<!-- Pearl outline icon (ADR 0014): 24 dp grid, 1.7 stroke, round caps and joins. Tinted by the caller. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:pathData="M4,8V5.5A1.5,1.5 0,0 1,5.5 4H8M16,4h2.5A1.5,1.5 0,0 1,20 5.5V8M20,16v2.5a1.5,1.5 0,0 1,-1.5 1.5H16M8,20H5.5A1.5,1.5 0,0 1,4 18.5V16" android:strokeColor="#FF000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
-    <path android:pathData="M9.5,7.5h5a1,1 0,0 1,1 1v7a1,1 0,0 1,-1 1h-5a1,1 0,0 1,-1 -1v-7a1,1 0,0 1,1 -1z" android:strokeColor="#FF000000" android:strokeWidth="1.9" android:strokeLineCap="round" android:strokeLineJoin="round" />
+    <path android:pathData="M8,3H5a2,2 0,0 0,-2 2v3M16,3h3a2,2 0,0 1,2 2v3M3,16v3a2,2 0,0 0,2 2h3M16,21h3a2,2 0,0 0,2 -2v-3M7,12h10" android:strokeColor="#FF000000" android:strokeWidth="1.7" android:strokeLineCap="round" android:strokeLineJoin="round" />
 </vector>

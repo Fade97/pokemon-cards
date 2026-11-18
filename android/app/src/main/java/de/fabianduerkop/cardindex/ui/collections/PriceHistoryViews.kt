@@ -31,7 +31,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.data.prices.PricePoint
 import de.fabianduerkop.cardindex.model.Money
-import de.fabianduerkop.cardindex.ui.theme.LocalIndexExtraColors
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -121,7 +121,7 @@ private fun ChangeLine(first: PricePoint, last: PricePoint, currency: String) {
         stringResource(R.string.history_change, amount + percent, formatDate(first.date)),
         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
         color = when {
-            delta > 0 -> LocalIndexExtraColors.current.positive
+            delta > 0 -> LumifoilTheme.colors.positive
             delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },

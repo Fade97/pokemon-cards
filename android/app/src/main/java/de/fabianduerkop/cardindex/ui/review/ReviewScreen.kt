@@ -25,25 +25,19 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -64,6 +58,7 @@ import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.scan.languageName
 import kotlin.math.roundToInt
@@ -73,31 +68,23 @@ import kotlin.math.roundToInt
  * variant chips (finish and edition, always editable), condition and quantity. Confirm adds the copy; Skip moves
  * the card to the back of the queue, where it waits for a later pass.
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: ReviewViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    Scaffold(
+    DetailScaffold(
+        title = stringResource(R.string.review_title),
+        onBack = onBack,
         modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(stringResource(R.string.review_title)) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_back), contentDescription = stringResource(R.string.review_back))
-                    }
-                },
-                actions = {
-                    if (state.current != null) {
-                        Text(
-                            stringResource(R.string.review_position, state.position, state.total),
-                            Modifier.padding(end = 18.dp),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        )
-                    }
-                },
-            )
+        backDescription = stringResource(R.string.review_back),
+        actions = {
+            if (state.current != null) {
+                Text(
+                    stringResource(R.string.review_position, state.position, state.total),
+                    Modifier.padding(end = 18.dp),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         },
         bottomBar = {
             val item = state.current

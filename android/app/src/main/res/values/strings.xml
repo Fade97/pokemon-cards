@@ -7,6 +7,40 @@
     <string name="nav_search">Search</string>
     <string name="nav_settings">Settings</string>
 
+    <!-- Pearl design system (#96, ADR 0014). -->
+    <string name="wordmark" translatable="false">lumifoil</string>
+    <string name="action_back">Back</string>
+    <!-- The header shortcut always opens scanning; never shown as a bare plus. -->
+    <string name="shortcut_scan">Scan</string>
+    <string name="settings_debug_design_gallery">Design system gallery (debug build)</string>
+    <string name="gallery_title">Design system</string>
+    <string name="gallery_colors">Colour roles</string>
+    <string name="gallery_icons">Icons</string>
+    <string name="gallery_type">Type</string>
+    <string name="gallery_controls">Controls</string>
+    <string name="gallery_states">States</string>
+    <string name="gallery_cover">Featured set cover</string>
+    <string name="gallery_primary">Add a copy</string>
+    <string name="gallery_secondary">Choose a collection</string>
+    <string name="gallery_text_action">Undo</string>
+    <string name="gallery_disabled">Not available</string>
+    <string name="gallery_chip_normal">Normal</string>
+    <string name="gallery_chip_holo">Holo</string>
+    <string name="gallery_chip_reverse">Reverse holo</string>
+    <string name="gallery_info">Collection data stays on this device.</string>
+    <string name="gallery_warning">2 scans need a quick check.</string>
+    <string name="gallery_error">The language pack could not be downloaded.</string>
+    <string name="gallery_retry">Try again</string>
+    <string name="gallery_field_label">Collection name</string>
+    <string name="gallery_field_error">Give the collection a name.</string>
+    <string name="gallery_cover_series">Sample series</string>
+    <string name="gallery_cover_set">Sample set</string>
+    <string name="gallery_cover_open">Open set</string>
+    <string name="gallery_cover_progress">Collected: %1$d of %2$d</string>
+    <string name="gallery_data_label">Copies owned</string>
+    <string name="gallery_section_trailing">Sample</string>
+    <string name="gallery_note">Sample content only. Screens adopt these pieces in #97 to #100.</string>
+
     <plurals name="collections_summary">
         <item quantity="one">All cards, %1$d copy</item>
         <item quantity="other">All cards, %1$d copies</item>
@@ -24,6 +58,7 @@
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
+    <string name="collections_new_description">New collection</string>
     <string name="collections_all_languages">All languages</string>
     <string name="collections_sets">Sets</string>
     <string name="collections_yours">Your collections</string>
@@ -36,7 +71,6 @@
     <string name="collections_empty_body">Scan a card to add it. Every set you own a card from gets its own collection, with each number as a slot.</string>
     <string name="collections_no_sets_in_language">No cards in the chosen languages.</string>
     <string name="collections_debug_sample">Add sample data (debug build)</string>
-    <string name="collections_back">Back</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
     <string name="collections_mode_compact">Compact</string>
@@ -231,7 +265,6 @@
     <string name="contribute_consent_version">Consent text version %1$s</string>
     <string name="contribute_agree">I agree, contribute</string>
     <string name="contribute_decline">Not now</string>
-    <string name="contribute_back">Back</string>
     <string name="contribute_withdraw_hint">Withdrawing deletes a picture from the server and keeps it out of future dataset releases. Releases already published keep it.</string>
     <string name="contribute_none">No contributions yet.</string>
     <string name="contribute_withdraw">Withdraw</string>

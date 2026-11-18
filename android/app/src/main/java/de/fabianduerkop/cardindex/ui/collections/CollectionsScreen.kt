@@ -13,7 +13,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -42,6 +41,8 @@ import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.Region
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.ScanShortcut
+import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.components.numberOverTotal
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
@@ -54,6 +55,7 @@ fun CollectionsScreen(
     onOpenSet: (String) -> Unit,
     onOpenCollection: (Long) -> Unit,
     modifier: Modifier = Modifier,
+    onOpenScan: () -> Unit = {},
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
             CollectionsViewModel(
@@ -73,7 +75,14 @@ fun CollectionsScreen(
     TopLevelScaffold(
         title = stringResource(R.string.nav_collections),
         modifier = modifier,
-        actions = { TextButton(onClick = { creating = true }) { Text(stringResource(R.string.collections_new)) } },
+        actions = {
+            ScanShortcut(onClick = onOpenScan)
+            TextAction(
+                stringResource(R.string.collections_new),
+                onClick = { creating = true },
+                contentDescription = stringResource(R.string.collections_new_description),
+            )
+        },
     ) { padding ->
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding) {
             if (!state.loading && state.totalCopies == 0) {

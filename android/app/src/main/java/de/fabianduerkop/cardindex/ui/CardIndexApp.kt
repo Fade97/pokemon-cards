@@ -1,16 +1,11 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui
 
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.material3.Icon
-import androidx.compose.material3.NavigationBar
-import androidx.compose.material3.NavigationBarItem
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,8 +15,6 @@ import androidx.compose.ui.platform.LocalContext
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.ui.packs.LanguagePickerScreen
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.stringResource
 import androidx.navigation.NavDestination.Companion.hierarchy
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.NavHostController
@@ -33,8 +26,10 @@ import de.fabianduerkop.cardindex.ui.collections.collectionsGraph
 import de.fabianduerkop.cardindex.ui.contributions.ContributionConsentScreen
 import de.fabianduerkop.cardindex.ui.contributions.ContributionsScreen
 import de.fabianduerkop.cardindex.ui.lab.LabScreen
-import de.fabianduerkop.cardindex.ui.review.ReviewScreen
+import de.fabianduerkop.cardindex.ui.components.DesignGalleryScreen
+import de.fabianduerkop.cardindex.ui.navigation.AppNavigationBar
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
+import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.scan.ScanScreen
 import de.fabianduerkop.cardindex.ui.search.SearchScreen
 import de.fabianduerkop.cardindex.ui.settings.SettingsScreen
@@ -54,6 +49,7 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
     }
     Scaffold(
         contentWindowInsets = WindowInsets(0),
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomBar(navController) },
     ) { padding ->
         NavHost(
@@ -68,18 +64,20 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                     onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
                 )
             }
-            collectionsGraph(navController)
+            collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
             composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
             composable(TopLevelDestination.SETTINGS.route) {
                 SettingsScreen(
                     onOpenConsent = { navController.navigate(CONSENT_ROUTE) },
                     onOpenContributions = { navController.navigate(CONTRIBUTIONS_ROUTE) },
+                    onOpenDesignGallery = { navController.navigate(DESIGN_ROUTE) },
                 )
             }
             composable(CONSENT_ROUTE) { ContributionConsentScreen(onBack = { navController.popBackStack() }) }
             composable(CONTRIBUTIONS_ROUTE) { ContributionsScreen(onBack = { navController.popBackStack() }) }
             composable(LAB_ROUTE) { LabScreen() }
             composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
+            composable(DESIGN_ROUTE) { DesignGalleryScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }
@@ -94,23 +92,17 @@ private const val REVIEW_ROUTE = "review"
 private const val CONSENT_ROUTE = "contribute/consent"
 private const val CONTRIBUTIONS_ROUTE = "contribute/mine"
 
+/** The Pearl component gallery (#96), a debug-only page reached from Settings for checking the design system. */
+private const val DESIGN_ROUTE = "design"
+
 @Composable
 private fun BottomBar(navController: NavHostController) {
     val backStackEntry by navController.currentBackStackEntryAsState()
     val current = backStackEntry?.destination
-    Column {
-        HorizontalDivider()
-        NavigationBar {
-            TopLevelDestination.entries.forEach { destination ->
-                NavigationBarItem(
-                    selected = current?.hierarchy?.any { it.route == destination.route } == true,
-                    onClick = { navController.navigateTopLevel(destination) },
-                    icon = { Icon(painterResource(destination.icon), contentDescription = null) },
-                    label = { Text(stringResource(destination.label)) },
-                )
-            }
-        }
-    }
+    AppNavigationBar(
+        isSelected = { destination -> current?.hierarchy?.any { it.route == destination.route } == true },
+        onSelect = { navController.navigateTopLevel(it) },
+    )
 }
 
 private fun NavHostController.navigateTopLevel(destination: TopLevelDestination) = navigate(destination.route) {

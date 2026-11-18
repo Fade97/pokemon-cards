@@ -117,6 +117,18 @@ exist, the phone checks them once a day against the free current prices, a soft 
   location or device data. Contributors explicitly consent to release it under **CC0**, and a withdrawn scan is
   dropped from future dataset releases.
 
+## Interface
+
+The UI direction is **Pearl** ([ADR 0014](adr/0014-ui-direction-pearl.md)): porcelain surfaces, sea-glass actions,
+Schibsted Grotesk in `sp`, a companion night scheme, and one thin foil edge on the featured set cover. From Index
+([ADR 0010](adr/0010-ui-direction-index.md)) it keeps the collector number as the main type, one slot per card with
+owned slots solid and missing ones hollow, and the value header with its weekly change. The design study is in
+`design/mockups/lumifoil/`.
+
+The shared Compose pieces live in `ui/theme` (colour roles, type, shapes, spacing) and `ui/components` (app bars,
+buttons, chips, focus ring, foil cover, rows, notices, wordmark). Screens use these roles, never raw colours. The
+header shortcut always means **Scan**. Which screens already follow Pearl is tracked in #95.
+
 ## Platform and distribution
 
 - minSdk 26, aimed at mid-range phones from 2020 on.

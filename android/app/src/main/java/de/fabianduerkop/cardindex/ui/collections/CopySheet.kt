@@ -51,6 +51,7 @@ import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.Money
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
 import java.time.Instant
 import java.time.ZoneOffset
@@ -113,7 +114,7 @@ internal fun CopySheet(
                     FieldLabel(stringResource(R.string.copy_language))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         prints.forEach { print ->
-                            IndexChip(
+                            ChoiceChip(
                                 selected = draft.cardLanguage == print.language,
                                 onClick = { draft = draft.copy(cardLanguage = print.language) },
                                 label = languageName(print.language),
@@ -125,7 +126,7 @@ internal fun CopySheet(
                 FieldLabel(stringResource(R.string.copy_finish))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Finish.entries.forEach { finish ->
-                        IndexChip(
+                        ChoiceChip(
                             selected = draft.finish == finish,
                             onClick = { draft = draft.copy(finish = finish) },
                             label = stringResource(finish.label()),
@@ -135,7 +136,7 @@ internal fun CopySheet(
                 FieldLabel(stringResource(R.string.copy_edition))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Edition.entries.forEach { edition ->
-                        IndexChip(
+                        ChoiceChip(
                             selected = draft.edition == edition,
                             onClick = { draft = draft.copy(edition = edition) },
                             label = stringResource(edition.label()),
@@ -167,7 +168,7 @@ internal fun CopySheet(
                     FieldLabel(stringResource(R.string.copy_grader))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Grader.entries.forEach { grader ->
-                            IndexChip(
+                            ChoiceChip(
                                 selected = draft.grader == grader,
                                 onClick = { draft = draft.copy(grader = grader) },
                                 label = grader.displayName(),
@@ -186,7 +187,7 @@ internal fun CopySheet(
                     FieldLabel(stringResource(R.string.copy_condition))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                         Condition.entries.forEach { condition ->
-                            IndexChip(
+                            ChoiceChip(
                                 selected = draft.condition == condition,
                                 onClick = { draft = draft.copy(condition = condition) },
                                 label = stringResource(condition.label()),
@@ -214,13 +215,13 @@ internal fun CopySheet(
                 if (collections.isNotEmpty()) {
                     FieldLabel(stringResource(R.string.copy_collections))
                     FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-                        IndexChip(
+                        ChoiceChip(
                             selected = chosenCollections.isEmpty(),
                             onClick = { chosenCollections = emptySet() },
                             label = stringResource(R.string.collections_only_all_cards),
                         )
                         collections.forEach { collection ->
-                            IndexChip(
+                            ChoiceChip(
                                 selected = collection.id in chosenCollections,
                                 onClick = {
                                     chosenCollections = if (collection.id in chosenCollections) {
