@@ -22,6 +22,7 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navigation
 import de.fabianduerkop.cardindex.ui.collections.collectionsGraph
 import de.fabianduerkop.cardindex.ui.contributions.ContributionConsentScreen
 import de.fabianduerkop.cardindex.ui.contributions.ContributionsScreen
@@ -57,30 +58,40 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
             startDestination = TopLevelDestination.SCAN.route,
             modifier = Modifier.padding(padding).consumeWindowInsets(padding),
         ) {
-            composable(TopLevelDestination.SCAN.route) {
-                ScanScreen(
-                    onOpenReview = { navController.navigate(REVIEW_ROUTE) },
-                    onOpenLab = { navController.navigate(LAB_ROUTE) },
-                    onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
-                )
+            // Each tab is a nested graph named after its tab, so the bottom bar keeps the tab selected on the screens
+            // opened from it (#101): Scan → review and lab, Settings → contribution consent, uploads and the gallery.
+            navigation(startDestination = SCAN_HOME_ROUTE, route = TopLevelDestination.SCAN.route) {
+                composable(SCAN_HOME_ROUTE) {
+                    ScanScreen(
+                        onOpenReview = { navController.navigate(REVIEW_ROUTE) },
+                        onOpenLab = { navController.navigate(LAB_ROUTE) },
+                        onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                    )
+                }
+                composable(LAB_ROUTE) { LabScreen() }
+                composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
             }
             collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
             searchGraph(navController, onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) })
-            composable(TopLevelDestination.SETTINGS.route) {
-                SettingsScreen(
-                    onOpenConsent = { navController.navigate(CONSENT_ROUTE) },
-                    onOpenContributions = { navController.navigate(CONTRIBUTIONS_ROUTE) },
-                    onOpenDesignGallery = { navController.navigate(DESIGN_ROUTE) },
-                )
+            navigation(startDestination = SETTINGS_HOME_ROUTE, route = TopLevelDestination.SETTINGS.route) {
+                composable(SETTINGS_HOME_ROUTE) {
+                    SettingsScreen(
+                        onOpenConsent = { navController.navigate(CONSENT_ROUTE) },
+                        onOpenContributions = { navController.navigate(CONTRIBUTIONS_ROUTE) },
+                        onOpenDesignGallery = { navController.navigate(DESIGN_ROUTE) },
+                    )
+                }
+                composable(CONSENT_ROUTE) { ContributionConsentScreen(onBack = { navController.popBackStack() }) }
+                composable(CONTRIBUTIONS_ROUTE) { ContributionsScreen(onBack = { navController.popBackStack() }) }
+                composable(DESIGN_ROUTE) { DesignGalleryScreen(onBack = { navController.popBackStack() }) }
             }
-            composable(CONSENT_ROUTE) { ContributionConsentScreen(onBack = { navController.popBackStack() }) }
-            composable(CONTRIBUTIONS_ROUTE) { ContributionsScreen(onBack = { navController.popBackStack() }) }
-            composable(LAB_ROUTE) { LabScreen() }
-            composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
-            composable(DESIGN_ROUTE) { DesignGalleryScreen(onBack = { navController.popBackStack() }) }
         }
     }
 }
+
+/** The start screens of the Scan and Settings tabs, inside the tab graphs. */
+private const val SCAN_HOME_ROUTE = "scan/home"
+private const val SETTINGS_HOME_ROUTE = "settings/home"
 
 /** The recognition lab, a debug-only test bench reached from the Scan screen. */
 private const val LAB_ROUTE = "lab"

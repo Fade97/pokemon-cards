@@ -4,12 +4,14 @@ package de.fabianduerkop.cardindex.ui.components
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -48,6 +50,21 @@ fun LumifoilWordmark(modifier: Modifier = Modifier) {
         horizontalArrangement = Arrangement.spacedBy(9.dp),
     ) {
         LumifoilMark()
-        Text(stringResource(R.string.wordmark), style = WordmarkStyle, color = MaterialTheme.colorScheme.onSurface)
+        // One line always: at 2x font size on a 360 dp phone it broke into "foilar" and "k" next to the header
+        // buttons (#101). It shrinks to fit instead, at most down to its size at the default font setting.
+        Text(
+            stringResource(R.string.wordmark),
+            style = WordmarkStyle,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1,
+            softWrap = false,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = with(LocalDensity.current) { WordmarkMinSize.toSp() },
+                maxFontSize = WordmarkStyle.fontSize,
+            ),
+        )
     }
 }
+
+/** The wordmark's 24 sp at the default font size, as a fixed size so the floor does not grow with the setting. */
+private val WordmarkMinSize = 24.dp

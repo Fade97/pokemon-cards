@@ -49,7 +49,6 @@ import de.fabianduerkop.cardindex.ui.collections.NotificationsOffHint
 import de.fabianduerkop.cardindex.ui.collections.PriceAlertRow
 import de.fabianduerkop.cardindex.ui.components.DataRow
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
-import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
@@ -234,7 +233,7 @@ fun SettingsScreen(
                     PrivacyPolicyLink()
                     TesterFeedbackLink()
                 }
-                PlaceholderText(text = stringResource(R.string.settings_placeholder))
+                SettingsHint(stringResource(R.string.settings_placeholder))
             }
         }
     }
