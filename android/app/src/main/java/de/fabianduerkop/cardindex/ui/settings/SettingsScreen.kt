@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.ui.settings
 
 import android.content.ActivityNotFoundException
+import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -58,7 +59,10 @@ import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.LanguagesSection
 
-/** Settings (mockup "Settings"): one card per topic. About has the privacy policy; licenses come later. */
+/**
+ * Settings (mockup "Settings"): one card per topic. About has the version, the privacy policy and the tester
+ * feedback form; licenses come later.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -198,7 +202,9 @@ fun SettingsScreen(
                 }
             }
             SettingsSection(stringResource(R.string.settings_about)) {
+                ResultText(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
                 PrivacyPolicyLink()
+                TesterFeedbackLink()
             }
             PlaceholderText(
                 text = stringResource(R.string.settings_placeholder),
@@ -250,10 +256,35 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
 /** Opens the privacy policy (#70) in the browser; the page picks German or English from the browser's language. */
 @Composable
 internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
+    val url = BuildConfig.PRIVACY_POLICY_URL
+    ExternalLink(
+        url = url,
+        label = stringResource(R.string.settings_privacy_policy),
+        noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url),
+        modifier = modifier,
+    )
+}
+
+/** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */
+@Composable
+private fun TesterFeedbackLink() {
+    val url = TesterFeedback.url(
+        appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+        device = TesterFeedback.device(Build.MANUFACTURER.orEmpty(), Build.MODEL.orEmpty()),
+        android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+    )
+    ExternalLink(
+        url = url,
+        label = stringResource(R.string.settings_feedback),
+        noBrowser = stringResource(R.string.settings_feedback_no_browser, TesterFeedback.NEW_ISSUE_URL),
+    )
+    ResultText(stringResource(R.string.settings_feedback_hint))
+}
+
+@Composable
+private fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    val url = BuildConfig.PRIVACY_POLICY_URL
-    val noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url)
     TextButton(onClick = {
         // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
         // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
@@ -269,7 +300,7 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
             Toast.makeText(context, noBrowser, Toast.LENGTH_LONG).show()
         }
     }, modifier = modifier) {
-        Text(stringResource(R.string.settings_privacy_policy))
+        Text(label)
     }
 }
 

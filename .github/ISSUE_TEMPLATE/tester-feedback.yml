@@ -1,0 +1,57 @@
+# Feedback form for Play closed-test testers (#88). The app opens it from Settings → About with the app version,
+# device and Android version filled in through query parameters named like the field ids below
+# (TesterFeedback.kt). Rename an id only together with the app.
+name: Tester feedback
+description: Report a bug, a wrong scan or an idea from testing Lumifoil.
+title: "[Feedback] "
+labels: ["tester feedback"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for testing Lumifoil! This repository is public, so everything you write here can be read by anyone.
+        Please leave out personal data (email, address, photos of yourself).
+  - type: dropdown
+    id: kind
+    attributes:
+      label: What kind of feedback?
+      options:
+        - Something doesn't work (bug or crash)
+        - A scan found the wrong card, or none
+        - A price looks wrong
+        - An idea or wish
+        - Something else
+    validations:
+      required: true
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: card
+    attributes:
+      label: Which card? (optional)
+      description: For scans and prices, the card name and the number printed on it, e.g. "Charmander 004/165, German".
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots (optional)
+      description: Drag images in here. A screenshot of the screen often says more than a description.
+  - type: input
+    id: app-version
+    attributes:
+      label: App version
+      description: Filled in by the app. Find it under Settings → About.
+  - type: input
+    id: device
+    attributes:
+      label: Phone
+      description: Filled in by the app, e.g. "samsung SM-S938B".
+  - type: input
+    id: android
+    attributes:
+      label: Android version
+      description: Filled in by the app.

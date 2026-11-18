@@ -34,7 +34,7 @@ jobs:
         # lintDebug also enforces 16 KB alignment of native libraries (it caught OpenCV 5.0.0).
         run: ./gradlew :app:assembleDebug :app:testDebugUnitTest :app:lintDebug --console=plain
       - name: Release build (R8 and resource shrinking, unsigned)
-        # Checks the R8 keep rules in app/proguard-rules.pro; there is no signing config yet.
+        # Checks the R8 keep rules in app/proguard-rules.pro. CI has no upload key, so the build stays unsigned (#88).
         run: ./gradlew :app:assembleRelease --console=plain
       - name: Upload test and lint reports
         if: failure()

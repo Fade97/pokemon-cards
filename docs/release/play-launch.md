@@ -371,12 +371,13 @@ production. Testers who leave and rejoin start over. After the test: Dashboard â
 ### Prepared by agents (follow-up issues)
 
 - [x] Apply the section 2 diff.
-- [ ] signed release AAB with Play App Signing (upload key outside the repo,
-      signing config only from env or a git-ignored file). Install the AAB via bundletool and smoke-test R8 builds on the S25.
+- [x] signed release AAB with Play App Signing (upload key outside the repo,
+      signing config only from env or a git-ignored file), smoke-tested on talos via bundletool (#88).
+      Steps in `android/README.md`, "Signed release". The S25 follows in #83.
 - [ ] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled; Impressum if needed.
 - [ ] In-app "About" with the disclaimer, licenses and the privacy link.
 - [ ] Screenshots and feature graphic (section 3).
-- [ ] A feedback channel for testers: a GitHub issue template or a short form, linked from the app.
+- [x] A feedback channel for testers: the GitHub issue form `tester-feedback.yml`, linked from Settings â†’ About (#88).
 - [ ] Optional: CI upload to the internal/closed track with a service account limited to testing tracks.
 
 ### Timeline

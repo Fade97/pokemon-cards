@@ -19,7 +19,7 @@ Run everything from this folder (`android/`):
 ./gradlew :app:assembleDebug        # debug APK: app/build/outputs/apk/debug/app-debug.apk
 ./gradlew :app:testDebugUnitTest    # JVM unit tests (Room DAOs run in-memory on Robolectric)
 ./gradlew :app:lintDebug            # lint, report in app/build/reports/
-./gradlew :app:assembleRelease      # R8 + resource shrinking, unsigned (no signing config yet)
+./gradlew :app:assembleRelease      # R8 + resource shrinking, unsigned unless the upload key is set up (below)
 ```
 
 CI (`.github/workflows/android.yml`) runs all four on every push and pull request that touches `android/`; the
@@ -32,7 +32,8 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 adb shell am start -n de.fabianduerkop.lumifoil.debug/de.fabianduerkop.cardindex.MainActivity
 ```
 
-To smoke-test a release build (R8 problems show up only there), sign it with the debug key just for the test:
+To smoke-test an unsigned release APK (R8 problems show up only there), sign it with the debug key just for the
+test. The bundle Play gets is tested as in "Smoke test the bundle" below.
 
 ```sh
 apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android \
@@ -40,6 +41,66 @@ apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android \
 adb install -r /tmp/cardindex-release.apk
 adb shell am start -n de.fabianduerkop.lumifoil/de.fabianduerkop.cardindex.MainActivity
 ```
+
+## Signed release (issue #88)
+
+Play gets an Android App Bundle signed with the **upload key**. Play App Signing keeps the app signing key and
+re-signs every APK it delivers, so a lost upload key can be reset in the Play Console. On the first upload pick
+"Let Google manage and protect your app signing key".
+
+The upload key (PKCS12, alias `upload`) lives in Vault under `secret/services/pokemon-cards`:
+`UPLOAD_KEYSTORE_B64`, `UPLOAD_KEYSTORE_PASSWORD`, `UPLOAD_KEY_ALIAS`, `UPLOAD_KEY_PASSWORD`. It is never committed
+(`*.jks`, `*.keystore` and `keystore.properties` are git-ignored). Its certificate SHA-256 is
+`DB:DB:DD:E9:08:20:5D:E4:82:62:58:91:B5:DF:40:FB:34:D0:8F:B1:44:54:F8:F8:10:8D:85:61:D7:8D:86:40`.
+
+```sh
+VAULT_ADDR=https://vault.… VAULT_TOKEN=… ./release-bundle.sh
+# → app/build/outputs/bundle/release/app-release.aab, R8 mapping in app/build/outputs/mapping/release/
+```
+
+`release-bundle.sh` writes the keystore into a temp dir only this user can read, passes it to Gradle through the
+environment and deletes it afterwards. Without Vault, `app/build.gradle.kts` reads the same four values from
+environment variables (`UPLOAD_KEYSTORE_FILE` is the path to the keystore) or from `android/keystore.properties`:
+
+```properties
+storeFile=/path/outside/the/repo/upload.jks
+storePassword=…
+keyAlias=upload
+keyPassword=…
+```
+
+The environment wins per value. Without any of them `bundleRelease` and `assembleRelease` build unsigned, which is
+what CI does; a half-filled config fails the build. Raise `versionCode` in `app/build.gradle.kts` before every
+upload (Play accepts each one once) and upload `mapping.txt` with the bundle.
+
+### Smoke test the bundle
+
+R8 problems appear only in release builds, so install the bundle itself before uploading it. With
+[bundletool](https://github.com/google/bundletool/releases) (a jar; tested with 1.18.1):
+
+```sh
+umask 077; tmp=$(mktemp -d)   # upload key from Vault into $tmp/upload.jks, its password into $tmp/pass
+java -jar bundletool.jar build-apks --bundle=app/build/outputs/bundle/release/app-release.aab \
+  --output=$tmp/lumifoil.apks --connected-device --device-id=$ANDROID_SERIAL \
+  --ks=$tmp/upload.jks --ks-key-alias=upload --ks-pass=file:$tmp/pass --key-pass=file:$tmp/pass
+java -jar bundletool.jar install-apks --apks=$tmp/lumifoil.apks --device-id=$ANDROID_SERIAL
+rm -rf "$tmp"
+adb shell am start -n de.fabianduerkop.lumifoil/de.fabianduerkop.cardindex.MainActivity
+```
+
+bundletool takes passwords only as `pass:` or `file:`. Without `--ks` it signs with the debug key, which is fine
+for the test, but then an installed upload-key build has to be uninstalled first. Check: first run and language
+pack download, the Scan tab (`adb logcat -s ScanViewModel` shows `engine ready: …`), adding a card to the
+collection, prices on the card screen, Settings → About. The emulator camera shows no card; to get cards
+into the collection there, push a small JSON backup (format below) to `/sdcard/Download`, run
+`adb shell content call --uri content://media --method scan_volume --arg external_primary` so the file picker
+lists it, and use Settings → Import.
+
+### Tester feedback
+
+Settings → About → **Send feedback** opens the GitHub issue form `.github/ISSUE_TEMPLATE/tester-feedback.yml`
+with the app version, phone and Android version filled in (`ui/settings/TesterFeedback.kt`). Issues from it get
+the label `tester feedback`. The query parameters are the form's field ids, so rename them only together.
 
 ## Live scan (Scan tab)
 
@@ -342,7 +403,8 @@ by ` | `, matched by name on import (case-insensitive) and created when missing.
 | `app/src/main/java/.../data/backup/` | JSON/CSV export and import |
 | `app/src/debug/` | Debug-only sample data |
 | `app/schemas/` | Exported Room schema JSON, one file per database version. Commit it with every schema change. |
-| `app/proguard-rules.pro` | R8 keep rules for Room and ML Kit |
+| `app/proguard-rules.pro` | R8 keep rules for release builds |
+| `release-bundle.sh` | Signed release AAB with the upload key from Vault |
 
 ## Design
 
