@@ -5,7 +5,9 @@ import android.net.Uri
 import androidx.navigation.NavController
 import androidx.navigation.NavGraphBuilder
 import androidx.navigation.compose.composable
+import androidx.navigation.navDeepLink
 import androidx.navigation.navigation
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertNotifications
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
 
 /** Routes inside the Collections tab. The tab's own route is the nested graph, so the bottom bar stays selected. */
@@ -42,7 +44,11 @@ fun NavGraphBuilder.collectionsGraph(navController: NavController) {
                 onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
             )
         }
-        composable(CollectionsRoutes.CARD) {
+        // A price-alert notification opens the card it is about (#76).
+        composable(
+            CollectionsRoutes.CARD,
+            deepLinks = listOf(navDeepLink { uriPattern = PriceAlertNotifications.CARD_URI_PATTERN }),
+        ) {
             CardDetailScreen(onBack = { navController.popBackStack() })
         }
         composable(CollectionsRoutes.COLLECTION) {

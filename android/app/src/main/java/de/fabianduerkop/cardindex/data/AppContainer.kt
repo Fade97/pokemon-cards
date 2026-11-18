@@ -4,6 +4,11 @@ package de.fabianduerkop.cardindex.data
 import android.content.Context
 import de.fabianduerkop.cardindex.BuildConfig
 import de.fabianduerkop.cardindex.CardIndexApplication
+import de.fabianduerkop.cardindex.data.alerts.CachedCurrentPrices
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertChecker
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertRepository
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertWorker
+import de.fabianduerkop.cardindex.data.alerts.RoomPriceAlertStore
 import de.fabianduerkop.cardindex.data.backup.BackupRepository
 import de.fabianduerkop.cardindex.data.catalog.CatalogSource
 import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
@@ -71,6 +76,21 @@ class AppContainer(private val context: Context) {
             HttpPriceHistoryApi(BuildConfig.API_BASE_URL, httpClient),
             entitlements,
         )
+    }
+
+    /** Pro price alerts (#76), checked on the phone until sign-in and push exist (ADR 0013). */
+    private val priceAlertStore by lazy { RoomPriceAlertStore(database.priceAlertDao()) }
+
+    val priceAlerts: PriceAlertRepository by lazy {
+        PriceAlertRepository(
+            priceAlertStore,
+            schedule = { PriceAlertWorker.schedule(context) },
+            unschedule = { PriceAlertWorker.cancel(context) },
+        )
+    }
+
+    val priceAlertChecker: PriceAlertChecker by lazy {
+        PriceAlertChecker(priceAlertStore, CachedCurrentPrices(prices, database.catalogDao()))
     }
 
     val backup: BackupRepository by lazy { BackupRepository(database) }

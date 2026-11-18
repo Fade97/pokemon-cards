@@ -38,8 +38,13 @@ import java.time.ZoneId
 internal fun PriceSource.label(): Int =
     if (this == PriceSource.CARDMARKET) R.string.price_label_cardmarket else R.string.price_label_tcgplayer
 
+/** Just the market's name, for a choice between the two. */
 @StringRes
-private fun PriceVariant.label(): Int = when (this) {
+internal fun PriceSource.shortLabel(): Int =
+    if (this == PriceSource.CARDMARKET) R.string.settings_price_cardmarket else R.string.settings_price_tcgplayer
+
+@StringRes
+internal fun PriceVariant.label(): Int = when (this) {
     PriceVariant.NORMAL -> R.string.finish_normal
     PriceVariant.HOLO -> R.string.finish_holo
     PriceVariant.REVERSE_HOLO -> R.string.finish_reverse_holo

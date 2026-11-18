@@ -6,6 +6,7 @@ import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.AppContainer
+import de.fabianduerkop.cardindex.data.alerts.PriceAlert
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
 import de.fabianduerkop.cardindex.data.backup.BackupFormatException
 import de.fabianduerkop.cardindex.data.backup.ImportResult
@@ -15,11 +16,16 @@ import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.io.IOException
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
@@ -35,6 +41,9 @@ data class SettingsUiState(
     /** Scan contributions are on (the current consent text was accepted). */
     val contributing: Boolean = false,
 )
+
+/** A price alert in the Settings list, with the card it watches ("025 Pikachu"). */
+data class AlertListItem(val alert: PriceAlert, val title: String)
 
 /** Outcome of the last export or import, shown under the backup buttons. */
 sealed interface BackupMessage {
@@ -75,6 +84,27 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         settings.debugProFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), settings.debugPro)
 
     fun setDebugPro(value: Boolean) { settings.debugPro = value }
+
+    /** Pro (#76): every price alert, oldest first. Null without Pro. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val alerts: StateFlow<List<AlertListItem>?> = container.entitlements.isPro.distinctUntilChanged().flatMapLatest { pro ->
+        if (!pro) {
+            flowOf(null)
+        } else {
+            container.priceAlerts.observeAll().mapLatest { alerts ->
+                val cards = container.database.catalogDao().cardsByIds(alerts.map { it.cardId }.distinct()).groupBy { it.id }
+                alerts.map { alert ->
+                    val prints = cards[alert.cardId].orEmpty()
+                    val card = prints.firstOrNull { it.language == alert.cardLanguage } ?: prints.firstOrNull()
+                    AlertListItem(alert, card?.let { "${it.localId} ${it.name}" } ?: alert.cardId)
+                }
+            }
+        }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    fun deleteAlert(uuid: String) {
+        viewModelScope.launch { container.priceAlerts.delete(uuid) }
+    }
 
     fun setPreferOwnPhotos(value: Boolean) { settings.preferOwnPhotos = value }
 

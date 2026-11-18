@@ -249,6 +249,25 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   today's copies valued with each day's prices, a copy's last price carried over gaps, copies without a price in the
   main market left out (as in the total). Ranges 30 days, 90 days, 1 year.
 
+## Pro: price alerts (issue #76)
+
+- **Rules** (`data/alerts/PriceAlerts.kt`, Room `price_alerts`, DB v3): one per card, market and printing, "rises to X
+  or more" or "falls to X or less" in the market's currency (EUR Cardmarket trend, USD TCGplayer market). Set and
+  deleted on the card screen under the price history; Settings → Price alerts lists all of them. Both only show with Pro.
+- **Check** (`PriceAlertChecker`, `PriceAlertWorker`): a daily periodic WorkManager job from 07:00 Europe/Berlin
+  (after the 05:30 import), only when online and only with Pro. It forces a price refresh of every alerted card
+  (`POST /v1/prices`, 100 cards per call) and evaluates each rule: an armed rule whose price is on its side of the
+  threshold fires one notification and disarms; it re-arms, silently, once the price is back on the other side. No
+  price or another currency changes nothing. The job is scheduled while alerts exist and cancelled with the last one.
+- **Notifications**: channel `price_alerts`; `POST_NOTIFICATIONS` (Android 13+) is asked when the first alert is created.
+  A notification opens the card (`lumifoil://card/<id>/<language>`, handled only inside the app). Without the
+  permission the rules still fire and disarm; the lists show when they last did and warn that notifications are off.
+- This is a soft gate by decision ([ADR 0013](../docs/adr/0013-price-alerts-on-device.md)): the rules and the check are
+  plain Kotlin so they can move to the backend with sign-in and push (#16).
+- Try it in a debug build: switch on Pro in Settings, add an alert on a card with a price (e.g. "rises to" a cent
+  under the current price), then tap **Settings → Pro (debug build) → Check price alerts now**. It notifies once; a
+  second tap stays quiet until the price crosses back.
+
 ## Backup (JSON and CSV)
 
 **Settings → Backup** exports all copies and custom collections through the Storage Access Framework and imports
@@ -318,6 +337,7 @@ by ` | `, matched by name on import (case-insensitive) and created when missing.
 | `app/src/main/java/.../data/contributions/`, `ui/contributions/` | Scan contributions: queue, API client, worker, consent and list |
 | `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links, Pro price history |
 | `app/src/main/java/.../data/pro/` | Pro entitlements (debug switch until #16) |
+| `app/src/main/java/.../data/alerts/` | Pro price alerts: rules, daily check, worker and notifications |
 | `app/src/main/java/.../data/images/` | CDN image URLs, the user's own photos |
 | `app/src/main/java/.../data/backup/` | JSON/CSV export and import |
 | `app/src/debug/` | Debug-only sample data |

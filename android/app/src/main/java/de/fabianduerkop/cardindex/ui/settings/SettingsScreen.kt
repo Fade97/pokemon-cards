@@ -42,6 +42,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.BuildConfig
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertWorker
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -50,6 +51,8 @@ import kotlinx.coroutines.launch
 import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
 import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.ui.collections.NotificationsOffHint
+import de.fabianduerkop.cardindex.ui.collections.PriceAlertRow
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
@@ -102,6 +105,20 @@ fun SettingsScreen(
                     is RefreshResult.Updated -> ResultText(stringResource(R.string.settings_price_refreshed, result.cards))
                     is RefreshResult.Failed -> ResultText(stringResource(R.string.settings_price_failed))
                     null -> Unit
+                }
+            }
+            val alerts by viewModel.alerts.collectAsStateWithLifecycle()
+            alerts?.let { list ->
+                SettingsSection(stringResource(R.string.alerts_title)) {
+                    Text(
+                        stringResource(if (list.isEmpty()) R.string.alerts_settings_none else R.string.alerts_settings_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    NotificationsOffHint(visible = list.isNotEmpty())
+                    list.forEach { item ->
+                        PriceAlertRow(item.alert, title = item.title, onDelete = { viewModel.deleteAlert(item.alert.uuid) })
+                    }
                 }
             }
             SettingsSection(stringResource(R.string.settings_images)) {
@@ -175,6 +192,9 @@ fun SettingsScreen(
                         checked = debugPro,
                         onCheckedChange = viewModel::setDebugPro,
                     )
+                    TextButton(onClick = { PriceAlertWorker.runNow(context) }, modifier = Modifier.padding(top = 4.dp)) {
+                        Text(stringResource(R.string.settings_debug_check_alerts))
+                    }
                 }
             }
             SettingsSection(stringResource(R.string.settings_about)) {

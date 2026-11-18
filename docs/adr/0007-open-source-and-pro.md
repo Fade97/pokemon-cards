@@ -10,6 +10,8 @@ The app should be free and trustworthy, and Pro should still cover running costs
 
 The app is GPLv3 and backend/ is AGPLv3. Pro (sync, price history/charts, alerts) is enforced server-side and sold as a cheap subscription + lifetime option through Play Billing, with sign-in through Google Sign-In (Credential Manager). The repo is public from the start.
 
+Amended for price alerts by [ADR 0013](0013-price-alerts-on-device.md): checked on the device until sign-in and push.
+
 ## Alternatives considered
 
 Closed source; app open with backend closed; MIT.

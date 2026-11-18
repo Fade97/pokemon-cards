@@ -46,6 +46,7 @@ import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.ui.components.CARD_ASPECT
 import java.io.File
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
@@ -69,6 +70,7 @@ fun CardDetailScreen(
                 container.primaryPriceSource,
                 container.priceHistory,
                 container.entitlements.isPro,
+                container.priceAlerts,
                 saved,
             )
         },
@@ -76,6 +78,8 @@ fun CardDetailScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
+    val alerts by viewModel.alerts.collectAsStateWithLifecycle()
+    val askNotifications = rememberNotificationPermissionRequest()
     val detail = state.detail
     var editing by remember { mutableStateOf<OwnedCopyEntity?>(null) }
     val context = LocalContext.current
@@ -118,6 +122,28 @@ fun CardDetailScreen(
                         PriceHistoryBlock(
                             chart,
                             onRange = viewModel::setHistoryRange,
+                            modifier = Modifier.padding(horizontal = ScreenPadding),
+                        )
+                    }
+                }
+                alerts?.let { list ->
+                    item {
+                        val owned = detail.pricedCopy()
+                        val (main, secondary) = PriceSelection.pair(
+                            state.prices,
+                            state.source,
+                            owned?.finish ?: Finish.NORMAL,
+                            owned?.edition ?: Edition.UNLIMITED,
+                            detail.card.language,
+                        )
+                        SectionLabel(stringResource(R.string.alerts_title), Modifier.padding(top = 16.dp))
+                        PriceAlertsBlock(
+                            alerts = list,
+                            quotes = listOfNotNull(main, secondary),
+                            onCreate = { quote, direction, threshold ->
+                                viewModel.createAlert(quote, direction, threshold, onFirst = askNotifications)
+                            },
+                            onDelete = viewModel::deleteAlert,
                             modifier = Modifier.padding(horizontal = ScreenPadding),
                         )
                     }

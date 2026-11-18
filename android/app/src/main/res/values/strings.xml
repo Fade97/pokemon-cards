@@ -163,7 +163,8 @@
     <string name="settings_price_failed">The price service is not reachable. Saved prices stay.</string>
     <string name="settings_debug_pro_title">Pro (debug build)</string>
     <string name="settings_debug_pro">Pro features</string>
-    <string name="settings_debug_pro_hint">Shows price history and portfolio charts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
+    <string name="settings_debug_check_alerts">Check price alerts now</string>
+    <string name="settings_debug_pro_hint">Shows price history, portfolio charts and price alerts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included, and Android\'s backup does not keep them either.</string>
     <string name="settings_export_json">Export JSON</string>
@@ -374,4 +375,27 @@
     <string name="scan_lab_detector_classic">Classic</string>
     <string name="scan_lab_min_score">Min. outline score %1$.2f</string>
     <string name="scan_lab_saved">Saved to %1$s</string>
+    <!-- Pro price alerts (#76) -->
+    <string name="alerts_title">Price alerts</string>
+    <string name="alerts_none">No alerts for this card. Get a notification when its price crosses a threshold; checked once a day after the morning price update.</string>
+    <string name="alerts_add">Add price alert</string>
+    <string name="alerts_no_price">This card has no price to watch yet.</string>
+    <string name="alerts_rule_above">Rises to %1$s or more</string>
+    <string name="alerts_rule_below">Falls to %1$s or less</string>
+    <string name="alerts_notified">Notified on %1$s, waits until the price crosses back</string>
+    <string name="alerts_last_notified">Last notified on %1$s</string>
+    <string name="alerts_delete">Delete alert</string>
+    <string name="alerts_current">Now %1$s (%2$s)</string>
+    <string name="alerts_direction_above">Rises to</string>
+    <string name="alerts_direction_below">Falls to</string>
+    <string name="alerts_threshold">Price</string>
+    <string name="alerts_dialog_hint">One notification when the price gets there, then another only after it went back and crosses again.</string>
+    <string name="alerts_save">Add</string>
+    <string name="alerts_channel">Price alerts</string>
+    <string name="alerts_channel_description">When a card\'s price crosses one of your alerts</string>
+    <string name="alerts_notification_above">Rose to %1$s (your alert: %2$s or more)</string>
+    <string name="alerts_notification_below">Fell to %1$s (your alert: %2$s or less)</string>
+    <string name="alerts_notifications_off">Notifications are off for this app, so price alerts can\'t show. Turn them on in the system settings.</string>
+    <string name="alerts_settings_hint">Checked on this phone once a day after the morning price update, when it is online.</string>
+    <string name="alerts_settings_none">No price alerts. Add one from a card\'s screen.</string>
 </resources>
