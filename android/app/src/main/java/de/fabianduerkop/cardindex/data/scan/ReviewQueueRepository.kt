@@ -171,21 +171,19 @@ class ReviewQueueRepository(
     }
 
     /**
-     * The user found the right card in search because none of the matches was (#129): it joins the item's
-     * candidates after the pipeline's, marked as picked by hand, and replaces an earlier pick. A card that already is
-     * a candidate keeps its row. Returns the candidate's rank and whether the item asks for a variant check, or
-     * null when the item is gone. The card must be in the catalog (search only finds catalog cards).
+     * The user found the right card in search because none of the matches was (#129): it becomes the item's hand
+     * pick at [PICKED_RANK], after the pipeline's candidates, and replaces an earlier pick. A card that already was a
+     * pipeline candidate moves there too (its similarity row goes), so the pick is stored and survives a lost draft
+     * (#140, round 4). Returns the rank and whether the item asks for a variant check, or null when the item is gone.
+     * The card must be in the catalog (search only finds catalog cards).
      */
     suspend fun pickCard(itemId: Long, cardId: String, language: String): PickedCard? = db.withTransaction {
         val item = dao.item(itemId) ?: return@withTransaction null
-        val candidates = dao.candidates(itemId)
-        val existing = candidates.firstOrNull { it.cardId == cardId && it.cardLanguage == language }
-        val rank = existing?.rank ?: run {
-            dao.deleteCandidate(itemId, PICKED_RANK)
-            dao.insertCandidates(listOf(ReviewCandidateEntity(itemId, PICKED_RANK, cardId, language, ReviewCandidateEntity.PICKED_BY_HAND)))
-            PICKED_RANK
-        }
-        PickedCard(rank, item.checkVariant)
+        dao.candidates(itemId)
+            .filter { it.rank == PICKED_RANK || (it.cardId == cardId && it.cardLanguage == language) }
+            .forEach { dao.deleteCandidate(itemId, it.rank) }
+        dao.insertCandidates(listOf(ReviewCandidateEntity(itemId, PICKED_RANK, cardId, language, ReviewCandidateEntity.PICKED_BY_HAND)))
+        PickedCard(PICKED_RANK, item.checkVariant)
     }
 
     /** Moves an item to the back of the queue; it stays reachable. False if it is gone. */

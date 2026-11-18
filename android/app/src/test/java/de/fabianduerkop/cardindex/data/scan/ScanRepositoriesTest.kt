@@ -147,11 +147,15 @@ class ScanRepositoriesTest {
         val id = enqueueOne(checkVariant = true)
         ScanCatalog.ensure(db.catalogDao(), listOf(ref("025"), ref("026")))
 
-        assertEquals(PickedCard(rank = 1, checkVariant = true), queue.pickCard(id, "sv03.5-006", "en")) // already listed
+        // A pipeline match found in search moves to the hand-pick slot, so the choice is stored (#140).
+        assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-006", "en"))
+        var candidates = queue.observeItems().first().single().candidates
+        assertEquals(listOf(0, 3), candidates.map { it.rank })
+        assertEquals("en", candidates.last().card.language)
         assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-025", "de"))
         assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-026", "de")) // #129: replaces 025
-        val candidates = queue.observeItems().first().single().candidates
-        assertEquals(listOf(0, 1, 3), candidates.map { it.rank })
+        candidates = queue.observeItems().first().single().candidates
+        assertEquals(listOf(0, 3), candidates.map { it.rank })
         assertEquals("sv03.5-026", candidates.last().card.id)
         assertEquals(ReviewCandidateEntity.PICKED_BY_HAND, candidates.last().similarity)
 
