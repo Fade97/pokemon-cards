@@ -5,6 +5,7 @@ import android.graphics.BitmapFactory
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import de.fabianduerkop.cardindex.data.appContainer
 import org.json.JSONArray
 import org.json.JSONObject
 import org.junit.Assert.assertTrue
@@ -37,7 +38,7 @@ class RecognitionParityTest {
         assumeTrue("no parity data in $dir", expectedFile.exists())
         // Only missing assets skip the test; present but broken assets (bad model, dim mismatch) must fail it.
         val engine = try {
-            RecognitionEngine.load(context)
+            RecognitionEngine.load(context, context.appContainer::newNumberReader)
         } catch (e: FileNotFoundException) {
             assumeTrue("recognition assets missing: ${e.message}", false)
             return

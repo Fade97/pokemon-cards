@@ -36,6 +36,8 @@ import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.settings.AppSettings
 import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.recognition.MlKitNumberReader
+import de.fabianduerkop.cardindex.recognition.NumberReader
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
@@ -123,6 +125,12 @@ class AppContainer(private val context: Context) {
             requestSync = { PackSyncWorker.enqueue(context) },
         )
     }
+
+    /**
+     * A new OCR for one recognition engine, which owns and closes it. ML Kit for now; a build without Google
+     * libraries (#19) swaps in its own [NumberReader] here.
+     */
+    fun newNumberReader(): NumberReader = MlKitNumberReader()
 
     /** The market whose price leads; the other one is shown smaller. */
     val primaryPriceSource: Flow<PriceSource> by lazy { settings.priceSourceFlow.map { PriceRegion.effective(it) } }
