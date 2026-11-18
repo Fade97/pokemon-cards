@@ -71,6 +71,25 @@
     <string name="collections_empty_body">Scan a card to add it. Every set you own a card from gets its own collection, with each number as a slot.</string>
     <string name="collections_no_sets_in_language">No cards in the chosen languages.</string>
     <string name="collections_debug_sample">Add sample data (debug build)</string>
+    <string name="collections_empty_scan">Scan a card</string>
+    <plurals name="collections_sets_count">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
+    <plurals name="collections_count">
+        <item quantity="one">%1$d collection</item>
+        <item quantity="other">%1$d collections</item>
+    </plurals>
+    <string name="collections_open_set">Open set</string>
+    <string name="collections_open_collection">Open collection</string>
+    <!-- After a count like "87/165" on the featured set cover. -->
+    <string name="collections_collected">collected</string>
+    <!-- Spoken form of a set's count, e.g. "87 of 165 collected". -->
+    <string name="collections_progress_description">%1$d of %2$d collected</string>
+    <string name="collections_legend_compact">Filled slots are owned. Outlined slots are missing.</string>
+    <string name="collections_legend_cards">Missing cards are grey, with an outline and the word Missing.</string>
+    <string name="collections_region_jp">JP</string>
+    <string name="collections_region_jp_description">Japanese set</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
     <string name="collections_mode_compact">Compact</string>

@@ -31,7 +31,8 @@ it does not say which screens already follow them (see "Implementation status").
 - **Owned and missing**: owned slots are **solid** (sea-glass, white number), missing slots are **hollow** (an
   outline dark enough for 3:1, number in secondary text). Shape carries the meaning, not colour alone; every slot
   also says "owned" or "missing" to TalkBack. This follows the council correction in the study. Energy colours no
-  longer fill checklist slots; whether a small energy cue stays elsewhere is decided with #97.
+  longer fill checklist slots, and #97 dropped them from the collection screens altogether: the card art already
+  shows the type, and a second colour code next to solid/hollow would blur the owned/missing signal.
 - **Shapes**: corners 5 dp (slots), 7 dp (chips, card images), 10 dp (buttons, fields), 14 dp (featured cover),
   22 dp (sheets). **Spacing** in steps of 2, 4, 8, 12, 16, 24 and 32 dp, a 20 dp screen gutter, 48 dp touch targets.
 - **Icons**: one outline set on a 24 dp grid, 1.7 stroke, round caps. No filled or third-party icon sets.
