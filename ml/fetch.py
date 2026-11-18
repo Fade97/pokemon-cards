@@ -16,6 +16,7 @@ from PIL import Image
 from tqdm import tqdm
 from urllib3.util.retry import Retry
 
+import packs
 from common import API_CACHE, MANIFEST, SETS, Card
 
 API = "https://api.tcgdex.net/v2"
@@ -54,6 +55,14 @@ def download(card: Card) -> str:
         return "cached"
     dst.parent.mkdir(parents=True, exist_ok=True)
     tmp = dst.with_suffix(".part")
+    if card.image_url.endswith(".png"):  # full URL from another source (packs.ref_fallback_url), not TCGdex
+        r = session.get(card.image_url, timeout=60)
+        if r.status_code in (403, 404):
+            return "missing"
+        r.raise_for_status()
+        tmp.write_bytes(r.content)
+        tmp.replace(dst)
+        return "png"
     # high.png is missing for some cards on the CDN while high.webp exists; convert webp to png then.
     r = session.get(card.image_url + "/high.png", timeout=60)
     if r.status_code == 200:
@@ -79,10 +88,11 @@ def main() -> None:
         s = get_set(lang, set_id)
         official = int(s["cardCount"]["official"])
         for c in s["cards"]:
-            if not c.get("image"):
+            image = packs.reference_image(lang, {"image": c.get("image"), "setId": set_id, "localId": c["localId"]})
+            if not image:
                 continue
             cards.append(Card(f"{lang}/{c['id']}", c["id"], lang, set_id, s["name"], c["localId"],
-                              official, c["name"], "", (), c["image"], holdout))
+                              official, c["name"], "", (), image, holdout))
     print(f"{len(cards)} cards with images")
 
     with ThreadPoolExecutor(max_workers=min(args.workers, 4)) as ex:
@@ -96,7 +106,7 @@ def main() -> None:
         details = list(tqdm(ex.map(get_card, cards), total=len(cards), desc="card details"))
 
     with open(MANIFEST, "w", encoding="utf-8", newline="") as f:
-        w = csv.writer(f)
+        w = csv.writer(f, lineterminator="\n")  # LF like the committed file, on every OS
         w.writerow(["key", "card_id", "lang", "set_id", "set_name", "local_id", "official", "name", "category",
                     "dex_ids", "image_url", "holdout"])
         for c, d in zip(cards, details):

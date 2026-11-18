@@ -22,7 +22,7 @@ Windows) are optional. The core steps don't need them.
 
 | # | Command | What it does |
 |---|---|---|
-| 1 | `uv run python fetch.py` | Downloads the 5 TCGdex set lists, the card details and the 870 `high.png` images into `<data>/api` and `<data>/ref`, then writes `manifest.csv`. Uses at most 4 parallel requests and skips anything already cached. If `high.png` is missing on the CDN, it falls back to `high.webp`. |
+| 1 | `uv run python fetch.py` | Downloads the 5 TCGdex set lists, the card details and the 870 `high.png` images into `<data>/api` and `<data>/ref`, then writes `manifest.csv`. Uses at most 4 parallel requests and skips anything already cached. If `high.png` is missing on the CDN, it falls back to `high.webp`. Set `mee` has no TCGdex images; its references come from the malie.io export (`packs.ref_fallback_url`, #60). |
 | 2 | `uv run python synth.py` | Renders the held-out synthetic **test** set: 5 photos per card, seed 20261116, OpenCV on the CPU, in `<data>/synth/test`. `--name val --per-card 1 --seed 99` renders the val set. |
 | 3 | `uv run python detect.py [--name val]` | Runs classic-CV card detection and rectification. Measures the found rate, IoU and corner error against the true placement. Writes the crops to `<data>/synth/<name>-crops` and the summary to `results/detection_test.json`. |
 | 4 | `uv run python baselines.py` | Zero-shot baselines on the test crops: pHash and pretrained MobileNetV3-L, EfficientNet-Lite0/B0 and DINOv2-S. Writes `results/baselines.json`. |

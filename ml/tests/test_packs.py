@@ -422,6 +422,29 @@ def test_fill_cdn_gap_sets_only_missing_images():
     assert filled[2] == cards[2]
 
 
+def test_ref_fallback_url_only_for_known_sets_and_languages():
+    assert packs.ref_fallback_url("de", "mee", "009") == \
+        "https://cdn.malie.io/file/malie-io/tcgl/cards/png/de/mee/mee_de_009_std.png"
+    assert packs.ref_fallback_url("pt", "mee", "16") == \
+        "https://cdn.malie.io/file/malie-io/tcgl/cards/png/ptbr/mee/mee_ptbr_016_std.png"
+    assert packs.ref_fallback_url("ja", "mee", "001") is None   # no JP source
+    assert packs.ref_fallback_url("de", "me04", "001") is None  # TCGdex sets keep TCGdex images
+    assert packs.ref_fallback_url("de", "mee", "TG01") is None
+
+
+def test_reference_image_prefers_tcgdex_and_leaves_the_pack_image_alone():
+    tcgdex = {"id": "mee-001", "setId": "mee", "localId": "001", "name": "a",
+              "image": "https://assets.tcgdex.net/de/me/mee/001"}
+    missing = {**tcgdex, "image": None}
+    assert packs.reference_image("de", tcgdex) == tcgdex["image"]
+    assert packs.reference_image("de", missing).endswith("/de/mee/mee_de_001_std.png")
+    assert packs.reference_image("de", {**missing, "setId": "SV2a"}) is None
+    # The fallback is for embedding only: the pack keeps TCGdex's `image` (null), so the app never loads it.
+    pack = packs.make_pack("de", [{"id": "mee"}], [missing], {"mee-001": b"\0" * 8}, dim=2)
+    doc = packs.cards_document(pack, 1)
+    assert doc["cards"] == [{**missing, "indexed": True}]
+
+
 def test_probe_cdn_gap_caches_answers_and_retries_unclear_ones(tmp_path, monkeypatch):
     sets, cards = gap_fixture()
     calls = []

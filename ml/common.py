@@ -37,6 +37,10 @@ SETS = [
     ("de", "30th", True),   # "30 Jahre", released 2026-09-16, unseen
     ("de", "me04", True),   # "Wachsendes Chaos": German twin of the trained en/me04 (language-twin test)
     ("de", "me03", True),   # "Optimale Ordnung": German twin of the trained en/me03
+    # "Mega Evolution Energy": basic energies, 009-016 with the 30th stamp (#60). TCGdex has no images of them;
+    # fetch.py takes the reference images from packs.ref_fallback_url (malie.io).
+    ("en", "mee", True),
+    ("de", "mee", True),
 ]
 
 
@@ -65,7 +69,7 @@ class Card:
 
 
 def load_manifest(include_holdout: bool = False) -> list[Card]:
-    """Cards of the trained sets (870); with include_holdout=True also the unseen sets (1,031).
+    """Cards of the trained sets (870); with include_holdout=True also the unseen sets (1,306 with set mee).
 
     Trained cards always come first, so the indices of the 870-card gallery stay the same.
     """
