@@ -17,6 +17,7 @@ import gzip
 import json
 import re
 from pathlib import Path
+from urllib.parse import urlsplit
 
 from dataset.sources import SOURCES, Source, resolve
 
@@ -25,8 +26,9 @@ COLUMNS = ["key", "card_id", "lang", "set_id", "set_name", "local_id", "name", "
 SPLITS = ("train", "holdout", "index")
 LANG = re.compile(r"^[a-z]{2}(?:-[a-z]{2})?$")
 
-# Anything that looks like a path on the builder's machine. The public files hold ids, labels and https URLs only.
-_PRIVATE = re.compile(r"^[A-Za-z]:[\\/]|^\\\\|^/(?:home|Users|mnt|tmp|var|root|data)/|^file:|^~[\\/]|pokemon-cards-data")
+# Anything that looks like a path on the builder's machine. The public files hold ids, labels and https URLs only, so
+# no value may start like an absolute, relative or home path (/, ./, ../, ~, C:\\, \\\\host, file:).
+_PRIVATE = re.compile(r"^(?:[A-Za-z]:[\\/]|\\\\|/|\.{1,2}[\\/]|~|file:)|pokemon-cards-data", re.IGNORECASE)
 
 
 def from_manifest(path: Path) -> list[dict]:
@@ -98,6 +100,8 @@ def check_public(rows: list[dict]) -> None:
         for k in ("image_url", "alt_url"):
             if r.get(k) and not r[k].startswith("https://"):
                 raise ValueError(f"{r.get('key')}: {k} is not https: {r[k]!r}")
+            if r.get(k) and "@" in urlsplit(r[k]).netloc:
+                raise ValueError(f"{r.get('key')}: {k} carries credentials: {r[k]!r}")
         if r.get("split") not in SPLITS:
             raise ValueError(f"{r.get('key')}: unknown split {r.get('split')!r}")
 
