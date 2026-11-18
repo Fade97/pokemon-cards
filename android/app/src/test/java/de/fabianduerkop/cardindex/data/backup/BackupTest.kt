@@ -264,6 +264,9 @@ class BackupTest {
         import(target, csv)
         assertTrue(target.collectionDao().allCustom().any { it.name == "=HYPERLINK(\"http://x\")" })
         assertEquals("'plain", Csv.unguard("'plain")) // a real leading quote stays
+        for (text in listOf("'=1+1", "'plain", "''", "=x", "-5", "plain")) {
+            assertEquals(text, Csv.unguard(Csv.guard(text)!!))
+        }
     }
 
     @Test

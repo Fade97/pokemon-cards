@@ -138,7 +138,8 @@ function stripWebp(src: Uint8Array): CleanImage {
   if (vp8x) {
     if (kept[0] !== vp8x) throw new ImageError("VP8X is not the first WebP chunk");
     // 8 bytes of chunk header and exactly 10 of payload: no room for anything but flags and the canvas size.
-    if (vp8x.data.length !== 18) throw new ImageError("VP8X chunk of the wrong size");
+    // The declared size, not the padded slice: a 9-byte VP8X plus its pad byte is 18 bytes long too.
+    if (u32(vp8x.data, 4) !== 10 || vp8x.data.length !== 18) throw new ImageError("VP8X chunk of the wrong size");
     const copy = vp8x.data.slice();
     copy[8] = copy[8]! & VP8X_ALPHA; // clears the ICC, EXIF, XMP and animation flags
     copy[9] = copy[10] = copy[11] = 0; // reserved bytes

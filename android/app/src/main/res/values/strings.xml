@@ -357,7 +357,7 @@
     <string name="scan_undo">Undo</string>
     <string name="scan_undo_description">Undo adding %1$s</string>
     <string name="scan_removed">Took back %1$s.</string>
-    <string name="scan_save_failed">Couldn’t save %1$s. Hold it in view again to retry.</string>
+    <string name="scan_save_failed">Couldn’t save %1$s. Keep it in view to try again.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>

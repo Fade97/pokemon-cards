@@ -146,6 +146,11 @@ describe("stripMetadata", () => {
     expect(() => stripMetadata(webp({ w: 4096, h: 4096, canvas: [252, 352] }), "image/webp")).toThrow(/canvas and frame/);
     expect(() => stripMetadata(webp({ vp8xExtra: [...text("hidden note")] }), "image/webp")).toThrow(/VP8X chunk of the wrong size/);
     expect(() => stripMetadata(webp({ secondFrame: true }), "image/webp")).toThrow(/more than one image chunk/);
+    // A 9-byte VP8X padded to 10 is as long as a real one; its declared size gives it away.
+    const short = webp();
+    const at = 12 + 4; // size field of the first chunk (VP8X)
+    short[at] = 9;
+    expect(() => stripMetadata(short, "image/webp")).toThrow(/VP8X chunk of the wrong size/);
   });
 
   it("rejects animated or truncated WebPs", () => {

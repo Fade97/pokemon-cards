@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.data.scan.ConfirmedReview
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
@@ -83,7 +84,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         ReviewUiState(
             loading = false,
             current = current,
-            draft = current?.let { drafts[it.entity.id] ?: ReviewDraft.forItem(it.entity.checkVariant) } ?: ReviewDraft(),
+            draft = current?.let { drafts[it.entity.id] ?: defaultDraft(it) } ?: ReviewDraft(),
             position = done + 1,
             total = done + open.size,
             confirmed = confirmed,
@@ -91,6 +92,16 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             waiting = items.size,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewUiState())
+
+    /**
+     * A card the user found in search stays chosen when the screen comes back without its in-memory draft (leaving
+     * Review, process death, #140): that pick is in the database, a wrong pipeline match must not take its place.
+     */
+    private fun defaultDraft(item: ReviewItem): ReviewDraft {
+        val draft = ReviewDraft.forItem(item.entity.checkVariant)
+        val picked = item.candidates.firstOrNull { it.similarity == ReviewCandidateEntity.PICKED_BY_HAND } ?: return draft
+        return draft.copy(rank = picked.rank)
+    }
 
     private fun editDraft(change: (ReviewDraft) -> ReviewDraft) {
         val s = state.value
