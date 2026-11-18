@@ -111,6 +111,7 @@
     <string name="collections_only_all_cards">All cards only</string>
     <string name="collections_bought_on">bought %1$s</string>
     <string name="collections_paid_each">paid each</string>
+    <string name="collections_paid_each_inline">%1$s paid each</string>
     <string name="collections_sort_by">Sort by</string>
     <string name="collections_sort_value">Value</string>
     <string name="collections_sort_number">Number</string>

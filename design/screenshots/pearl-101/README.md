@@ -55,3 +55,10 @@ debug sample scans in Review.
 - TalkBack: order, labels and state announcements on every screen, including the new scan states.
 - Search speed with all seven packs (#99 comment).
 - A look at the fixes from this PR on the phone at 1.3x (Cards view "Missing", nav labels, binder rows).
+
+## Stacked copy rows at 2x (#121)
+
+talos, 411 dp, font 2.0x, light. With the price under the details, a row reads in full-width lines.
+
+- `font20-stacked-binder.png`: Trade binder (number, name, details, then price and "Not in the USD total").
+- `font20-stacked-copies.png`: a card's copies with "€32.00 paid each" under the details.

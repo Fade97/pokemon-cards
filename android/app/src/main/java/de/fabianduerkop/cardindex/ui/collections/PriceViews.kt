@@ -59,26 +59,38 @@ private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
 /**
  * Price of a copy at the end of a list row, with a second line under it (the card language). With [totalCurrency], a
  * price in another currency says that it is not in the list's total: TCGplayer has no price for a German copy, so a
- * dollar total leaves out its euro price instead of converting it.
+ * dollar total leaves out its euro price instead of converting it. [stacked] lays it out start-aligned for a row that
+ * puts it under the details.
  */
 @Composable
-internal fun QuoteColumn(quote: PriceQuote?, secondLine: String, totalCurrency: String? = null) {
+internal fun QuoteColumn(quote: PriceQuote?, secondLine: String, totalCurrency: String? = null, stacked: Boolean = false) {
     val outside = quote != null && totalCurrency != null && quote.currency != totalCurrency
+    val price = quote?.let { Money.format(it.amountMinor, it.currency) } ?: "–"
+    val priceColor = if (outside) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
+    val notInTotal = if (outside) stringResource(R.string.collections_quote_not_in_total, totalCurrency) else null
+    if (stacked) {
+        // Under the row's details (#121): the price, then the notes on one line.
+        Column {
+            Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
+            Text(
+                listOfNotNull(secondLine, notInTotal).joinToString(" · "),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        return
+    }
     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm).widthIn(max = 128.dp)) {
-        Text(
-            quote?.let { Money.format(it.amountMinor, it.currency) } ?: "–",
-            style = MaterialTheme.typography.titleSmall,
-            color = if (outside) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
-        )
+        Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
         Text(
             secondLine,
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.End,
         )
-        if (outside) {
+        if (notInTotal != null) {
             Text(
-                stringResource(R.string.collections_quote_not_in_total, totalCurrency),
+                notInTotal,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.End,
