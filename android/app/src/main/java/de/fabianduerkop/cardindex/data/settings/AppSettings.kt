@@ -43,6 +43,13 @@ class AppSettings(context: Context) {
 
     fun stopContributing() = prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
 
+    /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
+    var debugPro: Boolean
+        get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
+        set(value) = prefs.edit { putBoolean(KEY_DEBUG_PRO, value) }
+
+    val debugProFlow: Flow<Boolean> = observe { debugPro }
+
     /** Emits [read] now and after every change; the listener is held strongly while collected. */
     private fun <T> observe(read: () -> T): Flow<T> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read()) }
@@ -55,5 +62,6 @@ class AppSettings(context: Context) {
         const val KEY_PREFER_OWN_PHOTOS = "prefer_own_photos"
         const val KEY_PRICE_SOURCE = "price_source"
         const val KEY_CONTRIBUTION_CONSENT = "contribution_consent"
+        const val KEY_DEBUG_PRO = "debug_pro"
     }
 }

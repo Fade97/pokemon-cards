@@ -3,6 +3,7 @@
 //   current/meta.json         PriceMeta: when the files were written and the source dates
 //   current/<shard>.json      PriceShard: the prices of every card whose ID maps to that shard (one TCGdex set)
 //   snapshots/YYYY/MM/DD.json.gz   the day's full mapping and prices, kept from day one for Pro history
+//   history/<shard>/YYYY-MM.json   PriceHistoryFile: one month of daily prices per set, derived from the snapshots
 //
 // Shared by both sides, so the shard a card is written to is the shard the Worker reads.
 
@@ -92,4 +93,49 @@ export interface PriceMeta {
   /** Newest price date per market across all cards, null when that market has no prices yet. */
   cardmarketPriceDate: string | null;
   tcgplayerPriceDate: string | null;
+}
+
+// --- price history (Pro, #17) ---
+//
+// One file per set and calendar month (UTC), rebuilt by the importer from the daily snapshots. Amounts are the
+// headline price the app shows (Cardmarket trend, TCGplayer market) in integer cents; each array lines up with
+// `days`, and null means no price that day. A series that is null on every day of the month is left out.
+
+export const HISTORY_VERSION = 1;
+
+const MONTH = /^\d{4}-(0[1-9]|1[0-2])$/;
+
+/** A calendar month as `YYYY-MM`. */
+export function isMonth(value: unknown): value is string {
+  return typeof value === "string" && MONTH.test(value);
+}
+
+/** A shard name as `shardOf` produces it: the card-ID alphabet, not starting with a dot. */
+export function isShard(value: unknown): value is string {
+  return isCardId(value) && !value.startsWith(".");
+}
+
+export function historyKey(shard: string, month: string): string {
+  return `history/${shard}/${month}.json`;
+}
+
+/** Cents per day, aligned with `PriceHistoryFile.days`. */
+export type DailyCents = (number | null)[];
+
+export interface CardHistory {
+  /** Cardmarket trend: `normal` the card as printed, `holo` the guide's foil (reverse holo) price. EUR. */
+  cardmarket?: { normal?: DailyCents; holo?: DailyCents };
+  /** TCGplayer market price per printing (`Normal`, `Holofoil`, `Reverse Holofoil`, …). USD. */
+  tcgplayer?: Record<string, DailyCents>;
+}
+
+export interface PriceHistoryFile {
+  version: number;
+  /** The shard (TCGdex set ID) the file covers. */
+  set: string;
+  month: string;
+  generatedAt: string;
+  /** The days with a snapshot, ascending, as `YYYY-MM-DD`. */
+  days: string[];
+  cards: Record<string, CardHistory>;
 }

@@ -1,0 +1,107 @@
+{
+ "model": "mnv3_256_forb",
+ "old": "corners_mnv3",
+ "new": "corners_mnv3_real",
+ "table": {
+  "TCG-AR test: corner error median, % diag": [
+   1.59,
+   1.26
+  ],
+  "TCG-AR test: within 3 %": [
+   74.8,
+   75.5
+  ],
+  "TCG-AR test: over 10 %": [
+   0.7,
+   0.7
+  ],
+  "TCG-AR test: top-1 annotated corners": [
+   92.1,
+   92.1
+  ],
+  "TCG-AR test: top-1 learned corners": [
+   87.1,
+   84.9
+  ],
+  "TCG-AR test: top-1 refine pass": [
+   84.9,
+   86.3
+  ],
+  "FORB test: top-1 learned": [
+   87.7,
+   87.4
+  ],
+  "FORB test: top-1 refine pass": [
+   90.5,
+   89.4
+  ],
+  "FORB test hard: top-1 learned": [
+   41.2,
+   43.8
+  ]
+ },
+ "forb_test": {
+  "n": 1132,
+  "learned": {
+   "old_top1": 87.7,
+   "new_top1": 87.4,
+   "old_only": 28,
+   "new_only": 24
+  },
+  "refine": {
+   "old_top1": 90.5,
+   "new_top1": 89.4,
+   "old_only": 24,
+   "new_only": 12
+  },
+  "pick_higher_sim": {
+   "old_top1": 90.6,
+   "new_top1": 89.8,
+   "old_only": 20,
+   "new_only": 10
+  },
+  "score_learned_median": [
+   0.148,
+   0.139
+  ],
+  "score_learned_below_0.10_pct": [
+   5.9,
+   11.6
+  ]
+ },
+ "tcgar_test": {
+  "n": 139,
+  "learned": {
+   "old_top1": 87.1,
+   "new_top1": 84.9,
+   "old_only": 5,
+   "new_only": 2
+  },
+  "refine": {
+   "old_top1": 84.9,
+   "new_top1": 86.3,
+   "old_only": 4,
+   "new_only": 6
+  },
+  "pick_higher_sim": {
+   "old_top1": 87.1,
+   "new_top1": 87.1,
+   "old_only": 5,
+   "new_only": 5
+  },
+  "score_learned_median": [
+   0.157,
+   0.151
+  ],
+  "score_learned_below_0.10_pct": [
+   4.3,
+   1.4
+  ],
+  "err_learned_mean": [
+   2.4,
+   2.17
+  ],
+  "err_better_by_1pct": 12,
+  "err_worse_by_1pct": 1
+ }
+}

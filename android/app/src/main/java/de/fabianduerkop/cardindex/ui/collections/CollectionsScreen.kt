@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
+import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
@@ -55,11 +56,18 @@ fun CollectionsScreen(
     modifier: Modifier = Modifier,
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
-            CollectionsViewModel(container.collections, container.prices, container.primaryPriceSource)
+            CollectionsViewModel(
+                container.collections,
+                container.prices,
+                container.primaryPriceSource,
+                container.priceHistory,
+                container.entitlements.isPro,
+            )
         },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val portfolio by viewModel.portfolio.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
 
     TopLevelScaffold(
@@ -71,7 +79,14 @@ fun CollectionsScreen(
             if (!state.loading && state.totalCopies == 0) {
                 item { EmptyCollections() }
             } else if (!state.loading) {
-                item { ValueHeader(state, onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) }) }
+                item {
+                    ValueHeader(
+                        state = state,
+                        portfolio = portfolio,
+                        onPortfolioRange = viewModel::setPortfolioRange,
+                        onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
+                    )
+                }
                 item {
                     LanguageChips(
                         languages = state.languages,
@@ -118,9 +133,17 @@ fun CollectionsScreen(
     }
 }
 
-/** The value header from direction Slab (ADR 0010): what the collection is worth in the main market. */
+/**
+ * The value header from direction Slab (ADR 0010): what the collection is worth in the main market, with Pro the
+ * portfolio chart under it (#17).
+ */
 @Composable
-private fun ValueHeader(state: CollectionsUiState, onOpenAll: () -> Unit) {
+private fun ValueHeader(
+    state: CollectionsUiState,
+    portfolio: HistoryUiState?,
+    onPortfolioRange: (HistoryRange) -> Unit,
+    onOpenAll: () -> Unit,
+) {
     Column(Modifier.padding(horizontal = ScreenPadding)) {
         Text(
             text = stringResource(
@@ -139,6 +162,15 @@ private fun ValueHeader(state: CollectionsUiState, onOpenAll: () -> Unit) {
             onCaptionClick = onOpenAll,
             priceDate = state.priceDate,
         )
+        if (portfolio != null) {
+            PriceHistoryBlock(portfolio, onRange = onPortfolioRange, modifier = Modifier.padding(top = 12.dp))
+            Text(
+                stringResource(R.string.history_portfolio_hint),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
         HorizontalDivider(Modifier.padding(top = 10.dp, bottom = 10.dp))
     }
 }

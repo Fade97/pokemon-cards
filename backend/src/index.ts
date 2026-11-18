@@ -6,11 +6,15 @@
 //   POST /v1/prices {ids: [...]} prices of up to 100 cards, e.g. to refresh a collection
 //   GET  /v1/packs/catalog.json  language-pack catalog; /v1/packs/<lang>/<file> the pack files (src/packs.ts)
 //   POST /v1/contributions, DELETE /v1/contributions/:id   opt-in scan uploads (src/contributions.ts)
+//   GET  /v1/history/<YYYY-MM>?sets=…   Pro: daily price history per set (src/history.ts)
+//   GET  /privacy, /privacy/de, /privacy/en   privacy policy pages for the Play listing (src/privacy.ts)
 //
 // Every route is rate-limited per client IP (#30).
 
 import { handleContributions } from "./contributions";
+import { handleHistory } from "./history";
 import { packKey, servePack } from "./packs";
+import { handlePrivacy } from "./privacy";
 import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
 
 /** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
@@ -65,8 +69,15 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
     );
   }
 
+  const privacy = handlePrivacy(request, pathname);
+  if (privacy) return privacy;
+
   if (pathname === "/v1/contributions" || pathname.startsWith("/v1/contributions/")) {
     return handleContributions(request, env, ctx, pathname, client);
+  }
+
+  if (pathname.startsWith("/v1/history/")) {
+    return handleHistory(request, env, ctx, pathname);
   }
 
   if (pathname === "/v1/prices") {

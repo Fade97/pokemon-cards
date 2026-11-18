@@ -11,7 +11,8 @@ Photos with arbitrary file names go into <data>/real-photos/. Labels come from t
              a static review.html (photo, crop, labeler guess, pipeline top-5). Choices are kept in the
              browser's localStorage and exported as review_choices.json, which you save into the work dir.
              labels.json = auto-accepted + reviewed.
-4. eval      Accuracy of the pipeline against labels.json.
+4. eval      Accuracy of the pipeline against labels.json. A label whose card is not in the manifest counts as a
+             miss and is listed under "out_of_index" (the set is missing from the index, see fetch.py).
 
   uv run --extra ocr --extra labeler --extra litert python eval_real.py all   # label + pipeline + review + eval
   uv run python eval_real.py review && uv run python eval_real.py eval  # after saving review_choices.json
@@ -29,6 +30,7 @@ import os
 import shutil
 import uuid
 from collections import defaultdict
+from dataclasses import dataclass
 from pathlib import Path
 
 import cv2
@@ -179,44 +181,74 @@ def step_review(photos: list[Path], work: Path):
 
 
 # ---------------------------------------------------------------- 4. eval
+@dataclass(frozen=True)
+class EvalRow:
+    key: str           # true card key from labels.json
+    lang: str
+    group: str         # "<lang>/<set id>"
+    holdout: bool      # unseen set (index only); a card outside the index counts as unseen too
+    in_index: bool     # False: the card is not in the manifest, so the pipeline cannot find it (a sure miss)
+    P: dict            # pipeline.json entry
+    status: str        # label status (auto / reviewed)
+
+
+def eval_row(key: str, P: dict, status: str, by_key: dict) -> EvalRow:
+    c = by_key.get(key)
+    if c is not None:
+        return EvalRow(key, c.lang, c.group, c.holdout, True, P, status)
+    lang, card_id = key.split("/", 1)
+    return EvalRow(key, lang, f"{lang}/{card_id.rsplit('-', 1)[0]}", True, False, P, status)
+
+
 def step_eval(photos: list[Path], work: Path, out_name: str | None):
     cards = load_manifest(include_holdout=True)
     by_key = {c.key: c for c in cards}
     labels = load_json(work / "labels.json", {})
     pipe = load_json(work / "pipeline.json", {})
     status = defaultdict(int)
-    rows = []
+    rows: list[EvalRow] = []
+    outside: dict[str, str] = {}  # file -> true key not in the index
     for p in photos:
         l = labels.get(p.name)
         status[l["status"] if l else "unlabelled"] += 1
         if not l or not l["key"] or p.name not in pipe:
             continue
-        P = pipe[p.name]
-        rows.append((by_key[l["key"]], P, l["status"]))
+        rows.append(eval_row(l["key"], pipe[p.name], l["status"], by_key))
+        if not rows[-1].in_index:
+            outside[p.name] = l["key"]
     res = {"photos": len(photos), "label_status": dict(status), "n_evaluated": len(rows)}
 
-    def acc(rs):
+    def acc(rs: list[EvalRow]):
         if not rs:
             return {"n": 0}
         return {"n": len(rs),
-                "detected": float(np.mean([P["found"] for _, P, _ in rs])),
-                "top1_embedding": float(np.mean([P["top5"][0] == c.key for c, P, _ in rs])),
-                "top5_embedding": float(np.mean([c.key in P["top5"] for c, P, _ in rs])),
-                "top1_after_rerank": float(np.mean([P["top5_reranked"][0] == c.key for c, P, _ in rs])),
-                "ocr_read_rate": float(np.mean([P["number"] is not None for _, P, _ in rs]))}
+                "detected": float(np.mean([r.P["found"] for r in rs])),
+                "top1_embedding": float(np.mean([r.P["top5"][0] == r.key for r in rs])),
+                "top5_embedding": float(np.mean([r.key in r.P["top5"] for r in rs])),
+                "top1_after_rerank": float(np.mean([r.P["top5_reranked"][0] == r.key for r in rs])),
+                "ocr_read_rate": float(np.mean([r.P["number"] is not None for r in rs]))}
 
+    # Labels outside the index stay in every score as misses (the pipeline cannot return them), so a missing set
+    # lowers the numbers instead of silently dropping its photos.
     res["all"] = acc(rows)
-    res["trained_sets"] = acc([r for r in rows if not r[0].holdout])
-    res["unseen_sets"] = acc([r for r in rows if r[0].holdout])  # e.g. de/30th: index only, never trained on
-    res["by_lang"] = {lg: acc([r for r in rows if r[0].lang == lg]) for lg in sorted({r[0].lang for r in rows})}
-    res["by_set"] = {g: acc([r for r in rows if r[0].group == g]) for g in sorted({r[0].group for r in rows})}
-    res["reviewed_only"] = acc([r for r in rows if r[2] == "reviewed"])
+    res["in_index_only"] = acc([r for r in rows if r.in_index])
+    res["out_of_index"] = {"n": len(outside), "labels": outside}
+    if outside:
+        res["out_of_index"]["note"] = ("true card not in the manifest: counted as misses in all scores above and "
+                                       "below; add its set to the index (fetch.py) and run the pipeline again")
+        print(f"warning: {len(outside)} labels are not in the index and count as misses: "
+              f"{sorted(set(outside.values()))}")
+    res["trained_sets"] = acc([r for r in rows if not r.holdout])
+    res["unseen_sets"] = acc([r for r in rows if r.holdout])  # e.g. de/30th: index only, never trained on
+    res["by_lang"] = {lg: acc([r for r in rows if r.lang == lg]) for lg in sorted({r.lang for r in rows})}
+    res["by_set"] = {g: acc([r for r in rows if r.group == g]) for g in sorted({r.group for r in rows})}
+    res["reviewed_only"] = acc([r for r in rows if r.status == "reviewed"])
     pending = status.get("pending", 0)
     if rows and pending:
         res["note"] = (f"{pending} photos still pending review. Auto-accepted photos are pipeline-correct by "
                        "construction, so accuracy is an upper bound until all disagreements are reviewed. "
                        f"Lower bound (pending counted as errors): "
-                       f"{sum(P['top5_reranked'][0] == c.key for c, P, _ in rows) / (len(rows) + pending):.3f}")
+                       f"{sum(r.P['top5_reranked'][0] == r.key for r in rows) / (len(rows) + pending):.3f}")
     print(json.dumps(res, indent=1))
     save_json(work / "eval.json", res)
     if out_name:

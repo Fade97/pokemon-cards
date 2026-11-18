@@ -267,9 +267,11 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
             continue
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         sets = {s["id"]: s for s in meta["sets"]}
+        # Cards TCGdex has no image of are embedded from another source where one is known (packs.REF_FALLBACK,
+        # e.g. set mee); their pack entry keeps `image: null`.
         cards = [Card(f"{lang}/{c['id']}", c["id"], lang, c["setId"], sets[c["setId"]]["name"], c["localId"],
-                      int(sets[c["setId"]]["official"] or 0), c["name"], "", (), c["image"])
-                 for c in meta["cards"] if c["image"]]
+                      int(sets[c["setId"]]["official"] or 0), c["name"], "", (), url)
+                 for c in meta["cards"] if (url := packs.reference_image(lang, c))]
         cache_dir = DATA_DIR / "packs-embcache" / model_sha[:12]
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_json, cache_bin = cache_dir / f"{lang}.json", cache_dir / f"{lang}.bin"

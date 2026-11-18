@@ -1,0 +1,25 @@
+{
+ "train_samples": 3474,
+ "by_source": {
+  "tcgar": 567,
+  "forb": 2907
+ },
+ "val_tcgar_cards": 90,
+ "min_sim": 0.5,
+ "pseudo_labels_from": "mnv3_256_real",
+ "context": "288x384, 1.6x guide box",
+ "build": {
+  "forb_train": 3985,
+  "forb_label_learned": 1433,
+  "forb_label_where_learned_failed": 190,
+  "forb_label_refine": 1474,
+  "forb_val": 461,
+  "forb_train_rejected": 1078,
+  "forb_test": 1132,
+  "tcgar_test": 175,
+  "tcgar_train": 567,
+  "tcgar_val": 90,
+  "train_samples": 3474,
+  "val_samples": 90
+ }
+}

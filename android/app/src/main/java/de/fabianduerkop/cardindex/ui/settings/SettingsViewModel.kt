@@ -70,6 +70,12 @@ class SettingsViewModel(private val container: AppContainer) : ViewModel() {
         SettingsUiState(preferOwnPhotos = settings.preferOwnPhotos, priceSource = settings.priceSource),
     )
 
+    /** Debug builds only (#17): Pro without sign-in or billing, see DebugEntitlements. */
+    val debugPro: StateFlow<Boolean> =
+        settings.debugProFlow.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), settings.debugPro)
+
+    fun setDebugPro(value: Boolean) { settings.debugPro = value }
+
     fun setPreferOwnPhotos(value: Boolean) { settings.preferOwnPhotos = value }
 
     fun setPriceSource(value: PriceSourcePreference) { settings.priceSource = value }

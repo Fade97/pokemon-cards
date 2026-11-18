@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -28,6 +30,7 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -37,6 +40,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
+import de.fabianduerkop.cardindex.BuildConfig
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
@@ -51,7 +55,7 @@ import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.LanguagesSection
 
-/** Settings (mockup "Settings"): one card per topic. Licenses come later. */
+/** Settings (mockup "Settings"): one card per topic. About has the privacy policy; licenses come later. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun SettingsScreen(
@@ -163,6 +167,18 @@ fun SettingsScreen(
                     onClick = { scope.launch { DebugTools.addSampleData(context.appContainer) } },
                     modifier = Modifier.padding(top = 8.dp),
                 ) { Text(stringResource(R.string.collections_debug_sample)) }
+                val debugPro by viewModel.debugPro.collectAsStateWithLifecycle()
+                SettingsSection(stringResource(R.string.settings_debug_pro_title)) {
+                    SwitchRow(
+                        title = stringResource(R.string.settings_debug_pro),
+                        hint = stringResource(R.string.settings_debug_pro_hint),
+                        checked = debugPro,
+                        onCheckedChange = viewModel::setDebugPro,
+                    )
+                }
+            }
+            SettingsSection(stringResource(R.string.settings_about)) {
+                PrivacyPolicyLink()
             }
             PlaceholderText(
                 text = stringResource(R.string.settings_placeholder),
@@ -208,6 +224,32 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
             if (state.regionSource == PriceSource.CARDMARKET) R.string.settings_price_cardmarket else R.string.settings_price_tcgplayer,
         )
         ResultText(stringResource(R.string.settings_price_auto_hint, region))
+    }
+}
+
+/** Opens the privacy policy (#70) in the browser; the page picks German or English from the browser's language. */
+@Composable
+internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
+    val uriHandler = LocalUriHandler.current
+    val context = LocalContext.current
+    val url = BuildConfig.PRIVACY_POLICY_URL
+    val noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url)
+    TextButton(onClick = {
+        // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
+        // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
+        val opened = try {
+            uriHandler.openUri(url)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+        if (!opened) {
+            Toast.makeText(context, noBrowser, Toast.LENGTH_LONG).show()
+        }
+    }, modifier = modifier) {
+        Text(stringResource(R.string.settings_privacy_policy))
     }
 }
 

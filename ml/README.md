@@ -22,7 +22,7 @@ Windows) are optional. The core steps don't need them.
 
 | # | Command | What it does |
 |---|---|---|
-| 1 | `uv run python fetch.py` | Downloads the 5 TCGdex set lists, the card details and the 870 `high.png` images into `<data>/api` and `<data>/ref`, then writes `manifest.csv`. Uses at most 4 parallel requests and skips anything already cached. If `high.png` is missing on the CDN, it falls back to `high.webp`. |
+| 1 | `uv run python fetch.py` | Downloads the 5 TCGdex set lists, the card details and the 870 `high.png` images into `<data>/api` and `<data>/ref`, then writes `manifest.csv`. Uses at most 4 parallel requests and skips anything already cached. If `high.png` is missing on the CDN, it falls back to `high.webp`. Set `mee` has no TCGdex images; its references come from the malie.io export (`packs.ref_fallback_url`, #60). |
 | 2 | `uv run python synth.py` | Renders the held-out synthetic **test** set: 5 photos per card, seed 20261116, OpenCV on the CPU, in `<data>/synth/test`. `--name val --per-card 1 --seed 99` renders the val set. |
 | 3 | `uv run python detect.py [--name val]` | Runs classic-CV card detection and rectification. Measures the found rate, IoU and corner error against the true placement. Writes the crops to `<data>/synth/<name>-crops` and the summary to `results/detection_test.json`. |
 | 4 | `uv run python baselines.py` | Zero-shot baselines on the test crops: pHash and pretrained MobileNetV3-L, EfficientNet-Lite0/B0 and DINOv2-S. Writes `results/baselines.json`. |
@@ -37,9 +37,11 @@ Windows) are optional. The core steps don't need them.
 | 13 | `python eval_forb.py map`, then `eval --detector learned` | FORB real photos (EN, eBay) against the full EN pack gallery from `build_packs.py embed`. Images in `<data>/external/forb` (FORB zip, `animated_cards/` only). Writes `results/forb_<model>_<detector>.json`. |
 | 14 | `python eval_tcgar.py` | TCG-AR real set: corner error of both detectors per card plus recognition over the EN gallery. Images in `<data>/external/tcg-ar`. Writes `results/tcgar_<model>.json`. |
 | 14b | `python calib_corner_gate.py` | Calibrates the live-scan "card present" gate of the learned corners (score and quad shape) on TCG-AR cards, phone photos, TCG-AR windows without a card and synthetic backgrounds. Writes `results/corner_gate_calibration.json`. |
+| 14c | `python corner_analysis.py tcgar`, `forb`, `summary`, `compare`, `sheets` | Corner error analysis (#59): every photo is recognised with the learned quad, a second detector pass on the guide box around it, the whole photo (FORB) and the annotated corners (TCG-AR). A miss that another crop gets right is a corner failure. Writes `results/corner_analysis_<model>.json`; rows (incl. quads, the FORB pseudo-labels) and contact sheets stay in `<data>`. |
 | 15 | `uv run python realset.py gallery`, `realset.py twins`, then `realset.py build` | Real-photo training data: card roles (test = `split_of` holdout, never trained; val = 10 % of the rest; train), FORB/TCG-AR train and val photos cropped exactly like the evaluators (learned corners, rectify, upright), and the EN gallery as 224 px uint8 for validation during training. `twins` lists same-art twins and reprints of test/val cards (language twins by number, reprints by baseline cos ≥ 0.9); they get no class. Writes `<data>/real-train/`. |
 | 16 | `uv run python train.py --run mnv3_256_forb --realistic --init mnv3_256_real --real --epochs 10 --lr 5e-4` | Fine-tunes on real crops (25 % of each batch, light augmentation) plus synthetic samples of a grown class set (every EN card with a real train photo). Selects the epoch on the real val crops against the full EN gallery; `val_real.py --run <run>` gives the same score for any checkpoint; `leak_check.py --run <run>` checks classes, crops and test photos against the split. |
-| 17 | `realset.py build --all-cards`, then `train.py --run mnv3_256_prod --realistic --init mnv3_256_real --real --all-cards --epochs 6 --lr 5e-4` | Production model (#58): the recipe of step 16 without any holdout. Every card is a class and every FORB/TCG-AR photo is trained on. Its crops and samples go to `<data>/real-train/all/`, so step 15's data stays as it was. There is no held-out real set in this mode, so the run trains a fixed number of epochs and keeps the last checkpoint. Use step 16 to measure the recipe; this step only ships it. |
+| 17 | `powershell -File run_corner_finetune.ps1` | Corner fine-tune on real photos (#59), end to end: `corner_analysis.py` rows, `corner_realset.py build` (TCG-AR annotated corners + confident FORB pseudo-labels, train-role cards only; TCG-AR val cards for selection), `train_corners.py --real --init corners_mnv3`, WSL export, test-split evaluation and `corner_analysis.py compare`. |
+| 18 | `realset.py build --all-cards`, then `train.py --run mnv3_256_prod --realistic --init mnv3_256_real --real --all-cards --epochs 6 --lr 5e-4` | Production model (#58): the recipe of step 16 without any holdout. Every card is a class and every FORB/TCG-AR photo is trained on. Its crops and samples go to `<data>/real-train/all/`, so step 15's data stays as it was. There is no held-out real set in this mode, so the run trains a fixed number of epochs and keeps the last checkpoint. Use step 16 to measure the recipe; this step only ships it. |
 
 `trainset.py` is the older CPU pre-render of training crops. It is kept for reference, but training no longer
 uses it.
@@ -78,6 +80,17 @@ uv run python export_safetensors.py --run corners_mnv3
 
 All scripts load checkpoints with `torch.load(..., weights_only=True)`; checkpoints hold only tensors and plain
 types (str, int, list) so that this works.
+
+### Open dataset (ADR 0008, #20)
+
+`dataset/` builds a release of the open dataset: the reference manifest (card ids + image URLs, no images), a
+standalone `download.py` that rebuilds the images, and the CC0 user scans from a copy of the backend's
+contributions. It builds files only and never uploads. Steps, layout and privacy rules: [docs/dataset.md](../docs/dataset.md).
+
+```sh
+python -m dataset.release --version 2026.11.0 --out ../dataset-release/v2026.11.0 --manifest manifest.csv
+uv run --no-project --with pytest pytest tests/test_dataset.py
+```
 
 ### Learned corner detector: exact I/O
 
