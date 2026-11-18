@@ -1,10 +1,15 @@
 // Nightly price import on Vulcan: import into the local SQLite database, then publish the price files.
 //
 //   node dist/importer.mjs [--data <dir>] [--langs en,ja] [--sets-per-night 100] [--no-import] [--no-publish]
+//                          [--rebuild-history]
 //
 // <data> (default ~/.local/share/pokemon-cards-prices) holds `prices.db` and `files/`, a local copy of
 // everything published. With R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET set, the files
 // also go to R2, where the Worker reads them.
+//
+// After the prices, the history files of the current month (Pro, #17) are rebuilt from the snapshots in `files/`.
+// `--rebuild-history` rebuilds every month instead, e.g. after a format change; with `--no-import --no-publish` it
+// does only that.
 //
 // Exit code 1 when a top-level job (nightly, tcgdex:<lang>, cardmarket, tcgcsv) or the publish failed, so the
 // systemd unit shows up as failed; a failed single set or group is only logged and recorded in `import_runs`.
@@ -14,6 +19,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { parseArgs } from "node:util";
 import { SqliteDb } from "./db";
+import { monthsToRebuild, publishHistory, snapshotMonths } from "./history";
 import { IMPORT_LANGS, LocalQueue, startNightly } from "./jobs/nightly";
 import { DirSink, publish, R2Sink, type Sink } from "./publish";
 
@@ -24,6 +30,7 @@ const { values: args } = parseArgs({
     "sets-per-night": { type: "string", default: "100" },
     "no-import": { type: "boolean", default: false },
     "no-publish": { type: "boolean", default: false },
+    "rebuild-history": { type: "boolean", default: false },
   },
 });
 
@@ -61,8 +68,9 @@ async function main(): Promise<number> {
     if (runs.some((r) => r.status === "failed")) exitCode = 1;
   }
 
-  if (!args["no-publish"]) {
-    const sinks: Sink[] = [new DirSink(join(args.data, "files"))];
+  const filesDir = join(args.data, "files");
+  const sinks: Sink[] = [new DirSink(filesDir)];
+  if (!args["no-publish"] || args["rebuild-history"]) {
     const { R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, R2_BUCKET } = process.env;
     if (R2_ENDPOINT && R2_ACCESS_KEY_ID && R2_SECRET_ACCESS_KEY && R2_BUCKET) {
       sinks.push(
@@ -76,10 +84,27 @@ async function main(): Promise<number> {
     } else {
       log("publish: no R2 credentials, writing local files only");
     }
+  }
+
+  let published = false;
+  const publishedAt = new Date();
+  if (!args["no-publish"]) {
     try {
-      log(`publish: ${await publish(db, sinks, new Date())}`);
+      log(`publish: ${await publish(db, sinks, publishedAt)}`);
+      published = true;
     } catch (e) {
       log(`publish failed: ${e instanceof Error ? e.message : String(e)}`);
+      exitCode = 1;
+    }
+  }
+
+  // After the publish, so today's snapshot is in `files/`. The current prices never wait for the history.
+  if (published || args["rebuild-history"]) {
+    try {
+      const months = args["rebuild-history"] ? await snapshotMonths(filesDir) : monthsToRebuild(publishedAt);
+      log(`history: ${await publishHistory(filesDir, sinks, months, new Date())}`);
+    } catch (e) {
+      log(`history failed: ${e instanceof Error ? e.message : String(e)}`);
       exitCode = 1;
     }
   }

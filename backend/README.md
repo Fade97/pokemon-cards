@@ -12,7 +12,8 @@ Licensed under [AGPLv3](LICENSE).
 ```
 Vulcan, 05:30 Europe/Berlin (systemd timer)                 Cloudflare
 importer ─► prices.db (SQLite) ─► publish ─► R2 pokemon-cards-prices ◄── Worker ◄── app
-   TCGdex, Cardmarket guide, TCGCSV          current/<set>.json, current/meta.json, snapshots/YYYY/MM/DD.json.gz
+   TCGdex, Cardmarket guide, TCGCSV          current/<set>.json, current/meta.json, snapshots/YYYY/MM/DD.json.gz,
+                                             history/<set>/YYYY-MM.json (Pro)
 ```
 
 ## Status
@@ -35,6 +36,7 @@ skipped, so one broken set or group never costs the whole night.
 | 3 | `cardmarket` | Streams the ~16 MB `price_guide_6.json` item by item and upserts the rows of mapped products. A `0` in the guide counts as no price. |
 | 3 | `tcgcsv-groups` → `tcgcsv-group` | One job per TCGplayer group (EN Pokémon, category 3): fills missing TCGplayer IDs by set code + collector number (the name decides ties), then upserts the prices of mapped products. |
 | 4 | publish | Writes `current/<set>.json` per set, the daily snapshot and `current/meta.json` (last) to every sink: the local `files/` directory always, R2 when credentials are set. |
+| 5 | history | Rebuilds `history/<set>/YYYY-MM.json` for the current month (and the previous one on the 1st–3rd) from the snapshots in `files/snapshots/`, to the same sinks. See [Price history](#price-history-pro). |
 
 Mapping priority per market: a row in `mapping_overrides`, then TCGdex's own ID, then a set + number match. A match
 stays until TCGdex has an ID of its own. `products_singles_6.json` is not imported: it has no collector numbers, so
@@ -53,6 +55,8 @@ systemctl --user list-timers pokemon-cards-prices.timer
 journalctl --user -u pokemon-cards-prices.service -n 50
 sqlite3 ~/.local/share/pokemon-cards-prices/prices.db \
   "SELECT job, status, detail FROM import_runs ORDER BY id DESC LIMIT 20"
+# Rebuild every month's history files from the local snapshots (after a format change or a failed night):
+node ~/.local/share/pokemon-cards-prices/app/importer.mjs --no-import --no-publish --rebuild-history
 # A manual mapping fix, applied at the next run:
 sqlite3 ~/.local/share/pokemon-cards-prices/prices.db \
   "INSERT INTO mapping_overrides VALUES ('sv03.5-025', 733620, NULL, 'why', datetime('now'))"
@@ -70,6 +74,7 @@ and never written to disk.
 | `GET /health` | `{ "ok": true, "pricesGeneratedAt", "cardmarketPriceDate", "tcgplayerPriceDate" }`; `503` with `ok: false` when the files or either source's prices are older than 72 h, or missing |
 | `GET /v1/prices/:tcgdexId` | Prices of one card; `404` if the importer doesn't know it. Cached for an hour, at the edge and in the client. |
 | `POST /v1/prices` with `{ "ids": [...] }` | `{ "prices": { id: … }, "missing": [ids] }` for up to 100 cards |
+| `GET /v1/history/<YYYY-MM>?sets=<set>,…` with `Authorization: Bearer <token>` | **Pro.** `{ "month", "sets": { set: <history file> \| null } }` for up to 20 sets; `401` without a token, `403` without Pro, `400` for a bad month or set list. See [Price history](#price-history-pro). |
 | `GET /v1/packs/catalog.json` | Language-pack catalog ([`docs/packs.md`](../docs/packs.md)), cached 5 min |
 | `GET /v1/packs/<lang>/<file>`, `GET /v1/packs/models/<file>` | A pack or model file from R2 `PACKS`, cached for a year (versioned names, never overwritten). `ETag`/`If-None-Match` → `304`, a single `Range: bytes=…` → `206` (`416` past the end), `HEAD` gives the size. |
 | any, over the rate limit | `429` with `Retry-After: 60` |
@@ -98,6 +103,39 @@ cards only), and `holo` is `null` when the guide has no foil price.
 - `GET /v1/prices/:id` answers are kept in Cloudflare's edge cache for an hour (Cache API).
 - A request reads one R2 file per set it touches; a set file is up to ~120 KB. That keeps a 100-card batch well
   inside the free plan's CPU budget when the cards come from a few sets.
+
+## Price history (Pro)
+
+Issue #17, ADR 0007. The importer derives one file per set and month from the daily snapshots
+([`importer/history.ts`](importer/history.ts), format `PriceHistoryFile` in [`src/price-data.ts`](src/price-data.ts)):
+
+```json
+{ "version": 1, "set": "sv03.5", "month": "2026-11", "generatedAt": "2026-11-18T04:40:00.000Z",
+  "days": ["2026-11-17", "2026-11-18"],
+  "cards": { "sv03.5-025": { "cardmarket": { "normal": [120, 125], "holo": [240, null] },
+                             "tcgplayer": { "Normal": [80, 82] } } } }
+```
+
+- One value per card, market, printing and day: the headline price the app shows (Cardmarket `trend`, TCGplayer
+  `market`) in **cents**, aligned with `days`; `null` is no price that day. Series without any price are left out.
+- The snapshots stay the source of truth. The history files can be deleted and rebuilt (`--rebuild-history`).
+- Size: ~15–20 bytes per card, printing and day, so a 200-card set is ~125 KB a month (~30–40 KB compressed on the
+  wire) and all cards ~150–200 MB a year in R2.
+- The Worker streams the requested files into one answer without parsing them, so its CPU time doesn't grow with
+  the file size. Set ids are `shardOf` of the card id, which the app computes the same way.
+
+**Who is Pro** ([`src/entitlements.ts`](src/entitlements.ts)): until sign-in and billing exist (#16), the Worker
+secret `PRO_TEST_TOKENS` lists the SHA-256 hex digests of tester tokens (32–128 URL-safe characters, sent as
+`Authorization: Bearer`). Without the secret nobody is Pro. #16 replaces the implementation behind the same
+`Entitlements` interface.
+
+```sh
+token=$(openssl rand -hex 32)     # give this to the tester (app: cardindex.proTestToken)
+printf %s "$token" | sha256sum | cut -d' ' -f1 | pnpm exec wrangler secret put PRO_TEST_TOKENS
+```
+
+`wrangler secret put` replaces the whole list, so pass all digests at once (comma-separated). Locally, put
+`PRO_TEST_TOKENS=<digest>` into `.dev.vars` for `pnpm run dev`.
 
 ## Scan contributions
 
@@ -135,7 +173,7 @@ today `cc0-1`).
 ## Storage
 
 - **D1 `DB`**: only `contributions` (schema in [`migrations/`](migrations/)); prices live in R2.
-- **R2 `PRICES`** (`pokemon-cards-prices`): `current/` price files and `snapshots/`, written by the importer.
+- **R2 `PRICES`** (`pokemon-cards-prices`): `current/` price files, `snapshots/` and `history/` (Pro), written by the importer.
 - **R2 `PACKS`** (`pokemon-cards-packs`): language packs (model, reference index, card DB, deltas), written by
   [`ml/build_packs.py`](../ml/README.md#language-packs) with `wrangler r2 object put`, never by the Worker.
 
