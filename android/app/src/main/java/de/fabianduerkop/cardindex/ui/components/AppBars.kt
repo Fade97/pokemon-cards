@@ -2,9 +2,16 @@
 package de.fabianduerkop.cardindex.ui.components
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -21,6 +28,7 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.paneTitle
@@ -84,9 +92,9 @@ fun TopLevelScaffold(
     actions: @Composable RowScope.() -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        modifier = modifier.semantics { paneTitle = title },
-        containerColor = MaterialTheme.colorScheme.background,
+    PearlScaffold(
+        title = title,
+        modifier = modifier,
         topBar = {
             LumifoilTopAppBar(
                 title = { if (wordmark) LumifoilWordmark() else AppBarTitle(title) },
@@ -108,9 +116,9 @@ fun DetailScaffold(
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
-    Scaffold(
-        modifier = modifier.semantics { paneTitle = title },
-        containerColor = MaterialTheme.colorScheme.background,
+    PearlScaffold(
+        title = title,
+        modifier = modifier,
         topBar = {
             LumifoilTopAppBar(
                 title = { AppBarTitle(title) },
@@ -121,6 +129,44 @@ fun DetailScaffold(
         bottomBar = bottomBar,
         content = content,
     )
+}
+
+/**
+ * A Scaffold with the top bar at the start of its body instead of in the `topBar` slot (#120). Keyboard Tab follows
+ * the order in which a layout places its children, and Scaffold places the body before the top bar, so Tab went
+ * screen content → header → navigation tabs. Here the header comes first, then the content, then the bottom bar
+ * (Scaffold places that after the body) and the app's navigation bar.
+ *
+ * [content] gets the same padding as from Scaffold, minus the top: the bar pads for the status bar itself and the
+ * content starts below it. The bar's part of the top insets counts as consumed, as it did in the `topBar` slot.
+ */
+@Composable
+private fun PearlScaffold(
+    title: String,
+    modifier: Modifier,
+    topBar: @Composable () -> Unit,
+    bottomBar: @Composable () -> Unit = {},
+    content: @Composable (PaddingValues) -> Unit,
+) {
+    Scaffold(
+        modifier = modifier.semantics { paneTitle = title },
+        containerColor = MaterialTheme.colorScheme.background,
+        bottomBar = bottomBar,
+    ) { padding ->
+        val direction = LocalLayoutDirection.current
+        Column(Modifier.fillMaxSize()) {
+            topBar()
+            Box(Modifier.weight(1f).fillMaxWidth().consumeWindowInsets(PaddingValues(top = padding.calculateTopPadding()))) {
+                content(
+                    PaddingValues(
+                        start = padding.calculateStartPadding(direction),
+                        end = padding.calculateEndPadding(direction),
+                        bottom = padding.calculateBottomPadding(),
+                    ),
+                )
+            }
+        }
+    }
 }
 
 /**

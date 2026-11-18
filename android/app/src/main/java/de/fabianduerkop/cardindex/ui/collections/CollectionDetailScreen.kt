@@ -117,8 +117,8 @@ fun CollectionDetailScreen(
                         memberships = emptyList(),
                         showCard = true,
                         onClick = { onOpenCard(item.card.id, item.card.language) },
-                        trailing = {
-                            QuoteColumn(state.quotes[item.copy.id], languageName(item.card.language), state.value?.currency)
+                        trailing = { stacked ->
+                            QuoteColumn(state.quotes[item.copy.id], languageName(item.card.language), state.value?.currency, stacked)
                         },
                     )
                 }

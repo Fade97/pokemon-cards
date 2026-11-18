@@ -9,6 +9,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -33,12 +34,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -313,7 +316,11 @@ private fun OwnPhotoField(photo: File?, onPick: () -> Unit, onRemove: () -> Unit
 
 /**
  * One copy in a list: "2× Holo, LP" with its collections and purchase date, and the purchase price on the right.
- * With [showCard] the row leads with the collector number and card name, for lists that mix cards.
+ * With [showCard] the row leads with the collector number and card name, for lists that mix cards. [trailing] replaces
+ * the purchase price; it is told whether the row is stacked, so it can align to the start.
+ *
+ * On a narrow row ([isNarrowRow], e.g. 2x font size, #121) the number, the details and the price go under each other
+ * at full width instead of side by side, where the details column shrank to one or two words per line.
  */
 @Composable
 internal fun CopyRow(
@@ -321,70 +328,101 @@ internal fun CopyRow(
     memberships: List<String>,
     showCard: Boolean,
     onClick: () -> Unit,
-    trailing: @Composable (() -> Unit)? = null,
+    trailing: @Composable ((stacked: Boolean) -> Unit)? = null,
 ) {
     val copy = item.copy
-    Column(
+    val fontScale = LocalDensity.current.fontScale
+    BoxWithConstraints(
         Modifier
             .fillMaxWidth()
             .focusRing(MaterialTheme.shapes.small, gap = (-2).dp)
-            .clickable(role = Role.Button, onClick = onClick)
-            .padding(horizontal = ScreenPadding),
+            .clickable(role = Role.Button, onClick = onClick),
     ) {
-        Row(
-            Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            if (showCard) {
-                CollectorNumber(
-                    localId = item.card.localId,
-                    printedTotal = item.set.printedTotal,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(end = Spacing.md),
-                )
-            }
-            Column(Modifier.weight(1f)) {
-                Text(
-                    text = if (showCard) item.card.name else stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)),
-                    style = MaterialTheme.typography.titleSmall,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                val details = buildList {
-                    if (showCard) {
-                        add(item.set.name)
-                        add(stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)))
-                    } else {
-                        add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_only_all_cards) })
-                    }
-                    add(languageName(item.card.language))
-                    copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
+        val stacked = isNarrowRow(maxWidth, fontScale)
+        Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding)) {
+            Row(
+                Modifier.fillMaxWidth().heightIn(min = 56.dp).padding(vertical = Spacing.md),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                if (showCard && !stacked) {
+                    CollectorNumber(
+                        localId = item.card.localId,
+                        printedTotal = item.set.printedTotal,
+                        style = MaterialTheme.typography.titleMedium,
+                        modifier = Modifier.padding(end = Spacing.md),
+                    )
                 }
-                // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
-                Text(
-                    details.joinToString(", "),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            if (trailing != null) {
-                trailing()
-            } else {
-                val paid = copy.purchasePriceCents
-                val currency = copy.purchaseCurrency
-                if (paid != null && currency != null) {
-                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
-                        Text(Money.format(paid, currency), style = MaterialTheme.typography.titleSmall)
-                        Text(
-                            stringResource(R.string.collections_paid_each),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.End,
+                Column(Modifier.weight(1f)) {
+                    if (showCard && stacked) {
+                        CollectorNumber(
+                            localId = item.card.localId,
+                            printedTotal = item.set.printedTotal,
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
+                    Text(
+                        text = if (showCard) item.card.name else stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)),
+                        style = MaterialTheme.typography.titleSmall,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    val details = buildList {
+                        if (showCard) {
+                            add(item.set.name)
+                            add(stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)))
+                        } else {
+                            add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_only_all_cards) })
+                        }
+                        add(languageName(item.card.language))
+                        copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
+                    }
+                    // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
+                    Text(
+                        details.joinToString(", "),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    if (stacked) {
+                        Box(Modifier.padding(top = Spacing.xs)) { CopyRowPrice(copy, trailing, stacked = true) }
+                    }
                 }
+                if (!stacked) CopyRowPrice(copy, trailing, stacked = false)
             }
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
+
+/** The trailing price of a [CopyRow]: the caller's [trailing], else what the copy was bought for. */
+@Composable
+private fun CopyRowPrice(copy: OwnedCopyEntity, trailing: @Composable ((stacked: Boolean) -> Unit)?, stacked: Boolean) {
+    if (trailing != null) {
+        trailing(stacked)
+        return
+    }
+    val paid = copy.purchasePriceCents ?: return
+    val currency = copy.purchaseCurrency ?: return
+    if (stacked) {
+        Text(
+            stringResource(R.string.collections_paid_each_inline, Money.format(paid, currency)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    } else {
+        Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
+            Text(Money.format(paid, currency), style = MaterialTheme.typography.titleSmall)
+            Text(
+                stringResource(R.string.collections_paid_each),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.End,
+            )
+        }
+    }
+}
+
+/**
+ * Whether a list row is too narrow for a side column: its width at 1x font size ([width] / [fontScale]) is under
+ * 300 dp. 411 dp at 1.3x (316) keeps the side column; 360 dp at 1.3x and anything at 2x stack.
+ */
+internal fun isNarrowRow(width: Dp, fontScale: Float): Boolean = width / fontScale < 300.dp
