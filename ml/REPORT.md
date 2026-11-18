@@ -578,8 +578,8 @@ A miss that another crop gets right counts as a corner failure. Source: `results
 | **test split** | 1,132 | **72.6** | **76.0** | **77.8** | 83.2 | 54.7 |
 | test, hard | 80 | 23.8 | 30.0 | 31.2 | 37.5 | 15.0 |
 
-- **The oracle overstates the corner share.** When the two passes give nearly the same quad (shift < 1 %),
-  6.1 % of the test photos still flip between right and wrong: that is embedding noise. A "best of 4 crops"
+- **The oracle overstates the corner share.** Of the 702 test photos where the two passes give nearly the same
+  quad (shift < 1 %), 6.1 % still flip between right and wrong: that is embedding noise. A "best of 4 crops"
   oracle profits from that noise, so read 83.2 as a loose upper bound, not as the corner share of the 310 test
   misses.
 - **Geometric suspects** are photos where the learned quad is not card-shaped or the second pass moves it by
@@ -607,7 +607,7 @@ A miss that another crop gets right counts as a corner failure. Source: `results
   These are 13 % of the FORB test photos, recognised at 30 %.
 - **What a fine-tune can gain is small.**
   - TCG-AR (guide framing, like the app): at most 5.8 pp with `mnv3_256_forb`.
-  - FORB: the refine pass already recovers about a third of the suspects without any training.
+  - FORB: the refine pass already lifts the suspects from 30.0 to 46.7 % top-1 without any training.
   - The FORB landscape failures come mostly from the evaluator feeding the whole photo, which the app never does.
 - **The pseudo-labels carry little new signal.** 2,907 FORB train photos pass the filter, but only 190 of them
   are photos where the learned crop failed. The other labels mostly confirm what the detector already does.
