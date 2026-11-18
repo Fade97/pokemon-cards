@@ -250,6 +250,51 @@ class BackupTest {
     }
 
     @Test
+    fun csv_formulaLikeTextIsMarkedAsTextAndComesBackUnchanged() = runTest {
+        seedSource()
+        val repo = collections(source)
+        val formula = repo.createCollection("=HYPERLINK(\"http://x\")", null)
+        repo.saveCopy(source.copyDao().all().first { it.cardId == "sv03.5-006" }, setOf(formula))
+        val csv = export(source, BackupFileType.CSV)
+        // #131: no cell starts with a formula character.
+        assertFalse(Csv.parse(csv).flatten().any { it.isNotEmpty() && it[0] in "=+-@" })
+        assertTrue(csv.contains("'=HYPERLINK"))
+
+        target.seedCatalog()
+        import(target, csv)
+        assertTrue(target.collectionDao().allCustom().any { it.name == "=HYPERLINK(\"http://x\")" })
+        assertEquals("'plain", Csv.unguard("'plain")) // a real leading quote stays
+    }
+
+    @Test
+    fun import_rejectsQuantitiesBelowOne_andLeavesTheDataAsItWas() = runTest {
+        target.seedCatalog()
+        val row = { q: Int ->
+            "card_id,language,set_id,number,name,quantity\r\nsv03.5-001,en,sv03.5,001,Bulbasaur,$q\r\n"
+        }
+        for (q in listOf(0, -3)) {
+            val e = assertThrows(BackupFormatException::class.java) { BackupCsv.read(row(q), clock.now) }
+            assertTrue(e.message!!, e.message!!.contains("quantity $q"))
+        }
+        val json = """
+            {"format":"cardindex-backup","version":1,"sets":[],"cards":[],"collections":[],
+             "copies":[{"uuid":"6f1c3c2e-6a43-4c39-9bb6-0f5f8a1e2b3c","cardId":"sv03.5-001","cardLanguage":"en","quantity":-1,
+               "finish":"NORMAL","edition":"UNLIMITED","createdAt":"2026-01-01T00:00:00Z","updatedAt":"2026-01-01T00:00:00Z"}]}
+        """.trimIndent()
+        assertThrows(BackupFormatException::class.java) { BackupJson.read(json) }
+        assertEquals(emptyList<OwnedCopyEntity>(), target.copyDao().all())
+    }
+
+    @Test
+    fun import_refusesAFileOverTheCap() {
+        val e = assertThrows(BackupFormatException::class.java) {
+            BackupRepository.readCapped(ByteArray(2048) { 'a'.code.toByte() }.inputStream(), max = 1024)
+        }
+        assertTrue(e.message!!.contains("larger than"))
+        assertEquals("abc", BackupRepository.readCapped("abc".byteInputStream(), max = 1024))
+    }
+
+    @Test
     fun import_skipsCopiesOfCardsNobodyKnows() = runTest {
         val json = """
             {"format":"cardindex-backup","version":1,"sets":[],"cards":[],"collections":[],

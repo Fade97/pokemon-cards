@@ -1,12 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.data.backup
 
+import android.database.SQLException
 import androidx.room.withTransaction
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionCopyCrossRef
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.model.CollectionKind
+import java.io.ByteArrayOutputStream
 import java.io.InputStream
 import java.io.OutputStream
 import java.time.Clock
@@ -75,9 +77,12 @@ class BackupRepository(
         withContext(Dispatchers.IO) { out.bufferedWriter(Charsets.UTF_8).use { it.write(text) } }
     }
 
-    /** Reads a JSON or CSV backup (told apart by content, since SAF names and MIME types are unreliable). */
+    /**
+     * Reads a JSON or CSV backup (told apart by content, since SAF names and MIME types are unreliable). A file over
+     * [MAX_IMPORT_BYTES] is refused before it is read into memory (#127).
+     */
     suspend fun import(input: InputStream): ImportResult {
-        val text = withContext(Dispatchers.IO) { input.bufferedReader(Charsets.UTF_8).use { it.readText() } }
+        val text = withContext(Dispatchers.IO) { input.use { readCapped(it) } }
         return if (text.trimStart('\uFEFF', ' ', '\n', '\r', '\t').startsWith("{")) {
             import(BackupJson.read(text))
         } else {
@@ -87,7 +92,12 @@ class BackupRepository(
     }
 
     suspend fun import(data: BackupData, collectionNamesByCopy: Map<String, List<String>> = emptyMap()): ImportResult {
-        val result = importInTransaction(data, collectionNamesByCopy)
+        // The transaction rolls back on a rejected row, so a damaged file leaves the data as it was (#127).
+        val result = try {
+            importInTransaction(data, collectionNamesByCopy)
+        } catch (e: SQLException) {
+            throw BackupFormatException("Backup doesn't fit this app's data: ${e.message}", e)
+        }
         if (result.alertsAdded > 0) onAlertsImported()
         return result
     }
@@ -189,4 +199,21 @@ class BackupRepository(
     private fun OwnedCopyEntity.sameContentAs(other: OwnedCopyEntity): Boolean =
         copy(id = 0, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH) ==
             other.copy(id = 0, createdAt = Instant.EPOCH, updatedAt = Instant.EPOCH)
+
+    companion object {
+        /** Far above any real collection (10,000 copies export to about 5 MB of JSON), far below what fills memory. */
+        const val MAX_IMPORT_BYTES = 50 * 1024 * 1024
+
+        internal fun readCapped(input: InputStream, max: Int = MAX_IMPORT_BYTES): String {
+            val out = ByteArrayOutputStream()
+            val buffer = ByteArray(64 * 1024)
+            while (true) {
+                val n = input.read(buffer)
+                if (n < 0) break
+                if (out.size() + n > max) throw BackupFormatException("File is larger than ${max / (1024 * 1024)} MB")
+                out.write(buffer, 0, n)
+            }
+            return out.toString(Charsets.UTF_8.name())
+        }
+    }
 }
