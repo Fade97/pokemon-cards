@@ -24,7 +24,7 @@ sys.path.insert(0, str(ML))  # the ml/ scripts import each other as top-level mo
 from dataset import download, export_manifest, export_scans, release, sources  # noqa: E402
 
 TCGDEX = "https://assets.tcgdex.net"
-MALIE = "https://cdn.malie.io/file/malie-io/tcgl/cards/png"
+LIMITLESS = "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci"
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -37,7 +37,7 @@ def write_manifest(path: Path) -> Path:
         ("de/30th-001", "30th-001", "de", "30th", "30 Jahre", "001", "Bisasam", "Pokemon",
          f"{TCGDEX}/de/sv/30th/001", "1"),
         ("en/mee-001", "mee-001", "en", "mee", "Mega Evolution Energy", "001", "Grass Energy", "Energy",
-         f"{MALIE}/en/mee/mee_en_001_std.png", "1"),
+         f"{LIMITLESS}/MEE/MEE_001_R_EN_LG.png", "1"),
     ]
     with open(path, "w", encoding="utf-8", newline="") as f:
         w = csv.writer(f)
@@ -145,8 +145,8 @@ def test_resolve_tcgdex_base_and_full_urls():
     src, primary, alt = sources.resolve(f"{TCGDEX}/de/sv/sv03.5/001")
     assert (src.id, primary, alt) == ("tcgdex", f"{TCGDEX}/de/sv/sv03.5/001/high.png",
                                       f"{TCGDEX}/de/sv/sv03.5/001/high.webp")
-    src, primary, alt = sources.resolve(f"{MALIE}/de/mee/mee_de_001_std.png")
-    assert (src.id, primary, alt) == ("malie", f"{MALIE}/de/mee/mee_de_001_std.png", "")
+    src, primary, alt = sources.resolve(f"{LIMITLESS}/MEE/MEE_001_R_DE_LG.png")
+    assert (src.id, primary, alt) == ("limitless", f"{LIMITLESS}/MEE/MEE_001_R_DE_LG.png", "")
 
 
 def test_resolve_refuses_unknown_hosts_and_http():
@@ -166,8 +166,8 @@ def test_export_merges_manifest_and_pack(tmp_path):
     assert by_key["en/sv03.5-001"]["split"] == "train"      # manifest wins over the pack
     assert by_key["de/30th-001"]["split"] == "holdout"
     assert by_key["en/sv03.5-002"]["split"] == "index"
-    assert by_key["en/mee-001"]["source"] == "malie"        # manifest URL used, pack has image null
-    assert list(used) == ["malie", "tcgdex"]
+    assert by_key["en/mee-001"]["source"] == "limitless"        # manifest URL used, pack has image null
+    assert list(used) == ["limitless", "tcgdex"]
 
 
 def test_export_langs_filter_and_checksums(tmp_path):
@@ -185,7 +185,7 @@ def test_export_writes_no_private_paths(tmp_path):
     export_manifest.write(rows, used, tmp_path / "out")
     text = (tmp_path / "out" / "cards.csv").read_text(encoding="utf-8")
     assert str(tmp_path) not in text and "pokemon-cards-data" not in text
-    assert set(json.loads((tmp_path / "out" / "sources.json").read_text(encoding="utf-8"))) == {"tcgdex", "malie"}
+    assert set(json.loads((tmp_path / "out" / "sources.json").read_text(encoding="utf-8"))) == {"tcgdex", "limitless"}
     bad = {**rows[0], "name": r"D:\AI\pokemon-cards-data\ref\en\x.png"}
     with pytest.raises(ValueError, match="private path"):
         export_manifest.check_public([bad])
@@ -593,7 +593,7 @@ def test_release_build(tmp_path, backend):
         assert hashlib.sha256((out / rel).read_bytes()).hexdigest() == digest
     readme = (out / "README.md").read_text(encoding="utf-8")
     assert "$" not in readme.replace("$ ", "")         # every placeholder filled
-    assert "CC0 1.0" in readme and "malie.io" in readme and "Version **2026.11.0**" in readme
+    assert "CC0 1.0" in readme and "Limitless TCG" in readme and "Version **2026.11.0**" in readme
     for p in out.rglob("*"):
         if p.is_file() and p.suffix in (".csv", ".json", ".md"):
             text = p.read_text(encoding="utf-8")

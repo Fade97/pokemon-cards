@@ -38,7 +38,7 @@ SETS = [
     ("de", "me04", True),   # "Wachsendes Chaos": German twin of the trained en/me04 (language-twin test)
     ("de", "me03", True),   # "Optimale Ordnung": German twin of the trained en/me03
     # "Mega Evolution Energy": basic energies, 009-016 with the 30th stamp (#60). TCGdex has no images of them;
-    # fetch.py takes the reference images from packs.ref_fallback_url (malie.io).
+    # fetch.py takes the reference images from packs.ref_fallback_url (Limitless TCG).
     ("en", "mee", True),
     ("de", "mee", True),
 ]

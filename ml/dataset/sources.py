@@ -2,7 +2,7 @@
 """Where third-party reference images come from, and on what terms (ADR 0008/0009: URLs only, never re-hosted).
 
 A manifest image URL is matched to a source by its host. An export refuses a URL whose host is not listed here, so
-a new image source (like malie.io for set MEE, #60) cannot slip into a release without its terms being written down.
+a new image source (like Limitless TCG for set MEE, #60) cannot slip into a release without its terms being written down.
 """
 from __future__ import annotations
 
@@ -47,16 +47,17 @@ SOURCES: dict[str, Source] = {s.id: s for s in [
         base_suffixes=("/high.png", "/high.webp"),
     ),
     Source(
-        id="malie",
-        name="malie.io export of Pokemon TCG Live",
-        hosts=("cdn.malie.io",),
-        homepage="https://malie.io",
-        terms_url="https://malie.io",
-        images="Card images are (c) The Pokemon Company, Nintendo, Creatures and GAME FREAK, exported from Pokemon TCG "
-               "Live by malie.io. No licence is stated; the author asks for a credit. Used only for sets TCGdex has no "
-               "images for (e.g. MEE). Do not re-host the images. Note: cdn.malie.io/robots.txt disallows all "
-               "automated access (checked 2026-11-18), so download.py skips these cards (status 'robots').",
-        credit="Images for sets without TCGdex images: malie.io (https://malie.io).",
+        id="limitless",
+        name="Limitless TCG card image CDN",
+        hosts=("limitlesstcg.nyc3.cdn.digitaloceanspaces.com",),
+        homepage="https://limitlesstcg.com",
+        terms_url="https://limitlesstcg.com",
+        images="Card images are (c) The Pokemon Company, Nintendo, Creatures and GAME FREAK, served by Limitless TCG "
+               "(official card renders; its upstream for recent sets is the malie.io export of Pokemon TCG Live). No "
+               "licence or terms of use are stated; limitlesstcg.com/robots.txt allows all agents (checked "
+               "2026-11-18). Used only for sets TCGdex has no images for (e.g. MEE). Do not re-host the images.",
+        credit="Images for sets without TCGdex images: Limitless TCG (https://limitlesstcg.com), from the malie.io "
+               "export (https://malie.io).",
         min_interval_s=1.0,
     ),
 ]}

@@ -53,13 +53,13 @@ scans for the manual look before publishing.
 ## Image sources
 
 `ml/dataset/sources.py` lists every host a reference URL may point to, with the owner, terms, credit line and a
-minimum request interval. **The export fails for a URL whose host is not listed**, so a new source (like malie.io for
-set MEE, #60/#69) needs its terms written down before it can be released. Today:
+minimum request interval. **The export fails for a URL whose host is not listed**, so a new source (like Limitless TCG for
+set MEE, #60) needs its terms written down before it can be released. Today:
 
 | Source | Hosts | Interval | Notes |
 |---|---|---|---|
 | `tcgdex` | `assets.tcgdex.net` | 0.25 s | Base URL + `/high.png`, fallback `/high.webp`. No `robots.txt` (404). |
-| `malie` | `cdn.malie.io` | 1 s | Full PNG URLs. **`robots.txt` is `Disallow: /` for every agent** (checked 2026-11-18), so `download.py` skips these cards with status `robots`. |
+| `limitless` | `limitlesstcg.nyc3.cdn.digitaloceanspaces.com` | 1 s | Full PNG URLs, only for set MEE (TCGdex has no images). `limitlesstcg.com/robots.txt` allows all agents; no terms of use stated (checked 2026-11-18). |
 
 `download.py` honours `robots.txt` (and `Crawl-delay`), the per-host interval, `Retry-After` and 429/5xx backoff,
 sends the generic User-Agent `open-card-dataset-downloader/1.0 (python-urllib)`, makes one request at a time and
