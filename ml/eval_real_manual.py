@@ -12,6 +12,7 @@ German print (de/me04 = holdout twin); they are scored exactly (de/me04) and at 
 
   uv run --extra litert python eval_real_manual.py --embedder mnv3_256_real --detector learned
   uv run --extra litert python eval_real_manual.py --all       # the full comparison matrix
+  uv run --extra litert python eval_real_manual.py --embedder mnv3_256_prod --variant f16 --two-pass   # issue #78
 """
 from __future__ import annotations
 
@@ -23,7 +24,7 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, EXPORT_DIR, INDEX_DIR, REAL_DIR, RESULTS_DIR, cached_index, load_manifest
-from detect import LearnedDetector, app_resize, detect_app, rectify
+from detect import LearnedDetector, app_resize, detect_app, rectify, two_pass
 
 LABELS = DATA_DIR / "real-photos-labels-manual.json"
 THRESH = 0.5
@@ -68,15 +69,29 @@ class Embedder:
                             lambda: np.stack([self(load_ref_rgba(str(c.ref_path))) for c in cards]))
 
 
-def run_pipeline(img, emb, R, det):
+def recognize(emb, R, img, quad) -> np.ndarray:
+    """Rectify `quad`, embed both 180-degree orientations (the detector cannot tell an upside-down card) and return
+    the gallery similarities of the orientation with the higher top-1."""
+    crop = rectify(img, quad)
+    s0, s1 = R @ emb(crop), R @ emb(cv2.rotate(crop, cv2.ROTATE_180))
+    return s1 if s1.max() > s0.max() else s0
+
+
+def run_pipeline(img, emb, R, det, use_two_pass=False):
+    """use_two_pass (learned only, issue #78): detect again on the guide box around the first quad and keep the crop
+    with the higher top-1 similarity (detect.two_pass)."""
     img = app_resize(img)
     q, _, score = detect_app(img, None if det == "classic" else det)
+    if use_two_pass:
+        def match(quad):
+            v = recognize(emb, R, img, quad)
+            return float(v.max()), v
+
+        q, score, sims, _ = two_pass(det, img, q, score, match)
+    else:
+        sims = recognize(emb, R, img, q)
     conf = None if det == "classic" else score
-    crop = rectify(img, q)
-    s0 = R @ emb(crop)
-    s1 = R @ emb(cv2.rotate(crop, cv2.ROTATE_180))
-    sims = s1 if s1.max() > s0.max() else s0
-    return np.argsort(-sims)[:5], sims, conf, crop
+    return np.argsort(-sims)[:5], sims, conf, rectify(img, q)
 
 
 def summarize(rows, key="ok_exact", top5="top5_exact"):
@@ -97,8 +112,15 @@ def summarize(rows, key="ok_exact", top5="top5_exact"):
             "sim_correct_min_med_max": q(ok_s), "sim_wrong_min_med_max": q(bad_s), "threshold_sweep": sweep}
 
 
-def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False, variant="w8"):
+def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False, variant="w8", use_two_pass=False):
+    if use_two_pass and detector != "learned":
+        raise SystemExit("--two-pass needs the learned detector")
     cards = load_manifest(include_holdout=True)
+    # a card without a local reference image cannot be indexed (en/de mee, #60: no automated image source yet)
+    missing = [c.key for c in cards if not Path(c.ref_path).exists()]
+    if missing:
+        print(f"{len(missing)} cards without a reference image left out of the gallery: {missing[0]} ...")
+        cards = [c for c in cards if Path(c.ref_path).exists()]
     key = lambda c: f"{c.lang}/{c.set_id}:{c.local_id}"
     keys = [key(c) for c in cards]
     emb = Embedder(embedder_run, variant)
@@ -114,7 +136,7 @@ def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False, vari
         twin = any(a.split(":")[0] in TWIN_SETS for a in acc)
         exact = {TWIN_SETS[a.split(":")[0]] + ":" + a.split(":")[1] for a in acc} if twin else acc
         art = acc | exact
-        top, sims, conf, crop = run_pipeline(cv2.imread(str(photos_dir / f)), emb, R, det)
+        top, sims, conf, crop = run_pipeline(cv2.imread(str(photos_dir / f)), emb, R, det, use_two_pass)
         tk = [keys[i] for i in top]
         if save_crops:
             cv2.imwrite(str(crop_dir / f), crop)
@@ -122,7 +144,8 @@ def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False, vari
                      "top1": tk[0], "sim": float(sims[top[0]]), "detector_conf": conf,
                      "ok_exact": tk[0] in exact, "top5_exact": any(k in exact for k in tk),
                      "ok_art": tk[0] in art, "top5_art": any(k in art for k in tk)})
-    res = {"embedder": f"{embedder_run} ({variant} .tflite)", "detector": detector, "gallery": len(cards),
+    res = {"embedder": f"{embedder_run} ({variant} .tflite)", "detector": detector, "two_pass": use_two_pass,
+           "gallery": len(cards),
            "threshold": THRESH, "groups": {}}
     for g in ("de/30th", "de/me04 (twin)"):
         rs = [r for r in rows if r["group"] == g]
@@ -143,12 +166,17 @@ def main():
     ap.add_argument("--all", action="store_true", help="old/new embedder x classic/learned detector")
     ap.add_argument("--save-crops", action="store_true")
     ap.add_argument("--variant", default="w8", help="export file <embedder>_<variant>.tflite (w8, f16, f32, ...)")
+    ap.add_argument("--two-pass", action="store_true",
+                    help="learned: detect again on the guide box around the first quad, keep the crop with the higher "
+                         "top-1 similarity (issue #78)")
     args = ap.parse_args()
+    if args.two_pass and (args.all or args.detector != "learned"):
+        ap.error("--two-pass needs a single run with the learned detector")
     combos = ([(e, d) for e in ("mnv3_256", "mnv3_256_real") for d in ("classic", "learned")] if args.all
               else [(args.embedder, args.detector)])
     out = {}
     for e, d in combos:
-        r = evaluate(e, d, save_crops=args.save_crops, variant=args.variant)
+        r = evaluate(e, d, save_crops=args.save_crops, variant=args.variant, use_two_pass=args.two_pass)
         out[f"{e}+{d}"] = r
         g1, g2 = r["groups"]["de/30th"], r["groups"]["de/me04 (twin)"]
         print(f"{e:>14} + {d:<8} | 30th top1 {g1['top1']}/{g1['n']} top5 {g1['top5']}/{g1['n']} "
@@ -157,7 +185,9 @@ def main():
               f"art top1 {r['groups']['de/me04 (twin) artwork level (EN or DE accepted)']['top1']}", flush=True)
     RESULTS_DIR.mkdir(exist_ok=True)
     tag = "" if args.variant == "w8" else f"_{args.variant}"
-    name = "real_manual_matrix.json" if args.all else f"real_manual_{args.embedder}{tag}_{args.detector}.json"
+    tp = "_twopass" if args.two_pass else ""
+    name = (f"real_manual_matrix{tp}.json" if args.all
+            else f"real_manual_{args.embedder}{tag}_{args.detector}{tp}.json")
     (RESULTS_DIR / name).write_text(json.dumps(out, indent=2, ensure_ascii=False))
 
 

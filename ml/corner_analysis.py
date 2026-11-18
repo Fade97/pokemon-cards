@@ -7,7 +7,7 @@ Every photo is recognised with several crops, all with the same embedding and th
   learned  the app's detector (corners_mnv3_w8) on the input the evaluators use: the whole FORB photo (2048 px),
            or the guide box around a TCG-AR card
   refine   a second detector pass on the guide box cut around the first quad (card at 78 % of the box height,
-           63:88 + 7 % margin, eval_tcgar.guide_crop): the framing the detector was trained on
+           63:88 + 7 % margin, detect.guide_crop): the framing the detector was trained on
   full     FORB only: the whole photo rectified as if it were the card (the seller framed it)
   gt       TCG-AR only: the annotated corners
 
@@ -34,11 +34,20 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR, split_of
-from detect import LearnedDetector, app_resize, looks_like_card, order_quad, quad_shape, rectify
+from detect import (
+    LearnedDetector,
+    app_resize,
+    guide_crop,
+    keep_higher_sim,
+    looks_like_card,
+    order_quad,
+    quad_shape,
+    refine,
+)
 from eval_forb import FORB, MAP, gallery, load_gt
-from eval_real_manual import Embedder
+from eval_real_manual import Embedder, recognize
 from eval_tcgar import ROOT as TCGAR_ROOT
-from eval_tcgar import annotations, corner_error, guide_crop, tcgdex_id, upright
+from eval_tcgar import annotations, corner_error, tcgdex_id, upright
 
 REPORT_DIR = DATA_DIR / "report" / "corner-analysis"
 THREADS = 2
@@ -54,13 +63,10 @@ def detector(corners: str) -> LearnedDetector:
     return LearnedDetector(EXPORT_DIR / f"{corners}_w8.tflite", threads=THREADS)
 
 
-def refine(det, img, q):
-    """Second detector pass on the guide box around quad q (image pixels). Returns (quad, score, box)."""
-    l, t, r, b = guide_crop(img, np.asarray(q, np.float32))
-    if r - l < 24 or b - t < 24:
-        return np.asarray(q, np.float32), 0.0, (l, t, r, b)
-    q2, s2 = det(img[t:b, l:r])
-    return q2 + np.float32([l, t]), s2, (l, t, r, b)
+def pick(r: dict) -> dict:
+    """The deployable two-pass rule on a row: the learned or the refine crop, whichever has the higher top-1
+    similarity (detect.keep_higher_sim)."""
+    return keep_higher_sim((r["learned"]["sim"], r["learned"]), (r["refine"]["sim"], r["refine"]))[0]
 
 
 class Recognizer:
@@ -70,9 +76,7 @@ class Recognizer:
         self.pos = {cid: i for i, cid in enumerate(self.ids)}
 
     def __call__(self, img, quad, truth: str) -> dict:
-        crop = rectify(img, np.asarray(quad, np.float32))
-        s0, s1 = self.R @ self.emb(crop), self.R @ self.emb(cv2.rotate(crop, cv2.ROTATE_180))
-        sims = s1 if s1.max() > s0.max() else s0
+        sims = recognize(self.emb, self.R, img, quad)
         t = self.pos[truth]
         rank = int((sims > sims[t]).sum())
         top = int(np.argmax(sims))
@@ -201,8 +205,7 @@ def forb_summary(rows, classic: dict) -> dict:
         s["misses_fixed_by_other_crop"] = sum(r["any"]["ok"] for r in miss)
         s["misses_fixed_by_refine"] = sum(r["refine"]["ok"] for r in miss)
         # deployable two-pass rule: run both passes, keep the crop whose top-1 similarity is higher
-        s["top1_pick_higher_sim"] = pct((r["refine"] if r["refine"]["sim"] > r["learned"]["sim"] else r["learned"])["ok"]
-                                        for r in rs)
+        s["top1_pick_higher_sim"] = pct(pick(r)["ok"] for r in rs)
         # noise floor: nearly the same quad (< 1 % shift), yet the two crops disagree on top-1
         near = [r for r in rs if r["shift_refine"] < 1]
         s["noise_flips_at_shift<1%"] = {"n": len(near), "flip_pct": pct(r["learned"]["ok"] != r["refine"]["ok"]
@@ -337,9 +340,6 @@ def paired(old_rows, new_rows, key: str) -> dict:
     if not ks:
         return out
 
-    def pick(r):  # the deployable two-pass rule: keep the crop with the higher top-1 similarity
-        return r["refine"] if r["refine"]["sim"] > r["learned"]["sim"] else r["learned"]
-
     for crop, f in (("learned", lambda r: r["learned"]), ("refine", lambda r: r["refine"]), ("pick_higher_sim", pick)):
         oo = np.array([f(a[k])["ok"] for k in ks])
         nn = np.array([f(b[k])["ok"] for k in ks])
@@ -397,9 +397,9 @@ def cmd_sheets(model: str, n: int, seed: int):
             "forb_refine_broke": [r for r in rows if r["learned"]["ok"] and not r["refine"]["ok"]],
         }
         for name, rs in groups.items():
-            pick = [rs[i] for i in sorted(rng.choice(len(rs), min(n, len(rs)), replace=False))] if rs else []
+            chosen = [rs[i] for i in sorted(rng.choice(len(rs), min(n, len(rs)), replace=False))] if rs else []
             tiles = []
-            for r in pick:
+            for r in chosen:
                 img = app_resize(cv2.imread(str(FORB / gt[r["query"]]["query_image"])))
                 lab = (f"q{r['query']} {r['difficulty'][0]} s={r['score_learned']:.2f} {r['truth']}\n"
                        f"L:{'ok' if r['learned']['ok'] else r['learned']['rank']} R:{'ok' if r['refine']['ok'] else r['refine']['rank']}"

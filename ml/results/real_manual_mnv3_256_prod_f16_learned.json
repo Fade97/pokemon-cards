@@ -2,6 +2,7 @@
   "mnv3_256_prod+learned": {
     "embedder": "mnv3_256_prod (f16 .tflite)",
     "detector": "learned",
+    "two_pass": false,
     "gallery": 1274,
     "threshold": 0.5,
     "groups": {

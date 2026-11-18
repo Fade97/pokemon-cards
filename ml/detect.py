@@ -345,6 +345,61 @@ def detect_app(img: np.ndarray, corners=None):
     return q, score >= CORNER_MIN_SCORE and looks_like_card(q), score
 
 
+# ---------------------------------------------------------------- two-pass detection (issue #78)
+GUIDE_CARD_HEIGHT = 0.78  # guide_crop: the card fills this share of the box height, like the live-scan guide
+MIN_REFINE_BOX = 24       # px: a guide box smaller than this is not worth a second detector call
+
+
+def guide_crop(img: np.ndarray, quad: np.ndarray) -> tuple[int, int, int, int]:
+    """The box the user would frame around `quad`: card height = 78 % of the guide, 63:88 guide, plus 7 % margin,
+    clipped to the image. Returns (left, top, right, bottom) in pixels."""
+    h, w = img.shape[:2]
+    quad = np.asarray(quad, np.float32)
+    c = quad.mean(0)
+    side = sorted(np.linalg.norm(quad - np.roll(quad, 1, 0), axis=1))
+    card_h = (side[2] + side[3]) / 2
+    # same arithmetic as before the move from eval_tcgar.py (#59 results reproduce bit for bit)
+    gh = card_h / GUIDE_CARD_HEIGHT
+    gw = gh * 63 / 88
+    l, t = int(max(0, c[0] - gw / 2 * 1.07)), int(max(0, c[1] - gh / 2 * 1.07))
+    r, b = int(min(w, c[0] + gw / 2 * 1.07)), int(min(h, c[1] + gh / 2 * 1.07))
+    return l, t, r, b
+
+
+def refine(det, img: np.ndarray, q: np.ndarray):
+    """Second detector pass on the guide box around quad q (image pixels). Returns (quad, score, box); when the box
+    is smaller than MIN_REFINE_BOX the first quad comes back unchanged with score 0."""
+    l, t, r, b = guide_crop(img, q)
+    if r - l < MIN_REFINE_BOX or b - t < MIN_REFINE_BOX:
+        return np.asarray(q, np.float32), 0.0, (l, t, r, b)
+    q2, s2 = det(img[t:b, l:r])
+    return np.asarray(q2, np.float32) + np.float32([l, t]), s2, (l, t, r, b)
+
+
+def keep_higher_sim(first, second):
+    """The two-pass rule: `first` and `second` are (top-1 similarity, value) of the first and second pass. The second
+    pass wins only with a strictly higher similarity, so a tie or a missing second pass (None) keeps the first.
+    Returns (value, used_second)."""
+    if second is None or not second[0] > first[0]:
+        return first[1], False
+    return second[1], True
+
+
+def two_pass(det, img: np.ndarray, q1: np.ndarray, s1: float, match):
+    """Two-pass detection: q1/s1 is the first detector pass (image pixels). Cut the guide box around q1, detect
+    again, recognise both crops with `match(quad) -> (top-1 similarity, value)` and keep the crop with the higher
+    similarity. The second pass is never used on its own.
+
+    Returns (quad, score, value, used_second)."""
+    q1 = np.asarray(q1, np.float32)
+    first = match(q1)
+    q2, s2, (l, t, r, b) = refine(det, img, q1)
+    if r - l < MIN_REFINE_BOX or b - t < MIN_REFINE_BOX:
+        return q1, s1, first[1], False
+    value, used_second = keep_higher_sim(first, match(q2))
+    return (q2, s2, value, True) if used_second else (q1, s1, value, False)
+
+
 def quad_iou(a: np.ndarray, b: np.ndarray) -> float:
     a = np.asarray(a, np.float32)
     b = np.asarray(b, np.float32)

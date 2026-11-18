@@ -7,6 +7,9 @@ Detection (`detector`):
 - "full": the classic detector on the whole, unscaled image (the pipeline before issue #61; synthetic scenes whose
   card is not centred).
 
+`two_pass=True` (learned only, issue #78): cut the guide box around the first quad, detect again, embed both crops and
+keep the one with the higher top-1 similarity (detect.two_pass). The second pass is never used on its own.
+
 The reference index (one L2-normalized embedding per card, from the clean TCGdex image) is cached in
 <data>/index/<run>.npy. OCR is EasyOCR on the bottom-left number strip of the rectified card (stand-in for ML Kit).
 """
@@ -20,7 +23,17 @@ import numpy as np
 import torch
 
 from common import CKPT_DIR, INDEX_DIR, Card, cached_index, device, load_manifest, number_key
-from detect import LearnedDetector, app_resize, center_crop_fallback, detect, detect_app, rectify
+from detect import (
+    CORNER_MIN_SCORE,
+    LearnedDetector,
+    app_resize,
+    center_crop_fallback,
+    detect,
+    detect_app,
+    looks_like_card,
+    rectify,
+    two_pass,
+)
 from models import EmbeddingNet, embed_arrays, preprocess
 from synth import load_ref_rgba
 
@@ -41,6 +54,7 @@ class Result:
     total: str | None
     top5_reranked: list[str] = field(default_factory=list)
     detector_score: float = 0.0  # learned: mean corner peak; classic: contour score
+    second_pass: bool = False    # two-pass: the second detector pass gave the higher similarity and was kept
 
 
 def load_model(run: str, dev=None):
@@ -84,10 +98,13 @@ class NumberOCR:
 
 
 class Pipeline:
-    def __init__(self, run: str, use_ocr: bool = True, detector: str = "learned"):
+    def __init__(self, run: str, use_ocr: bool = True, detector: str = "learned", two_pass: bool = False):
         if detector not in DETECTORS:
             raise ValueError(f"detector must be one of {DETECTORS}, not {detector!r}")
+        if two_pass and detector != "learned":
+            raise ValueError("two_pass needs the learned detector")
         self.detector = detector
+        self.two_pass = two_pass
         self.corners = LearnedDetector() if detector == "learned" else None
         self.dev = device()
         self.cards = load_manifest(include_holdout=True)  # app gallery: trained + unseen sets
@@ -104,10 +121,17 @@ class Pipeline:
         else:
             img = app_resize(img)
             quad, found, score = detect_app(img, self.corners)
-        crop = rectify(img, quad)
-        # the detector cannot tell an upside-down card: embed both orientations, keep the better match
-        qs = embed_arrays(self.model, [preprocess(crop), preprocess(cv2.rotate(crop, cv2.ROTATE_180))], self.dev)
-        all_sims = self.index @ qs.T  # [N, 2]
+        second = False
+        if self.two_pass:
+            def match(q):
+                crop_sims = self.embed(img, q)
+                return float(crop_sims[1].max()), crop_sims  # top-1 over both orientations
+
+            quad, score, (crop, all_sims), second = two_pass(self.corners, img, quad, score, match)
+            if second:
+                found = score >= CORNER_MIN_SCORE and looks_like_card(quad)
+        else:
+            crop, all_sims = self.embed(img, quad)
         flip = int(all_sims[:, 1].max() > all_sims[:, 0].max())
         if flip:
             quad = np.roll(np.asarray(quad), 2, 0)
@@ -123,7 +147,15 @@ class Pipeline:
             num, total = None, None
         reranked = rerank_one(order, self.cards, num, total)
         return Result(found, np.asarray(quad).round(1).tolist(), [self.cards[i].key for i in order],
-                      [float(sims[i]) for i in order], num, total, [self.cards[i].key for i in reranked], float(score))
+                      [float(sims[i]) for i in order], num, total, [self.cards[i].key for i in reranked], float(score),
+                      second)
+
+    def embed(self, img: np.ndarray, quad) -> tuple[np.ndarray, np.ndarray]:
+        """Rectify `quad` and embed both orientations (the detector cannot tell an upside-down card).
+        Returns (crop, similarities [N, 2]: upright, rotated by 180 degrees)."""
+        crop = rectify(img, quad)
+        qs = embed_arrays(self.model, [preprocess(crop), preprocess(cv2.rotate(crop, cv2.ROTATE_180))], self.dev)
+        return crop, self.index @ qs.T
 
 
 def rerank_one(order, cards: list[Card], num: str | None, total: str | None = None) -> list[int]:

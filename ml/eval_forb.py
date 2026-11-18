@@ -14,9 +14,13 @@ English is installed, not just the 870 trained cards.
   eval   photo -> detector (classic or learned corners, on the whole photo: the seller framed the card) ->
          rectify -> embedding (both 180-degree orientations) -> kNN over the gallery. Scored by split (a fixed
          20 % of the cards is held out from any training) and by FORB difficulty.
+         --two-pass (learned only, issue #78): cut the guide box around the first quad, detect again, embed both
+         crops and keep the one with the higher top-1 similarity (detect.two_pass). The one-pass result of the same
+         photos is kept next to it ("two_pass" in the summary), so one run gives the paired comparison.
 
   CARDINDEX_DATA=... python eval_forb.py map
   CARDINDEX_DATA=... python eval_forb.py eval --detector learned --embedder mnv3_256_real
+  CARDINDEX_DATA=... python eval_forb.py eval --embedder mnv3_256_forb --two-pass --split test
 """
 from __future__ import annotations
 
@@ -30,8 +34,8 @@ import cv2
 import numpy as np
 
 from common import DATA_DIR, EXPORT_DIR, RESULTS_DIR, split_of
-from detect import LearnedDetector, center_crop_fallback, detect, rectify
-from eval_real_manual import THRESH, Embedder, summarize
+from detect import LearnedDetector, app_resize, center_crop_fallback, detect, two_pass
+from eval_real_manual import THRESH, Embedder, recognize, summarize
 
 FORB = DATA_DIR / "external" / "forb"
 WORK = DATA_DIR / "packs-work"
@@ -132,7 +136,31 @@ def misses_by_set(rows: list[dict]) -> dict[str, dict[str, int]]:
     return {s: {"n": a, "miss": m} for s, (a, m) in sorted(n.items(), key=lambda kv: (-kv[1][1], kv[0])) if m}
 
 
-def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None):
+def score_sims(sims, truth: str, ids, cards, pos) -> dict:
+    """Top-1 / top-5, exact print and same name, of one similarity vector against the true card."""
+    top = np.argsort(-sims)[:5]
+    name = cards[truth]["name"]
+    return {"pred": ids[top[0]], "sim": float(sims[top[0]]), "ok_exact": bool(top[0] == pos[truth]),
+            "top5_exact": bool(pos[truth] in top), "ok_name": cards[ids[top[0]]]["name"] == name,
+            "top5_name": any(cards[ids[i]]["name"] == name for i in top)}
+
+
+def two_pass_summary(rows: list[dict]) -> dict:
+    """One pass vs. two-pass on the same photos (rows of an --two-pass run): top-1 / top-5 of both, how often the
+    second pass was kept, photos gained and lost."""
+    one = [r["one_pass"]["ok_exact"] for r in rows]
+    two = [r["ok_exact"] for r in rows]
+    return {"n": len(rows), "one_pass_top1": sum(one), "two_pass_top1": sum(two),
+            "one_pass_top5": sum(r["one_pass"]["top5_exact"] for r in rows),
+            "two_pass_top5": sum(r["top5_exact"] for r in rows),
+            "second_pass_kept": sum(r["second_pass_used"] for r in rows),
+            "gained": sum(b and not a for a, b in zip(one, two)), "lost": sum(a and not b for a, b in zip(one, two))}
+
+
+def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None, use_two_pass: bool = False,
+             split: str | None = None):
+    if use_two_pass and detector != "learned":
+        raise SystemExit("--two-pass needs the learned detector")
     mapping = json.loads(MAP.read_text())
     det = LearnedDetector() if detector == "learned" else "classic"
     pos = {cid: i for i, cid in enumerate(ids)}
@@ -140,31 +168,32 @@ def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None):
     gt = load_gt()[:limit] if limit else load_gt()
     for n, g in enumerate(gt):
         m = mapping.get(g["groundtruth_images"][0])
-        if not m or not m["id"]:
+        if not m or not m["id"] or (split and split_of(m["id"]) != split):
             continue
         img = cv2.imread(str(FORB / g["query_image"]))
         if img is None:
             continue
-        h, w = img.shape[:2]
-        s = 2048 / max(h, w)
-        if s < 1:
-            img = cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA)
+        img = app_resize(img)
+        row = {"query": g["query_id"], "difficulty": g["difficulty"], "split": split_of(m["id"]), "truth": m["id"]}
         if det == "classic":
             q, _ = detect(img)
-            q = center_crop_fallback(img) if q is None else q
+            sims = recognize(emb, R, img, center_crop_fallback(img) if q is None else q)
+        elif use_two_pass:
+            seen = []
+
+            def match(quad):
+                v = recognize(emb, R, img, quad)
+                seen.append(v)
+                return float(v.max()), v
+
+            q, s = det(img)
+            _, _, sims, used = two_pass(det, img, q, s, match)
+            row["one_pass"] = score_sims(seen[0], m["id"], ids, cards, pos)
+            row["second_pass_used"] = used
         else:
             q, _ = det(img)
-        crop = rectify(img, q)
-        s0, s1 = R @ emb(crop), R @ emb(cv2.rotate(crop, cv2.ROTATE_180))
-        sims = s1 if s1.max() > s0.max() else s0
-        top = np.argsort(-sims)[:5]
-        truth = pos[m["id"]]
-        name = cards[m["id"]]["name"]
-        rows.append({"query": g["query_id"], "difficulty": g["difficulty"], "split": split_of(m["id"]),
-                     "truth": m["id"], "pred": ids[top[0]], "sim": float(sims[top[0]]),
-                     "ok_exact": bool(top[0] == truth), "top5_exact": bool(truth in top),
-                     "ok_name": cards[ids[top[0]]]["name"] == name,
-                     "top5_name": any(cards[ids[i]]["name"] == name for i in top)})
+            sims = recognize(emb, R, img, q)
+        rows.append({**row, **score_sims(sims, m["id"], ids, cards, pos)})
         if n % 500 == 0:
             print(n, flush=True)
     groups = {"all": rows}
@@ -174,19 +203,26 @@ def cmd_eval(emb: Embedder, ids, R, cards, detector: str, limit: int | None):
     for r in rows:  # the test split by difficulty: the fair score once the train split is used for training
         groups.setdefault(f"split={r['split']},difficulty={r['difficulty']}", []).append(r)
     summary = {k: {**summarize(v), "name_top1": sum(r["ok_name"] for r in v),
-                   "name_top5": sum(r["top5_name"] for r in v)} for k, v in groups.items()}
+                   "name_top5": sum(r["top5_name"] for r in v),
+                   **({"two_pass": two_pass_summary(v)} if use_two_pass else {})} for k, v in groups.items()}
     summary["test_misses_by_set"] = misses_by_set([r for r in rows if r["split"] == "test"])
-    tag = f"forb_{emb.tag}_{detector}"
+    tag = f"forb_{emb.tag}_{detector}" + ("_twopass" if use_two_pass else "") + (f"_{split}" if split else "")
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
     (RESULTS_DIR / f"{tag}.json").write_text(json.dumps(
-        {"gallery": len(ids), "threshold": THRESH, "summary": summary}, indent=1))
+        {"gallery": len(ids), "threshold": THRESH, "two_pass": use_two_pass, "split": split or "all",
+         "summary": summary}, indent=1))
     # Per-photo rows contain only ids and scores, but keep them with the data, not in the repo.
     (FORB / f"{tag}_rows.json").write_text(json.dumps(rows))
     for k, v in summary.items():
-        if v["n"]:
-            print(f"{k:22s} n={v['n']:5d}  top1 {100 * v['top1'] / v['n']:5.1f}  top5 {100 * v['top5'] / v['n']:5.1f}"
-                  f"  name-top1 {100 * v['name_top1'] / v['n']:5.1f}  shown@{THRESH} {v['shown@0.5']}"
-                  f" ({v['shown_wrong']} wrong)")
+        if v.get("n"):
+            line = (f"{k:22s} n={v['n']:5d}  top1 {100 * v['top1'] / v['n']:5.1f}  top5 {100 * v['top5'] / v['n']:5.1f}"
+                    f"  name-top1 {100 * v['name_top1'] / v['n']:5.1f}  shown@{THRESH} {v['shown@0.5']}"
+                    f" ({v['shown_wrong']} wrong)")
+            if use_two_pass:
+                t = v["two_pass"]
+                line += (f"  one-pass top1 {100 * t['one_pass_top1'] / v['n']:5.1f}, 2nd kept {t['second_pass_kept']},"
+                         f" +{t['gained']}/-{t['lost']}")
+            print(line)
 
 
 def main():
@@ -194,16 +230,23 @@ def main():
     ap.add_argument("cmd", choices=["map", "eval"])
     ap.add_argument("--embedder", default="mnv3_256_real")
     ap.add_argument("--detector", choices=["classic", "learned"], default="learned")
+    ap.add_argument("--variant", default="w8", help="export file <embedder>_<variant>.tflite")
+    ap.add_argument("--work", type=Path, default=WORK, help="build_packs work dir with en embeddings of that file")
     ap.add_argument("--limit", type=int, default=None, help="only the first N FORB queries (quick check)")
+    ap.add_argument("--two-pass", action="store_true",
+                    help="eval, learned: detect again on the guide box around the first quad and keep the crop with "
+                         "the higher top-1 similarity (issue #78)")
+    ap.add_argument("--split", choices=["train", "test"], default=None,
+                    help="eval: only this card split (common.split_of)")
     args = ap.parse_args()
-    if not (EXPORT_DIR / f"{args.embedder}_w8.tflite").exists():
+    if not (EXPORT_DIR / f"{args.embedder}_{args.variant}.tflite").exists():
         raise SystemExit("embedder not found")
-    emb = Embedder(args.embedder)
-    ids, R, cards = gallery("en", f"{args.embedder}_w8.tflite")
+    emb = Embedder(args.embedder, args.variant)
+    ids, R, cards = gallery("en", f"{args.embedder}_{args.variant}.tflite", args.work)
     if args.cmd == "map":
         cmd_map(emb, ids, R, cards)
     else:
-        cmd_eval(emb, ids, R, cards, args.detector, args.limit)
+        cmd_eval(emb, ids, R, cards, args.detector, args.limit, args.two_pass, args.split)
 
 
 if __name__ == "__main__":

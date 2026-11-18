@@ -1,0 +1,650 @@
+{
+ "gallery": 22127,
+ "threshold": 0.5,
+ "two_pass": true,
+ "split": "test",
+ "summary": {
+  "all": {
+   "n": 1132,
+   "top1": 1026,
+   "top5": 1052,
+   "shown@0.5": 986,
+   "shown_correct": 969,
+   "shown_wrong": 17,
+   "sim_correct_min_med_max": [
+    0.376,
+    0.728,
+    0.941
+   ],
+   "sim_wrong_min_med_max": [
+    0.299,
+    0.4,
+    0.942
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 1131,
+     "correct": 1026,
+     "wrong": 105
+    },
+    "0.35": {
+     "shown": 1114,
+     "correct": 1026,
+     "wrong": 88
+    },
+    "0.40": {
+     "shown": 1077,
+     "correct": 1023,
+     "wrong": 54
+    },
+    "0.45": {
+     "shown": 1032,
+     "correct": 1003,
+     "wrong": 29
+    },
+    "0.50": {
+     "shown": 986,
+     "correct": 969,
+     "wrong": 17
+    },
+    "0.55": {
+     "shown": 920,
+     "correct": 905,
+     "wrong": 15
+    },
+    "0.60": {
+     "shown": 849,
+     "correct": 835,
+     "wrong": 14
+    }
+   },
+   "name_top1": 1041,
+   "name_top5": 1057,
+   "two_pass": {
+    "n": 1132,
+    "one_pass_top1": 993,
+    "two_pass_top1": 1026,
+    "one_pass_top5": 1039,
+    "two_pass_top5": 1052,
+    "second_pass_kept": 567,
+    "gained": 36,
+    "lost": 3
+   }
+  },
+  "split=test": {
+   "n": 1132,
+   "top1": 1026,
+   "top5": 1052,
+   "shown@0.5": 986,
+   "shown_correct": 969,
+   "shown_wrong": 17,
+   "sim_correct_min_med_max": [
+    0.376,
+    0.728,
+    0.941
+   ],
+   "sim_wrong_min_med_max": [
+    0.299,
+    0.4,
+    0.942
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 1131,
+     "correct": 1026,
+     "wrong": 105
+    },
+    "0.35": {
+     "shown": 1114,
+     "correct": 1026,
+     "wrong": 88
+    },
+    "0.40": {
+     "shown": 1077,
+     "correct": 1023,
+     "wrong": 54
+    },
+    "0.45": {
+     "shown": 1032,
+     "correct": 1003,
+     "wrong": 29
+    },
+    "0.50": {
+     "shown": 986,
+     "correct": 969,
+     "wrong": 17
+    },
+    "0.55": {
+     "shown": 920,
+     "correct": 905,
+     "wrong": 15
+    },
+    "0.60": {
+     "shown": 849,
+     "correct": 835,
+     "wrong": 14
+    }
+   },
+   "name_top1": 1041,
+   "name_top5": 1057,
+   "two_pass": {
+    "n": 1132,
+    "one_pass_top1": 993,
+    "two_pass_top1": 1026,
+    "one_pass_top5": 1039,
+    "two_pass_top5": 1052,
+    "second_pass_kept": 567,
+    "gained": 36,
+    "lost": 3
+   }
+  },
+  "difficulty=hard": {
+   "n": 80,
+   "top1": 37,
+   "top5": 39,
+   "shown@0.5": 29,
+   "shown_correct": 28,
+   "shown_wrong": 1,
+   "sim_correct_min_med_max": [
+    0.405,
+    0.549,
+    0.828
+   ],
+   "sim_wrong_min_med_max": [
+    0.308,
+    0.379,
+    0.535
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 80,
+     "correct": 37,
+     "wrong": 43
+    },
+    "0.35": {
+     "shown": 71,
+     "correct": 37,
+     "wrong": 34
+    },
+    "0.40": {
+     "shown": 52,
+     "correct": 37,
+     "wrong": 15
+    },
+    "0.45": {
+     "shown": 35,
+     "correct": 31,
+     "wrong": 4
+    },
+    "0.50": {
+     "shown": 29,
+     "correct": 28,
+     "wrong": 1
+    },
+    "0.55": {
+     "shown": 18,
+     "correct": 18,
+     "wrong": 0
+    },
+    "0.60": {
+     "shown": 13,
+     "correct": 13,
+     "wrong": 0
+    }
+   },
+   "name_top1": 38,
+   "name_top5": 41,
+   "two_pass": {
+    "n": 80,
+    "one_pass_top1": 33,
+    "two_pass_top1": 37,
+    "one_pass_top5": 39,
+    "two_pass_top5": 39,
+    "second_pass_kept": 47,
+    "gained": 5,
+    "lost": 1
+   }
+  },
+  "difficulty=medium": {
+   "n": 915,
+   "top1": 855,
+   "top5": 876,
+   "shown@0.5": 821,
+   "shown_correct": 808,
+   "shown_wrong": 13,
+   "sim_correct_min_med_max": [
+    0.376,
+    0.727,
+    0.941
+   ],
+   "sim_wrong_min_med_max": [
+    0.299,
+    0.411,
+    0.909
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 914,
+     "correct": 855,
+     "wrong": 59
+    },
+    "0.35": {
+     "shown": 906,
+     "correct": 855,
+     "wrong": 51
+    },
+    "0.40": {
+     "shown": 888,
+     "correct": 852,
+     "wrong": 36
+    },
+    "0.45": {
+     "shown": 860,
+     "correct": 838,
+     "wrong": 22
+    },
+    "0.50": {
+     "shown": 821,
+     "correct": 808,
+     "wrong": 13
+    },
+    "0.55": {
+     "shown": 770,
+     "correct": 758,
+     "wrong": 12
+    },
+    "0.60": {
+     "shown": 711,
+     "correct": 700,
+     "wrong": 11
+    }
+   },
+   "name_top1": 866,
+   "name_top5": 879,
+   "two_pass": {
+    "n": 915,
+    "one_pass_top1": 827,
+    "two_pass_top1": 855,
+    "one_pass_top5": 863,
+    "two_pass_top5": 876,
+    "second_pass_kept": 481,
+    "gained": 30,
+    "lost": 2
+   }
+  },
+  "difficulty=easy": {
+   "n": 137,
+   "top1": 134,
+   "top5": 137,
+   "shown@0.5": 136,
+   "shown_correct": 133,
+   "shown_wrong": 3,
+   "sim_correct_min_med_max": [
+    0.496,
+    0.764,
+    0.919
+   ],
+   "sim_wrong_min_med_max": [
+    0.693,
+    0.905,
+    0.942
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.35": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.40": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.45": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.50": {
+     "shown": 136,
+     "correct": 133,
+     "wrong": 3
+    },
+    "0.55": {
+     "shown": 132,
+     "correct": 129,
+     "wrong": 3
+    },
+    "0.60": {
+     "shown": 125,
+     "correct": 122,
+     "wrong": 3
+    }
+   },
+   "name_top1": 137,
+   "name_top5": 137,
+   "two_pass": {
+    "n": 137,
+    "one_pass_top1": 133,
+    "two_pass_top1": 134,
+    "one_pass_top5": 137,
+    "two_pass_top5": 137,
+    "second_pass_kept": 39,
+    "gained": 1,
+    "lost": 0
+   }
+  },
+  "split=test,difficulty=hard": {
+   "n": 80,
+   "top1": 37,
+   "top5": 39,
+   "shown@0.5": 29,
+   "shown_correct": 28,
+   "shown_wrong": 1,
+   "sim_correct_min_med_max": [
+    0.405,
+    0.549,
+    0.828
+   ],
+   "sim_wrong_min_med_max": [
+    0.308,
+    0.379,
+    0.535
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 80,
+     "correct": 37,
+     "wrong": 43
+    },
+    "0.35": {
+     "shown": 71,
+     "correct": 37,
+     "wrong": 34
+    },
+    "0.40": {
+     "shown": 52,
+     "correct": 37,
+     "wrong": 15
+    },
+    "0.45": {
+     "shown": 35,
+     "correct": 31,
+     "wrong": 4
+    },
+    "0.50": {
+     "shown": 29,
+     "correct": 28,
+     "wrong": 1
+    },
+    "0.55": {
+     "shown": 18,
+     "correct": 18,
+     "wrong": 0
+    },
+    "0.60": {
+     "shown": 13,
+     "correct": 13,
+     "wrong": 0
+    }
+   },
+   "name_top1": 38,
+   "name_top5": 41,
+   "two_pass": {
+    "n": 80,
+    "one_pass_top1": 33,
+    "two_pass_top1": 37,
+    "one_pass_top5": 39,
+    "two_pass_top5": 39,
+    "second_pass_kept": 47,
+    "gained": 5,
+    "lost": 1
+   }
+  },
+  "split=test,difficulty=medium": {
+   "n": 915,
+   "top1": 855,
+   "top5": 876,
+   "shown@0.5": 821,
+   "shown_correct": 808,
+   "shown_wrong": 13,
+   "sim_correct_min_med_max": [
+    0.376,
+    0.727,
+    0.941
+   ],
+   "sim_wrong_min_med_max": [
+    0.299,
+    0.411,
+    0.909
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 914,
+     "correct": 855,
+     "wrong": 59
+    },
+    "0.35": {
+     "shown": 906,
+     "correct": 855,
+     "wrong": 51
+    },
+    "0.40": {
+     "shown": 888,
+     "correct": 852,
+     "wrong": 36
+    },
+    "0.45": {
+     "shown": 860,
+     "correct": 838,
+     "wrong": 22
+    },
+    "0.50": {
+     "shown": 821,
+     "correct": 808,
+     "wrong": 13
+    },
+    "0.55": {
+     "shown": 770,
+     "correct": 758,
+     "wrong": 12
+    },
+    "0.60": {
+     "shown": 711,
+     "correct": 700,
+     "wrong": 11
+    }
+   },
+   "name_top1": 866,
+   "name_top5": 879,
+   "two_pass": {
+    "n": 915,
+    "one_pass_top1": 827,
+    "two_pass_top1": 855,
+    "one_pass_top5": 863,
+    "two_pass_top5": 876,
+    "second_pass_kept": 481,
+    "gained": 30,
+    "lost": 2
+   }
+  },
+  "split=test,difficulty=easy": {
+   "n": 137,
+   "top1": 134,
+   "top5": 137,
+   "shown@0.5": 136,
+   "shown_correct": 133,
+   "shown_wrong": 3,
+   "sim_correct_min_med_max": [
+    0.496,
+    0.764,
+    0.919
+   ],
+   "sim_wrong_min_med_max": [
+    0.693,
+    0.905,
+    0.942
+   ],
+   "threshold_sweep": {
+    "0.30": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.35": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.40": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.45": {
+     "shown": 137,
+     "correct": 134,
+     "wrong": 3
+    },
+    "0.50": {
+     "shown": 136,
+     "correct": 133,
+     "wrong": 3
+    },
+    "0.55": {
+     "shown": 132,
+     "correct": 129,
+     "wrong": 3
+    },
+    "0.60": {
+     "shown": 125,
+     "correct": 122,
+     "wrong": 3
+    }
+   },
+   "name_top1": 137,
+   "name_top5": 137,
+   "two_pass": {
+    "n": 137,
+    "one_pass_top1": 133,
+    "two_pass_top1": 134,
+    "one_pass_top5": 137,
+    "two_pass_top5": 137,
+    "second_pass_kept": 39,
+    "gained": 1,
+    "lost": 0
+   }
+  },
+  "test_misses_by_set": {
+   "swshp": {
+    "n": 166,
+    "miss": 19
+   },
+   "xy0": {
+    "n": 27,
+    "miss": 13
+   },
+   "ex1": {
+    "n": 78,
+    "miss": 12
+   },
+   "bwp": {
+    "n": 49,
+    "miss": 10
+   },
+   "smp": {
+    "n": 166,
+    "miss": 8
+   },
+   "g1": {
+    "n": 13,
+    "miss": 6
+   },
+   "xyp": {
+    "n": 112,
+    "miss": 6
+   },
+   "sm1": {
+    "n": 101,
+    "miss": 5
+   },
+   "sm10": {
+    "n": 11,
+    "miss": 3
+   },
+   "sma": {
+    "n": 87,
+    "miss": 3
+   },
+   "hgssp": {
+    "n": 8,
+    "miss": 2
+   },
+   "sm2": {
+    "n": 8,
+    "miss": 2
+   },
+   "sv01": {
+    "n": 31,
+    "miss": 2
+   },
+   "swsh1": {
+    "n": 56,
+    "miss": 2
+   },
+   "swsh4.5": {
+    "n": 10,
+    "miss": 2
+   },
+   "bw3": {
+    "n": 7,
+    "miss": 1
+   },
+   "bw8": {
+    "n": 8,
+    "miss": 1
+   },
+   "sm4": {
+    "n": 10,
+    "miss": 1
+   },
+   "sm6": {
+    "n": 11,
+    "miss": 1
+   },
+   "swsh3": {
+    "n": 7,
+    "miss": 1
+   },
+   "swsh3.5": {
+    "n": 4,
+    "miss": 1
+   },
+   "swsh8": {
+    "n": 15,
+    "miss": 1
+   },
+   "xy10": {
+    "n": 14,
+    "miss": 1
+   },
+   "xy3": {
+    "n": 7,
+    "miss": 1
+   },
+   "xy4": {
+    "n": 4,
+    "miss": 1
+   },
+   "xy5": {
+    "n": 1,
+    "miss": 1
+   }
+  }
+ }
+}
