@@ -30,12 +30,14 @@ object CollectionsRoutes {
     fun collection(id: Long) = "collections/collection/$id"
 }
 
-fun NavGraphBuilder.collectionsGraph(navController: NavController) {
+/** [onOpenScan] is the header shortcut on the Collections home (ADR 0014): it switches to the Scan tab. */
+fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: () -> Unit) {
     navigation(startDestination = CollectionsRoutes.HOME, route = TopLevelDestination.COLLECTIONS.route) {
         composable(CollectionsRoutes.HOME) {
             CollectionsScreen(
                 onOpenSet = { navController.navigate(CollectionsRoutes.set(it)) },
                 onOpenCollection = { navController.navigate(CollectionsRoutes.collection(it)) },
+                onOpenScan = onOpenScan,
             )
         }
         composable(CollectionsRoutes.SET) {

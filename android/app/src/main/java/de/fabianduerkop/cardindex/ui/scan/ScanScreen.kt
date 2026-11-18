@@ -76,7 +76,8 @@ import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
-import de.fabianduerkop.cardindex.ui.theme.IndexTokens
+import de.fabianduerkop.cardindex.ui.theme.CameraColors
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import java.util.Locale
 
 /**
@@ -160,7 +161,7 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
     }
 
     Column(Modifier.fillMaxSize()) {
-        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(IndexTokens.Camera)) {
+        Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(LumifoilTheme.colors.camera.background)) {
             AndroidView(
                 factory = {
                     PreviewView(it).apply {
@@ -179,7 +180,7 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                     frameHeight = viewfinder.frameHeight,
                     guide = ScanGuide.forFrame(viewfinder.frameWidth, viewfinder.frameHeight).box,
                     outline = viewfinder.outline,
-                    outlineColor = outlineColor(viewfinder.hint),
+                    outlineColor = outlineColor(viewfinder.hint, LumifoilTheme.colors.camera),
                 )
             }
             Reading(engine, viewfinder, paused, Modifier.align(Alignment.TopCenter).padding(top = 52.dp, start = 16.dp, end = 16.dp))
@@ -214,12 +215,12 @@ private fun Reading(engine: ScanEngineState, viewfinder: Viewfinder, paused: Boo
                 localId = card.localId,
                 printedTotal = card.official,
                 style = MaterialTheme.typography.displayMedium,
-                color = Color.White,
-                totalColor = IndexTokens.CameraMuted,
+                color = LumifoilTheme.colors.camera.content,
+                totalColor = LumifoilTheme.colors.camera.muted,
             )
             Text(
                 stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
-                color = IndexTokens.CameraInk,
+                color = LumifoilTheme.colors.camera.content,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
@@ -233,8 +234,8 @@ private fun Reading(engine: ScanEngineState, viewfinder: Viewfinder, paused: Boo
             }
             Text(
                 text,
-                Modifier.background(Color(0x99000000), RoundedCornerShape(999.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
-                color = IndexTokens.CameraInk,
+                Modifier.background(LumifoilTheme.colors.camera.scrim, RoundedCornerShape(999.dp)).padding(horizontal = 14.dp, vertical = 6.dp),
+                color = LumifoilTheme.colors.camera.content,
                 style = MaterialTheme.typography.bodyMedium,
                 textAlign = TextAlign.Center,
             )
@@ -245,14 +246,14 @@ private fun Reading(engine: ScanEngineState, viewfinder: Viewfinder, paused: Boo
 @Composable
 private fun AutoPill(paused: Boolean, modifier: Modifier) {
     Row(
-        modifier.background(Color(0x1FFFFFFF), RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
+        modifier.background(LumifoilTheme.colors.camera.chip, RoundedCornerShape(999.dp)).padding(horizontal = 12.dp, vertical = 6.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        Box(Modifier.size(8.dp).background(if (paused) IndexTokens.CameraMuted else LiveDot, CircleShape))
+        Box(Modifier.size(8.dp).background(if (paused) LumifoilTheme.colors.camera.muted else LumifoilTheme.colors.camera.live, CircleShape))
         Text(
             stringResource(if (paused) R.string.scan_paused else R.string.scan_auto),
-            color = IndexTokens.CameraInk,
+            color = LumifoilTheme.colors.camera.content,
             style = MaterialTheme.typography.labelLarge,
         )
     }
@@ -370,13 +371,8 @@ fun reasonText(reason: ReviewReason): Int = when (reason) {
 fun languageName(lang: String): String =
     Locale.forLanguageTag(lang).getDisplayLanguage(Locale.getDefault()).ifEmpty { lang.uppercase(Locale.ROOT) }
 
-private val LiveDot = Color(0xFF62D27A)
-private val DoneColor = Color(0xFF3DDC84)
-private val ReadingColor = Color(0xFF7FB2FF)
-private val FaintColor = Color(0x66FFFFFF)
-
-private fun outlineColor(hint: ScanHint): Color = when (hint) {
-    ScanHint.DONE -> DoneColor
-    ScanHint.READING -> ReadingColor
-    else -> FaintColor
+private fun outlineColor(hint: ScanHint, camera: CameraColors): Color = when (hint) {
+    ScanHint.DONE -> camera.done
+    ScanHint.READING -> camera.reading
+    else -> camera.faint
 }

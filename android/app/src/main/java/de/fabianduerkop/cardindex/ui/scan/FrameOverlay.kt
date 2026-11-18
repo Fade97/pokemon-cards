@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.ui.scan
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -26,7 +27,7 @@ fun FrameOverlay(
     outline: Quad?,
     outlineColor: Color,
     modifier: Modifier = Modifier,
-    guideColor: Color = GuideColor,
+    guideColor: Color = LumifoilTheme.colors.camera.guide,
 ) {
     Canvas(modifier.fillMaxSize()) {
         val fw = frameWidth.toFloat()
@@ -56,4 +57,3 @@ private fun DrawScope.drawQuad(pts: List<Offset>, color: Color, stroke: Stroke) 
     drawPath(path, color, style = stroke)
 }
 
-private val GuideColor = Color(0xCCFFFFFF)

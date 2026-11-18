@@ -6,68 +6,30 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.collections.PrintOrder
 import de.fabianduerkop.cardindex.model.EnergyType
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.theme.EnergyColors
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 
-/** Horizontal padding of the Index screens (18 px in the mockups). */
-internal val ScreenPadding = 18.dp
-
-/** Scaffold of a screen below a tab: back arrow, title, optional actions. */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun DetailScaffold(
-    title: String,
-    onBack: () -> Unit,
-    modifier: Modifier = Modifier,
-    actions: @Composable RowScope.() -> Unit = {},
-    bottomBar: @Composable () -> Unit = {},
-    content: @Composable (PaddingValues) -> Unit,
-) {
-    Scaffold(
-        modifier = modifier,
-        topBar = {
-            TopAppBar(
-                title = { Text(title, maxLines = 1, overflow = TextOverflow.Ellipsis) },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(painterResource(R.drawable.ic_arrow_back), stringResource(R.string.collections_back))
-                    }
-                },
-                actions = actions,
-            )
-        },
-        bottomBar = bottomBar,
-        content = content,
-    )
-}
+/** Side padding of the collection screens: the shared Pearl gutter (ADR 0014). */
+internal val ScreenPadding = Spacing.gutter
 
 /** "All languages" plus one chip per language code; an empty selection means all. */
 @OptIn(ExperimentalLayoutApi::class)
@@ -84,30 +46,15 @@ internal fun LanguageChips(
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
         horizontalArrangement = Arrangement.spacedBy(6.dp),
     ) {
-        IndexChip(
+        ChoiceChip(
             selected = selected.isEmpty(),
             onClick = { onToggle(null) },
             label = stringResource(R.string.collections_all_languages),
         )
         languages.forEach { code ->
-            IndexChip(selected = code in selected, onClick = { onToggle(code) }, label = code.uppercase())
+            ChoiceChip(selected = code in selected, onClick = { onToggle(code) }, label = code.uppercase())
         }
     }
-}
-
-/** The mockups' chip: ink fill when selected, outlined otherwise, no check mark. */
-@Composable
-internal fun IndexChip(selected: Boolean, onClick: () -> Unit, label: String, modifier: Modifier = Modifier) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = { Text(label) },
-        modifier = modifier,
-        colors = FilterChipDefaults.filterChipColors(
-            selectedContainerColor = MaterialTheme.colorScheme.inverseSurface,
-            selectedLabelColor = MaterialTheme.colorScheme.inverseOnSurface,
-        ),
-    )
 }
 
 @Composable

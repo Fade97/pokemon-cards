@@ -25,6 +25,8 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 
@@ -84,7 +86,7 @@ fun CollectionDetailScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                         CopySort.entries.forEach { sort ->
-                            IndexChip(state.sort == sort, { viewModel.setSort(sort) }, stringResource(sort.label()))
+                            ChoiceChip(state.sort == sort, { viewModel.setSort(sort) }, stringResource(sort.label()))
                         }
                     }
                 }

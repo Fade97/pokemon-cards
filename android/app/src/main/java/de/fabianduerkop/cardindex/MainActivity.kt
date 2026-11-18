@@ -10,7 +10,7 @@ import de.fabianduerkop.cardindex.data.alerts.PriceAlertNotifications
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.packs.PackSyncWorker
 import de.fabianduerkop.cardindex.ui.CardIndexApp
-import de.fabianduerkop.cardindex.ui.theme.CardIndexTheme
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
@@ -20,7 +20,7 @@ class MainActivity : ComponentActivity() {
         schedulePackWork()
         PriceAlertNotifications.createChannel(this)
         lifecycleScope.launch { appContainer.priceAlerts.syncSchedule() }
-        setContent { CardIndexTheme { CardIndexApp() } }
+        setContent { LumifoilTheme { CardIndexApp() } }
     }
 
     /**

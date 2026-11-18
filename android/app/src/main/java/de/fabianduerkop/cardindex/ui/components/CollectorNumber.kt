@@ -17,7 +17,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.tooling.preview.Preview
 import de.fabianduerkop.cardindex.R
-import de.fabianduerkop.cardindex.ui.theme.CardIndexTheme
+import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
 
 /**
@@ -67,5 +67,5 @@ fun padCollectorNumber(localId: String, printedTotal: Int?): String {
 @Preview(showBackground = true)
 @Composable
 private fun CollectorNumberPreview() {
-    CardIndexTheme { CollectorNumber(localId = "6", printedTotal = 165) }
+    LumifoilTheme { CollectorNumber(localId = "6", printedTotal = 165) }
 }

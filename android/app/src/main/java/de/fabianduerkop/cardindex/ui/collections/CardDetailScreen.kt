@@ -44,6 +44,7 @@ import de.fabianduerkop.cardindex.data.db.CopyWithCard
 import de.fabianduerkop.cardindex.data.images.ImageQuality
 import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.ui.components.CARD_ASPECT
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import java.io.File
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.data.prices.PriceSelection

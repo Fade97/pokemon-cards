@@ -55,6 +55,8 @@ import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CardImage
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.numberOverTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
@@ -171,13 +173,13 @@ private fun SetGrid(
         }
         header {
             Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.padding(bottom = 4.dp)) {
-                IndexChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
-                IndexChip(
+                ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
+                ChoiceChip(
                     state.filter == SlotFilter.OWNED,
                     { onFilter(SlotFilter.OWNED) },
                     stringResource(R.string.collections_filter_owned, owned),
                 )
-                IndexChip(
+                ChoiceChip(
                     state.filter == SlotFilter.MISSING,
                     { onFilter(SlotFilter.MISSING) },
                     stringResource(R.string.collections_filter_missing, missing),
