@@ -27,6 +27,9 @@ android {
             .orElse(providers.gradleProperty("cardindex.priceApiBaseUrl"))
             .getOrElse("https://cards-api.fdu.gg")
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
+        // Pro test token for debug builds (#17) until sign-in and billing exist (#16); empty in release builds. Set
+        // `cardindex.proTestToken=…` in ~/.gradle/gradle.properties, never in the repo. backend/README.md, "Price history".
+        buildConfigField("String", "PRO_TEST_TOKEN", "\"\"")
     }
 
     buildTypes {
@@ -34,6 +37,9 @@ android {
             // Own package, so a debug build installs next to a release build.
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
+            val proToken = providers.gradleProperty("cardindex.proTestToken").getOrElse("")
+            require(proToken.matches(Regex("[A-Za-z0-9_-]*"))) { "cardindex.proTestToken must be URL-safe" }
+            buildConfigField("String", "PRO_TEST_TOKEN", "\"$proToken\"")
             // OpenCV ships ~180 MB of native code for four ABIs; debug builds need only phones and the emulator.
             ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
         }

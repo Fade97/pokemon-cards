@@ -133,7 +133,7 @@ object PriceJson {
         if (isNull(key) || !has(key)) null else runCatching { Instant.parse(getString(key)) }.getOrNull()
 }
 
-private suspend fun Call.await(): Response = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
+internal suspend fun Call.await(): Response = kotlinx.coroutines.suspendCancellableCoroutine { cont ->
     cont.invokeOnCancellation { cancel() }
     enqueue(object : okhttp3.Callback {
         override fun onFailure(call: Call, e: IOException) { cont.resumeWith(Result.failure(e)) }

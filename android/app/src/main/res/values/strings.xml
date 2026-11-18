@@ -76,6 +76,21 @@
     <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s offers)</string>
     <string name="price_open_cardmarket">Open on Cardmarket</string>
     <string name="price_open_tcgplayer">Open on TCGplayer</string>
+    <!-- Pro price history (#17) -->
+    <string name="history_title">Price history</string>
+    <string name="history_range_month">30 days</string>
+    <string name="history_range_quarter">90 days</string>
+    <string name="history_range_year">1 year</string>
+    <!-- %1$s: "+1,20 € (+12 %)", %2$s: the first date of the range -->
+    <string name="history_change">%1$s since %2$s</string>
+    <!-- Screen-reader text for a price chart -->
+    <string name="history_chart_description">Price chart from %1$s to %2$s: %3$s to %4$s, lowest %5$s, highest %6$s</string>
+    <string name="history_loading">Loading price history…</string>
+    <string name="history_empty">No price history yet. It grows by one day every night.</string>
+    <string name="history_failed">The price service is not reachable, so there is no price history to show.</string>
+    <string name="history_offline">Saved history; the price service is not reachable right now.</string>
+    <string name="history_refused">The price service did not accept this device for Pro.</string>
+    <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>
@@ -143,6 +158,9 @@
     <string name="settings_price_refresh">Update prices now</string>
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
     <string name="settings_price_failed">The price service is not reachable. Saved prices stay.</string>
+    <string name="settings_debug_pro_title">Pro (debug build)</string>
+    <string name="settings_debug_pro">Pro features</string>
+    <string name="settings_debug_pro_hint">Shows price history and portfolio charts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
     <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included, and Android\'s backup does not keep them either.</string>
     <string name="settings_export_json">Export JSON</string>
