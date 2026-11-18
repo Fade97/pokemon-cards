@@ -73,8 +73,8 @@ def eval_input(img: np.ndarray, quad: np.ndarray):
     return cv2.cvtColor(x, cv2.COLOR_BGR2RGB), q
 
 
-def tcgar_role(img_stem: str, k: int, ptcg: str, known: set[str] | None) -> tuple[str, str | None]:
-    cid = tcgdex_id(ptcg, known) if known is not None else None
+def tcgar_role(img_stem: str, k: int, ptcg: str, known: set[str]) -> tuple[str, str | None]:
+    cid = tcgdex_id(ptcg, known)
     return role_of(cid or f"tcgar:{img_stem}:{k}"), cid
 
 
@@ -101,6 +101,11 @@ def known_ids() -> set[str] | None:
 
 def cmd_build(rows_model: str, min_sim: float, limit: int | None):
     known = known_ids()
+    if known is None:
+        # without the TCGdex ids every TCG-AR card would get its role from its image key, so test-split cards
+        # (common.split_of on the id, as the evaluators score them) could land in the training set
+        raise SystemExit(f"{DATA_DIR / 'packs-work' / 'en' / 'metadata.json'} missing: run build_packs.py for EN "
+                         "first (TCG-AR cards need their TCGdex id for the test holdout)")
     stats = Counter()
     rows_path = FORB / f"corner_rows_{rows_model}.json"
     if not rows_path.exists():
@@ -158,9 +163,12 @@ def cmd_build(rows_model: str, min_sim: float, limit: int | None):
             print(f"FORB {n}/{len(forb)}", flush=True)
     n = len(kind)
     OUT_DIR.mkdir(parents=True, exist_ok=True)
-    np.savez(OUT, win=win[:n], quad=quads[:n], valid=valid[:n], kind=np.array(kind), src=np.array(src),
-             val_x=np.stack(val_x), val_q=np.stack(val_q).astype(np.float32), val_key=np.array(val_key),
-             min_sim=np.float32(min_sim), rows_model=np.array(rows_model))
+    tmp = OUT.with_suffix(".npz.tmp")  # written whole, then renamed: run_corner_finetune.ps1 skips an existing OUT
+    with open(tmp, "wb") as f:
+        np.savez(f, win=win[:n], quad=quads[:n], valid=valid[:n], kind=np.array(kind), src=np.array(src),
+                 val_x=np.stack(val_x), val_q=np.stack(val_q).astype(np.float32), val_key=np.array(val_key),
+                 min_sim=np.float32(min_sim), rows_model=np.array(rows_model))
+    tmp.replace(OUT)
     stats["train_samples"] = n
     stats["val_samples"] = len(val_x)
     print(dict(stats), "->", OUT)

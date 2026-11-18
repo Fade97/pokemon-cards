@@ -95,3 +95,38 @@ def test_real_val_metrics_ignore_the_corner_rotation():
     assert real_val_metrics(np.roll(gt, 2, 1), gt)["err_mean_pct_diag"] < 1e-6
     r = real_val_metrics(gt + 8, gt)  # 11.3 px on a 434 px diagonal
     assert abs(r["err_mean_pct_diag"] - 2.61) < 0.05 and r["within_3pct"] == 1.0
+
+
+def test_build_refuses_without_tcgdex_ids(monkeypatch):
+    # without the EN metadata every TCG-AR card would get its role from the image key, so a test-split card
+    # could land in the training set
+    import pytest
+
+    import corner_realset
+    monkeypatch.setattr(corner_realset, "known_ids", lambda: None)
+    with pytest.raises(SystemExit, match="metadata.json"):
+        corner_realset.cmd_build("any", 0.5, None)
+
+
+def _forb_row(q, split, learned, refine, full=False, sim_l=0.6, sim_r=0.5, shift=0.5, card_like=True):
+    r = lambda ok, sim: {"ok": ok, "top5": ok, "sim": sim}
+    return {"query": q, "split": split, "difficulty": "easy", "w": 600, "h": 800, "score_learned": 0.15,
+            "shift_refine": shift, "learned": r(learned, sim_l), "refine": r(refine, sim_r), "full": r(full, 0.1),
+            "shape_learned": {"card_like": card_like, "area_frac": 0.3}}
+
+
+def test_forb_summary_two_pass_rule_noise_floor_and_suspects():
+    from corner_analysis import forb_summary
+    rows = [_forb_row(0, "test", True, True),
+            _forb_row(1, "test", False, True, sim_l=0.4, sim_r=0.7, shift=8),   # refine wins on similarity
+            _forb_row(2, "test", True, False, sim_l=0.7, sim_r=0.6, shift=0.2),  # near-same quad, flips: noise
+            _forb_row(3, "test", False, False, full=True, card_like=False),     # only the whole photo is right
+            _forb_row(4, "train", False, False)]
+    s = forb_summary(rows, {})["split=test"]
+    assert s["n"] == 4 and s["top1_learned"] == 50.0 and s["top1_refine"] == 50.0 and s["top1_any"] == 100.0
+    assert s["top1_pick_higher_sim"] == 75.0  # rows 0, 1, 2
+    assert s["learned_vs_refine"] == {"learned_only": 1, "refine_only": 1, "both": 1, "neither": 1}
+    assert s["misses_fixed_by_other_crop"] == 2 and s["misses_fixed_by_refine"] == 1
+    assert s["noise_flips_at_shift<1%"] == {"n": 3, "flip_pct": 33.3}  # rows 0, 2, 3; only row 2 flips
+    assert s["geometric_suspects"]["n"] == 2 and s["geometric_suspects"]["top1_learned"] == 0.0  # rows 1, 3
+    assert s["top1_classic"] is None
