@@ -5,16 +5,21 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.lifecycle.lifecycleScope
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertNotifications
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.packs.PackSyncWorker
 import de.fabianduerkop.cardindex.ui.CardIndexApp
 import de.fabianduerkop.cardindex.ui.theme.CardIndexTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         schedulePackWork()
+        PriceAlertNotifications.createChannel(this)
+        lifecycleScope.launch { appContainer.priceAlerts.syncSchedule() }
         setContent { CardIndexTheme { CardIndexApp() } }
     }
 

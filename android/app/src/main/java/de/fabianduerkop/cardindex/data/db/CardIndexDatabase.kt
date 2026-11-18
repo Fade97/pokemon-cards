@@ -23,6 +23,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         ContributionEntity::class,
         PriceHistoryEntity::class,
         PriceHistoryFetchEntity::class,
+        PriceAlertEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -35,10 +36,11 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun reviewDao(): ReviewDao
     abstract fun contributionDao(): ContributionDao
     abstract fun priceHistoryDao(): PriceHistoryDao
+    abstract fun priceAlertDao(): PriceAlertDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 2
+        const val VERSION = 3
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -55,8 +57,22 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /** v3 (#76): Pro price alerts. A new table only. */
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_alerts` (`uuid` TEXT NOT NULL, `cardId` TEXT NOT NULL, " +
+                        "`cardLanguage` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, " +
+                        "`direction` TEXT NOT NULL, `thresholdMinor` INTEGER NOT NULL, `currency` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, `triggeredAt` INTEGER, `armed` INTEGER NOT NULL, " +
+                        "PRIMARY KEY(`uuid`))",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_price_alerts_cardId` ON `price_alerts` (`cardId`)")
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
 
         private const val NAME = "cardindex.db"
 

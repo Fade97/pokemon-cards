@@ -20,6 +20,9 @@ import de.fabianduerkop.cardindex.data.images.ScanImageStore
 import de.fabianduerkop.cardindex.data.images.importPhoto
 import de.fabianduerkop.cardindex.data.collections.PrintOrder
 import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
+import de.fabianduerkop.cardindex.data.alerts.AlertDirection
+import de.fabianduerkop.cardindex.data.alerts.PriceAlert
+import de.fabianduerkop.cardindex.data.alerts.PriceAlertRepository
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.data.prices.HistoryRefresh
@@ -298,6 +301,7 @@ class CardDetailViewModel(
     primarySource: Flow<PriceSource>,
     historyRepository: PriceHistoryRepository,
     isPro: Flow<Boolean>,
+    private val alertRepository: PriceAlertRepository,
     savedState: SavedStateHandle,
 ) : ViewModel() {
     val cardId: String = checkNotNull(savedState[CollectionsRoutes.ARG_CARD_ID])
@@ -333,6 +337,26 @@ class CardDetailViewModel(
     }.stateIn(this, null)
 
     fun setHistoryRange(range: HistoryRange) { chart.range.value = range }
+
+    /** Pro (#76): this card's price alerts. Null without Pro. */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val alerts: StateFlow<List<PriceAlert>?> = isPro.distinctUntilChanged().flatMapLatest { pro ->
+        if (pro) alertRepository.observeCard(cardId) else flowOf(null)
+    }.stateIn(this, null)
+
+    /** Adds an alert on [quote]'s market and printing; [onFirst] runs when it is the user's first alert. */
+    fun createAlert(quote: PriceQuote, direction: AlertDirection, thresholdMinor: Long, onFirst: () -> Unit) {
+        viewModelScope.launch {
+            val first = alertRepository.create(
+                cardId, language, quote.source, quote.variant, direction, thresholdMinor, quote.currency,
+            )
+            if (first) onFirst()
+        }
+    }
+
+    fun deleteAlert(uuid: String) {
+        viewModelScope.launch { alertRepository.delete(uuid) }
+    }
 
     init {
         viewModelScope.launch { priceRepository.refresh(listOf(cardId)) }

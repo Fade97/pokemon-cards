@@ -53,6 +53,10 @@ interface CatalogDao {
     @Query("SELECT * FROM card_sets WHERE id IN (:ids)")
     suspend fun setsByIds(ids: List<String>): List<CardSetEntity>
 
+    /** Every print (one row per language) of these cards. */
+    @Query("SELECT * FROM cards WHERE id IN (:ids)")
+    suspend fun cardsByIds(ids: List<String>): List<CardEntity>
+
     @Query("SELECT * FROM cards WHERE language = :language")
     suspend fun cardsInLanguage(language: String): List<CardEntity>
 
