@@ -24,6 +24,7 @@ import argparse
 import json
 import re
 from collections import defaultdict
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -64,12 +65,12 @@ def forb_set(url: str, known_sets: set[str]) -> str | None:
     return next((c for c in reversed(cands) if c in known_sets), None)
 
 
-def gallery(lang: str = "en", model_name: str | None = None):
-    meta = json.loads((WORK / lang / "embeddings.json").read_text())
+def gallery(lang: str = "en", model_name: str | None = None, work: Path = WORK):
+    meta = json.loads((work / lang / "embeddings.json").read_text())
     if model_name and meta["model"] != model_name:
         raise SystemExit(f"{lang} embeddings are from {meta['model']}, not {model_name}: run build_packs.py embed")
-    rows = np.frombuffer((WORK / lang / "embeddings.bin").read_bytes(), "<f4").reshape(len(meta["ids"]), meta["dim"])
-    cards = {c["id"]: c for c in json.loads((WORK / lang / "metadata.json").read_text(encoding="utf-8"))["cards"]}
+    rows = np.frombuffer((work / lang / "embeddings.bin").read_bytes(), "<f4").reshape(len(meta["ids"]), meta["dim"])
+    cards = {c["id"]: c for c in json.loads((work / lang / "metadata.json").read_text(encoding="utf-8"))["cards"]}
     return meta["ids"], np.ascontiguousarray(rows), cards
 
 

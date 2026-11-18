@@ -1,0 +1,66 @@
+{
+  "run": "mnv3_256_prod",
+  "backbone": "mobilenetv3_large_100.ra_in1k",
+  "dim": 256,
+  "input": "1x224x224x3 float32 RGB [0,1]",
+  "size_mb_f32": 18.24,
+  "int8_method": "PT2E static, per-channel int8 weights + int8 activations",
+  "size_mb_int8": 5.16,
+  "w8_method": "ai-edge-quantizer dynamic_wi8_afp32 (int8 weights, float activations)",
+  "size_mb_w8": 4.97,
+  "size_mb_wo8": 5.0,
+  "size_mb_f16": 9.28,
+  "top1_pytorch_subset": 0.9566666666666667,
+  "f32_cosine_vs_pytorch": {
+    "min": 0.9999998807907104,
+    "mean": 1.0,
+    "share_gt_0.99": 1.0
+  },
+  "f32_top1_subset_own_index": 0.9566666666666667,
+  "f32_cpu_ms_per_image_x86_8threads": 3.21,
+  "int8_cosine_vs_pytorch": {
+    "min": 0.5452730059623718,
+    "mean": 0.9255618453025818,
+    "share_gt_0.99": 0.0
+  },
+  "int8_top1_subset_own_index": 0.9466666666666667,
+  "int8_cpu_ms_per_image_x86_8threads": 7.62,
+  "w8_cosine_vs_pytorch": {
+    "min": 0.8040354251861572,
+    "mean": 0.9720176458358765,
+    "share_gt_0.99": 0.0
+  },
+  "w8_top1_subset_own_index": 0.95,
+  "w8_cpu_ms_per_image_x86_8threads": 13.65,
+  "wo8_cosine_vs_pytorch": {
+    "min": 0.9746729731559753,
+    "mean": 0.9975820183753967,
+    "share_gt_0.99": 0.9833333333333333
+  },
+  "wo8_top1_subset_own_index": 0.9566666666666667,
+  "wo8_cpu_ms_per_image_x86_8threads": 3.74,
+  "f16_cosine_vs_pytorch": {
+    "min": 0.9998847246170044,
+    "mean": 0.9999932646751404,
+    "share_gt_0.99": 1.0
+  },
+  "f16_top1_subset_own_index": 0.9566666666666667,
+  "f16_cpu_ms_per_image_x86_8threads": 3.53,
+  "index_size": {
+    "trained_sets": {
+      "cards": 870,
+      "dim": 256,
+      "float32_kb": 870.0,
+      "float16_kb": 435.0,
+      "int8_kb": 217.5
+    },
+    "with_unseen": {
+      "cards": 1274,
+      "dim": 256,
+      "float32_kb": 1274.0,
+      "float16_kb": 637.0,
+      "int8_kb": 318.5
+    }
+  },
+  "n_check": 300
+}

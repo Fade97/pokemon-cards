@@ -1,0 +1,90 @@
+{
+  "args": {
+    "run": "mnv3_256_prod",
+    "backbone": "mobilenetv3_large_100.ra_in1k",
+    "dim": 256,
+    "epochs": 6,
+    "per_class": 32,
+    "batch": 0,
+    "lr": 0.0005,
+    "holdout": [],
+    "realistic": true,
+    "init": "mnv3_256_real",
+    "real": true,
+    "real_frac": 0.25,
+    "all_cards": true
+  },
+  "batch": 128,
+  "batch_real": 32,
+  "classes": 2389,
+  "real_crops": {
+    "train": 6085,
+    "train_cards": 1517,
+    "val": 0,
+    "val_cards": 0,
+    "blocked_twins": 0
+  },
+  "free_vram_mib_at_start": 8136.0,
+  "epochs": [
+    {
+      "epoch": 1,
+      "loss": 2.6385005126945935,
+      "val_top1": 0.9367816091954023,
+      "val_top5": 0.9586206896551724,
+      "minutes": 6.606656793753306,
+      "samples_per_s": 266.07850055223884
+    },
+    {
+      "epoch": 2,
+      "loss": 1.5452767045204363,
+      "val_top1": 0.9344827586206896,
+      "val_top5": 0.9586206896551724,
+      "minutes": 12.527462550004323,
+      "samples_per_s": 277.37034691275136
+    },
+    {
+      "epoch": 3,
+      "loss": 1.3233080235258419,
+      "val_top1": 0.9367816091954023,
+      "val_top5": 0.9540229885057471,
+      "minutes": 18.269207676251728,
+      "samples_per_s": 291.08831212729154
+    },
+    {
+      "epoch": 4,
+      "loss": 1.1931498260354276,
+      "val_top1": 0.9379310344827586,
+      "val_top5": 0.9551724137931035,
+      "minutes": 23.107384661833446,
+      "samples_per_s": 310.25647867658574
+    },
+    {
+      "epoch": 5,
+      "loss": 1.105550296192792,
+      "val_top1": 0.9344827586206896,
+      "val_top5": 0.9528735632183908,
+      "minutes": 27.479119749863944,
+      "samples_per_s": 323.56252163527694
+    },
+    {
+      "epoch": 6,
+      "loss": 1.0859477793301768,
+      "val_top1": 0.9344827586206896,
+      "val_top5": 0.9551724137931035,
+      "minutes": 31.87295704682668,
+      "samples_per_s": 332.8874508806504
+    }
+  ],
+  "train_minutes": 31.87427446047465,
+  "samples_total": 611328,
+  "throughput_samples_per_s": 332.8874508806504,
+  "aug_share_of_train_time_est": 1.0,
+  "gpu": {
+    "gpu_util_mean_pct": 53.8125,
+    "gpu_util_median_pct": 62.5,
+    "gpu_mem_used_max_mib": 6658.0,
+    "samples": 64
+  },
+  "best_val_top1": 0.9379310344827586,
+  "saved_epoch": 6
+}
