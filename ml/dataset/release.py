@@ -121,7 +121,8 @@ def build(out: Path, *, version: str, name: str = DEFAULT_NAME, manifest: Path |
                                    encoding="utf-8", newline="\n")
     meta = {"name": name, "version": version, "date": date, "schemaVersion": SCHEMA_VERSION,
             "cards": st["cards"], "scans": st["scans"], "withdrawnSincePrevious": len(res.withdrawn_since_previous),
-            "licenses": {"scans": "CC0-1.0", "cards.csv": "MIT (TCGdex data)", "sources.json": "MIT (TCGdex data)", "download.py": "GPL-3.0-or-later",
+            "licenses": {"scans": "CC0-1.0", "cards.csv": "MIT (TCGdex data); added columns CC0-1.0",
+                         "sources.json": "CC0-1.0", "download.py": "GPL-3.0-or-later",
                          "referenceImages": "not included; see sources.json"}}
     (out / "release.json").write_text(json.dumps(meta, indent=2) + "\n", encoding="utf-8")
     (out / "SHA256SUMS").write_text(sha256sums(out), encoding="utf-8", newline="\n")

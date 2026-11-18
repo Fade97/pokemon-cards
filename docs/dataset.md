@@ -8,7 +8,8 @@ a manual step (see [Publishing](#publishing)).
 
 | Part | Content | Licence |
 |---|---|---|
-| Reference cards (`cards.csv`, `sources.json`) | Card id, language, set, number, name, image URL + fallback URL, source, split, optional SHA-256 of the image | MIT (the data is from TCGdex) |
+| Reference cards (`cards.csv`) | Card id, language, set, number, name, image URL + fallback URL, source, split, optional SHA-256 of the image | MIT (the data is from TCGdex); our added columns CC0 |
+| Source notes (`sources.json`) | Per source: owner, terms, credit, minimum request interval (our own text) | CC0 1.0 |
 | Reference images | **Not included.** `download.py` rebuilds them from the URLs (ADR 0009: the card art is not re-hosted) | owners' terms, per source |
 | User scans (`scans/`, `scans.csv`) | Contributed card crops (#14) | CC0 1.0 |
 
@@ -45,7 +46,9 @@ scans for the manual look before publishing.
 - Reference cards: `train` (trained set in `ml/manifest.csv`), `holdout` (unseen set in `ml/manifest.csv`, index and
   evaluation only), `index` (only in a pack's reference index).
 - User scans: `common.split_of(card_id)`, the fixed card-level split also used for the real-photo sets (20 %
-  `test`). All scans of one card land in the same split.
+  `test`). All scans of one card id land in the same split. The split does not know same-art twins (reprints, the
+  same print in another language under another id), which `realset.py twins` removes for our own training; the
+  dataset card says so, so users building a strict test set filter them themselves.
 
 ## Image sources
 
@@ -60,7 +63,10 @@ set MEE, #60/#69) needs its terms written down before it can be released. Today:
 
 `download.py` honours `robots.txt` (and `Crawl-delay`), the per-host interval, `Retry-After` and 429/5xx backoff,
 sends the generic User-Agent `open-card-dataset-downloader/1.0 (python-urllib)`, makes one request at a time and
-resumes partial files with `Range`/`If-Range`.
+resumes partial files with `Range`/`If-Range` (appending at the server's `Content-Range` offset, and treating a body
+shorter than its `Content-Length` as broken). It fetches only https URLs, redirects included, and only on the hosts
+`sources.json` lists for the card's source (status `bad-url` otherwise). A card that still fails after retries gets
+status `error` and the run goes on.
 
 ## User scans: what is released
 

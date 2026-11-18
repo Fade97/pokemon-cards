@@ -20,7 +20,8 @@ FREAK. Pokémon and the card artwork are their trademarks and copyright.
 | Part | Licence | Notes |
 |---|---|---|
 | `scans/`, `scans.csv` | [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/) (`LICENSES/CC0-scans.txt`) | Each contributor agreed to the CC0 consent text named in the `consent` column. The cards shown are still the rights holders' artwork: CC0 covers the contributors' photos, not the card designs. |
-| `cards.csv`, `sources.json` | MIT (`LICENSES/TCGdex-MIT.txt`) | Card ids, names and set data come from [TCGdex](https://tcgdex.dev) (MIT, © 2021 TCGdex). Our additions (source, split, checksums) are CC0. |
+| `cards.csv` | MIT (`LICENSES/TCGdex-MIT.txt`) | Card ids, names and set data come from [TCGdex](https://tcgdex.dev) (MIT, © 2021 TCGdex). Our additions (source, split, checksums) are CC0. |
+| `sources.json` | CC0 1.0 | Our own notes on each source. The terms it quotes are the sources' own. |
 | Reference images | **not included** | Referenced by URL only. Owned by the rights holders above and served by the sources below, each on its own terms. Do not re-host them. |
 | `download.py` | GPL-3.0-or-later | |
 
@@ -40,7 +41,9 @@ $split_table
 - `split` of a reference card: `train` = a set the published model was trained on; `holdout` = a set it never saw
   in training (index and evaluation only); `index` = a card that is only in the model's reference index.
 - `split` of a user scan: a fixed card-level split (`train`/`test`, SHA-1 of the card id, 20 % test). Every scan of
-  one card is in the same split, so a test card is never seen in training.
+  one card id is in the same split. The split knows only the id: a reprint or a print in another language with the
+  same art has its own id and can land in the other split. For a strict test set, drop such same-art twins of the
+  test cards from training yourself.
 - $with_checksum of the reference cards carry the SHA-256 their image had when this release was built.
 
 ## Files
@@ -64,7 +67,8 @@ python download.py cards.csv --out images --prefer alt             # all, WebP w
 
 Python 3.9+, no packages needed. The run can be stopped and restarted at any time. It writes
 `images/downloaded.csv` and `images/download-report.json`. A `mismatch` there means the source changed that
-image after this release; a `missing` means it is gone.
+image after this release; a `missing` means it is gone; `error` means it failed after retries (run again later).
+It fetches only https URLs on the hosts `sources.json` lists for the card's source; any other URL is `bad-url`.
 
 ## Intended use
 
