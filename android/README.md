@@ -167,6 +167,25 @@ Result on 2026-11-17 with the German, English and Japanese packs (45,170 cards),
 | Classic | all | 33 | 49 | 16 | 43 ms |
 | Classic | German only | 40 | 46 | 10 | 41 ms |
 
+**Two-pass detection (issue #78).** Photos in the lab (shutter and gallery) use two-pass detection with the learned
+outline (`RecognitionEngine.identifyTwoPass`, `recognition/TwoPass.kt`, a port of `two_pass` in `ml/detect.py`):
+detect, cut the guide box around the quad (card at 78 % of the box height, 63:88, 7 % margin, clipped to the
+photo), run the learned corner detector again on that box (skipped when the box is under 24 px), recognise both
+crops in both orientations and keep the second only with a strictly higher top-1 similarity. Live scan stays one
+pass; `ml/REPORT.md` ("Two-pass corner detection (#78)") measured no gain in guide framing. The lab chip
+"Two-pass (photos)" turns it off for a comparison; the detail line says "second pass kept" when the second crop won.
+
+`RealPhotoTest` runs one pass by default and the learned outline with two-pass when given `-e twoPass true`. It then
+writes `results-twopass.json` instead of `results.json` (the classic outline stays one pass), and both files carry
+`medianTotalMs` (detection plus identification, no OCR) and `secondPassKept` per configuration:
+```
+adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner
+adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest -e twoPass true de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner
+adb pull /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/results.json
+adb pull /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/results-twopass.json
+```
+Not measured on a phone yet (#78, #83).
+
 ## Scan contributions (issue #14)
 
 Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14 and `backend/README.md` (PR #41).

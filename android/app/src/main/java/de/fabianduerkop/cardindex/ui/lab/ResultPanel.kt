@@ -6,6 +6,7 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -133,6 +134,7 @@ private fun BestMatch(result: RecognitionResult, identified: Boolean, stable: Bo
 fun LabSettings(viewModel: LabViewModel) {
     val readNumber by viewModel.readNumber.collectAsStateWithLifecycle()
     val saveCaptures by viewModel.saveCaptures.collectAsStateWithLifecycle()
+    val twoPass by viewModel.twoPass.collectAsStateWithLifecycle()
     val minScore by viewModel.minScore.collectAsStateWithLifecycle()
     val minSimilarity by viewModel.minSimilarity.collectAsStateWithLifecycle()
     val detector by viewModel.detector.collectAsStateWithLifecycle()
@@ -156,11 +158,15 @@ fun LabSettings(viewModel: LabViewModel) {
                     label = { Text(lang.uppercase(Locale.ROOT)) })
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             FilterChip(selected = readNumber, onClick = { viewModel.setReadNumber(!readNumber) },
                 label = { Text(stringResource(R.string.scan_lab_ocr)) })
             FilterChip(selected = saveCaptures, onClick = { viewModel.setSaveCaptures(!saveCaptures) },
                 label = { Text(stringResource(R.string.scan_lab_save)) })
+            // Photos only (shutter and gallery), learned outline only: the second pass runs the learned detector.
+            FilterChip(selected = twoPass, enabled = detector == DetectorKind.LEARNED,
+                onClick = { viewModel.setTwoPass(!twoPass) },
+                label = { Text(stringResource(R.string.scan_lab_two_pass)) })
         }
         LabeledSlider(stringResource(R.string.scan_lab_min_similarity, minSimilarity), minSimilarity, viewModel::setMinSimilarity,
             0.2f..0.9f, steps = 13)
@@ -231,6 +237,7 @@ private fun timingLine(r: RecognitionResult): String {
     val outline = if (r.found) stringResource(R.string.scan_lab_outline_found, r.detectionScore)
     else stringResource(R.string.scan_lab_outline_fallback)
     val flipped = if (r.flipped) stringResource(R.string.scan_lab_flipped) else ""
+    val second = if (r.secondPass) stringResource(R.string.scan_lab_second_pass) else ""
     return stringResource(R.string.scan_lab_timings, t.detect, t.embed, t.knn, t.ocr, t.total, r.frameWidth, r.frameHeight) +
-        " · $outline$flipped"
+        " · $outline$flipped$second"
 }

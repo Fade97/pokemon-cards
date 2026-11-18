@@ -26,7 +26,9 @@ import java.nio.ByteOrder
 import java.util.concurrent.TimeUnit
 
 /** How long each step took, in milliseconds. */
-data class Timings(val detect: Long, val embed: Long, val knn: Long, val ocr: Long, val total: Long)
+data class Timings(val detect: Long, val embed: Long, val knn: Long, val ocr: Long, val total: Long) {
+    operator fun plus(o: Timings) = Timings(detect + o.detect, embed + o.embed, knn + o.knn, ocr + o.ocr, total + o.total)
+}
 
 /** The result of one frame or photo. */
 data class RecognitionResult(
@@ -47,7 +49,10 @@ data class RecognitionResult(
     val ocrText: String?,
     /** The rectified, upright card crop that was embedded. */
     val crop: Bitmap,
+    /** For [RecognitionEngine.identifyTwoPass]: both passes added up. */
     val timings: Timings,
+    /** The crop of the second detector pass was kept ([RecognitionEngine.identifyTwoPass]). */
+    val secondPass: Boolean = false,
 ) {
     val best: Match get() = reranked.first()
 
@@ -168,6 +173,33 @@ class RecognitionEngine private constructor(
             timings = Timings(t1 - t0, t2 - t1, t3 - t2, 0, t3 - t0),
         )
         return if (readNumber) readNumber(bgr, result) else result
+    }
+
+    /**
+     * Two-pass identification for single photos (issue #78, [TwoPass], ml/detect.py `two_pass`): identify [first]
+     * (or the centred fallback box), cut the guide box around that quad, run the learned corner detector on it,
+     * identify that crop too (both orientations, like [identify]) and keep it only with a strictly higher top-1
+     * similarity. Without the learned detector, or when the guide box is under [TwoPass.MIN_REFINE_BOX], this is
+     * [identify]. The number OCR runs once, on the kept crop. Live scan does not use this.
+     */
+    @WorkerThread
+    fun identifyTwoPass(
+        bgr: Mat,
+        first: Detection?,
+        readNumber: Boolean = true,
+        detectMs: Long = 0,
+        languages: Set<String>? = null,
+    ): RecognitionResult {
+        val one = identify(bgr, first, readNumber = false, detectMs = detectMs, languages = languages)
+        val box = cornerDetector?.let { TwoPass.refineBox(one.quad, bgr.cols(), bgr.rows()) }
+        val kept = if (cornerDetector == null || box == null) one else {
+            val t0 = SystemClock.elapsedRealtime()
+            val second = cornerDetector.detect(bgr, box)
+            val two = identify(bgr, second, readNumber = false, detectMs = SystemClock.elapsedRealtime() - t0, languages = languages)
+            val (result, usedSecond) = TwoPass.keepHigherSim(one.best.similarity to one, two.best.similarity to two)
+            result.copy(timings = one.timings + two.timings, secondPass = usedSecond)
+        }
+        return if (readNumber) readNumber(bgr, kept) else kept
     }
 
     /**
