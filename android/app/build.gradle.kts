@@ -38,7 +38,10 @@ android {
             applicationIdSuffix = ".debug"
             versionNameSuffix = "-debug"
             val proToken = providers.gradleProperty("cardindex.proTestToken").getOrElse("")
-            require(proToken.matches(Regex("[A-Za-z0-9_-]*"))) { "cardindex.proTestToken must be URL-safe" }
+            // The backend's format (backend/src/entitlements.ts): anything else is no token at all there (401).
+            require(proToken.isEmpty() || proToken.matches(Regex("[A-Za-z0-9_-]{32,128}"))) {
+                "cardindex.proTestToken must be 32–128 URL-safe characters"
+            }
             buildConfigField("String", "PRO_TEST_TOKEN", "\"$proToken\"")
             // OpenCV ships ~180 MB of native code for four ABIs; debug builds need only phones and the emulator.
             ndk { abiFilters += listOf("arm64-v8a", "x86_64") }
