@@ -99,7 +99,8 @@ def contribution(i: int, data: bytes, **over) -> dict:
     row = {"id": UUIDS[i], "token_hash": "ab" * 32, "card_id": "sv03.5-025", "lang": "de", "consent_version": "cc0-1",
            "object_key": f"scans/{UUIDS[i]}", "content_type": kind, "size": len(data), "width": 120, "height": 168,
            "sha256": hashlib.sha256(data).hexdigest(), "created_at": f"2026-11-17T10:00:0{i}Z",
-           "withdrawn_at": None, "stored_at": f"2026-11-17T10:00:0{i}Z"}
+           "withdrawn_at": None, "stored_at": f"2026-11-17T10:00:0{i}Z", "review": "approved",
+           "reviewed_at": "2026-11-18T09:00:00Z"}
     row.update(over)
     return row
 
@@ -121,7 +122,7 @@ def backend(tmp_path: Path) -> tuple[list[dict], Path]:
         contribution(5, images[5], sha256="00" * 32),                # object does not match the row
         contribution(6, images[6], object_key=f"scans/{UUIDS[7]}"),  # object missing
         {**contribution(7, b"", content_type="image/jpeg"), "object_key": "", "card_id": "", "lang": "",
-         "withdrawn_at": "2026-11-17T12:00:00Z", "stored_at": None},  # tombstone
+         "withdrawn_at": "2026-11-17T12:00:00Z", "stored_at": None, "review": "pending", "reviewed_at": None},  # tombstone
     ]
     return rows, objects
 
@@ -505,6 +506,22 @@ def test_scan_export_releases_only_accepted_scans(tmp_path, backend):
     assert "ab" * 32 not in published and "T10:00" not in published
     assert sorted(p.name for p in (tmp_path / "rel" / "scans").iterdir()) == sorted(
         Path(r["file"]).name for r in res.rows)
+
+
+def test_scan_export_takes_only_approved_scans(tmp_path, backend):
+    rows, objects = backend
+    good = rows[0]
+    assert export_scans.skip_reason({**good, "review": "pending", "reviewed_at": None}) == "not approved"
+    assert export_scans.skip_reason({**good, "review": "rejected"}) == "not approved"
+    # A dump from before migration 0003 (no review column): nothing was looked at, nothing goes out.
+    old = [{k: v for k, v in r.items() if k not in ("review", "reviewed_at")} for r in rows]
+    res = export_scans.export(old, objects, None)
+    assert res.rows == [] and res.skipped["not approved"] == 5
+    assert export_scans.fetch_commands(old, objects) == []
+    # The quarantine as the backend writes it: a new row is pending until approved.
+    db = sqlite_from_migrations(tmp_path / "d1.sqlite", [{k: v for k, v in r.items() if k not in ("review", "reviewed_at")}
+                                                        for r in rows])
+    assert {r["review"] for r in export_scans.load_rows(db)} == {"pending"}
 
 
 def test_scan_ids_are_stable_and_opaque():

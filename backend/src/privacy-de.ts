@@ -109,7 +109,9 @@ ohne Namensnennung nutzen.</p>
 <h3>Empfänger</h3>
 <p>Die Bilder werden nicht öffentlich bei unserem Hosting-Anbieter Cloudflare gespeichert (Abschnitt 7). Wenn wir eine
 Version des Datensatzes veröffentlichen, sind die darin enthaltenen Bilder öffentlich und können von allen
-heruntergeladen und kopiert werden.</p>
+heruntergeladen und kopiert werden. Vorher sehen wir uns jedes Bild an: Nur freigegebene Bilder kommen in den
+Datensatz, ein abgelehntes Bild (keine Karte, falsche Karte, mehr als die Karte zu sehen) löschen wir und behalten nur
+den Eintrag ohne Bild wie nach einem Widerruf.</p>
 <h3>Widerruf und Speicherdauer</h3>
 <ul>
 <li>Du kannst deine Einwilligung jederzeit widerrufen, für ein Bild oder für alle, unter <strong>Settings → My
