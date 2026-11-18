@@ -110,6 +110,36 @@ def fill_cdn_gap(cards: list[dict], found: dict[str, str]) -> list[dict]:
     return [{**c, "image": found[c["id"]]} if not c["image"] and c["id"] in found else c for c in cards]
 
 
+# Reference images from another source for sets TCGdex lists without any image (issue #60). They come from the
+# malie.io export of Pokémon TCG Live (https://malie.io/static/): rendered card PNGs in TCGdex's high.png format
+# (733 x 1024, RGBA, transparent corners). The export states no licence and asks for a credit. These URLs are only
+# used to embed the cards for the index; the pack's `image` stays TCGdex's (null), so the app never loads them
+# (ADR 0009). TCGdex set id -> malie.io set key.
+REF_FALLBACK = "https://cdn.malie.io/file/malie-io/tcgl/cards/png"
+REF_FALLBACK_SETS = {"mee": "mee"}  # Mega Evolution Energy: 16 basic energies, TCGdex CDN has none (#60)
+REF_FALLBACK_LANGS = {"en": "en", "de": "de", "fr": "fr", "it": "it", "es": "es", "pt": "ptbr"}  # TCGdex -> malie
+
+
+def ref_fallback_url(lang: str, set_id: str, local_id: str) -> str | None:
+    """Full URL of a PNG reference image for a card TCGdex has no image of, or None if there is no other source.
+    Unlike TCGdex's base URLs it already ends in `.png`."""
+    key, mlang = REF_FALLBACK_SETS.get(set_id), REF_FALLBACK_LANGS.get(lang)
+    if not key or not mlang or not local_id.isdigit():
+        return None
+    return f"{REF_FALLBACK}/{mlang}/{key}/{key}_{mlang}_{int(local_id):03d}_std.png"
+
+
+def reference_image(lang: str, card: dict) -> str | None:
+    """Where the embed step gets a card's reference image: TCGdex's base URL, else `ref_fallback_url`."""
+    return card["image"] or ref_fallback_url(lang, card["setId"], card["localId"] or "")
+
+
+def app_image_url(url: str | None) -> str | None:
+    """The image base URL the app may load for a reference image URL: TCGdex's as it is, None for a
+    `ref_fallback_url` (the app never loads that source, ADR 0009)."""
+    return None if not url or url.startswith(REF_FALLBACK + "/") else url
+
+
 def sort_cards(cards: list[dict]) -> list[dict]:
     """Canonical card order: by id, comparing the strings code point by code point (ids are ASCII)."""
     return sorted(cards, key=lambda c: c["id"])

@@ -25,7 +25,8 @@ from pathlib import Path
 import cv2
 import numpy as np
 
-from common import DATA_DIR, ML_DIR, load_manifest
+import packs
+from common import DATA_DIR, ML_DIR, Card, load_manifest
 from synth import load_ref_rgba
 
 INPUT = 224
@@ -58,6 +59,14 @@ class Embedder:
 
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
+
+
+def card_entry(c: Card) -> dict:
+    """One entry of cards.json. `imageUrl` is TCGdex's base URL, or "" when the reference image came from another
+    source (set mee, packs.ref_fallback_url): the app only loads TCGdex images (ADR 0009)."""
+    return {"key": c.key, "cardId": c.card_id, "lang": c.lang, "setId": c.set_id, "setName": c.set_name,
+            "localId": c.local_id, "official": c.official, "name": c.name,
+            "imageUrl": packs.app_image_url(c.image_url) or "", "unseen": c.holdout}
 
 
 def main():
@@ -93,12 +102,7 @@ def main():
     elif (args.out / "corners.tflite").exists():
         (args.out / "corners.tflite").unlink()
     (args.out / "index.bin").write_bytes(index.tobytes())
-    meta_cards = [
-        {"key": c.key, "cardId": c.card_id, "lang": c.lang, "setId": c.set_id, "setName": c.set_name,
-         "localId": c.local_id, "official": c.official, "name": c.name, "imageUrl": c.image_url,
-         "unseen": c.holdout}
-        for c in cards
-    ]
+    meta_cards = [card_entry(c) for c in cards]
     (args.out / "cards.json").write_text(json.dumps(meta_cards, ensure_ascii=False), encoding="utf-8")
     meta = {"model": model.name, "dim": int(index.shape[1]), "cards": len(cards),
             "modelSha256": sha256(args.out / "embedder.tflite"), "indexSha256": sha256(args.out / "index.bin"),

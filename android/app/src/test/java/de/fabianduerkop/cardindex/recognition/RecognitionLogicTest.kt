@@ -11,6 +11,12 @@ class RecognitionLogicTest {
         RefCard("$lang/x-$localId", "x-$localId", lang, "x", "Set", localId, official, "Card $localId", "https://x", false)
 
     @Test
+    fun thumbnailUrlIsNullForCardsWithoutImage() {
+        assertEquals("https://x/low.webp", card("1", 10).thumbnailUrl)
+        assertNull(card("1", 10).copy(imageUrl = "").thumbnailUrl)
+    }
+
+    @Test
     fun numberKeyStripsLeadingZerosOfNumericIdsOnly() {
         assertEquals("6", numberKey("006"))
         assertEquals("0", numberKey("000"))

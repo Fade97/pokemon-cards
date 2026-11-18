@@ -27,6 +27,10 @@ R2 bucket PACKS                         served as
   and sets `image` when the answer is 2xx (403/404/410 mean missing). Answers are cached in `<work>/tcgdex/<lang>.cdn-gap.json` for
   `--max-age-days`. On 2026-11-17 this added 3,477 JP, 449 DE and 86 EN cards (JP 3,882 → 7,359). `ja/M1S` is
   excluded: its files show other cards from 057 on (#2395). `--no-cdn-gap` turns it off.
+- `embed` takes the reference image of a card TCGdex has no image of from another source where one is known
+  (`packs.REF_FALLBACK_SETS`): set `mee` (Mega Evolution Energy, #60) comes from the malie.io export of Pokémon TCG
+  Live (`cdn.malie.io/.../png/<lang>/mee/mee_<lang>_<NNN>_std.png`, en de fr it es pt, no JP). Such a card is indexed
+  but keeps `image: null`, so the app shows a placeholder and never loads the other source (ADR 0009).
 - `<v>` is the pack version, an integer per language that goes up by one with every publish.
 - One model serves all languages. Its id is the embedder's file stem plus the first 12 hex digits of the SHA-256
   of the embedder and the corner detector together, e.g. `mnv3_256_real_w8-1a2b3c4d5e6f`. A new corner detector
