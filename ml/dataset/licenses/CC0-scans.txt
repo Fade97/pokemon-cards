@@ -1,0 +1,10 @@
+User scans in this dataset (the files in scans/ and the rows of scans.csv)
+
+To the extent possible under law, the contributors have waived all copyright and related or neighbouring rights to
+their scans by dedicating them to the public domain under Creative Commons CC0 1.0 Universal. Each scan's `consent`
+column names the consent text its contributor accepted in the app.
+
+Legal code: https://creativecommons.org/publicdomain/zero/1.0/legalcode
+
+The cards shown in the scans are the artwork of The Pokemon Company, Nintendo, Creatures and GAME FREAK. CC0 covers
+the contributors' photographs, not the card designs, trademarks or artwork.

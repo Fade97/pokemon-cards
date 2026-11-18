@@ -76,6 +76,17 @@ uv run python export_safetensors.py --run corners_mnv3
 All scripts load checkpoints with `torch.load(..., weights_only=True)`; checkpoints hold only tensors and plain
 types (str, int, list) so that this works.
 
+### Open dataset (ADR 0008, #20)
+
+`dataset/` builds a release of the open dataset: the reference manifest (card ids + image URLs, no images), a
+standalone `download.py` that rebuilds the images, and the CC0 user scans from a copy of the backend's
+contributions. It builds files only and never uploads. Steps, layout and privacy rules: [docs/dataset.md](../docs/dataset.md).
+
+```sh
+python -m dataset.release --version 2026.11.0 --out ../dataset-release/v2026.11.0 --manifest manifest.csv
+uv run --no-project --with pytest pytest tests/test_dataset.py
+```
+
 ### Learned corner detector: exact I/O
 
 Files: `<data>/export/corners_mnv3_w8.tflite` (3.5 MB, int8 weights, float activations; recommended) and
