@@ -55,8 +55,8 @@ systemctl --user list-timers pokemon-cards-prices.timer
 journalctl --user -u pokemon-cards-prices.service -n 50
 sqlite3 ~/.local/share/pokemon-cards-prices/prices.db \
   "SELECT job, status, detail FROM import_runs ORDER BY id DESC LIMIT 20"
-# Rebuild every month's history files from the local snapshots (after a format change or a failed night):
-node ~/.local/share/pokemon-cards-prices/app/importer.mjs --no-import --no-publish --rebuild-history
+# Rebuild every month's history files from the local snapshots and upload them (first deploy, format change):
+~/.local/share/pokemon-cards-prices/app/run-nightly.sh --no-import --no-publish --rebuild-history
 # A manual mapping fix, applied at the next run:
 sqlite3 ~/.local/share/pokemon-cards-prices/prices.db \
   "INSERT INTO mapping_overrides VALUES ('sv03.5-025', 733620, NULL, 'why', datetime('now'))"
