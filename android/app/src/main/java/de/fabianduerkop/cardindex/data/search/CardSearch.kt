@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.data.search
 
+import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CardSearchHit
 import de.fabianduerkop.cardindex.data.db.CatalogDao
-import java.util.Locale
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
@@ -42,7 +42,7 @@ data class SearchTerms(
             val id = token.removePrefix("#").substringBefore('/')
             if (id.isEmpty() || id.length > MAX_NUMBER || id.none(Char::isDigit)) return null
             if (!id.all { it.isLetterOrDigit() || it == '-' }) return null
-            return id.trimStart('0').uppercase(Locale.ROOT)
+            return CardEntity.numberKey(id)
         }
 
         /** `025/165` → 165; null without a total or with one that is not a plain number. */
@@ -60,17 +60,22 @@ data class SearchPage(val hits: List<CardSearchHit>, val more: Boolean)
 
 /** Searches the cards of the installed language packs in the local catalog. Nothing leaves the device. */
 class CardSearch(private val dao: CatalogDao) {
+    /**
+     * One query per shape of [terms] (#124), so a name with a number can look the number up in its index; all three
+     * share the filter and the order of [CatalogDao.searchByName].
+     */
     fun observe(terms: SearchTerms, languages: Collection<String>, limit: Int = PAGE): Flow<SearchPage> {
-        val text = terms.text?.let(SearchTerms::escapeLike)
-        return dao.searchCards(
-            text = text?.let { "%$it%" },
-            prefix = text?.let { "$it%" },
-            number = terms.number,
-            both = terms.both,
-            total = terms.total,
-            languages = languages.toList(),
-            limit = limit + 1,
-        ).map { rows -> SearchPage(rows.take(limit), more = rows.size > limit) }
+        val escaped = terms.text?.let(SearchTerms::escapeLike)
+        val text = escaped?.let { "%$it%" }
+        val prefix = escaped?.let { "$it%" }
+        val langs = languages.toList()
+        val number = terms.number
+        val rows = when {
+            number != null && terms.both -> dao.searchByNameAndNumber(text, prefix, number, terms.total, langs, limit + 1)
+            number != null -> dao.searchByNameOrNumber(text, prefix, number, terms.total, langs, limit + 1)
+            else -> dao.searchByName(text, prefix, terms.total, langs, limit + 1)
+        }
+        return rows.map { SearchPage(it.take(limit), more = it.size > limit) }
     }
 
     companion object {

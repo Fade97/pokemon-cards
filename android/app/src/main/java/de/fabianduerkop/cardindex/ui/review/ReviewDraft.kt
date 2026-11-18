@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.review
 
+import de.fabianduerkop.cardindex.data.db.ReviewItemEntity
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
@@ -37,5 +38,42 @@ data class ReviewDraft(
 
         fun forItem(checkVariant: Boolean): ReviewDraft =
             if (checkVariant) ReviewDraft(finish = null, edition = null) else ReviewDraft()
+
+        /**
+         * The draft stored on [item] (#141), on top of [forItem]. A stored rank whose candidate is gone falls back to
+         * the card found in search, if any (#140), else to the best match: a wrong pipeline match must not take the
+         * place of a hand pick.
+         */
+        fun restore(item: ReviewItemEntity, ranks: Collection<Int>, pickedRank: Int?): ReviewDraft {
+            val base = forItem(item.checkVariant)
+            return base.copy(
+                rank = item.draftRank?.takeIf { it in ranks } ?: pickedRank ?: base.rank,
+                finish = item.draftFinish ?: base.finish,
+                edition = item.draftEdition ?: base.edition,
+                condition = item.draftCondition ?: base.condition,
+                quantity = item.draftQuantity?.coerceIn(1, MAX_QUANTITY) ?: base.quantity,
+                finishChosen = item.draftFinish != null,
+                editionChosen = item.draftEdition != null,
+                conditionChosen = item.draftCondition != null,
+            )
+        }
     }
 }
+
+/** What [ReviewItemEntity] stores of a draft: only the picked fields, the rank and the quantity (#141). */
+fun ReviewDraft.stored(): StoredDraft = StoredDraft(
+    rank = rank,
+    finish = finish.takeIf { finishChosen },
+    edition = edition.takeIf { editionChosen },
+    condition = condition.takeIf { conditionChosen },
+    quantity = quantity,
+)
+
+/** The columns of a stored draft; null is not picked. */
+data class StoredDraft(
+    val rank: Int?,
+    val finish: Finish?,
+    val edition: Edition?,
+    val condition: Condition?,
+    val quantity: Int?,
+)

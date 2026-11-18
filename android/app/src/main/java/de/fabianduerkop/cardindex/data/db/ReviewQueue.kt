@@ -9,6 +9,9 @@ import androidx.room.Index
 import androidx.room.Insert
 import androidx.room.PrimaryKey
 import androidx.room.Query
+import de.fabianduerkop.cardindex.model.Condition
+import de.fabianduerkop.cardindex.model.Edition
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
 import kotlinx.coroutines.flow.Flow
 import java.time.Instant
@@ -36,6 +39,16 @@ data class ReviewItemEntity(
     val createdAt: Instant,
     /** Queue order, oldest first. Skip sets it to now, which moves the item to the back. */
     val queuedAt: Instant = createdAt,
+    /*
+     * The user's draft (#141), so it survives leaving Review and process death. Each one is null until the user picks
+     * it; the screen then shows the default for it, as for a new item.
+     */
+    /** Rank of the chosen candidate. */
+    val draftRank: Int? = null,
+    val draftFinish: Finish? = null,
+    val draftEdition: Edition? = null,
+    val draftCondition: Condition? = null,
+    val draftQuantity: Int? = null,
 )
 
 /** One of the (up to three) cards the user picks from, best first. */
@@ -107,6 +120,16 @@ interface ReviewDao {
     @Query("UPDATE review_items SET queuedAt = :queuedAt WHERE id = :id")
     suspend fun requeue(id: Long, queuedAt: Instant): Int
 
+    /** Stores the user's draft on the item (#141); null fields are not picked. */
+    @Query(
+        """UPDATE review_items SET draftRank = :rank, draftFinish = :finish, draftEdition = :edition,
+            draftCondition = :condition, draftQuantity = :quantity WHERE id = :id""",
+    )
+    suspend fun saveDraft(id: Long, rank: Int?, finish: Finish?, edition: Edition?, condition: Condition?, quantity: Int?): Int
+
+    @Query("UPDATE review_items SET draftRank = :rank WHERE id = :id")
+    suspend fun saveDraftRank(id: Long, rank: Int): Int
+
     /** The queue, front first; the id breaks ties of items queued in the same millisecond. */
     @Query("SELECT * FROM review_items ORDER BY queuedAt, id")
     fun observeItems(): Flow<List<ReviewItemEntity>>
@@ -119,7 +142,7 @@ interface ReviewDao {
         SELECT rc.itemId, rc.rank, rc.similarity,
             c.id AS card_id, c.setId AS card_setId, c.localId AS card_localId, c.name AS card_name,
             c.language AS card_language, c.rarity AS card_rarity, c.energyType AS card_energyType,
-            c.imageUrl AS card_imageUrl, c.retired AS card_retired,
+            c.imageUrl AS card_imageUrl, c.retired AS card_retired, c.numberKey AS card_numberKey,
             s.id AS set_id, s.name AS set_name, s.series AS set_series, s.language AS set_language,
             s.printedTotal AS set_printedTotal, s.region AS set_region, s.retired AS set_retired
         FROM review_candidates rc

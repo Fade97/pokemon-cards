@@ -17,6 +17,7 @@ import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.Region
 import java.time.Instant
 import java.time.LocalDate
+import java.util.Locale
 import java.util.UUID
 
 /*
@@ -55,7 +56,7 @@ data class CardSetEntity(
     tableName = "cards",
     primaryKeys = ["id", "language"],
     foreignKeys = [ForeignKey(entity = CardSetEntity::class, parentColumns = ["id"], childColumns = ["setId"])],
-    indices = [Index("setId"), Index("setId", "language", "localId")],
+    indices = [Index("setId"), Index("setId", "language", "localId"), Index("numberKey")],
 )
 data class CardEntity(
     val id: String,
@@ -68,7 +69,18 @@ data class CardEntity(
     val imageUrl: String?,
     /** No longer in the language pack. Kept for owned copies; see the policy at the top of this file. */
     val retired: Boolean = false,
-)
+    /**
+     * [localId] as search compares it (#124): no leading zeros, upper case (`006` → `6`, `tg05` → `TG05`). Indexed,
+     * so a typed number is a lookup instead of a scan. Derived from [localId] when the row is built; pass a new
+     * value when a `copy()` changes [localId].
+     */
+    @ColumnInfo(defaultValue = "") val numberKey: String = numberKey(localId),
+) {
+    companion object {
+        /** The search key of a collector number; [de.fabianduerkop.cardindex.data.search.SearchTerms] uses it too. */
+        fun numberKey(localId: String): String = localId.trimStart('0').uppercase(Locale.ROOT)
+    }
+}
 
 /** A physical copy the user owns. Either [condition] (raw card) or [grader] + [grade] (slab) is set. */
 @Entity(

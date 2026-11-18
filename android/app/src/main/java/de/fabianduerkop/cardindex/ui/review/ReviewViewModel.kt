@@ -26,6 +26,8 @@ import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 
 /** One pass through the queue: the item in front, the user's draft for it and the pass's progress. */
@@ -53,8 +55,8 @@ data class ReviewUndo(
 
 /**
  * The review screen (#9). Skipped items stay in the queue (moved to its back) but leave this pass, so the pass
- * ends; [reviewSkippedAgain] starts a new pass over them. Drafts are kept per item while the screen lives, so
- * leaving a half-filled card via Skip does not lose the choices.
+ * ends; [reviewSkippedAgain] starts a new pass over them. Drafts are kept per item and stored on the item (#141), so
+ * neither Skip, leaving Review nor process death loses the choices.
  *
  * The last confirmation can be undone (#98): the copy it added is removed, the item returns to the queue where it
  * was, with the draft the user had chosen, and the pass's count goes back. Only the last confirmation is kept, and
@@ -66,7 +68,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
 
     private val skippedInPass = MutableStateFlow<Set<Long>>(emptySet())
     private val confirmedInPass = MutableStateFlow(0)
+    /** Drafts of this screen's life; each change is also stored on its item ([persist]) for the next one. */
     private val drafts = MutableStateFlow<Map<Long, ReviewDraft>>(emptyMap())
+    /** Draft writes and picks from search run one after the other, in call order (Mutex is fair). */
+    private val draftLock = Mutex()
 
     /** Ids of items being written; a double tap must not confirm the same item twice. */
     private val busy = MutableStateFlow<Set<Long>>(emptySet())
@@ -94,19 +99,34 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewUiState())
 
     /**
-     * A card the user found in search stays chosen when the screen comes back without its in-memory draft (leaving
-     * Review, process death, #140): that pick is in the database, a wrong pipeline match must not take its place.
+     * The draft when the screen comes back without its in-memory one (leaving Review, process death): what the item
+     * stores (#141), and a card the user found in search stays chosen (#140).
      */
     private fun defaultDraft(item: ReviewItem): ReviewDraft {
-        val draft = ReviewDraft.forItem(item.entity.checkVariant)
-        val picked = item.candidates.firstOrNull { it.similarity == ReviewCandidateEntity.PICKED_BY_HAND } ?: return draft
-        return draft.copy(rank = picked.rank)
+        val picked = item.candidates.firstOrNull { it.similarity == ReviewCandidateEntity.PICKED_BY_HAND }?.rank
+        return ReviewDraft.restore(item.entity, item.candidates.map { it.rank }, picked)
     }
 
     private fun editDraft(change: (ReviewDraft) -> ReviewDraft) {
         val s = state.value
         val item = s.current ?: return
-        drafts.update { it + (item.entity.id to change(s.draft)) }
+        val draft = change(s.draft)
+        drafts.update { it + (item.entity.id to draft) }
+        persist(item.entity.id, draft)
+    }
+
+    /** Writes [draft] to the item (#141), after earlier writes, so the last tap is the last write. */
+    private fun persist(itemId: Long, draft: ReviewDraft) {
+        val stored = draft.stored()
+        viewModelScope.launch {
+            draftLock.withLock {
+                runCatching {
+                    withContext(Dispatchers.IO) {
+                        queue.saveDraft(itemId, stored.rank, stored.finish, stored.edition, stored.condition, stored.quantity)
+                    }
+                }.onFailure { Log.e(TAG, "saving the draft of review item $itemId failed", it) }
+            }
+        }
     }
 
     fun selectCandidate(rank: Int) = editDraft { it.copy(rank = rank) }
@@ -117,13 +137,12 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
      */
     fun useCard(itemId: Long, cardId: String, language: String) {
         viewModelScope.launch {
-            runCatching { withContext(Dispatchers.IO) { queue.pickCard(itemId, cardId, language) } }
+            // After the draft writes queued before, so none of them can put the old rank back.
+            runCatching { draftLock.withLock { withContext(Dispatchers.IO) { queue.pickCard(itemId, cardId, language) } } }
                 .onSuccess { picked ->
                     if (picked == null) return@onSuccess // confirmed or removed meanwhile
-                    drafts.update { all ->
-                        val draft = all[itemId] ?: ReviewDraft.forItem(picked.checkVariant)
-                        all + (itemId to draft.copy(rank = picked.rank))
-                    }
+                    // pickCard stored the rank; without an in-memory draft the stored one (with that rank) applies.
+                    drafts.update { all -> all[itemId]?.let { all + (itemId to it.copy(rank = picked.rank)) } ?: all }
                 }
                 .onFailure { Log.e(TAG, "picking $cardId for review item $itemId failed", it) }
         }
@@ -177,6 +196,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 .onSuccess { restored ->
                     if (restored) {
                         drafts.update { it + (id to undo.draft) }
+                        persist(id, undo.draft)
                         skippedInPass.update { it - id }
                         confirmedInPass.update { maxOf(0, it - 1) }
                     } else {

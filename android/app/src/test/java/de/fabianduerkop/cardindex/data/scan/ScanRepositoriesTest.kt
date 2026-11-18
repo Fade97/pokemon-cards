@@ -164,6 +164,33 @@ class ScanRepositoriesTest {
         assertEquals(null, queue.pickCard(id, "sv03.5-025", "de")) // the item is gone
     }
 
+    /** #141: the draft lives on the item, so a new screen (or a new process) reads it back. */
+    @Test
+    fun theDraftIsStoredOnTheItem_survivesSkip_andAPickInSearchSetsItsRank() = runTest {
+        val id = enqueueOne(checkVariant = true)
+        assertEquals(null, db.reviewDao().item(id)!!.draftRank)
+
+        assertTrue(queue.saveDraft(id, rank = 1, Finish.HOLO, edition = null, Condition.POOR, quantity = 4))
+        queue.skip(id)
+        with(queue.observeItems().first().single().entity) {
+            assertEquals(1, draftRank)
+            assertEquals(Finish.HOLO, draftFinish)
+            assertEquals(null, draftEdition)
+            assertEquals(Condition.POOR, draftCondition)
+            assertEquals(4, draftQuantity)
+        }
+
+        ScanCatalog.ensure(db.catalogDao(), listOf(ref("025")))
+        queue.pickCard(id, "sv03.5-025", "de")
+        with(db.reviewDao().item(id)!!) {
+            assertEquals(ReviewQueueRepository.PICKED_RANK, draftRank)
+            assertEquals(Finish.HOLO, draftFinish) // the other choices stay
+        }
+
+        queue.confirm(id, rank = 3, Finish.HOLO, Edition.UNLIMITED, Condition.POOR, quantity = 4)
+        assertFalse(queue.saveDraft(id, rank = 0, null, null, null, null)) // the item is gone
+    }
+
     @Test
     fun confirmOfAGoneItemOrUnknownCandidateAddsNothing() = runTest {
         val id = enqueueOne()

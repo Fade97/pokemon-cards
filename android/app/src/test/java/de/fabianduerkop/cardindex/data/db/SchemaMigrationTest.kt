@@ -8,6 +8,9 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import de.fabianduerkop.cardindex.data.alerts.AlertDirection
+import de.fabianduerkop.cardindex.data.search.CardSearch
+import de.fabianduerkop.cardindex.data.search.SearchTerms
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
 import java.time.Instant
@@ -122,6 +125,68 @@ class SchemaMigrationTest {
                 assertEquals(listOf(fired), dao.all())
                 dao.delete("a-1")
                 assertEquals(0, dao.count())
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    /** v3 → v4 (#124) adds the indexed number key, filled from the printed number; search finds the card by it. */
+    @Test
+    fun migration3To4_fillsTheNumberKey() {
+        val name = databasePath("migration-3-4.db")
+        helper.createDatabase(name, 3).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('sv03.5', '151', 'SV', 'en', 165, 'INTERNATIONAL', 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired) VALUES ('sv03.5-025', 'sv03.5', '025', 'Pikachu', 'en', NULL, NULL, NULL, 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired) VALUES ('sv03.5-tg05', 'sv03.5', 'tg05', 'Pikachu', 'en', NULL, NULL, NULL, 0)")
+            execSQL(
+                "INSERT INTO owned_copies (uuid, cardId, cardLanguage, quantity, finish, edition, condition, createdAt, updatedAt) " +
+                    "VALUES ('u-1', 'sv03.5-025', 'en', 2, 'NORMAL', 'UNLIMITED', 'NEAR_MINT', 0, 0)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 4, true, CardIndexDatabase.MIGRATION_3_4).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val cards = db.catalogDao().cardsInLanguage("en").associate { it.localId to it.numberKey }
+                assertEquals(mapOf("025" to "25", "tg05" to "TG05"), cards)
+                val hits = CardSearch(db.catalogDao()).observe(SearchTerms.parse("pikachu 25")!!, setOf("en")).first().hits
+                assertEquals(listOf("sv03.5-025" to 2), hits.map { it.card.id to it.owned })
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    /** v3 → v4 also adds the review draft (#141); a queued item keeps its place and has no draft yet. */
+    @Test
+    fun migration3To4_keepsReviewItems_withoutADraft() {
+        val name = databasePath("migration-3-4-review.db")
+        helper.createDatabase(name, 3).apply {
+            execSQL(
+                "INSERT INTO review_items (uuid, cropPath, numberRead, reason, checkVariant, createdAt, queuedAt) " +
+                    "VALUES ('r-1', 'review/r-1.jpg', '6/165', 'NUMBER_NOT_READ', 1, 0, 5)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 4, true, CardIndexDatabase.MIGRATION_3_4).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val item = db.reviewDao().observeItems().first().single()
+                assertEquals("r-1" to Instant.ofEpochMilli(5), item.uuid to item.queuedAt)
+                assertEquals(listOf(null, null, null, null, null), listOf(item.draftRank, item.draftFinish, item.draftEdition, item.draftCondition, item.draftQuantity))
+                db.reviewDao().saveDraft(item.id, 0, Finish.HOLO, null, null, 2)
+                assertEquals(Finish.HOLO, db.reviewDao().item(item.id)!!.draftFinish)
             }
         } finally {
             db.close()
