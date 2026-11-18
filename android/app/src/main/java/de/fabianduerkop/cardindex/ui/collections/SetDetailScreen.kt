@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -92,6 +93,8 @@ fun SetDetailScreen(
     val detail = state.detail
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = detail?.slots?.firstOrNull { it.localId == selectedKey }
+    // Back closes the missing-card bar first, then leaves the set (#101).
+    BackHandler(enabled = selected != null) { selectedKey = null }
 
     DetailScaffold(
         title = detail?.set?.name.orEmpty(),
@@ -354,8 +357,8 @@ private fun CompactSlot(slot: SetSlot, printedTotal: Int, selected: Boolean, onC
 
 /**
  * A slot in the Cards view: owned cards in full colour, missing ones grey and faded with the hollow slot outline and
- * the word "Missing" under them. Without art (none on the CDN, or offline before the first load) the numbered
- * placeholder shows.
+ * the word "Missing" on a line under the number. Without art (none on the CDN, or offline before the first load)
+ * the numbered placeholder shows.
  */
 @Composable
 private fun CardSlot(slot: SetSlot, printedTotal: Int, photos: OwnPhotos, selected: Boolean, onClick: () -> Unit) {
@@ -385,17 +388,23 @@ private fun CardSlot(slot: SetSlot, printedTotal: Int, photos: OwnPhotos, select
             missing = !slot.owned,
         )
         Text(
-            text = if (slot.owned) {
-                padCollectorNumber(slot.localId, printedTotal)
-            } else {
-                padCollectorNumber(slot.localId, printedTotal) + " · " + stringResource(R.string.collections_slot_missing)
-            },
+            text = padCollectorNumber(slot.localId, printedTotal),
             style = numberStyle(MaterialTheme.typography.labelSmall),
             color = if (slot.owned) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(top = Spacing.xs),
         )
+        // "Missing" on its own line: next to the number it was cut to "Miss…" at 1.3x font size (#101).
+        if (!slot.owned) {
+            Text(
+                text = stringResource(R.string.collections_slot_missing),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
     }
 }
 

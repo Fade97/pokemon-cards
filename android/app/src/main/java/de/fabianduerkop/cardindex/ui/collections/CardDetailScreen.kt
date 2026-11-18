@@ -347,7 +347,7 @@ internal fun CopyRow(
                 Text(
                     text = if (showCard) item.card.name else stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)),
                     style = MaterialTheme.typography.titleSmall,
-                    maxLines = 1,
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
                 val details = buildList {
@@ -360,12 +360,11 @@ internal fun CopyRow(
                     add(languageName(item.card.language))
                     copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
                 }
+                // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
                 Text(
                     details.joinToString(", "),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             if (trailing != null) {
