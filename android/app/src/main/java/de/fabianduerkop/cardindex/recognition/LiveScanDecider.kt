@@ -119,6 +119,14 @@ class LiveScanDecider<T>(private val config: DeciderConfig = DeciderConfig()) {
         resetSwitch()
     }
 
+    /**
+     * Forgets the decision on [key], so the next frames of that card decide it again: its decision could not be
+     * saved (#126). Other cards are not touched.
+     */
+    fun forget(key: String) {
+        if (handled?.key == key) handled = null
+    }
+
     fun onFrame(now: Long, signal: FrameSignal<T>): ScanEvent<T>? = when (signal) {
         FrameSignal.Empty -> onEmpty(now)
         FrameSignal.Unreadable -> {

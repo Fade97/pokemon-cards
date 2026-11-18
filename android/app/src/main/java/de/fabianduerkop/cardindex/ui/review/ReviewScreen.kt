@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -79,7 +80,12 @@ import kotlin.math.roundToInt
  * back in the queue; Skip moves the card to the back of the queue, where it waits for a later pass.
  */
 @Composable
-fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: ReviewViewModel = viewModel()) {
+fun ReviewScreen(
+    onBack: () -> Unit,
+    onFindCard: (ReviewItem) -> Unit,
+    modifier: Modifier = Modifier,
+    viewModel: ReviewViewModel = viewModel(),
+) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val undo by viewModel.undo.collectAsStateWithLifecycle()
     DetailScaffold(
@@ -123,14 +129,14 @@ fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: R
                 state.loading -> Unit
                 item == null -> Done(state, onBack, viewModel::reviewSkippedAgain, viewModel::addSampleItems)
                 // Each item starts at the top; its own scroll state, not the previous card's.
-                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel) }
+                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, onFindCard = { onFindCard(item) }) }
             }
         }
     }
 }
 
 @Composable
-private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewViewModel) {
+private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewViewModel, onFindCard: () -> Unit) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.xs),
@@ -175,6 +181,8 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
                 CandidateRow(c, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
             }
         }
+        // None of the matches is right (#129): search for the card, keeping this scan and the choices below.
+        TextAction(stringResource(R.string.review_find_card), onClick = onFindCard)
 
         SectionHeader(stringResource(R.string.variant_your_choice))
         Text(
@@ -294,7 +302,11 @@ private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> U
                 )
             }
             Text(
-                stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100)),
+                if (c.similarity == ReviewCandidateEntity.PICKED_BY_HAND) {
+                    stringResource(R.string.review_picked_by_hand)
+                } else {
+                    stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100))
+                },
                 style = MaterialTheme.typography.labelLarge,
                 color = if (selected) colors.primary else colors.onSurfaceVariant,
             )

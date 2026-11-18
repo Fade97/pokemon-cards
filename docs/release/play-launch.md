@@ -207,7 +207,7 @@ Point the camera at a card. <Name> recognizes it on the phone itself, with no ph
 collector number to tell similar cards apart, and works offline once your language packs are installed.
 
 MANY LANGUAGES
-English, German, French, Italian, Spanish, Portuguese, Dutch, Polish and Japanese cards. Download only the
+English, German, French, Italian, Spanish, Portuguese and Japanese cards. Download only the
 languages you collect; new sets arrive as small updates.
 
 YOUR COLLECTION
@@ -245,8 +245,7 @@ Die App liest die Kartennummer, um ähnliche Karten zu unterscheiden, und funkti
 Sprachpakete installiert sind.
 
 VIELE SPRACHEN
-Englische, deutsche, französische, italienische, spanische, portugiesische, niederländische, polnische und
-japanische Karten. Lade nur die Sprachen, die du sammelst; neue Sets kommen als kleine Updates.
+Englische, deutsche, französische, italienische, spanische, portugiesische und japanische Karten. Lade nur die Sprachen, die du sammelst; neue Sets kommen als kleine Updates.
 
 DEINE SAMMLUNG
 • Alle Karten an einem Ort, mit Anzahl, Ausführung, Edition, Zustand oder Grading und Kaufpreis

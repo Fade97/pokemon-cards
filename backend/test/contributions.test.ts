@@ -55,17 +55,34 @@ function chunk(fourcc: string, data: number[]): number[] {
   return [...text(fourcc), n & 0xff, (n >> 8) & 0xff, (n >> 16) & 0xff, n >>> 24, ...data, ...(n & 1 ? [0] : [])];
 }
 
-function webp(opts: { exif?: boolean; xmp?: boolean; icc?: boolean; anim?: boolean; w?: number; h?: number } = {}) {
+function webp(
+  opts: {
+    exif?: boolean;
+    xmp?: boolean;
+    icc?: boolean;
+    anim?: boolean;
+    w?: number;
+    h?: number;
+    /** VP8X canvas size, when it should differ from the frame. */
+    canvas?: [number, number];
+    /** Bytes appended to the VP8X payload. */
+    vp8xExtra?: number[];
+    /** A second VP8L frame after the first. */
+    secondFrame?: boolean;
+  } = {},
+) {
   const { w = 252, h = 352 } = opts;
+  const [cw, ch] = opts.canvas ?? [w, h];
   const flags = 0x10 | (opts.icc ? 0x20 : 0) | (opts.exif ? 0x08 : 0) | (opts.xmp ? 0x04 : 0) | (opts.anim ? 0x02 : 0);
   const le24 = (v: number) => [v & 0xff, (v >> 8) & 0xff, (v >> 16) & 0xff];
   const bits = (w - 1) | ((h - 1) << 14);
   const body = [
     ...text("WEBP"),
-    ...chunk("VP8X", [flags, 0, 0, 0, ...le24(w - 1), ...le24(h - 1)]),
+    ...chunk("VP8X", [flags, 0, 0, 0, ...le24(cw - 1), ...le24(ch - 1), ...(opts.vp8xExtra ?? [])]),
     ...(opts.icc ? chunk("ICCP", text("desc: Max Mustermann, Berlin")) : []),
     ...(opts.anim ? chunk("ANIM", [0, 0, 0, 0, 0, 0]) : []),
     ...chunk("VP8L", [0x2f, bits & 0xff, (bits >> 8) & 0xff, (bits >> 16) & 0xff, (bits >>> 24) & 0xff, 7, 7]),
+    ...(opts.secondFrame ? chunk("VP8L", [0x2f, 0, 0, 0, 0, 7, 7]) : []),
     ...(opts.exif ? chunk("EXIF", text("MM GPS 52.52N")) : []),
     ...(opts.xmp ? chunk("XMP ", text("<x:xmpmeta/>")) : []),
   ];
@@ -122,6 +139,18 @@ describe("stripMetadata", () => {
     expect([out.width, out.height]).toEqual([252, 352]);
     expect(contains(out.bytes, "GPS")).toBe(false);
     expect(out.bytes).toEqual(webp()); // flags and RIFF size match a file that never had them
+  });
+
+  it("rejects a WebP whose VP8X canvas hides the real frame size, or that carries extra payload (#128)", () => {
+    // A 4096 px frame behind a canvas that passes the size check.
+    expect(() => stripMetadata(webp({ w: 4096, h: 4096, canvas: [252, 352] }), "image/webp")).toThrow(/canvas and frame/);
+    expect(() => stripMetadata(webp({ vp8xExtra: [...text("hidden note")] }), "image/webp")).toThrow(/VP8X chunk of the wrong size/);
+    expect(() => stripMetadata(webp({ secondFrame: true }), "image/webp")).toThrow(/more than one image chunk/);
+    // A 9-byte VP8X padded to 10 is as long as a real one; its declared size gives it away.
+    const short = webp();
+    const at = 12 + 4; // size field of the first chunk (VP8X)
+    short[at] = 9;
+    expect(() => stripMetadata(short, "image/webp")).toThrow(/VP8X chunk of the wrong size/);
   });
 
   it("rejects animated or truncated WebPs", () => {

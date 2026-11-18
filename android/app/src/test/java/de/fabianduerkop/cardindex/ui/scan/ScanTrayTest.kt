@@ -86,4 +86,16 @@ class ScanTrayTest {
         assertEquals(5L, (tray.history.first() as LastScan.Added).copyId)
         assertEquals(ScanTray.MAX_UNDO + 5, tray.scanned)
     }
+
+    @Test
+    fun aFailedSaveIsShownWithoutTouchingTheHistoryAndClearedByTheNextDecision() {
+        val added = ScanTray().record(LastScan.Added(ref("001"), copyId = 11))
+        val failed = added.failed(ref("002"))
+        assertEquals(ref("002"), failed.failed)
+        assertEquals(added.history, failed.history)
+        assertEquals(1, failed.scanned)
+        assertEquals(added.decisions, failed.decisions)
+        assertNull(failed.record(LastScan.Added(ref("002"), copyId = 12)).failed)
+        assertNull(failed.undo()!!.second.failed)
+    }
 }

@@ -124,18 +124,31 @@ function stripWebp(src: Uint8Array): CleanImage {
     }
     return true;
   });
-  const image = kept.find((c) => c.fourcc === "VP8 " || c.fourcc === "VP8L");
-  if (!image) throw new ImageError("WebP without image data");
-  let { width, height } = webpSize(image.fourcc, image.data.subarray(8));
+  // A still image has one frame chunk, at most one VP8X (first) and at most one ALPH, which needs the VP8X. Anything
+  // else could hide a second picture, or a size the bounds check never sees (#128).
+  const count = (fourcc: string) => kept.filter((c) => c.fourcc === fourcc).length;
+  const images = kept.filter((c) => c.fourcc === "VP8 " || c.fourcc === "VP8L");
+  if (images.length === 0) throw new ImageError("WebP without image data");
+  if (images.length > 1) throw new ImageError("WebP with more than one image chunk");
+  const image = images[0]!;
+  const { width, height } = webpSize(image.fourcc, image.data.subarray(8));
+  if (count("VP8X") > 1 || count("ALPH") > 1) throw new ImageError("duplicate WebP chunk");
 
   const vp8x = kept.find((c) => c.fourcc === "VP8X");
   if (vp8x) {
-    if (vp8x.data.length < 18) throw new ImageError("short VP8X chunk");
+    if (kept[0] !== vp8x) throw new ImageError("VP8X is not the first WebP chunk");
+    // 8 bytes of chunk header and exactly 10 of payload: no room for anything but flags and the canvas size.
+    // The declared size, not the padded slice: a 9-byte VP8X plus its pad byte is 18 bytes long too.
+    if (u32(vp8x.data, 4) !== 10 || vp8x.data.length !== 18) throw new ImageError("VP8X chunk of the wrong size");
     const copy = vp8x.data.slice();
     copy[8] = copy[8]! & VP8X_ALPHA; // clears the ICC, EXIF, XMP and animation flags
+    copy[9] = copy[10] = copy[11] = 0; // reserved bytes
     vp8x.data = copy;
-    width = 1 + (copy[12]! | (copy[13]! << 8) | (copy[14]! << 16));
-    height = 1 + (copy[15]! | (copy[16]! << 8) | (copy[17]! << 16));
+    const canvasWidth = 1 + (copy[12]! | (copy[13]! << 8) | (copy[14]! << 16));
+    const canvasHeight = 1 + (copy[15]! | (copy[16]! << 8) | (copy[17]! << 16));
+    if (canvasWidth !== width || canvasHeight !== height) throw new ImageError("WebP canvas and frame sizes differ");
+  } else if (count("ALPH") > 0) {
+    throw new ImageError("ALPH chunk without VP8X");
   }
   const body = concat(kept.map((c) => c.data));
   const header = new Uint8Array(12);

@@ -1,6 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui
 
+import android.net.Uri
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.ui.res.stringResource
+import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
+import androidx.navigation.navArgument
+import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.review.ReviewViewModel
+import de.fabianduerkop.cardindex.ui.search.SearchScreen
+import kotlinx.coroutines.flow.filterNotNull
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.padding
@@ -69,7 +79,46 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                     )
                 }
                 composable(LAB_ROUTE) { LabScreen() }
-                composable(REVIEW_ROUTE) { ReviewScreen(onBack = { navController.popBackStack() }) }
+                composable(REVIEW_ROUTE) { entry ->
+                    val review: ReviewViewModel = viewModel()
+                    // The card picked in "Find the card" comes back through this entry's saved state (#129).
+                    LaunchedEffect(entry) {
+                        entry.savedStateHandle.getStateFlow<ArrayList<String>?>(PICKED_CARD, null).filterNotNull().collect { picked ->
+                            val (itemId, cardId, language) = picked
+                            review.useCard(itemId.toLong(), cardId, language)
+                            entry.savedStateHandle[PICKED_CARD] = null
+                        }
+                    }
+                    ReviewScreen(
+                        onBack = { navController.popBackStack() },
+                        onFindCard = { item -> navController.navigate(reviewPickRoute(item.entity.id, item.entity.numberRead)) },
+                        viewModel = review,
+                    )
+                }
+                composable(
+                    REVIEW_PICK_ROUTE,
+                    arguments = listOf(
+                        navArgument(ARG_ITEM_ID) { type = NavType.LongType },
+                        navArgument(ARG_QUERY) {
+                            type = NavType.StringType
+                            defaultValue = ""
+                        },
+                    ),
+                ) { entry ->
+                    val itemId = entry.arguments?.getLong(ARG_ITEM_ID) ?: return@composable
+                    SearchScreen(
+                        onOpenCard = { cardId, language ->
+                            navController.previousBackStackEntry?.savedStateHandle?.set(
+                                PICKED_CARD,
+                                arrayListOf(itemId.toString(), cardId, language),
+                            )
+                            navController.popBackStack()
+                        },
+                        onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                        onBack = { navController.popBackStack() },
+                        title = stringResource(R.string.review_find_title),
+                    )
+                }
             }
             collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
             searchGraph(navController, onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) })
@@ -98,6 +147,17 @@ private const val LAB_ROUTE = "lab"
 
 /** The review queue of unsure scans, opened from the Scan screen's tray. */
 private const val REVIEW_ROUTE = "review"
+
+/**
+ * Review's "Find the card" (#129): search as a picker for item [ARG_ITEM_ID], prefilled with the number read
+ * ([ARG_QUERY] lands in the search's saved state under the same key). The pick goes back as [PICKED_CARD].
+ */
+private const val ARG_ITEM_ID = "itemId"
+private const val ARG_QUERY = "query"
+private const val REVIEW_PICK_ROUTE = "review/pick/{$ARG_ITEM_ID}?$ARG_QUERY={$ARG_QUERY}"
+private const val PICKED_CARD = "review.pickedCard"
+
+private fun reviewPickRoute(itemId: Long, query: String?) = "review/pick/$itemId?$ARG_QUERY=${Uri.encode(query.orEmpty())}"
 
 /** Scan contributions (#14): the consent text, and the list of the user's uploads. */
 private const val CONSENT_ROUTE = "contribute/consent"

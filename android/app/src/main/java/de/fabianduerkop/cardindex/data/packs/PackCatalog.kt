@@ -128,11 +128,16 @@ data class PackCatalog(
             )
         }
 
+        private val SHA256 = Regex("[0-9a-f]{64}")
+
         private fun parseFile(o: JSONObject): PackFile {
             val path = o.getString("path")
             // The path becomes part of a URL and a cache file name; a catalog must not point outside /v1/packs/.
             require(path.isNotEmpty() && !path.startsWith("/") && ".." !in path.split('/')) { "bad pack path $path" }
-            return PackFile(path, o.getLong("size"), o.getString("sha256").lowercase())
+            // The hash becomes part of a download file name too (#131): only the 64 hex digits of a SHA-256.
+            val sha256 = o.getString("sha256").lowercase()
+            require(SHA256.matches(sha256)) { "bad sha256 for $path" }
+            return PackFile(path, o.getLong("size"), sha256)
         }
     }
 }

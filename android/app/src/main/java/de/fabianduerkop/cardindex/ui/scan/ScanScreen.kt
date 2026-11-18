@@ -596,7 +596,11 @@ private fun LatestScan(tray: ScanTray, onUndo: () -> Unit, onChange: (LastScan.A
         .semantics { liveRegion = LiveRegionMode.Polite }
     val last = tray.latest
     val removed = tray.removed
+    val failed = tray.failed
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        if (failed != null) {
+            StatusNotice(stringResource(R.string.scan_save_failed, cardTitle(failed)), tone = NoticeTone.ERROR)
+        }
         if (removed != null) {
             Text(
                 stringResource(R.string.scan_removed, cardTitle(removed)),

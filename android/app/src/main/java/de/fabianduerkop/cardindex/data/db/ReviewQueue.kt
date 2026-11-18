@@ -63,9 +63,14 @@ data class ReviewCandidateEntity(
     val rank: Int,
     val cardId: String,
     val cardLanguage: String,
-    /** Cosine similarity of the crop to this card's reference image. */
+    /** Cosine similarity of the crop to this card's reference image; [PICKED_BY_HAND] for a card found in search. */
     val similarity: Float,
-)
+) {
+    companion object {
+        /** No similarity: the user found this card in search because none of the matches was right (#129). */
+        const val PICKED_BY_HAND = -1f
+    }
+}
 
 /** A candidate with its card and set, for the picker. */
 data class ReviewCandidateWithCard(
@@ -95,6 +100,9 @@ interface ReviewDao {
 
     @Query("DELETE FROM review_items WHERE id = :id")
     suspend fun delete(id: Long): Int
+
+    @Query("DELETE FROM review_candidates WHERE itemId = :itemId AND rank = :rank")
+    suspend fun deleteCandidate(itemId: Long, rank: Int): Int
 
     @Query("UPDATE review_items SET queuedAt = :queuedAt WHERE id = :id")
     suspend fun requeue(id: Long, queuedAt: Instant): Int

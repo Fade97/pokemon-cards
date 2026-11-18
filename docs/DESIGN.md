@@ -9,7 +9,8 @@ Status: design agreed on 2026-11-15, nothing implemented yet. Each decision has 
 
 - Recognize cards fully offline. No image ever leaves the phone unless the user opts in to contributing it.
 - Bulk-scan a pile of cards quickly.
-- Support many languages: v1 covers EN, DE, FR, IT, ES, PT, NL, PL and JP; KO and ZH come later.
+- Support many languages: v1 covers EN, DE, FR, IT, ES, PT and JP. NL and PL wait for card data (TCGdex has
+  none, 2026-11-18); KO and ZH come later.
 - The free tier is fully usable: unlimited scans, collections and current prices.
 - Use no Pokémon trademark in the app name or icon.
 

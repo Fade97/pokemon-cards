@@ -23,6 +23,9 @@ import java.util.UUID
 /** A candidate of a review item with its catalog card and set. */
 data class ReviewCandidate(val rank: Int, val similarity: Float, val card: CardEntity, val set: CardSetEntity)
 
+/** A card the user picked by hand for a review item: its candidate [rank], and the item's variant check. */
+data class PickedCard(val rank: Int, val checkVariant: Boolean)
+
 /** A queued scan with its crop and its candidates, best first. */
 data class ReviewItem(val entity: ReviewItemEntity, val cropFile: File, val candidates: List<ReviewCandidate>)
 
@@ -167,6 +170,22 @@ class ReviewQueueRepository(
         return restored
     }
 
+    /**
+     * The user found the right card in search because none of the matches was (#129): it becomes the item's hand
+     * pick at [PICKED_RANK], after the pipeline's candidates, and replaces an earlier pick. A card that already was a
+     * pipeline candidate moves there too (its similarity row goes), so the pick is stored and survives a lost draft
+     * (#140, round 4). Returns the rank and whether the item asks for a variant check, or null when the item is gone.
+     * The card must be in the catalog (search only finds catalog cards).
+     */
+    suspend fun pickCard(itemId: Long, cardId: String, language: String): PickedCard? = db.withTransaction {
+        val item = dao.item(itemId) ?: return@withTransaction null
+        dao.candidates(itemId)
+            .filter { it.rank == PICKED_RANK || (it.cardId == cardId && it.cardLanguage == language) }
+            .forEach { dao.deleteCandidate(itemId, it.rank) }
+        dao.insertCandidates(listOf(ReviewCandidateEntity(itemId, PICKED_RANK, cardId, language, ReviewCandidateEntity.PICKED_BY_HAND)))
+        PickedCard(PICKED_RANK, item.checkVariant)
+    }
+
     /** Moves an item to the back of the queue; it stays reachable. False if it is gone. */
     suspend fun skip(itemId: Long): Boolean = dao.requeue(itemId, clock()) > 0
 
@@ -183,6 +202,8 @@ class ReviewQueueRepository(
 
     companion object {
         const val MAX_CANDIDATES = 3
+        /** The rank of a card picked by hand: after every pipeline candidate. */
+        const val PICKED_RANK = MAX_CANDIDATES
         const val CROP_DIR = "review"
     }
 }

@@ -42,6 +42,9 @@ data class BackupData(
 
 class BackupFormatException(message: String, cause: Throwable? = null) : Exception(message, cause)
 
+/** A copy is at least one card (#127); both readers turn the thrown IllegalArgumentException into a damaged-file error. */
+internal fun validQuantity(quantity: Int): Int = quantity.also { require(it >= 1) { "quantity $it" } }
+
 /** The versioned JSON backup. Enums are stored by name, dates as ISO-8601, money in minor units. */
 object BackupJson {
     const val FORMAT = "cardindex-backup"
@@ -163,7 +166,7 @@ object BackupJson {
             uuid = UUID.fromString(o.getString("uuid")).toString(),
             cardId = o.getString("cardId"),
             cardLanguage = o.getString("cardLanguage"),
-            quantity = o.optInt("quantity", 1),
+            quantity = validQuantity(o.optInt("quantity", 1)),
             finish = Finish.valueOf(o.optString("finish", Finish.NORMAL.name)),
             edition = Edition.valueOf(o.optString("edition", Edition.UNLIMITED.name)),
             condition = o.optStringOrNull("condition")?.let(Condition::valueOf),
@@ -245,7 +248,7 @@ object BackupCsv {
                     copy.purchaseDate?.toString(), collectionsOf[copy.uuid].orEmpty().joinToString(COLLECTION_SEPARATOR),
                     copy.createdAt.toString(), copy.updatedAt.toString(),
                 )
-                append(Csv.line(row)).append("\r\n")
+                append(Csv.line(row.map(Csv::guard))).append("\r\n")
             }
         }
     }
@@ -268,7 +271,7 @@ object BackupCsv {
         val collectionNames = mutableMapOf<String, List<String>>()
         records.drop(1).forEachIndexed { row, values ->
             fun col(name: String): String? = index.getValue(name).takeIf { it >= 0 }?.let { values.getOrNull(it) }
-                ?.trim()?.ifEmpty { null }
+                ?.let(Csv::unguard)?.trim()?.ifEmpty { null }
             try {
                 val cardId = col("card_id") ?: throw IllegalArgumentException("card_id is empty")
                 val language = col("language") ?: throw IllegalArgumentException("language is empty")
@@ -292,7 +295,7 @@ object BackupCsv {
                     uuid = col("uuid")?.let { UUID.fromString(it).toString() } ?: UUID.randomUUID().toString(),
                     cardId = cardId,
                     cardLanguage = language,
-                    quantity = col("quantity")?.toInt() ?: 1,
+                    quantity = validQuantity(col("quantity")?.toInt() ?: 1),
                     finish = col("finish")?.let(Finish::valueOf) ?: Finish.NORMAL,
                     edition = col("edition")?.let(Edition::valueOf) ?: Edition.UNLIMITED,
                     condition = col("condition")?.let(Condition::valueOf),

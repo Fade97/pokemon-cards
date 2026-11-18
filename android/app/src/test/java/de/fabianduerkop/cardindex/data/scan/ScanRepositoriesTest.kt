@@ -6,6 +6,7 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CardSetEntity
+import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
@@ -139,6 +140,28 @@ class ScanRepositoriesTest {
         assertTrue(queue.observeItems().first().isEmpty())
         assertTrue(db.reviewDao().observeCandidates().first().isEmpty())
         assertFalse(crop.exists())
+    }
+
+    @Test
+    fun aCardPickedInSearchBecomesACandidateReplacesAnEarlierPickAndCanBeConfirmed() = runTest {
+        val id = enqueueOne(checkVariant = true)
+        ScanCatalog.ensure(db.catalogDao(), listOf(ref("025"), ref("026")))
+
+        // A pipeline match found in search moves to the hand-pick slot, so the choice is stored (#140).
+        assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-006", "en"))
+        var candidates = queue.observeItems().first().single().candidates
+        assertEquals(listOf(0, 3), candidates.map { it.rank })
+        assertEquals("en", candidates.last().card.language)
+        assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-025", "de"))
+        assertEquals(PickedCard(rank = 3, checkVariant = true), queue.pickCard(id, "sv03.5-026", "de")) // #129: replaces 025
+        candidates = queue.observeItems().first().single().candidates
+        assertEquals(listOf(0, 3), candidates.map { it.rank })
+        assertEquals("sv03.5-026", candidates.last().card.id)
+        assertEquals(ReviewCandidateEntity.PICKED_BY_HAND, candidates.last().similarity)
+
+        queue.confirm(id, rank = 3, Finish.HOLO, Edition.UNLIMITED, Condition.NEAR_MINT, quantity = 1)
+        assertEquals("sv03.5-026", db.copyDao().observeAllCopies().first().single().copy.cardId)
+        assertEquals(null, queue.pickCard(id, "sv03.5-025", "de")) // the item is gone
     }
 
     @Test

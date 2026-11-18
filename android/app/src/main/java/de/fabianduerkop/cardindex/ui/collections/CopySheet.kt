@@ -41,6 +41,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
@@ -161,7 +164,27 @@ internal fun CopySheet(
                     }
                 }
 
-                Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                // The whole row toggles, so TalkBack reads "Graded" with the switch's state as one control (#131).
+                val gradedShape = MaterialTheme.shapes.medium
+                Row(
+                    Modifier
+                        .fillMaxWidth()
+                        .padding(top = Spacing.sm)
+                        .focusRing(gradedShape)
+                        .toggleable(
+                            value = graded,
+                            role = Role.Switch,
+                            onValueChange = { on ->
+                                draft = if (on) {
+                                    draft.copy(grader = Grader.PSA, condition = null)
+                                } else {
+                                    draft.copy(grader = null, grade = null, condition = Condition.NEAR_MINT)
+                                }
+                            },
+                        )
+                        .heightIn(min = Spacing.touchTarget),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     Column(Modifier.weight(1f).padding(end = Spacing.md)) {
                         FieldLabel(stringResource(R.string.copy_graded))
                         Text(
@@ -170,16 +193,7 @@ internal fun CopySheet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    Switch(
-                        checked = graded,
-                        onCheckedChange = { on ->
-                            draft = if (on) {
-                                draft.copy(grader = Grader.PSA, condition = null)
-                            } else {
-                                draft.copy(grader = null, grade = null, condition = Condition.NEAR_MINT)
-                            }
-                        },
-                    )
+                    Switch(checked = graded, onCheckedChange = null)
                 }
                 if (graded) {
                     FieldLabel(stringResource(R.string.copy_grader))
