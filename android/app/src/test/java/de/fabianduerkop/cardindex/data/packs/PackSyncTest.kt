@@ -335,10 +335,17 @@ class PackSyncTest {
         assertEquals("Set sv1", first.setName)
         assertEquals(10, first.official)
 
-        // Same size, other bytes: only the checksum can tell. The cached check must notice the new mtime.
-        val index = store.installed.value.packs.getValue("de").indexFile
+        // Same size, other bytes: only the checksum can tell. The cached check must notice the new mtime. `ok` still
+        // maps de's index.bin, and Windows refuses to write a mapped file (issue #93), so the damage goes into a copy
+        // of the pack in a fresh directory, the way a new pack is installed.
+        val de = store.installed.value.packs.getValue("de")
+        val damaged = store.newPackDir("de", 1)
+        de.dir.listFiles()!!.forEach { it.copyTo(File(damaged, it.name)) }
+        val index = File(damaged, InstalledPack.INDEX)
         index.writeBytes(ByteArray(index.length().toInt()))
-        index.setLastModified(index.lastModified() + 5_000)
+        index.setLastModified(de.indexFile.lastModified() + 5_000)
+        store.commit(collectGarbage = false) { packs["de"] = damaged }
+        assertTrue("the copy keeps the check remembered for the old file", File(damaged, "verified").isFile)
         val load = PackLoader.load(store.installed.value)
         assertEquals(setOf("de"), load.broken)
         assertEquals(setOf("en"), load.loaded!!.languages)
