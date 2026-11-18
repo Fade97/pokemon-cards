@@ -3,7 +3,7 @@
 import numpy as np
 import pytest
 
-from detect import CORNER_MIN_SCORE, app_resize, detect_app, guide_area
+from detect import CORNER_MIN_SCORE, app_resize, detect_app, guide_area, looks_like_card
 
 
 class TestGuideArea:
@@ -63,3 +63,28 @@ class TestDetectApp:
         quad, found, score = detect_app(np.zeros((2048, 1536, 3), np.uint8))
         assert not found and score == 0.0
         assert quad.mean(0) == pytest.approx([768, 1024], abs=1)
+
+
+class TestLooksLikeCard:
+    """Same cases as OutlineGateTest in the app (Quad.looksLikeCard)."""
+
+    def test_card_and_perspective_pass(self):
+        assert looks_like_card(np.float32([[100, 100], [730, 100], [730, 980], [100, 980]]))
+        assert looks_like_card(np.float32([[180, 100], [650, 100], [730, 980], [100, 980]]))
+
+    @pytest.mark.parametrize("quad", [
+        [[100, 100], [730, 980], [730, 100], [100, 980]],     # twisted
+        [[100, 100], [1360, 100], [1360, 980], [100, 980]],   # two binder cards merged
+        [[100, 100], [730, 100], [1430, 980], [800, 980]],    # sheared ~40 degrees
+    ])
+    def test_rejects_non_card_quads(self, quad):
+        assert not looks_like_card(np.float32(quad))
+
+    def test_detect_app_needs_the_card_shape(self):
+        class Twisted(FakeCorners):
+            def __call__(self, guide):
+                h, w = guide.shape[:2]
+                return np.float32([[0.1, 0.1], [0.9, 0.9], [0.9, 0.1], [0.1, 0.9]]) * np.float32([w, h]), self.score
+
+        _, found, _ = detect_app(np.zeros((2048, 1536, 3), np.uint8), Twisted(0.5))
+        assert not found

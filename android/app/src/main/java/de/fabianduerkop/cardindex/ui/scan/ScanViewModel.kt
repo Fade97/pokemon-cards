@@ -215,7 +215,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             previousDetection = detection
             var card: RefCard? = null
             val signal: FrameSignal<RecognitionResult> = when (gate) {
-                GateResult.NoOutline, is GateResult.LowScore -> FrameSignal.Empty
+                GateResult.NoOutline, is GateResult.LowScore, GateResult.BadShape -> FrameSignal.Empty
                 GateResult.Moving -> FrameSignal.Unreadable
                 GateResult.Accepted -> {
                     val result = runCatching { identify(e, bgr, detection) }
@@ -249,7 +249,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 gate == GateResult.Moving -> ScanHint.HOLD_STILL
                 else -> ScanHint.LOOKING
             }
-            _viewfinder.value = Viewfinder(w, h, detection?.quad, hint, card)
+            // Only an outline that passed the score and shape checks is a card; a rejected one (an empty room,
+            // a twisted quad) must not be drawn while the hint says there is no card (#55).
+            val outline = detection?.quad?.takeIf { gate == GateResult.Accepted || gate == GateResult.Moving }
+            _viewfinder.value = Viewfinder(w, h, outline, hint, card)
             event?.let(::onDecision)
         } finally {
             bgr.release()

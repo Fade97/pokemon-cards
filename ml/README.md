@@ -36,6 +36,7 @@ Windows) are optional. The core steps don't need them.
 | 12 | `uv run --extra litert python evaluate.py --run mnv3_256_real [--detector learned]` | Synthetic test sets incl. the language-twin case `de/me04`; `--detector learned` crops with the corner model. |
 | 13 | `python eval_forb.py map`, then `eval --detector learned` | FORB real photos (EN, eBay) against the full EN pack gallery from `build_packs.py embed`. Images in `<data>/external/forb` (FORB zip, `animated_cards/` only). Writes `results/forb_<model>_<detector>.json`. |
 | 14 | `python eval_tcgar.py` | TCG-AR real set: corner error of both detectors per card plus recognition over the EN gallery. Images in `<data>/external/tcg-ar`. Writes `results/tcgar_<model>.json`. |
+| 14b | `python calib_corner_gate.py` | Calibrates the live-scan "card present" gate of the learned corners (score and quad shape) on TCG-AR cards, phone photos, TCG-AR windows without a card and synthetic backgrounds. Writes `results/corner_gate_calibration.json`. |
 | 15 | `uv run python realset.py gallery`, `realset.py twins`, then `realset.py build` | Real-photo training data: card roles (test = `split_of` holdout, never trained; val = 10 % of the rest; train), FORB/TCG-AR train and val photos cropped exactly like the evaluators (learned corners, rectify, upright), and the EN gallery as 224 px uint8 for validation during training. `twins` lists same-art twins and reprints of test/val cards (language twins by number, reprints by baseline cos ≥ 0.9); they get no class. Writes `<data>/real-train/`. |
 | 16 | `uv run python train.py --run mnv3_256_forb --realistic --init mnv3_256_real --real --epochs 10 --lr 5e-4` | Fine-tunes on real crops (25 % of each batch, light augmentation) plus synthetic samples of a grown class set (every EN card with a real train photo). Selects the epoch on the real val crops against the full EN gallery; `val_real.py --run <run>` gives the same score for any checkpoint; `leak_check.py --run <run>` checks classes, crops and test photos against the split. |
 
@@ -106,6 +107,14 @@ step try both 180° orientations, as the pipeline does. Each row holds:
 
   A threshold of about 0.08 to 0.10 (mean of the 4 corners) works as "no card found". It is a soft signal, not a
   guarantee.
+
+  The model returns 4 points even for an empty room, so the app also checks the quad's shape
+  (`Quad.looksLikeCard`, `detect.looks_like_card`): convex and not twisted, width:height within 1.5× of 63:88,
+  every inner angle within 35° of 90°. Score ≥ 0.10 plus that shape passes 97.9 % of the well-detected TCG-AR
+  cards and 93.7 % of the phone photos (the rest are merged or twisted quads), and 4.3 % of synthetic empty
+  backgrounds (`calib_corner_gate.py`, `results/corner_gate_calibration.json`, issue #55). Card-sized rectangles
+  (boosters, a phone) still pass; the similarity minimum rejects them. The live scan draws the quad only when
+  this gate passes.
 
 The label the detector learned is the **card's printed edge**, not the sleeve, toploader or pocket edge. Then
 rectify the quad to 63:88 (the prototype uses 252×352) and feed the embedding model as before.
