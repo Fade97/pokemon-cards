@@ -1,0 +1,14 @@
+{
+ "samples": "samples.json",
+ "crops_by_source_role": {
+  "forb/train": 5578,
+  "tcgar/train": 635
+ },
+ "train_crops_before_filter": 6213,
+ "train_crops": 6085,
+ "train_dropped_low_sim": 128,
+ "train_cards": 1517,
+ "val_crops": 0,
+ "val_cards": 0,
+ "test_split_crops": 0
+}
