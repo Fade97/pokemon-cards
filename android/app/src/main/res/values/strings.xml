@@ -349,6 +349,7 @@
     <string name="scan_lab_outline_found">outline score %1$.2f</string>
     <string name="scan_lab_outline_fallback">no outline, centre box used</string>
     <string name="scan_lab_flipped"> · upside down</string>
+    <string name="scan_lab_second_pass"> · second pass kept</string>
     <string name="scan_lab_capture">Photo</string>
     <string name="scan_lab_pause">Pause</string>
     <string name="scan_lab_resume">Resume</string>
@@ -356,6 +357,7 @@
     <string name="scan_lab_gallery">Gallery</string>
     <string name="scan_lab_ocr">Read number</string>
     <string name="scan_lab_save">Save photos</string>
+    <string name="scan_lab_two_pass">Two-pass (photos)</string>
     <string name="scan_lab_torch">Light</string>
     <string name="scan_lab_gate_none">Looking for a card</string>
     <string name="scan_lab_gate_low">Outline unsure (score %1$.2f): place one card in the frame, filling most of it</string>

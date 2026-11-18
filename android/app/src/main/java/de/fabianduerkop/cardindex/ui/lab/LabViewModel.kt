@@ -92,6 +92,9 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
     val readNumber: StateFlow<Boolean> = _readNumber.asStateFlow()
     private val _saveCaptures = MutableStateFlow(false)
     val saveCaptures: StateFlow<Boolean> = _saveCaptures.asStateFlow()
+    /** Two-pass detection for photos (issue #78, [RecognitionEngine.identifyTwoPass]); learned outline only, never live. */
+    private val _twoPass = MutableStateFlow(true)
+    val twoPass: StateFlow<Boolean> = _twoPass.asStateFlow()
 
     private val _detector = MutableStateFlow(DetectorKind.LEARNED)
     val detector: StateFlow<DetectorKind> = _detector.asStateFlow()
@@ -140,6 +143,7 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
     fun setPaused(value: Boolean) = _paused.update { value }
     fun setReadNumber(value: Boolean) = _readNumber.update { value }
     fun setSaveCaptures(value: Boolean) = _saveCaptures.update { value }
+    fun setTwoPass(value: Boolean) = _twoPass.update { value }
     fun setMinScore(value: Float) = _minScore.update { value }
 
     /** Turns a language on or off; at least one stays on. */
@@ -203,7 +207,10 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    /** A full-resolution photo from the shutter button, called on [worker]. Searches the guide area like live. */
+    /**
+     * A full-resolution photo from the shutter button, called on [worker]. Searches the guide area like live; unlike
+     * live, photos get two-pass detection ([twoPass]).
+     */
     fun onCaptured(image: ImageProxy) {
         val bitmap = image.use { upright(it.toBitmap(), it.imageInfo.rotationDegrees) }
         val savedTo = if (_saveCaptures.value) save(bitmap) else null
@@ -233,7 +240,13 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
                 val t0 = SystemClock.elapsedRealtime()
                 val area = if (useGuide) ScanGuide.forFrame(bgr.cols(), bgr.rows()).searchArea else null
                 val detection = e.detect(bgr, area, _detector.value)
-                e.identify(bgr, detection, _readNumber.value, SystemClock.elapsedRealtime() - t0, languageFilter())
+                val detectMs = SystemClock.elapsedRealtime() - t0
+                // The second pass runs the learned detector, so with the classic outline chosen the photo stays one pass.
+                if (_twoPass.value && _detector.value == DetectorKind.LEARNED) {
+                    e.identifyTwoPass(bgr, detection, _readNumber.value, detectMs, languageFilter())
+                } else {
+                    e.identify(bgr, detection, _readNumber.value, detectMs, languageFilter())
+                }
             } finally {
                 bgr.release()
             }
