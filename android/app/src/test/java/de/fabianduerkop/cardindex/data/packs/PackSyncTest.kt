@@ -250,6 +250,8 @@ class PackSyncTest {
         val pack = store.installed.value.packs.getValue("en")
         assertEquals(2, pack.meta.version)
         assertArrayEquals(en2.indexBytes(), pack.indexFile.readBytes())
+        assertArrayEquals(en2.cardsJsonGz(), pack.cardsFile.readBytes())
+        assertEquals(setOf(InstalledPack.CARDS, InstalledPack.INDEX, InstalledPack.META), pack.dir.list()!!.toSet())
         val cards = db.catalogDao().cardsInLanguage("en").associateBy { it.id }
         assertTrue(cards.getValue("sv1-002").retired)
         assertEquals("Renamed", cards.getValue("sv1-001").name)

@@ -300,22 +300,33 @@ class PackManager(
         return dir
     }
 
+    /**
+     * Applies the chain file to file: each step streams the previous index and the delta's rows into a new file in
+     * the new pack directory, so no whole index sits on the heap (issue #89). The installed pack stays untouched.
+     */
     private suspend fun installDeltas(download: PackDownload.Deltas): File {
         val entry = download.entry
         val installed = store.installed.value.packs[entry.lang] ?: throw PackIntegrityException("${entry.lang} is not installed")
-        var content = PackContent.parse(installed.cardsFile.readBytes(), installed.indexFile.readBytes(), installed.meta.dim)
+        // An empty chain would move the installed index.bin into the new directory.
+        check(download.chain.isNotEmpty()) { "${entry.lang}: empty delta chain" }
+        var pack = StreamedPack(PackCards.parse(installed.cardsFile.readBytes()), installed.meta.dim, installed.indexFile, installed.meta.indexSha256)
         val progress = Progress(entry.lang, download.size)
-        for (delta in download.chain) {
-            val cards = progress.track { http.download(delta.cards, it) }
-            val rows = delta.index?.let { f -> progress.track { http.download(f, it) } }
-            setProgress(entry.lang, LanguageProgress.Installing)
-            content = content.applyDelta(cards.readBytes(), rows?.readBytes())
-            content.verify(delta.result.keysSha256, delta.result.indexSha256, delta.result.cards, delta.result.metadataCards)
-        }
-        content.verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
-        val dir = store.newPackDir(entry.lang, content.version)
+        val dir = store.newPackDir(entry.lang, entry.version)
         try {
-            store.writePack(dir, content, PackMeta.of(entry, content))
+            for ((step, delta) in download.chain.withIndex()) {
+                val cards = progress.track { http.download(delta.cards, it) }
+                val rows = delta.index?.let { f -> progress.track { http.download(f, it) } }
+                setProgress(entry.lang, LanguageProgress.Installing)
+                val next = pack.applyDelta(cards.readBytes(), rows, File(dir, "index-$step.part"))
+                if (pack.index != installed.indexFile) pack.index.delete()
+                pack = next
+                pack.verify(delta.result.keysSha256, delta.result.indexSha256, delta.result.cards, delta.result.metadataCards)
+            }
+            pack.verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
+            if (pack.cardFile.version != entry.version) {
+                throw PackIntegrityException("${entry.lang}: the delta chain ends at ${pack.cardFile.version}, not ${entry.version}")
+            }
+            store.writePack(dir, pack.cardFile, pack.index, PackMeta.of(entry, pack.cardFile, pack.dim, pack.indexSha256))
         } catch (e: Exception) {
             store.discard(dir)
             throw e

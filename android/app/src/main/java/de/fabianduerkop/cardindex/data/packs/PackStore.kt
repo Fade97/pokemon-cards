@@ -52,17 +52,20 @@ data class PackMeta(
             entry: PackEntry,
             content: PackContent,
             indexSha256: String = de.fabianduerkop.cardindex.recognition.sha256Hex(content.indexBytes()),
-        ) = PackMeta(
+        ) = of(entry, content.cardFile, content.dim, indexSha256)
+
+        /** The same for a pack whose index is a file of [dim] rows hashing to [indexSha256]. */
+        fun of(entry: PackEntry, cards: PackCards, dim: Int, indexSha256: String) = PackMeta(
             lang = entry.lang,
-            version = content.version,
+            version = cards.version,
             model = entry.model!!,
-            dim = content.dim,
-            cards = content.rows.size,
+            dim = dim,
+            cards = cards.indexed.size,
             modelSha256 = entry.modelSha256!!,
             indexSha256 = indexSha256,
-            keysSha256 = content.keysSha256(),
-            metadataCards = content.cards.size,
-            sets = content.sets.size,
+            keysSha256 = cards.keysSha256(),
+            metadataCards = cards.cards.size,
+            sets = cards.sets.size,
         )
     }
 }
@@ -206,10 +209,10 @@ class PackStore(val root: File) {
 
     fun newModelDir(id: String): File = File(modelsDir, "$id-${UUID.randomUUID().toString().take(8)}").also { it.mkdirs() }
 
-    /** Writes a pack's files into [dir] (from [newPackDir]). */
-    fun writePack(dir: File, content: PackContent, meta: PackMeta) {
-        File(dir, InstalledPack.CARDS).writeBytes(content.cardsJsonGz())
-        File(dir, InstalledPack.INDEX).writeBytes(content.indexBytes())
+    /** Writes a pack's card file into [dir] (from [newPackDir]) and moves its [index] there (a file in [dir]). */
+    fun writePack(dir: File, cards: PackCards, index: File, meta: PackMeta) {
+        File(dir, InstalledPack.CARDS).writeBytes(cards.cardsJsonGz())
+        moveOrCopy(index, File(dir, InstalledPack.INDEX))
         File(dir, InstalledPack.META).writeText(meta.toJson().toString())
     }
 
