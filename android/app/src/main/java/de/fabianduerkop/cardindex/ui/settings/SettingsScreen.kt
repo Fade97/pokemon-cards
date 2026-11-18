@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.settings
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -220,7 +222,23 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
 @Composable
 internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
-    TextButton(onClick = { uriHandler.openUri(BuildConfig.PRIVACY_POLICY_URL) }, modifier = modifier) {
+    val context = LocalContext.current
+    val url = BuildConfig.PRIVACY_POLICY_URL
+    TextButton(onClick = {
+        // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
+        // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
+        val opened = try {
+            uriHandler.openUri(url)
+            true
+        } catch (e: IllegalArgumentException) {
+            false
+        } catch (e: ActivityNotFoundException) {
+            false
+        }
+        if (!opened) {
+            Toast.makeText(context, context.getString(R.string.settings_privacy_policy_no_browser, url), Toast.LENGTH_LONG).show()
+        }
+    }, modifier = modifier) {
         Text(stringResource(R.string.settings_privacy_policy))
     }
 }
