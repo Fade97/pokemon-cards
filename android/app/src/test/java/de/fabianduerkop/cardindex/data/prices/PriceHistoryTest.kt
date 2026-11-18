@@ -98,16 +98,23 @@ class PriceHistoryTest {
     }
 
     @Test
-    fun series_usesThePriceVariantCandidates_dayByDay() {
+    fun series_usesThePriceVariantCandidates_onePrintingPerSeries() {
         val rows = listOf(
-            row("c-1", PriceSource.TCGPLAYER, PriceVariant.HOLO, "2026-11-17" to 500, "2026-11-18" to null),
-            row("c-1", PriceSource.TCGPLAYER, PriceVariant.NORMAL, "2026-11-17" to 100, "2026-11-18" to 110),
+            row("c-1", PriceSource.TCGPLAYER, PriceVariant.HOLO, "2026-11-17" to 500, "2026-11-18" to null, "2026-11-19" to 520),
+            row("c-1", PriceSource.TCGPLAYER, PriceVariant.NORMAL, "2026-11-17" to 100, "2026-11-18" to 110, "2026-11-19" to 105),
+            row("c-1", PriceSource.TCGPLAYER, PriceVariant.REVERSE_HOLO, "2026-11-17" to 300),
             row("c-1", PriceSource.CARDMARKET, PriceVariant.NORMAL, "2026-11-17" to 999),
         )
-        // A holo copy on TCGplayer: holo where there is one, else the normal price (PriceVariant.candidates).
+        // A holo copy on TCGplayer: the holo series, with a gap where the market had no holo price, never a day of
+        // the much cheaper normal print in between.
         assertEquals(
-            listOf(PricePoint(d("2026-11-17"), 500), PricePoint(d("2026-11-18"), 110)),
+            listOf(PricePoint(d("2026-11-17"), 500), PricePoint(d("2026-11-19"), 520)),
             PriceHistorySelection.series(rows, PriceSource.TCGPLAYER, Finish.HOLO, Edition.UNLIMITED),
+        )
+        // The fallback printing only when the preferred one has no price at all (PriceVariant.candidates).
+        assertEquals(
+            listOf(PricePoint(d("2026-11-17"), 100), PricePoint(d("2026-11-18"), 110), PricePoint(d("2026-11-19"), 105)),
+            PriceHistorySelection.series(rows.filter { it.variant != PriceVariant.HOLO }, PriceSource.TCGPLAYER, Finish.HOLO, Edition.UNLIMITED),
         )
         // Cardmarket doesn't split editions, so a 1st-edition copy has no Cardmarket history.
         assertEquals(

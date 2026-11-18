@@ -65,15 +65,19 @@ object PriceHistoryCodec {
 /** History counterpart of [PriceSelection]: the same printings value a copy on every day. */
 object PriceHistorySelection {
     /**
-     * Daily price of a printing in [source], from [PriceVariant.candidates] like the current price: per day the first
-     * candidate with a price that day. Ascending by date.
+     * Daily price of a printing in [source], from [PriceVariant.candidates] like the current price: the series of the
+     * first candidate with any price in [rows]. One printing for the whole series, so a day the market skipped shows
+     * as a gap (carried over in [portfolio]) instead of the fallback printing's price, e.g. a holo copy's chart
+     * dropping to the normal print for a day. Ascending by date.
      */
     fun series(rows: List<PriceHistoryEntity>, source: PriceSource, finish: Finish, edition: Edition): List<PricePoint> {
         val byVariant = rows.filter { it.source == source }.groupBy { it.variant }
-            .mapValues { (_, monthRows) -> monthRows.flatMap(PriceHistoryCodec::points).associate { it.date to it.amountMinor } }
-        val candidates = PriceVariant.candidates(source, finish, edition).mapNotNull { byVariant[it] }
-        val dates = candidates.flatMap { it.keys }.toSortedSet()
-        return dates.mapNotNull { date -> candidates.firstNotNullOfOrNull { it[date] }?.let { PricePoint(date, it) } }
+        return PriceVariant.candidates(source, finish, edition).asSequence()
+            .map { variant -> byVariant[variant].orEmpty().flatMap(PriceHistoryCodec::points) }
+            .firstOrNull { it.isNotEmpty() }
+            ?.distinctBy { it.date }
+            ?.sortedBy { it.date }
+            .orEmpty()
     }
 
     /**
