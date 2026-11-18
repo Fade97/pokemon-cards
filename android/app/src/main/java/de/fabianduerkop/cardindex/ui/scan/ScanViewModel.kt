@@ -72,8 +72,11 @@ enum class ScanHint {
     /** Identified; reading the number and waiting for a second agreeing frame. */
     READING,
 
-    /** This card was just added or queued; take the next one. */
+    /** This card was just added; take the next one. */
     DONE,
+
+    /** This card was unsure and went to the review queue; take the next one. */
+    QUEUED,
 }
 
 /** The current frame: outline and guide for the overlay, and the card it shows, if identified. */
@@ -85,20 +88,6 @@ data class Viewfinder(
     val card: RefCard? = null,
 )
 
-/** The most recent decision, shown in the tray until the next one. */
-sealed interface LastScan {
-    val card: RefCard
-
-    /** [contributionId]: the crop queued for the open dataset, if the user contributes. */
-    data class Added(
-        override val card: RefCard,
-        val copyId: Long,
-        val undone: Boolean = false,
-        val contributionId: Long? = null,
-    ) : LastScan
-
-    data class Queued(override val card: RefCard, val reason: ReviewReason) : LastScan
-}
 
 /**
  * Live scanning (#8): every camera frame (latest only) goes through detect → gate → embed → kNN; cards that are not
@@ -121,18 +110,17 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     val engineState: StateFlow<ScanEngineState> = _engine.asStateFlow()
     private val _viewfinder = MutableStateFlow(Viewfinder())
     val viewfinder: StateFlow<Viewfinder> = _viewfinder.asStateFlow()
-    private val _lastScan = MutableStateFlow<LastScan?>(null)
-    val lastScan: StateFlow<LastScan?> = _lastScan.asStateFlow()
-
-    /** Cards added or queued since the screen opened, minus undone ones. */
-    private val _scanned = MutableStateFlow(0)
-    val scanned: StateFlow<Int> = _scanned.asStateFlow()
+    private val _tray = MutableStateFlow(ScanTray())
+    val tray: StateFlow<ScanTray> = _tray.asStateFlow()
     private val _paused = MutableStateFlow(false)
     val paused: StateFlow<Boolean> = _paused.asStateFlow()
     val reviewCount: StateFlow<Int> = reviewQueue.observeCount()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 0)
 
     private val decider = LiveScanDecider<RecognitionResult>()
+
+    /** Cards the decider handled by queueing them for review; worker thread only, cleared with the decider. */
+    private val queuedKeys = HashSet<String>()
     private var previousDetection: Detection? = null
     private var lastFrameAt = 0L
 
@@ -177,6 +165,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     detector = if (e.hasLearnedDetector) DetectorKind.LEARNED else DetectorKind.CLASSIC
                     minOutlineScore = if (e.hasLearnedDetector) CornerDetector.DEFAULT_MIN_SCORE else DEFAULT_MIN_OUTLINE_SCORE
                     decider.reset()
+                    queuedKeys.clear()
                     previousDetection = null
                     // Without the GPU every frame costs several times more; fewer frames keep the phone cool
                     // and the preview smooth, at the price of a slightly slower decision.
@@ -194,7 +183,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     fun setPaused(value: Boolean) {
         _paused.value = value
         // After a pause the card in view is a new situation; don't let an old track decide it.
-        if (!value) worker.execute { decider.reset(); previousDetection = null }
+        if (!value) worker.execute { decider.reset(); queuedKeys.clear(); previousDetection = null }
     }
 
     /** CameraX analyzer, called on [worker] with the latest frame only. */
@@ -243,8 +232,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             }
             val event = decider.onFrame(now, signal)
             val key = (signal as? FrameSignal.Identified)?.key
+            if (event != null && goesToReview(event)) queuedKeys += event.payload.best.card.key
+            val handledKey = event?.payload?.best?.card?.key ?: key?.takeIf { decider.isHandled(it) }
             val hint = when {
-                event != null || (key != null && decider.isHandled(key)) -> ScanHint.DONE
+                handledKey != null -> if (handledKey in queuedKeys) ScanHint.QUEUED else ScanHint.DONE
                 signal is FrameSignal.Identified -> ScanHint.READING
                 gate == GateResult.Accepted -> ScanHint.UNKNOWN
                 gate == GateResult.Moving -> ScanHint.HOLD_STILL
@@ -270,20 +261,23 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         return if (decider.isHandled(base.best.card.key)) base else e.readNumber(bgr, base)
     }
 
+    /** An unsure card, or one whose set needs a variant check, goes to review instead of All Cards. */
+    private fun goesToReview(event: ScanEvent<RecognitionResult>): Boolean =
+        event !is ScanEvent.Add || needsVariantCheck(event.payload.best.card.setId)
+
     private fun onDecision(event: ScanEvent<RecognitionResult>) {
         val result = event.payload
         val card = result.best.card
         val checkVariant = needsVariantCheck(card.setId)
         when {
-            event is ScanEvent.Add && !checkVariant -> viewModelScope.launch(Dispatchers.IO) {
+            !goesToReview(event) -> viewModelScope.launch(Dispatchers.IO) {
                 runCatching { scans.addFromScan(card) }
                     .onSuccess { id ->
                         // An auto-added card counts as confirmed (issue #14); Undo below withdraws it again.
                         val contribution = runCatching { contributions.contribute(card.cardId, card.lang, jpeg(result.crop)) }
                             .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
                             .getOrNull()
-                        _lastScan.value = LastScan.Added(card, id, contributionId = contribution)
-                        _scanned.update { it + 1 }
+                        _tray.update { it.record(LastScan.Added(card, id, contributionId = contribution)) }
                     }
                     .onFailure { Log.e(TAG, "adding ${card.key} failed", it) }
             }
@@ -293,27 +287,46 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     runCatching {
                         reviewQueue.enqueue(jpeg(result.crop), result.reranked, result.reading, reason, checkVariant)
                     }
-                        .onSuccess {
-                            _lastScan.value = LastScan.Queued(card, reason)
-                            _scanned.update { it + 1 }
-                        }
+                        .onSuccess { itemId -> _tray.update { it.record(LastScan.Queued(card, reason, itemId)) } }
                         .onFailure { Log.e(TAG, "queueing ${card.key} failed", it) }
                 }
             }
         }
     }
 
-    /** Takes back the last added card. */
+    /**
+     * Takes back the newest decision of this session: removes exactly the copy it added, or the review item it queued.
+     * The tray then shows the decision before it, with the finish the user chose for it. The entry leaves the history
+     * at once, so every press takes back one decision and a press with an empty history does nothing.
+     */
     fun undo() {
-        val added = _lastScan.value as? LastScan.Added ?: return
-        if (added.undone) return
+        var taken: LastScan? = null
+        _tray.update { tray ->
+            val result = tray.undo()
+            taken = result?.first
+            result?.second ?: tray
+        }
+        val scan = taken ?: return
         viewModelScope.launch(Dispatchers.IO) {
-            // An undone scan was a wrong match: it must not end up in the dataset with that label.
-            added.contributionId?.let { runCatching { contributions.withdraw(it) } }
-            if (scans.undo(added.copyId)) {
-                _lastScan.update { if (it == added) added.copy(undone = true) else it }
-                _scanned.update { maxOf(0, it - 1) }
+            when (scan) {
+                is LastScan.Added -> {
+                    // An undone scan was a wrong match: it must not end up in the dataset with that label.
+                    scan.contributionId?.let { runCatching { contributions.withdraw(it) } }
+                    runCatching { scans.undo(scan.copyId) }.onFailure { Log.e(TAG, "undoing copy ${scan.copyId} failed", it) }
+                }
+                // Already confirmed or discarded in Review: that was the user's decision, so it stays.
+                is LastScan.Queued -> runCatching { reviewQueue.discard(scan.itemId) }
+                    .onFailure { Log.e(TAG, "undoing review item ${scan.itemId} failed", it) }
             }
+        }
+    }
+
+    /** The user's finish, edition and condition for a copy this session added; saved to that copy only. */
+    fun chooseVariant(copyId: Long, variant: CopyVariant) {
+        _tray.update { it.withVariant(copyId, variant) }
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { scans.setVariant(copyId, variant.finish, variant.edition, variant.condition) }
+                .onFailure { Log.e(TAG, "saving the variant of copy $copyId failed", it) }
         }
     }
 

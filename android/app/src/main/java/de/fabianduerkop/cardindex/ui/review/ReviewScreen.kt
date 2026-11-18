@@ -9,7 +9,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,30 +21,31 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -53,24 +53,35 @@ import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
+import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
-import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.PrimaryButton
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.SectionHeader
+import de.fabianduerkop.cardindex.ui.components.StatusNotice
+import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.scan.languageName
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 import kotlin.math.roundToInt
 
 /**
- * Review queue (#9, mockup c-index "Review queue"): one unsure scan at a time with the crop, the top-3 matches,
- * variant chips (finish and edition, always editable), condition and quantity. Confirm adds the copy; Skip moves
- * the card to the back of the queue, where it waits for a later pass.
+ * Review queue (#9, Pearl review in `design/mockups/lumifoil`, #98): one unsure scan at a time with the crop, the
+ * chosen card's collector number in large type, the top-3 matches, then finish, edition and condition as the user's
+ * choice (the camera detects none of them), and quantity. Confirm adds the copy and offers Undo, which puts the item
+ * back in the queue; Skip moves the card to the back of the queue, where it waits for a later pass.
  */
 @Composable
 fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: ReviewViewModel = viewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val undo by viewModel.undo.collectAsStateWithLifecycle()
     DetailScaffold(
         title = stringResource(R.string.review_title),
         onBack = onBack,
@@ -80,7 +91,7 @@ fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: R
             if (state.current != null) {
                 Text(
                     stringResource(R.string.review_position, state.position, state.total),
-                    Modifier.padding(end = 18.dp),
+                    Modifier.padding(end = Spacing.gutter),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -88,13 +99,21 @@ fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: R
         },
         bottomBar = {
             val item = state.current
-            if (item != null) {
-                Footer(
-                    state.draft,
-                    onQuantity = viewModel::changeQuantity,
-                    onSkip = viewModel::skip,
-                    onConfirm = viewModel::confirm,
-                )
+            if (item != null || undo != null) {
+                Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+                    Column(Modifier.navigationBarsPadding()) {
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                        undo?.let { UndoBar(it, viewModel::undoConfirm) }
+                        if (item != null) {
+                            Footer(
+                                state.draft,
+                                onQuantity = viewModel::changeQuantity,
+                                onSkip = viewModel::skip,
+                                onConfirm = viewModel::confirm,
+                            )
+                        }
+                    }
+                }
             }
         },
     ) { padding ->
@@ -102,202 +121,276 @@ fun ReviewScreen(onBack: () -> Unit, modifier: Modifier = Modifier, viewModel: R
         Box(Modifier.fillMaxSize().padding(padding)) {
             when {
                 state.loading -> Unit
-                item == null -> Done(state, onBack, viewModel::reviewSkippedAgain)
-                else -> ItemForm(item, state.draft, viewModel)
+                item == null -> Done(state, onBack, viewModel::reviewSkippedAgain, viewModel::addSampleItems)
+                // Each item starts at the top; its own scroll state, not the previous card's.
+                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel) }
             }
         }
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewViewModel) {
+    val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
     Column(
-        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 18.dp, vertical = 4.dp),
-        verticalArrangement = Arrangement.spacedBy(6.dp),
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(14.dp)) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             AsyncImage(
                 model = item.cropFile,
                 contentDescription = stringResource(R.string.review_crop),
-                modifier = Modifier.width(72.dp).aspectRatio(63f / 88f).clip(RoundedCornerShape(6.dp)),
+                modifier = Modifier.width(88.dp).aspectRatio(63f / 88f).clip(MaterialTheme.shapes.small),
                 contentScale = ContentScale.Crop,
             )
-            Column(Modifier.weight(1f)) {
-                item.entity.numberRead?.let { read ->
-                    Text(read, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold))
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                if (chosen != null) {
+                    // The card that Confirm will add, number first: the easiest thing to check against the card.
+                    CollectorNumber(
+                        localId = chosen.card.localId,
+                        printedTotal = chosen.set.printedTotal,
+                        style = MaterialTheme.typography.displayMedium,
+                    )
+                    Text(chosen.card.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                    Text(
+                        stringResource(R.string.review_set_language, chosen.set.name, languageName(chosen.card.language)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
                 }
-                Text(
-                    stringResource(reasonExplanation(item.entity.reason)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                item.entity.numberRead?.let { read ->
+                    Text(
+                        stringResource(R.string.review_number_read, read),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             }
         }
+        StatusNotice(stringResource(reasonExplanation(item.entity.reason)), Modifier.padding(top = Spacing.sm))
 
-        SectionHeading(stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card))
-        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+        SectionHeader(stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card))
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             item.candidates.forEach { c ->
                 CandidateRow(c, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
             }
         }
 
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            SectionHeading(stringResource(R.string.review_variant))
-            if (item.entity.checkVariant && draft.variantMissing) {
-                Text(
-                    stringResource(R.string.review_check_this),
-                    Modifier.padding(start = 8.dp, top = 6.dp),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.tertiary,
-                )
-            }
-        }
-        ChipRow(Finish.entries, draft.finish, ::finishLabel, viewModel::setFinish)
-        ChipRow(Edition.entries, draft.edition, ::editionLabel, viewModel::setEdition)
+        SectionHeader(stringResource(R.string.variant_your_choice))
+        Text(
+            stringResource(R.string.variant_not_detected),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        VariantChoices(
+            finish = draft.finish,
+            edition = draft.edition,
+            condition = draft.condition,
+            finishChosen = draft.finishChosen,
+            editionChosen = draft.editionChosen,
+            conditionChosen = draft.conditionChosen,
+            onFinish = viewModel::setFinish,
+            onEdition = viewModel::setEdition,
+            onCondition = viewModel::setCondition,
+        )
 
-        SectionHeading(stringResource(R.string.review_condition))
-        ChipRow(Condition.entries, draft.condition, ::conditionLabel, viewModel::setCondition)
-
-        TextButton(onClick = viewModel::discard, modifier = Modifier.padding(top = 8.dp)) {
-            Text(stringResource(R.string.review_discard))
-        }
+        TextAction(
+            stringResource(R.string.review_discard),
+            onClick = viewModel::discard,
+            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
+        )
     }
 }
 
+/**
+ * Finish, edition and condition as choice chips, each group headed with its state: "default" until the user picks
+ * one, "your choice" after, or "check this" when the item needs a pick before Confirm. Shared with the Scan screen's
+ * sheet for the latest card.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun SectionHeading(text: String) {
-    Text(
-        text,
-        Modifier.padding(top = 10.dp, bottom = 2.dp).semantics { heading() },
-        style = MaterialTheme.typography.titleSmall,
-    )
-}
-
-@Composable
-private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
-        shape = MaterialTheme.shapes.medium,
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-        border = BorderStroke(
-            if (selected) 2.dp else 1.dp,
-            if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
-        ),
-    ) {
-        Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-        ) {
-            AsyncImage(
-                model = c.card.imageUrl?.let { "$it/low.webp" },
-                contentDescription = null,
-                modifier = Modifier.width(36.dp).aspectRatio(63f / 88f).clip(RoundedCornerShape(3.dp)),
-                contentScale = ContentScale.Fit,
-            )
-            CollectorNumber(
-                localId = c.card.localId,
-                printedTotal = c.set.printedTotal,
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-            )
-            Column(Modifier.weight(1f)) {
-                Text(c.card.name, style = MaterialTheme.typography.titleSmall, maxLines = 1)
-                Text(
-                    stringResource(R.string.review_set_language, c.set.name, languageName(c.card.language)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                )
-            }
-            Text(
-                stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100)),
-                style = MaterialTheme.typography.labelLarge,
-                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
+internal fun VariantChoices(
+    finish: Finish?,
+    edition: Edition?,
+    condition: Condition,
+    finishChosen: Boolean,
+    editionChosen: Boolean,
+    conditionChosen: Boolean,
+    onFinish: (Finish) -> Unit,
+    onEdition: (Edition) -> Unit,
+    onCondition: (Condition) -> Unit,
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        ChoiceGroup(R.string.variant_finish, Finish.entries, finish, finishChosen, ::finishLabel, onFinish)
+        ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition)
+        ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> ChipRow(values: List<T>, selected: T?, label: (T) -> Int, onSelect: (T) -> Unit) {
-    FlowRow(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-        values.forEach { v ->
-            FilterChip(
-                selected = v == selected,
-                onClick = { onSelect(v) },
-                label = { Text(stringResource(label(v))) },
+private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: Boolean, label: (T) -> Int, onSelect: (T) -> Unit) {
+    val state = when {
+        selected == null -> R.string.variant_state_check
+        chosen -> R.string.variant_state_chosen
+        else -> R.string.variant_state_default
+    }
+    val colors = MaterialTheme.colorScheme
+    Row(Modifier.padding(top = Spacing.sm).semantics(mergeDescendants = true) { heading() }, verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(title), style = MaterialTheme.typography.titleSmall, color = colors.onSurface)
+        Text(
+            stringResource(R.string.variant_state_separator) + stringResource(state),
+            style = MaterialTheme.typography.labelMedium,
+            color = if (selected == null) colors.tertiary else colors.onSurfaceVariant,
+        )
+    }
+    FlowRow(
+        Modifier.selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        values.forEach { v -> ChoiceChip(selected = v == selected, onClick = { onSelect(v) }, label = stringResource(label(v))) }
+    }
+}
+
+@Composable
+private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val shape = MaterialTheme.shapes.medium
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 64.dp)
+            .focusRing(shape)
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+        shape = shape,
+        color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant),
+    ) {
+        Row(
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            AsyncImage(
+                model = c.card.imageUrl?.let { "$it/low.webp" },
+                contentDescription = null,
+                modifier = Modifier.width(40.dp).aspectRatio(63f / 88f).clip(MaterialTheme.shapes.extraSmall),
+                contentScale = ContentScale.Fit,
+            )
+            Column(Modifier.weight(1f)) {
+                CollectorNumber(
+                    localId = c.card.localId,
+                    printedTotal = c.set.printedTotal,
+                    style = MaterialTheme.typography.titleLarge,
+                    color = if (selected) colors.primary else colors.onSurface,
+                )
+                Text(c.card.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                Text(
+                    stringResource(R.string.review_set_language, c.set.name, languageName(c.card.language)),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+            Text(
+                stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100)),
+                style = MaterialTheme.typography.labelLarge,
+                color = if (selected) colors.primary else colors.onSurfaceVariant,
             )
         }
     }
 }
 
+/** After Confirm: which card was added, with Undo. Undo puts the item back in the queue with the same choices. */
+@Composable
+private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
+    val card = undo.candidate
+    val title = "${padCollectorNumber(card.card.localId, card.set.printedTotal)}/${card.set.printedTotal ?: "?"} ${card.card.name}"
+    Row(
+        Modifier
+            .fillMaxWidth()
+            .padding(start = Spacing.gutter, end = Spacing.sm, top = Spacing.xs)
+            .semantics { liveRegion = LiveRegionMode.Polite },
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
+        Text(
+            stringResource(R.string.review_added, title),
+            Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+        )
+        TextAction(
+            stringResource(R.string.scan_undo),
+            onClick = onUndo,
+            contentDescription = stringResource(R.string.review_undo_description, title),
+        )
+    }
+}
+
 @Composable
 private fun Footer(draft: ReviewDraft, onQuantity: (Int) -> Unit, onSkip: () -> Unit, onConfirm: () -> Unit) {
-    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
-        Column(Modifier.navigationBarsPadding()) {
-            HorizontalDivider()
-            Column(Modifier.padding(horizontal = 18.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(stringResource(R.string.review_quantity), style = MaterialTheme.typography.titleSmall)
-                    Spacer(Modifier.weight(1f))
-                    val less = stringResource(R.string.review_quantity_less)
-                    val more = stringResource(R.string.review_quantity_more)
-                    OutlinedButton(
-                        onClick = { onQuantity(-1) },
-                        enabled = draft.quantity > 1,
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = less },
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text("−", style = MaterialTheme.typography.titleLarge)
-                    }
-                    Text(
-                        draft.quantity.toString(),
-                        Modifier.width(48.dp),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        textAlign = TextAlign.Center,
-                    )
-                    OutlinedButton(
-                        onClick = { onQuantity(1) },
-                        modifier = Modifier.size(48.dp).semantics { contentDescription = more },
-                        shape = CircleShape,
-                        contentPadding = PaddingValues(0.dp),
-                    ) {
-                        Text("+", style = MaterialTheme.typography.titleLarge)
-                    }
-                }
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    OutlinedButton(onClick = onSkip, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Text(stringResource(R.string.review_skip))
-                    }
-                    Button(onClick = onConfirm, enabled = draft.canConfirm, modifier = Modifier.weight(1f).heightIn(min = 48.dp)) {
-                        Text(stringResource(R.string.review_confirm))
-                    }
-                }
-                if (draft.variantMissing) {
-                    Text(
-                        stringResource(R.string.review_pick_variant),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.tertiary,
-                    )
-                }
+    Column(
+        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(stringResource(R.string.review_quantity), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+            QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = draft.quantity > 1) {
+                onQuantity(-1)
             }
+            Text(
+                draft.quantity.toString(),
+                Modifier.width(56.dp),
+                style = MaterialTheme.typography.titleLarge,
+                textAlign = TextAlign.Center,
+            )
+            QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more)) { onQuantity(1) }
+        }
+        if (draft.variantMissing) {
+            Text(
+                stringResource(R.string.review_pick_variant),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f))
+            PrimaryButton(stringResource(R.string.review_confirm), onConfirm, Modifier.weight(1f), enabled = draft.canConfirm)
         }
     }
 }
 
 @Composable
-private fun Done(state: ReviewUiState, onBack: () -> Unit, onAgain: () -> Unit) {
-    Column(Modifier.padding(horizontal = 18.dp, vertical = 24.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        if (state.confirmed == 0 && state.skipped == 0) {
-            PlaceholderText(stringResource(R.string.review_empty))
+private fun QuantityButton(icon: Int, description: String, enabled: Boolean = true, onClick: () -> Unit) {
+    val shape = CircleShape
+    OutlinedButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.focusRing(shape).size(Spacing.touchTarget).semantics { contentDescription = description },
+        shape = shape,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        contentPadding = PaddingValues(0.dp),
+    ) {
+        Icon(painterResource(icon), contentDescription = null)
+    }
+}
+
+@Composable
+private fun Done(state: ReviewUiState, onBack: () -> Unit, onAgain: () -> Unit, onSample: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        val empty = state.confirmed == 0 && state.skipped == 0
+        Text(
+            stringResource(if (empty) R.string.review_empty_title else R.string.review_done),
+            Modifier.semantics { heading() },
+            style = MaterialTheme.typography.headlineMedium,
+        )
+        if (empty) {
+            Text(stringResource(R.string.review_empty), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
-            Text(stringResource(R.string.review_done), style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold))
             Text(
                 stringResource(
                     R.string.review_done_summary,
@@ -307,12 +400,15 @@ private fun Done(state: ReviewUiState, onBack: () -> Unit, onAgain: () -> Unit) 
                 style = MaterialTheme.typography.bodyLarge,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            if (state.waiting > 0) {
-                Text(stringResource(R.string.review_skipped_wait), style = MaterialTheme.typography.bodyLarge)
-                OutlinedButton(onClick = onAgain) { Text(stringResource(R.string.review_again)) }
-            }
         }
-        Button(onClick = onBack) { Text(stringResource(R.string.review_back_to_scanning)) }
+        PrimaryButton(stringResource(R.string.review_back_to_scanning), onBack, Modifier.fillMaxWidth())
+        if (state.waiting > 0) {
+            Text(stringResource(R.string.review_skipped_wait), style = MaterialTheme.typography.bodyMedium)
+            SecondaryButton(stringResource(R.string.review_again), onAgain, Modifier.fillMaxWidth())
+        }
+        if (empty && DebugTools.AVAILABLE) {
+            TextAction(stringResource(R.string.review_debug_sample), onSample, Modifier.padding(top = Spacing.lg))
+        }
     }
 }
 
@@ -323,20 +419,20 @@ private fun reasonExplanation(reason: ReviewReason): Int = when (reason) {
     ReviewReason.CHECK_VARIANT -> R.string.review_why_check_variant
 }
 
-private fun finishLabel(f: Finish): Int = when (f) {
+internal fun finishLabel(f: Finish): Int = when (f) {
     Finish.NORMAL -> R.string.review_finish_normal
     Finish.HOLO -> R.string.review_finish_holo
     Finish.REVERSE_HOLO -> R.string.review_finish_reverse_holo
     Finish.OTHER -> R.string.review_finish_other
 }
 
-private fun editionLabel(e: Edition): Int = when (e) {
+internal fun editionLabel(e: Edition): Int = when (e) {
     Edition.UNLIMITED -> R.string.review_edition_unlimited
     Edition.FIRST_EDITION -> R.string.review_edition_first
     Edition.SHADOWLESS -> R.string.review_edition_shadowless
 }
 
-private fun conditionLabel(c: Condition): Int = when (c) {
+internal fun conditionLabel(c: Condition): Int = when (c) {
     Condition.NEAR_MINT -> R.string.review_condition_nm
     Condition.LIGHTLY_PLAYED -> R.string.review_condition_lp
     Condition.MODERATELY_PLAYED -> R.string.review_condition_mp

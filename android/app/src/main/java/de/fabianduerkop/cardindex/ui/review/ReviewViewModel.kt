@@ -7,20 +7,25 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.withContext
+import de.fabianduerkop.cardindex.data.scan.ConfirmedReview
+import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
+import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.getAndUpdate
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** One pass through the queue: the item in front, the user's draft for it and the pass's progress. */
 data class ReviewUiState(
@@ -36,10 +41,23 @@ data class ReviewUiState(
     val waiting: Int = 0,
 )
 
+/** The last confirmation, which Undo can take back: the card it added and the user's choices for it. */
+data class ReviewUndo(
+    val confirmed: ConfirmedReview,
+    val candidate: ReviewCandidate,
+    val draft: ReviewDraft,
+    /** The crop queued for the open dataset, withdrawn again on Undo. */
+    val contributionId: Long?,
+)
+
 /**
  * The review screen (#9). Skipped items stay in the queue (moved to its back) but leave this pass, so the pass
  * ends; [reviewSkippedAgain] starts a new pass over them. Drafts are kept per item while the screen lives, so
  * leaving a half-filled card via Skip does not lose the choices.
+ *
+ * The last confirmation can be undone (#98): the copy it added is removed, the item returns to the queue where it
+ * was, with the draft the user had chosen, and the pass's count goes back. Only the last confirmation is kept, and
+ * Undo forgets it at once, so pressing twice can never remove a second copy.
  */
 class ReviewViewModel(application: Application) : AndroidViewModel(application) {
     private val queue = ReviewQueueRepository(CardIndexDatabase.get(application), application.filesDir)
@@ -51,6 +69,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Ids of items being written; a double tap must not confirm the same item twice. */
     private val busy = MutableStateFlow<Set<Long>>(emptySet())
+
+    private val _undo = MutableStateFlow<ReviewUndo?>(null)
+    val undo: StateFlow<ReviewUndo?> = _undo.asStateFlow()
+
 
     val state: StateFlow<ReviewUiState> = combine(
         queue.observeItems(), skippedInPass, confirmedInPass, drafts, busy,
@@ -77,9 +99,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectCandidate(rank: Int) = editDraft { it.copy(rank = rank) }
-    fun setFinish(finish: Finish) = editDraft { it.copy(finish = finish) }
-    fun setEdition(edition: Edition) = editDraft { it.copy(edition = edition) }
-    fun setCondition(condition: Condition) = editDraft { it.copy(condition = condition) }
+    fun setFinish(finish: Finish) = editDraft { it.withFinish(finish) }
+    fun setEdition(edition: Edition) = editDraft { it.withEdition(edition) }
+    fun setCondition(condition: Condition) = editDraft { it.withCondition(condition) }
     fun changeQuantity(delta: Int) = editDraft { it.withQuantity(delta) }
 
     fun confirm() {
@@ -89,23 +111,50 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         if (!draft.canConfirm) return
         val id = item.entity.id
         busy.update { it + id }
-        val confirmed = item.candidates.firstOrNull { it.rank == draft.rank }?.card
+        val candidate = item.candidates.firstOrNull { it.rank == draft.rank }
         viewModelScope.launch {
-            // Read before confirming: the confirm deletes the crop.
-            val crop = runCatching { withContext(Dispatchers.IO) { item.cropFile.readBytes() } }.getOrNull()
             runCatching {
-                queue.confirm(id, draft.rank, draft.finish!!, draft.edition!!, draft.condition, draft.quantity)
+                withContext(Dispatchers.IO) {
+                    queue.confirm(id, draft.rank, draft.finish!!, draft.edition!!, draft.condition, draft.quantity)
+                }
             }
-                .onSuccess {
+                .onSuccess { confirmed ->
                     confirmedInPass.update { it + 1 }
                     drafts.update { it - id }
-                    if (confirmed != null && crop != null) {
-                        runCatching { contributions.contribute(confirmed.id, confirmed.language, crop) }
+                    val crop = confirmed.cropJpeg
+                    val contribution = if (candidate != null && crop != null) {
+                        runCatching { contributions.contribute(candidate.card.id, candidate.card.language, crop) }
                             .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
+                            .getOrNull()
+                    } else {
+                        null
                     }
+                    _undo.value = candidate?.let { ReviewUndo(confirmed, it, draft, contribution) }
                 }
                 .onFailure { Log.e(TAG, "confirming review item $id failed", it) }
             busy.update { it - id }
+        }
+    }
+
+    /** Takes back the last confirmation; does nothing when there is none (or it was already taken back). */
+    fun undoConfirm() {
+        val undo = _undo.getAndUpdate { null } ?: return
+
+        val id = undo.confirmed.item.id
+        viewModelScope.launch {
+            // An undone confirmation may have been the wrong card: its crop must not reach the dataset with that label.
+            undo.contributionId?.let { runCatching { contributions.withdraw(it) } }
+            runCatching { withContext(Dispatchers.IO) { queue.undoConfirm(undo.confirmed) } }
+                .onSuccess { restored ->
+                    if (restored) {
+                        drafts.update { it + (id to undo.draft) }
+                        skippedInPass.update { it - id }
+                        confirmedInPass.update { maxOf(0, it - 1) }
+                    } else {
+                        Log.w(TAG, "undo of review item $id: its copy is already gone")
+                    }
+                }
+                .onFailure { Log.e(TAG, "undoing review item $id failed", it) }
         }
     }
 
@@ -132,6 +181,12 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     fun reviewSkippedAgain() {
         skippedInPass.value = emptySet()
         confirmedInPass.value = 0
+    }
+
+    /** Debug builds: fills the queue with sample scans, so the screen can be checked without a camera. */
+    fun addSampleItems() {
+        if (!DebugTools.AVAILABLE) return
+        viewModelScope.launch { runCatching { DebugTools.addSampleReviewItems(queue) }.onFailure { Log.e(TAG, "sample items failed", it) } }
     }
 
     companion object {

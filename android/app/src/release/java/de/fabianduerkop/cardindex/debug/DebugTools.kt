@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.debug
 
 import de.fabianduerkop.cardindex.data.AppContainer
+import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 
 /** Release builds have no debug tools; see the debug source set. */
 object DebugTools {
@@ -9,4 +10,7 @@ object DebugTools {
 
     @Suppress("UNUSED_PARAMETER")
     suspend fun addSampleData(container: AppContainer) = Unit
+
+    @Suppress("UNUSED_PARAMETER")
+    suspend fun addSampleReviewItems(queue: ReviewQueueRepository) = Unit
 }

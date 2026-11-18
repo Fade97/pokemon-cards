@@ -90,6 +90,9 @@ interface ReviewDao {
     @Query("SELECT * FROM review_candidates WHERE itemId = :itemId AND rank = :rank")
     suspend fun candidate(itemId: Long, rank: Int): ReviewCandidateEntity?
 
+    @Query("SELECT * FROM review_candidates WHERE itemId = :itemId ORDER BY rank")
+    suspend fun candidates(itemId: Long): List<ReviewCandidateEntity>
+
     @Query("DELETE FROM review_items WHERE id = :id")
     suspend fun delete(id: Long): Int
 

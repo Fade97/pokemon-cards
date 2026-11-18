@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.review
 
+import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import org.junit.Assert.assertEquals
@@ -24,6 +25,18 @@ class ReviewDraftTest {
         assertFalse(d.copy(finish = Finish.HOLO).canConfirm)
         assertFalse(d.copy(edition = Edition.FIRST_EDITION).canConfirm)
         assertTrue(d.copy(finish = Finish.HOLO, edition = Edition.FIRST_EDITION).canConfirm)
+    }
+
+    @Test
+    fun defaultsStayMarkedAsDefaultsUntilTheUserPicks() {
+        val d = ReviewDraft.forItem(checkVariant = false)
+        assertFalse(d.finishChosen || d.editionChosen || d.conditionChosen)
+        // Picking the value it already has still counts as the user's choice.
+        val picked = d.withFinish(Finish.NORMAL).withCondition(Condition.POOR)
+        assertTrue(picked.finishChosen)
+        assertFalse(picked.editionChosen)
+        assertTrue(picked.conditionChosen)
+        assertEquals(Condition.POOR, picked.condition)
     }
 
     @Test

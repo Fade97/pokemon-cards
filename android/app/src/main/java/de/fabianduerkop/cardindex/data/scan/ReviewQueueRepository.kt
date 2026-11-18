@@ -27,6 +27,17 @@ data class ReviewCandidate(val rank: Int, val similarity: Float, val card: CardE
 data class ReviewItem(val entity: ReviewItemEntity, val cropFile: File, val candidates: List<ReviewCandidate>)
 
 /**
+ * A confirmed review item: the copy it became ([copyId]) and everything the confirm removed, so
+ * [ReviewQueueRepository.undoConfirm] can put the item back as it was. [cropJpeg] is null if the crop couldn't be read.
+ */
+class ConfirmedReview(
+    val copyId: Long,
+    val item: ReviewItemEntity,
+    val candidates: List<ReviewCandidateEntity>,
+    val cropJpeg: ByteArray?,
+)
+
+/**
  * The review queue (#9): unsure live scans, persisted in Room with their crop as a JPEG under
  * `files/review/`. Live scanning never waits for the user; these items do.
  */
@@ -95,7 +106,7 @@ class ReviewQueueRepository(
     /**
      * Adds the candidate at [rank] as an owned copy with the user's variant, condition and quantity, and removes the
      * item. One transaction, so a crash can't leave both the copy and the item (a later confirm would double it).
-     * Returns the copy's row id.
+     * Returns what was changed, for [undoConfirm].
      */
     suspend fun confirm(
         itemId: Long,
@@ -104,13 +115,14 @@ class ReviewQueueRepository(
         edition: Edition,
         condition: Condition,
         quantity: Int,
-    ): Long {
+    ): ConfirmedReview {
         require(quantity >= 1) { "quantity must be at least 1, was $quantity" }
-        lateinit var crop: File
+        lateinit var item: ReviewItemEntity
+        lateinit var candidates: List<ReviewCandidateEntity>
         val copyId = db.withTransaction {
-            val item = dao.item(itemId) ?: throw NoSuchElementException("review item $itemId is gone")
+            item = dao.item(itemId) ?: throw NoSuchElementException("review item $itemId is gone")
             val candidate = dao.candidate(itemId, rank) ?: throw IllegalArgumentException("item $itemId has no candidate $rank")
-            crop = cropFile(item)
+            candidates = dao.candidates(itemId)
             val id = db.copyDao().insert(
                 OwnedCopyEntity(
                     cardId = candidate.cardId,
@@ -125,8 +137,34 @@ class ReviewQueueRepository(
             dao.delete(itemId)
             id
         }
+        val crop = cropFile(item)
+        // Kept in memory, so Undo can put the item back with its picture and the caller can contribute it.
+        val cropJpeg = runCatching { crop.readBytes() }.getOrNull()
         crop.delete()
-        return copyId
+        return ConfirmedReview(copyId, item, candidates, cropJpeg)
+    }
+
+    /**
+     * Takes back a [confirm]: removes exactly the copy it added and puts the item back where it was in the queue, with
+     * its candidates and crop. Nothing changes, and the result is false, when that copy is already gone (deleted
+     * elsewhere), so an Undo can never remove a different copy.
+     */
+    suspend fun undoConfirm(confirmed: ConfirmedReview): Boolean {
+        val crop = cropFile(confirmed.item)
+        confirmed.cropJpeg?.let { crop.parentFile?.mkdirs(); crop.writeBytes(it) }
+        val restored = try {
+            db.withTransaction {
+                if (db.copyDao().deleteById(confirmed.copyId) == 0) return@withTransaction false
+                dao.insertItem(confirmed.item)
+                dao.insertCandidates(confirmed.candidates)
+                true
+            }
+        } catch (t: Throwable) {
+            if (confirmed.cropJpeg != null) crop.delete()
+            throw t
+        }
+        if (!restored && confirmed.cropJpeg != null) crop.delete()
+        return restored
     }
 
     /** Moves an item to the back of the queue; it stays reachable. False if it is gone. */

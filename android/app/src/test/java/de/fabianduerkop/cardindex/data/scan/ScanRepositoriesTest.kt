@@ -154,6 +154,64 @@ class ScanRepositoriesTest {
     }
 
     @Test
+    fun chosenVariantIsSavedOnThatCopyOnly() = runTest {
+        val first = scans.addFromScan(ref("006"))
+        val second = scans.addFromScan(ref("006"))
+        clock += 5
+        assertTrue(scans.setVariant(second, Finish.HOLO, Edition.FIRST_EDITION, Condition.LIGHTLY_PLAYED))
+        val one = db.copyDao().byId(first)!!
+        val two = db.copyDao().byId(second)!!
+        assertEquals(Finish.NORMAL, one.finish)
+        assertEquals(Finish.HOLO, two.finish)
+        assertEquals(Edition.FIRST_EDITION, two.edition)
+        assertEquals(Condition.LIGHTLY_PLAYED, two.condition)
+        assertEquals(Instant.ofEpochMilli(clock), two.updatedAt)
+        scans.undo(second)
+        assertFalse(scans.setVariant(second, Finish.HOLO, Edition.UNLIMITED, Condition.NEAR_MINT))
+    }
+
+    @Test
+    fun undoOfAConfirmationRemovesItsCopyAndPutsTheItemBackInPlace() = runTest {
+        val handAdded = scans.addFromScan(ref("025"))
+        val first = enqueueOne("001")
+        clock += 1
+        val second = enqueueOne("002")
+        val crop = queue.cropFile(db.reviewDao().item(first)!!)
+
+        val confirmed = queue.confirm(first, rank = 1, Finish.HOLO, Edition.UNLIMITED, Condition.NEAR_MINT, quantity = 2)
+        assertArrayEquals(byteArrayOf(9), confirmed.cropJpeg)
+        assertFalse(crop.exists())
+        assertEquals(2, db.copyDao().observeAllCopies().first().size)
+
+        assertTrue(queue.undoConfirm(confirmed))
+        // Back at the front, with both candidates and its crop; only the confirmed copy is gone.
+        val items = queue.observeItems().first()
+        assertEquals(listOf(first, second), items.map { it.entity.id })
+        assertEquals(listOf(0, 1), items.first().candidates.map { it.rank })
+        assertArrayEquals(byteArrayOf(9), crop.readBytes())
+        assertEquals(listOf(handAdded), db.copyDao().observeAllCopies().first().map { it.copy.id })
+
+        // A second Undo of the same confirmation changes nothing, and can't remove another copy.
+        assertFalse(queue.undoConfirm(confirmed))
+        assertEquals(2, queue.observeCount().first())
+        assertEquals(listOf(handAdded), db.copyDao().observeAllCopies().first().map { it.copy.id })
+
+        // The restored item can be confirmed again.
+        queue.confirm(first, rank = 0, Finish.NORMAL, Edition.UNLIMITED, Condition.NEAR_MINT, quantity = 1)
+        assertEquals(1, queue.observeCount().first())
+    }
+
+    @Test
+    fun undoOfAConfirmationWhoseCopyWasDeletedLeavesTheQueueAlone() = runTest {
+        val id = enqueueOne()
+        val confirmed = queue.confirm(id, 0, Finish.NORMAL, Edition.UNLIMITED, Condition.NEAR_MINT, 1)
+        db.copyDao().deleteById(confirmed.copyId)
+        assertFalse(queue.undoConfirm(confirmed))
+        assertEquals(0, queue.observeCount().first())
+        assertFalse(queue.cropFile(confirmed.item).exists())
+    }
+
+    @Test
     fun skipMovesTheItemToTheBackAndKeepsItCounted() = runTest {
         val first = enqueueOne("001")
         clock += 1

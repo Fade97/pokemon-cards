@@ -1,8 +1,20 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.debug
 
+import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Paint
+import androidx.core.graphics.createBitmap
 import androidx.room.withTransaction
 import de.fabianduerkop.cardindex.data.AppContainer
+import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
+import de.fabianduerkop.cardindex.model.ReviewReason
+import de.fabianduerkop.cardindex.recognition.Match
+import de.fabianduerkop.cardindex.recognition.NumberReading
+import de.fabianduerkop.cardindex.recognition.RefCard
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.ByteArrayOutputStream
 import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
@@ -152,6 +164,58 @@ object DebugTools {
                 ),
             )
         }
+    }
+
+    /**
+     * Three unsure scans in the review queue, one per reason the queue shows, so the review screen can be checked
+     * without a camera. The crops are plain placeholder pictures, not photos.
+     */
+    suspend fun addSampleReviewItems(queue: ReviewQueueRepository) = withContext(Dispatchers.IO) {
+        fun ref(localId: String, lang: String, name: String) = RefCard(
+            key = "$lang/sv03.5-$localId", cardId = "sv03.5-$localId", lang = lang, setId = "sv03.5", setName = "151",
+            localId = localId, official = 165, name = name,
+            imageUrl = "https://assets.tcgdex.net/$lang/sv/sv03.5/$localId", unseen = false,
+        )
+        val crop = placeholderCrop()
+        queue.enqueue(
+            crop,
+            listOf(Match(0, ref("006", "de", "Glurak-ex"), 0.74f), Match(1, ref("006", "en", "Charizard ex"), 0.73f)),
+            NumberReading("006", "165"),
+            ReviewReason.SIMILAR_CARDS,
+            checkVariant = false,
+        )
+        queue.enqueue(
+            crop,
+            listOf(
+                Match(0, ref("025", "en", "Pikachu"), 0.61f),
+                Match(1, ref("004", "en", "Charmander"), 0.52f),
+                Match(2, ref("007", "en", "Squirtle"), 0.49f),
+            ),
+            null,
+            ReviewReason.NUMBER_NOT_READ,
+            checkVariant = false,
+        )
+        queue.enqueue(
+            crop,
+            listOf(Match(0, ref("151", "en", "Mew ex"), 0.69f)),
+            NumberReading("151", "165"),
+            ReviewReason.CHECK_VARIANT,
+            checkVariant = true,
+        )
+        Unit
+    }
+
+    /** A grey card-shaped JPEG with a lighter frame. */
+    private fun placeholderCrop(): ByteArray {
+        val bitmap = createBitmap(252, 352)
+        val canvas = Canvas(bitmap)
+        canvas.drawColor(0xFF8A969B.toInt())
+        val inner = Paint().apply { color = 0xFFC9D2D6.toInt() }
+        canvas.drawRect(18f, 40f, 234f, 190f, inner)
+        val out = ByteArrayOutputStream()
+        bitmap.compress(Bitmap.CompressFormat.JPEG, 85, out)
+        bitmap.recycle()
+        return out.toByteArray()
     }
 
     private fun card(setId: String, localId: String, name: String, language: String, type: EnergyType) = CardEntity(
