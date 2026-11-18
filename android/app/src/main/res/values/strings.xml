@@ -148,6 +148,9 @@
     <string name="grader_other">Other</string>
     <string name="search_placeholder">Search every card in your installed language packs by name, set or collector number.</string>
     <string name="settings_placeholder">Open-source licenses will live here.</string>
+    <string name="settings_about">About</string>
+    <string name="settings_privacy_policy">Privacy policy</string>
+    <string name="settings_privacy_policy_no_browser">No browser to open the privacy policy. It is at %1$s</string>
     <string name="settings_prices">Prices</string>
     <string name="settings_main_price">Main price</string>
     <string name="settings_price_auto">Automatic</string>

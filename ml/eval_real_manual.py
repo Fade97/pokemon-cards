@@ -39,9 +39,9 @@ def to_input(bgr, size=224):
 
 
 class TFLite:
-    def __init__(self, path: Path):
+    def __init__(self, path: Path, threads: int = 8):
         from ai_edge_litert.interpreter import Interpreter
-        self.it = Interpreter(model_path=str(path), num_threads=8)
+        self.it = Interpreter(model_path=str(path), num_threads=threads)
         self.it.allocate_tensors()
         self.i = self.it.get_input_details()[0]["index"]
         self.o = self.it.get_output_details()[0]["index"]
@@ -53,10 +53,10 @@ class TFLite:
 
 
 class Embedder:
-    def __init__(self, run: str, variant: str = "w8"):
+    def __init__(self, run: str, variant: str = "w8", threads: int = 8):
         self.tag = f"{run}_{variant}"
         self.model_file = EXPORT_DIR / f"{run}_{variant}.tflite"
-        self.m = TFLite(self.model_file)
+        self.m = TFLite(self.model_file, threads)
 
     def __call__(self, bgr):
         e = self.m(to_input(bgr))

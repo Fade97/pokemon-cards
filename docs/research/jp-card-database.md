@@ -1,98 +1,231 @@
 # Research: JP card images from the official database (pokemon-card.com)
 
-Part of #6. Research date: 2026-11-17. **No card images were downloaded**; only the policy page, `robots.txt`,
-one search-API response, one detail page, and `HEAD` requests to TCGdex's CDN were fetched. Not legal advice.
-Items marked **Annahme** are unverified.
+Part of #6. First pass 2026-11-17 (PR #38), second pass 2026-11-18 (this revision: steps (b) and (c)).
+**No card images were downloaded.** Requests to pokemon-card.com in the second pass: the policy page, `robots.txt`,
+`/contact`, 12 search-API pages and 4 detail pages, ≥2 s apart, generic browser User-Agent. Plus pokemon.co.jp
+`/rules/` and `robots.txt` and the corporate licensing page. Not legal advice. Items marked **Annahme** are unverified.
 
 ## Summary
 
-- **The terms forbid what the crawl would do.** The site policy licenses all content "for personal enjoyment
-  only" and prohibits copying, reproducing, publishing and use on other public networks. There is no `robots.txt`
-  (404) and no API/scraping clause either way.
-- **A cheaper first step exists:** TCGdex's CDN already holds image files for ~3.4k JP cards that its API leaves
-  out (tcgdex/cards-database#2477). That alone could lift JP coverage from ~3.9k to ~7.3k with no new legal exposure.
-- **The crawl is technically easy:** 604 search-result pages list every card with its image path; ~23.5k detail
-  pages add collector numbers. Polite rate (1 req/s): ~10 min for the list, ~6.5 h for all details.
-- **Decision for Fabian:** see [Decision needed](#decision-needed).
+- **Terms:** both official JP sites (pokemon-card.com and pokemon.co.jp) license their content "for personal
+  enjoyment only" and forbid copying, reproduction, publishing, transmission and use "on other public networks
+  such as the internet". No `robots.txt` on pokemon-card.com, no API, no clause on automated access.
+- **Coverage:** the official DB lists **23,530 card IDs** (DP era to today, with deck reprints and promos as separate
+  IDs). TCGdex lists 13,156 JP cards, **7,359 with an image** since #47. The biggest gap that matters to users is
+  the **current Mega (M) series: ~2,000 cards, only M4 has images**, plus 288 SV promos.
+- **Mapping:** for main sets the image folder in the official DB equals the TCGdex set id (`SV6a`, `S6H`, `SM9`, `CP4`,
+  `M6a`, `M1L`), and the number on the detail page equals TCGdex `localId` (3 of 3 spot checks matched by name).
+  Promos, deck sets and the DP era need a mapping table or are not in TCGdex at all.
+- **Recommendation:** send the inquiry to The Pokémon Company now (draft below), crawl nothing until it answers,
+  and meanwhile stay with TCGdex + user scans. See [Decision needed](#decision-needed).
 
-## 1. Terms of use and robots
+## 1. Terms of use, robots.txt, copyright notices
 
-Source: [サイトのご利用](https://www.pokemon-card.com/policy.html), operated by 株式会社ポケモン (read 2026-11-17).
+Retrieved 2026-11-18. Translations are mine, not official.
 
-| Clause (JP, abridged) | Translation / meaning |
-| --- | --- |
-| 著作権、または使用を許諾する権利は、株式会社ポケモンに帰属します。データは、個人的に楽しむ場合に限って使用を許諾される | Copyright (or the right to license use) belongs to The Pokémon Company. Data is licensed **for personal enjoyment only**; no copyright is transferred. |
-| データのコピー、複製、改変、出版、掲示、電送、配布することは固くお断りします。またこれらのデータを、他のインターネットなどの公衆ネットワーク上で利用することはできません | Copying, reproduction, alteration, publication, posting, transmission, distribution are firmly refused; the data may not be used on other public networks such as the internet. |
-| 著作物を複製、使用してのリンク設定はご遠慮いただきます。…必ずテキストリンクで | No links built from copied/used works (e.g. image links); text links only. |
-| このサイトは日本国内専用サイトです | The site is for use within Japan only. (Not geo-blocked: requests from outside Japan returned 200.) |
-| フッター: 掲載された画像その他の内容の無断転載はお断りします | Unauthorised reproduction of images and other content is refused. |
+### pokemon-card.com — [サイトのご利用](https://www.pokemon-card.com/policy.html)
 
-- **robots.txt:** `https://www.pokemon-card.com/robots.txt` → HTTP 404; `sitemap.xml` → 404. No machine-readable
-  crawl rules or opt-out. The search page itself is served normally to a plain HTTP client.
-- **No API/scraping statement** on the policy page. The JSON endpoint below is the site's own front-end endpoint,
-  undocumented and unofficial.
-- Not read: [pokemon.co.jp/rules](https://www.pokemon.co.jp/rules/) (group-wide rules) and the
-  [Players Club terms](https://www.pokemon-card.com/event/players_policy/) — **Annahme:** same copyright wording.
+Operated by 株式会社ポケモン (The Pokémon Company, "TPC").
 
-## 2. How the card search exposes cards
-
-| What | Finding |
-| --- | --- |
-| List endpoint | `GET /card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&page=N` returns JSON: `hitCnt` **23530**, `maxPage` **604**, 39 cards/page, each `{cardID, cardThumbFile, cardNameAltText}`. Last page (604) returned 13 cards. |
-| Image URL | In the list: `/assets/images/card_images/large/<SET>/<6-digit id>_<P/T/E>_<ROMAJI>.jpg`. Same file as the detail page's main image (the "large" variant; resolution not measured). |
-| Set code | Present as the folder in the image path (`MG`, `M6a`, `ENE`). Page 1 mixes `MG` and `M6a`. **Annahme:** folder codes match TCGdex set IDs for modern sets, but old/promo folders will need a mapping table. |
-| Collector number | **Not in the list.** Only in the detail page: `&nbsp;001&nbsp;/&nbsp;038` next to the regulation logo. Needs one request per card. |
-| Detail page | `/card-search/details.php/card/<cardID>/regu/all` — HTML with name, number/printed total, illustrator, regulation mark, attacks, product link (`/products/mega/mg.html`). |
-
-Examples:
-
-- List: <https://www.pokemon-card.com/card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&page=1>
-- Detail: <https://www.pokemon-card.com/card-search/details.php/card/50813/regu/all> (ワニノコ, `MG`, 001/038)
-- Image path from it: `/assets/images/card_images/large/MG/050813_P_WANINOKO.jpg`
-
-**Request estimate (one-time, 1 req/s, own User-Agent, resumable):**
-
-| Scope | Requests | Time at 1 req/s |
+| # | Original (JP) | Translation |
 | --- | --- | --- |
-| List only: IDs, names, set code, image URL | 604 | ~10 min |
-| + detail pages for all cards (numbers, printed totals) | ~24,100 | ~6.7 h |
-| + detail pages only for cards TCGdex lacks (~9k–13k) | ~10–14k | ~3–4 h |
-| + image bytes (for local embedding only) | one per card | adds ~23.5k requests |
+| P1 | このサイトに掲載されているデザイン、写真、映像、文章、音楽、音声など、すべてのコンテンツデータ（以下「データ」といいます）の著作権、または使用を許諾する権利は、株式会社ポケモン(以下「当社」といいます)に帰属します。 | Copyright in all content data on this site — designs, photos, video, text, music, audio etc. ("Data") — or the right to license its use belongs to The Pokémon Company ("we"). |
+| P2 | データは、個人的に楽しむ場合に限って使用を許諾されるものであり、著作権が譲渡されるものではありません。 | Use of the Data is licensed **only for personal enjoyment**; no copyright is transferred. |
+| P3 | このサイトからは、データのコピー、複製、改変、出版、掲示、電送、配布することは固くお断りします。またこれらのデータを、他のインターネットなどの公衆ネットワーク上で利用することはできません。 | Copying, reproducing, altering, publishing, posting, transmitting or distributing the Data from this site is **firmly refused**. The Data **may not be used on other public networks such as the internet**. |
+| P4 | 著作権を侵害する内容やキャラクターのイメージを損なうサイトからのリンクは、お断りさせていただいています。当社サイトに掲載されている著作物を複製、使用してのリンク設定はご遠慮いただきます。リンク素材などの提供も行っておりませんので、必ずテキストリンクでお願いいたします。 | Links from infringing sites are refused. Please refrain from links that reproduce or use works on this site. No link material is provided; **text links only**. |
+| P5 | 当社は現在、キャラクター、商品などに関する企画・アイデアなどについて、一切公募をしておりません。…万一、企画・アイデア・資料などをご提出いただいた場合は、それらに対する権利…は当社に譲渡されたものとみなされます | TPC does not accept ideas or proposals. **Anything submitted anyway is deemed assigned to TPC.** (Relevant for the inquiry: ask for permission, don't pitch the product.) |
+| P6 | このサイトは日本国内専用サイトです。海外からアクセスする場合はご了承の上ご利用ください。 | The site is for Japan only; access from abroad is at your own discretion. (Not geo-blocked: all requests from outside Japan returned 200.) |
+| P7 | Footer: このホームページに掲載されている内容の著作権は(株)クリーチャーズ、(株)ポケモンに帰属します。このホームページに掲載された画像その他の内容の無断転載はお断りします。 | Copyright in the content belongs to Creatures Inc. and TPC. **Unauthorised reproduction of the images** and other content is refused. |
 
-Note: the site lists **23.5k** entries vs ~13k JP cards in TCGdex (API: 13,156 cards, 3,882 with an image).
-**Annahme:** the site counts reprints/variants as separate card IDs, so matching to TCGdex IDs by set + number is needed
-and will leave unmatched rows.
+- **robots.txt:** `https://www.pokemon-card.com/robots.txt` → HTTP 404 (also 404 on 2026-11-17). No crawl rules,
+  no machine-readable opt-out, no sitemap.
+- **No API or scraping clause.** `resultAPI.php` is the site's own undocumented front-end endpoint.
+- **Contact:** `https://www.pokemon-card.com/contact` redirects to the card-game help centre
+  `https://pcg-cs.pokemon-support.com/hc/ja` (Zendesk; answers 403 to scripts, so the form was not read).
 
-## 3. Alternatives
+### pokemon.co.jp — [ご利用について](https://www.pokemon.co.jp/rules/)
 
-| Source | What it gives | License / terms | Verdict |
+Covers the official Pokémon site and the corporate site. §1 著作権について repeats P1–P3 word for word
+(「利用」 instead of 「使用」). §3 repeats P4. New compared with pokemon-card.com:
+
+| # | Original (JP, abridged) | Translation |
+| --- | --- | --- |
+| R1 | ポケモン財産に基づく二次的な創作物（以下「二次コンテンツ」といいます）の創作者及び利用者…は、当社及び関係者に対して、二次コンテンツ…を、あらゆる目的及び形式で利用（…インデックス作成…を含みますがこれに限られません）するための、非独占的、サブライセンス可能、無償、無期限かつ取消不能な全世界を対象とするライセンスを許諾するものとします。 | Creators and users of **derivative content** based on Pokémon property grant TPC and partners a non-exclusive, sublicensable, free, perpetual, irrevocable worldwide licence to use it for any purpose (including **indexing**). |
+| R2 | なお、当社及び関係者による二次コンテンツのいかなる利用も、お客様に対し、個人的な利用を超えたポケモン財産又は二次コンテンツの利用を許諾するものではありません。本規定については日本法を準拠法とし…東京地方裁判所を第一審の専属的合意管轄裁判所とします。 | TPC's use of derivative content **never grants you use of Pokémon property beyond personal use**. Japanese law; Tokyo District Court has exclusive first-instance jurisdiction. |
+
+- **robots.txt** (`https://www.pokemon.co.jp/robots.txt`): disallows `/images/`, `/img/`, `/common/`, `/corporate/`
+  and some API paths for all agents. Not relevant to pokemon-card.com, but it shows TPC does use robots.txt on
+  other sites — the absence on pokemon-card.com is an omission, not an invitation (**Annahme**).
+- **Contact:** form `https://support.pokemon.jp/form_app/inquiry/pokemon/`; the corporate
+  [licensing page](https://corporate.pokemon.co.jp/business/licences/) has no form of its own and links to the
+  general support centre `https://pokemon-support-top.pokemon-support.com/hc/ja`.
+
+### What the terms mean for each use (not legal advice)
+
+| Use | Terms | Copyright (JP Art. 30-4 / DE §44b) | Assessment |
 | --- | --- | --- | --- |
-| **TCGdex CDN gap** ([#2477](https://github.com/tcgdex/cards-database/issues/2477), open) | Files exist at `assets.tcgdex.net/ja/<serie>/<set>/<no>/high.webp` for 3,329 cards in 37 sets (SM, M4, S5I…SV5M) + 67 in partial sets, but `datas.json` has no entry. Verified: `ja/SM/SM12a/001` and `ja/M/M4/001` → HTTP 200; `datas.json` `.ja` has no `SM`/`M` series. M1S excluded (wrong cards from #57). | Code MIT; [FAQ](https://tcgdex.dev/faq) says nothing on image licensing or origin. Same copyright question as everywhere, but ADR 0009 already accepts TCGdex as source. | **Best first step.** Probe the CDN directly by path (HEAD) — lower bound ~3.4k. |
-| TCGdex contributions | Images are added via Discord maintainers ([FAQ](https://tcgdex.dev/faq)); the proper fix for #2477 is regenerating `datas.json`. | — | Offer the HEAD-probe list upstream. |
-| [type-null/PTCG-database](https://github.com/type-null/PTCG-database) | JP/EN card data (MIT) and a download script. | MIT covers the repo; **Annahme:** images it fetches are the same TPC images. | Metadata cross-check, not an image licence. |
-| Limitless, pokemontcg.io, Scrydex | Mostly EN; Limitless has some JP images (per [tcgdex#2516](https://github.com/tcgdex/cards-database/issues/2516)). | Not read — **Annahme:** all re-host TPC art without a clear licence; Scrydex is a paid API. | Not pursued. |
-| Other projects' practice | tierbinder removed its pokemon-card.com/Limitless scraping ([PR #34](https://github.com/alexhutton28/tierbinder/pull/34)); cardscanr-data plans a crawl as a *local archive only* ([#27](https://github.com/Motiv8ed/cardscanr-data/issues/27)). | — | Shows the same trade-off; local-only is the common compromise. |
-| Opt-in user scans (ADR 0003/0008) | CC0 crops of real cards. | Explicit consent. | Long-term fix; slow start for rare JP cards. |
-| Ask The Pokémon Company | Written permission for one-time embedding use. | Contact via the site's お問い合わせ form. | Cheap to try; **Annahme:** slow/unlikely, but removes the doubt. |
+| **(i) Store URLs + card ids/numbers in a manifest** | URLs, ids, set codes and numbers are facts, not "Data" in the sense of P1. Getting them needs 604 list requests (plus ~24k detail requests for numbers). P4 bars image-based links, not a URL in a data file. | Facts are not protected. | **Low risk** for the manifest itself. The crawl to build it is automated use of the site beyond "personal enjoyment" (P2) — **Annahme:** a browse-wrap clause is hard to enforce against a crawler that never accepted it, but it is still against the stated wish. |
+| **(ii) Each user's app fetches images from pokemon-card.com** | Conflicts with P3 ("may not be used on other public networks") and P4 (no image-based links); the app would hot-link TPC's server. Also the source's paths are undocumented and can change. | Each user makes a private copy; JP Art. 30 (private use) may cover the copy, **Annahme**. | **High risk, low value.** Visible to TPC in their server logs, against two clauses, brittle. Not recommended in any option. |
+| **(iii) Fetch once on Vulcan, compute embeddings, ship only embeddings** | Downloading is "copying/reproducing" (P3). The images never leave Vulcan, nothing is published. | JP: Art. 30-4 allows reproduction for information analysis that is not for "enjoyment", unless it unreasonably harms the owner ([Agency for Cultural Affairs, 2024-03-15](https://www.bunka.go.jp/seisaku/bunkashingikai/chosakuken/pdf/94037901_01.pdf)). Embedding for card recognition is plausibly non-enjoyment — **Annahme**. Whether a contract (P2/P3) can override Art. 30-4 is debated in Japan — **Annahme**. DE/EU: §44b UrhG allows TDM unless the rightholder reserved it "in machine-readable form"; whether a natural-language clause like P3 counts is disputed (LG Hamburg, LAION, 2024-09-27 leaned towards yes) — **Annahme**, not read in full. | **Medium risk.** Best legal footing of the crawl options, but it is the use the terms forbid most directly (P3). Shipped embeddings are not reproductions of the art (**Annahme**), yet they are the artefact that leaves our machine (ADR 0008). Worth a lawyer's view before doing it without permission. |
+| **(iv) Re-host images (R2, dataset dump, APK)** | Prohibited (P3, P7). | No exception applies. | **Out.** Already excluded by ADR 0008/0009. |
 
-## 4. Legal framing (not legal advice)
+Same caveat as everywhere: TCGdex images are the same TPC artwork; ADR 0009 accepts TCGdex as source, so the
+crawl adds a *contractual* risk (TPC's own terms), not a new kind of copyright risk.
 
-| Question | Considerations |
-| --- | --- |
-| **Compute embeddings locally, don't publish images** | Japan: [Copyright Act Art. 30-4](https://www.bunka.go.jp/seisaku/bunkashingikai/chosakuken/pdf/94037901_01.pdf) (information analysis, not for "enjoyment") is the permissive basis; the Agency for Cultural Affairs paper (2024-03-15) says it fails if the use also has an enjoyment purpose and the proviso applies if it unreasonably harms the owner. An embedding for recognising a card is plausibly non-enjoyment — **Annahme**, untested in court. Separate from copyright, the site's terms are a *contract* offer ("personal enjoyment only"); whether a browse-wrap binds a foreign crawler is **Annahme**/unclear. |
-| **EU/Germany (if the crawl runs from there)** | **Annahme:** EU TDM exception (DSM Art. 4, UrhG §44b) allows commercial text-and-data-mining unless the owner reserves rights in machine-readable form; here there is no robots.txt, but a natural-language "no copying" clause exists. Whether that is a valid reservation is disputed (LG Hamburg, LAION case, 2024 — not read). Needs a lawyer if the crawl goes ahead. |
-| **Publish images** | Not allowed by the terms and out of scope (ADR 0008/0009). |
-| **"Publish URLs, not images" (ADR 0008)** | Fits the *manifest* itself: URLs are facts, nothing is re-hosted, and a contributor runs the download script themselves. It does **not** make the crawl itself clean, and it needs care in two places: (1) the app must not hot-link pokemon-card.com images (the policy bars use "on other public networks" and image-based links) — keep showing TCGdex images (ADR 0009) or the user's own scan; (2) a published download script invites others to do the same crawl against the terms. |
-| **Published embeddings/index** | ADR 0008 publishes the reference index. **Annahme:** vectors are not reproductions of the artwork, but this is the part most worth a lawyer's opinion because it is the artefact that leaves our machine. |
+## 2. Coverage and mapping
+
+### Official DB
+
+`GET /card-search/resultAPI.php?keyword=&regulation_sidebar_form=all&page=N` → JSON with `hitCnt` **23,530**,
+`maxPage` **604**, 39 cards per page, each `{cardID, cardThumbFile, cardNameAltText, cardNameViewText}`.
+Unchanged since 2026-11-17. Set codes seen on 12 probed pages (page → image folders):
+
+| Page | Folders | Era |
+| --- | --- | --- |
+| 1 | MG, M6a | Mega (current) |
+| 50 | M1L, MBG, MBD, ENE | Mega + decks |
+| 100 | SV6a | Scarlet & Violet |
+| 175 | S12a | Sword & Shield |
+| 250 | S6H | Sword & Shield |
+| 325 | SM9, SMJ | Sun & Moon |
+| 400 | CP4 (+1 `legend/` folder) | XY |
+| 475, 525 | BW7-B, DPt1-B, L2-B, WCP, SMP, SV-P, XYP, M-P … | decks, promos, mixed |
+| 550 | DP1–DP5 | Diamond & Pearl |
+| 590, 604 | SMP, SV-P, XYP, S-P, ENE | promos, basic energy |
+
+So the DB covers **DP (2006) to today**. Pre-DP cards (PMCG, neo, e, ADV, PCG — in TCGdex as card lists) are not in it.
+The 23.5k includes every deck reprint (`*-B`, `MBG`, `SMJ`) as its own ID; **Annahme:** ~15–17k distinct printings.
+
+### TCGdex JP (local pack-build cache, 2026-11-18, incl. the CDN gap from #47)
+
+| Series | Sets | Cards listed | With image | Official DB |
+| --- | --- | --- | --- | --- |
+| PMCG, neo, VS, web, e, ADV, PCG | 37 | 2,184 | 0 | not covered (pre-DP) |
+| DP / DPt | — | not in TCGdex | — | covered |
+| L (LEGEND) | 5 | 0 | 0 | covered |
+| BW | 17 | 58 | 0 | covered |
+| XY, XYb | 21 | 61 | 0 | covered (e.g. CP4: TCGdex has the set, 0 of 131 cards) |
+| SM | 42 | 3,139 | 2,396 | covered |
+| S | 45 | 1,887 | 1,801 | covered |
+| SV (incl. SV-P 288/0) | 30 | 3,678 | 3,042 | covered |
+| **M (current)** | 12 | 2,149 | **120** (M4 only) | covered |
+| **Total** | 204 | **13,156** | **7,359** | 23,530 IDs |
+
+What a crawl could add:
+
+- **Images for cards TCGdex already lists:** 13,156 − 7,359 − 2,184 (pre-DP) ≈ **3,600 cards**: M ~2,030, SM ~740,
+  SV ~640 (288 promos), S ~90, BW/XY ~120. → JP with an image from ~7.4k to **~11k**.
+- **Whole eras TCGdex has no card list for** (DP, DPt, LEGEND, BW, XY): **Annahme** ~5–6k more printings. These need
+  metadata from the detail pages as well (name, number), i.e. new catalogue entries, not just images.
+
+### Mapping DB entries to TCGdex ids
+
+| Check | Official DB | TCGdex | Match |
+| --- | --- | --- | --- |
+| card 45903 | folder `SV6a`, detail `028 / 064`, ゴルバット | `SV6a` `028` ゴルバット (has image) | yes |
+| card 39396 | `S6H`, `036 / 070`, カゲボウズ | `S6H` `036` カゲボウズ (no image) | yes — fills a gap |
+| card 31958 | `CP4`, `093 / 131`, ガルーラEX | `CP4` exists, card list empty | set only |
+| card 17127 | `DP5`, no number on the page | no `DP5` | no |
+
+- **Main sets: stable.** Folder code = TCGdex set id, detail number = `localId` (zero-padded 3 digits). Join on
+  `(set, localId)` and check the name.
+- **Needs a table:** promos (`SMP` ↔ TCGdex `SMP2`, `S-P` missing in TCGdex, `XYP` missing), deck reprints
+  (`*-B`, `MBG`, `MBD`, `SMJ` → map to the original set card by name + artwork, or treat as separate printings),
+  `ENE` basic energy, `legend/` folder.
+- **No numbers** for DP-era cards on the detail page (JP cards then had no collector number printed) → name +
+  set only, which is ambiguous for alternate arts.
+- **Number is only on the detail page:** a full mapping costs one request per card (~24k, ~6.7 h at 1 req/s);
+  for the ~3.6k gap cards in sets TCGdex lists, ~4k requests (~1.1 h).
+
+## 3. Inquiry to The Pokémon Company (draft — not sent)
+
+**Where:** card-game help centre via `https://www.pokemon-card.com/contact` (→ `pcg-cs.pokemon-support.com`), or the
+general form `https://support.pokemon.jp/form_app/inquiry/pokemon/`. Send the JP version; add the EN version below
+it. Keep it to a permission request — per P5, product ideas sent to TPC count as assigned to them.
+Placeholders in `[…]`; fill in name and contact address before sending.
+
+### 日本語
+
+> 件名：カード検索の画像を画像認識の学習・照合に利用することについてのお問い合わせ
+>
+> 株式会社ポケモン ご担当者様
+>
+> はじめてご連絡いたします。ドイツで個人開発をしております[氏名]と申します。
+>
+> 現在、ポケモンカードゲームのコレクションを管理するための非公式・非営利の Android アプリを開発しております。
+> スマートフォンのカメラでカードを撮影すると、端末内だけで（画像を外部に送信せずに）カードを判別する仕組みです。
+> アプリは株式会社ポケモンとは関係がない旨を明記し、「ポケモン」の名称やロゴは使用しておりません。
+>
+> 日本語版カードの判別精度を上げるため、ポケモンカードゲーム公式ホームページ「カード検索」に掲載されている
+> カード画像を、以下の条件で利用させていただくことは可能でしょうか。
+>
+> 1. カード画像を一度だけ取得し（1秒に1件以下）、カードを判別するための数値データ（特徴量ベクトル）を計算する目的にのみ使用します。
+> 2. 画像そのものは公開・再配布・アプリへの同梱・アプリでの表示をいたしません。計算後は削除いたします。
+> 3. 公開するのは、画像から復元できない数値データと、カード番号・カード名などの情報のみです。
+>
+> サイトのご利用規約で「個人的に楽しむ場合に限って」と定められていることは承知しております。
+> そのため、ご許可をいただけない場合は利用いたしません。
+> また、上記とは別の方法（例えば公式に提供されているデータの利用条件など）がございましたら、ご教示いただけますと幸いです。
+>
+> お忙しいところ恐れ入りますが、ご確認のほどよろしくお願い申し上げます。
+>
+> [氏名]
+> [メールアドレス]
+
+### English
+
+> Subject: Permission request — using card-search images for on-device card recognition
+>
+> Dear Sir or Madam,
+>
+> I am an independent developer based in Germany. I am building an unofficial, non-commercial Android app for
+> managing Pokémon Trading Card Game collections. The app recognises a card from a phone-camera photo entirely on the
+> device; no image leaves the phone. The app states that it is not affiliated with The Pokémon Company and does not
+> use the Pokémon name or logo.
+>
+> To recognise Japanese cards reliably, may I use the card images in the card search of the official Pokémon Card
+> Game website under the following conditions?
+>
+> 1. The images are retrieved once (at most one request per second) and used only to compute numerical feature
+>    vectors for recognising cards.
+> 2. The images themselves are not published, redistributed, bundled with or shown in the app, and are deleted
+>    after processing.
+> 3. Only the numerical data, from which the images cannot be reconstructed, and card facts such as set code,
+>    number and name are published.
+>
+> I understand that the site's terms allow use "for personal enjoyment only", so I will not use the images without
+> your permission. If there is another way, for example officially provided data with terms of use, I would be
+> grateful for a pointer.
+>
+> Thank you for your time.
+>
+> [Name]
+> [E-mail]
+
+Two claims in the draft need to hold before sending: "non-commercial" (ADR 0007 plans a Pro tier — reword to
+"free app" if Pro is still planned) and "cannot be reconstructed" (true for a 256-d retrieval embedding in
+practice, **Annahme** — soften to "not intended to reconstruct the images" if unsure).
+
+Earlier alternatives (TCGdex CDN gap — done in #47 —, type-null/PTCG-database, other projects' practice) are in the
+first revision of this file (PR #38).
+
+## 4. Options and their effect on JP recognition
+
+Baseline today: 7,359 JP cards with a reference image (56 % of TCGdex's JP list; ~6 % of the current M series).
+
+| Option | What happens | JP cards with reference image | Risk | Effort |
+| --- | --- | --- | --- | --- |
+| **A. Stay with TCGdex + user scans** | No change. Ask TCGdex upstream for M-series images; route opt-in scans to JP gap cards first. | 7,359 now; grows with TCGdex and contributions (**Annahme:** slow for M) | none new | low |
+| **B. Ask TPC first** (recommended) | Send the inquiry; nothing else touches pokemon-card.com until it answers. A + B run together. | as A; if TPC says yes → as D without the contractual risk | none | one e-mail; wait (**Annahme:** weeks, likely no answer or a no) |
+| **C. Crawl URLs only** | 604 list requests (+ ~4k detail requests for numbers of gap cards); manifest gets `source_url`, ids, set, number. No image bytes. | **no change** — only prepares D and shows the exact gap | low (i) | ~1–2 h incl. mapping |
+| **D. One-time gap crawl, embeddings only** | C + download ~3.6k gap images once on Vulcan (~1 h at 1 req/s, deleted after embedding), ship only embeddings. | **~11k** (+~3.6k, mostly current M series) | medium (iii) | ~1 day incl. mapping table |
+| **E. Full crawl incl. DP–XY eras** | D + new catalogue entries from ~24k detail pages | ~16–17k (**Annahme**) | medium (iii), larger | several days, needs catalogue work (prices, sets) |
+| F. App fetches images itself | Hot-links pokemon-card.com per user | as D | high (ii) | — not recommended |
 
 ## Decision needed
 
-1. **Crawl yes/no?** Recommended order: (a) recover the TCGdex CDN gap first (no new source, ~3.4k cards);
-   (b) ask TPC for permission in parallel; (c) only then decide on the pokemon-card.com crawl.
-2. **Scope, if yes:** *list-only* (604 requests: IDs, set code, image URL for the manifest, no image bytes)
-   vs *gap-only images* fetched to a local, unpublished cache for embedding vs *everything* (~24k details + ~23.5k images).
-   Recommended: list-only plus gap-only, images never published, never shown in the app.
-3. **Rate, if yes:** ≤1 request/s, single connection, identifying but generic User-Agent, resumable with
-   checkpoints, stop on any 403/429/5xx burst, one pass only (cache the JSON).
-4. **Manifest:** record `source_url` per card but publish it only after (1)–(2) are settled; do not ship a crawler
-   script in the repo until then.
+**Approve option B (+A meanwhile): send the inquiry in §3 to TPC, crawl nothing until TPC answers.**
+If TPC says yes → run D. If no answer in ~6 weeks or a no → stay with A; decide then whether D is worth a lawyer's
+check.
+
+Two small choices for the inquiry: sender name/address, and "non-commercial" vs "free" (depends on the Pro tier).

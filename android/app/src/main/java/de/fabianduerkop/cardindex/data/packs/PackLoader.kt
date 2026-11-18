@@ -55,7 +55,10 @@ object PackLoader {
 
         val broken = HashSet<String>()
         val cards = ArrayList<RefCard>()
-        val parts = ArrayList<FloatArray>()
+        // One array for every language, filled straight from the files: with six languages (~100k cards) the index
+        // is ~100 MB, and a second copy per language did not fit a 192 MB heap (issue #56).
+        var vectors = FloatArray(candidates.values.sumOf { it.meta.cards.toLong() * it.meta.dim }.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
+        var offset = 0
         for ((lang, pack) in candidates.toSortedMap()) {
             try {
                 val meta = pack.meta
@@ -78,7 +81,8 @@ object PackLoader {
                     throw PackIntegrityException("$lang card file does not match its index")
                 }
                 val setsById = sets.associateBy { it.id }
-                val vectors = ReferenceIndex.parseVectors(pack.indexFile.readBytes())
+                ReferenceIndex.readVectors(pack.indexFile, vectors, offset)
+                offset += meta.cards * meta.dim
                 cards += indexed.map { c ->
                     val set = setsById[c.setId]
                     RefCard(
@@ -94,19 +98,13 @@ object PackLoader {
                         unseen = false,
                     )
                 }
-                parts += vectors
             } catch (e: Exception) {
                 Log.w(TAG, "language pack $lang failed its check", e)
                 broken += lang
             }
         }
         if (cards.size < 2) return PackLoad(null, broken, modelBroken = false, from = installed)
-        val vectors = FloatArray(parts.sumOf { it.size })
-        var offset = 0
-        for (p in parts) {
-            p.copyInto(vectors, offset)
-            offset += p.size
-        }
+        if (offset < vectors.size) vectors = vectors.copyOf(offset) // a pack failed its check
         val languages = candidates.keys - broken
         return PackLoad(
             LoadedPacks(model, modelBytes, cards, vectors, model.dim, languages), broken, modelBroken = false, from = installed,

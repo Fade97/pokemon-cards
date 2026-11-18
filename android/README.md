@@ -57,8 +57,10 @@ pipeline below; `LiveScanDecider` turns the frames into one decision per physica
   number OCR.
 
 The embedder runs on the GPU (LiteRT `CompiledModel`, `litert-gpu`) when the GPU reproduces the CPU embedding of a
-probe image (cosine ≥ 0.995); otherwise on the CPU at about 4 frames per second. The thresholds are first guesses;
-tune them with `RealPhotoTest` and on devices.
+probe image (cosine ≥ 0.995); otherwise on the CPU at about 4 frames per second. A dynamic-range int8 ("w8") model
+never passes that check, because the CPU runs it with int8 activations and the GPU in float (issue #54); a float16
+model does. `EmbedderGpuProbe` (androidTest) compares CPU and GPU per model file and prints cosine and latency:
+`ANDROID_SERIAL=<device> ./gpu-probe.sh model_f32.tflite model_f16.tflite ...` from this folder. The thresholds are first guesses; tune them with `RealPhotoTest` and on devices.
 
 The Scan tab recognizes the cards of the installed language packs. Without any, a debug build with the lab assets
 (below) uses those instead, so scanning works before the pack service is deployed.

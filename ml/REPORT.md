@@ -528,6 +528,206 @@ Before shipping:
 
 Still open: hard FORB photos (41 %), `xy0` and `ex1`. The optional corner fine-tune with TCG-AR corners was not done.
 
+## Corner detector on real photos: error analysis (#59, 2026-11-18)
+
+The question: where does the shipped learned corner detector (`corners_mnv3_w8`) still fail on real photos, and is
+a fine-tune on TCG-AR/FORB worth it? Run on Vulcan (CPU) with `corner_analysis.py`. The embedding is the shipped
+`mnv3_256_real_w8` against the full EN pack gallery (22,213), because `mnv3_256_forb` is not on Vulcan. The
+TCG-AR rows for `mnv3_256_forb` come from the PC run above. No OCR rerank.
+
+Every photo is recognised with several crops:
+- **learned**: the detector on the evaluator's input. For FORB that is the whole photo at 2048 px; for TCG-AR it
+  is the guide box around the card.
+- **refine**: a second detector pass on the guide box cut around the first quad. The card fills ~78 % of the box
+  height, the framing the detector was trained on and the one the app's guide gives.
+- **full**: the whole FORB photo, without detection.
+- **gt**: the annotated TCG-AR corners.
+
+A miss that another crop gets right counts as a corner failure. Source: `results/corner_analysis_mnv3_256_real.json`.
+
+### TCG-AR (annotated corners)
+
+| Cards | n | Median corner error (% of the diagonal) | ≤ 3 % | > 10 % |
+|---|---|---|---|---|
+| all 832 (as in the issue) | 832 | 1.62 | 67.3 % | 6.5 % |
+| test split | 139 | 1.58 | 74.8 % | 0.7 % |
+| sideways (photo turned 90° by `upright`) | 72 | 6.44 | 38.9 % | 15.3 % |
+| val split (`corner_realset.py`: 10 % of the non-test cards; selection set of the fine-tune) | 90 | 1.24 (mean 2.71) | 74.4 % | 5.6 % |
+
+| Recognition, top-1 | annotated | learned | refine |
+|---|---|---|---|
+| test split, `mnv3_256_real` (n = 139) | 66.2 | 63.3 | 59.0 |
+| all mapped, `mnv3_256_real` (n = 635) | 71.7 | 71.2 | 70.2 |
+| test split, `mnv3_256_forb` (PC, `tcgar_mnv3_256_forb_w8.json`) | 92.1 | 86.3 | – |
+
+- **The worst 40 cards** (contact sheet, by eye) are not app scenes: fans of cards held in the hand, deck piles
+  and card backs, where the detector frames the sleeve instead of the card, and energy cards tucked under a
+  Pokémon. Most of these have no TCGdex id, so they count for corner error but not for recognition.
+- **With the shipped embedding, the corners cost almost nothing on TCG-AR.** Annotated and learned corners differ
+  by 0.5 pp overall. The test split differs by 9 vs. 5 cards.
+- **Most disagreements are near-ties, not corner failures.** In most cards where annotated and learned corners
+  give a different result, the learned quad is ≤ 3 % off and the true card ranks 1 instead of 0.
+- **With the stronger `mnv3_256_forb`, the test gap is 5.8 pp (8 cards of 139).** That is the most a corner fix
+  can gain on TCG-AR.
+
+### FORB (no corner labels)
+
+| FORB, top-1 % | n | learned | refine | higher-similarity of the two | any crop (oracle) | classic |
+|---|---|---|---|---|---|---|
+| all | 5,578 | 72.4 | 75.3 | 77.3 | 83.2 | 54.1 |
+| **test split** | 1,132 | **72.6** | **76.0** | **77.8** | 83.2 | 54.7 |
+| test, hard | 80 | 23.8 | 30.0 | 31.2 | 37.5 | 15.0 |
+
+- **The oracle overstates the corner share.** Of the 702 test photos where the two passes give nearly the same
+  quad (shift < 1 %), 6.1 % still flip between right and wrong: that is embedding noise. A "best of 4 crops"
+  oracle profits from that noise, so read 83.2 as a loose upper bound, not as the corner share of the 310 test
+  misses.
+- **Geometric suspects** are photos where the learned quad is not card-shaped or the second pass moves it by
+  ≥ 5 %. They are 13.3 % of the test photos (150), and only 30.0 % of them are recognised (refine: 46.7 %).
+  - Landscape photos (all 5,578 photos): 509, 40.5 % top-1 vs. 76.3 % for portrait photos. The whole photo is stretched into the
+    portrait 192×256 input.
+  - Quads that are not card-shaped (all photos): 378, 15.9 % top-1.
+- **Contact sheets** (in `<data>/report/corner-analysis/`). 36 photos the learned crop missed but another crop
+  got right, by eye:
+  - 14 real geometric failures:
+    - 6 graded slabs, where the quad takes in the PSA/CGC label
+    - 3 small cards in a wide frame, with a twisted or collapsed quad
+    - 3 photos with several cards or packaging
+    - 2 cards cut by the photo edge
+  - ~16 near-ties: the quads look the same, and the true card ranks 1–3.
+  - The rest are unclear.
+- **Photos no crop gets right** are mostly embedding failures with good quads: glare, promos, Shiny Vault. A few
+  are slab close-ups or deck boxes.
+
+### Decision
+
+**A fine-tune is worth one PC run, but it is not where the big gain is.**
+
+- **The failure mode is clear and fixable:** slabs and top loaders, a small card in a wide frame, and neighbours.
+  These are 13 % of the FORB test photos, recognised at 30 %.
+- **What a fine-tune can gain is small.**
+  - TCG-AR (guide framing, like the app): at most 5.8 pp with `mnv3_256_forb`.
+  - FORB: the refine pass already lifts the suspects from 30.0 to 46.7 % top-1 without any training.
+  - The FORB landscape failures come mostly from the evaluator feeding the whole photo, which the app never does.
+- **The pseudo-labels carry little new signal.** 2,907 FORB train photos pass the filter, but only 190 of them
+  are photos where the learned crop failed. The other labels mostly confirm what the detector already does.
+- **The tooling is done, and the run costs about an hour of PC time.**
+
+Accept the fine-tuned detector only if all of these hold:
+- the TCG-AR test corner error goes down
+- FORB test top-1 goes up for both learned and refine
+- the synthetic test does not regress (`train_<run>.json`)
+
+**Cheaper and larger:** two-pass detection gives +3.4 to +5.2 pp FORB test top-1 with today's models:
+1. detect
+2. cut the guide box around the quad and detect again
+3. keep the crop with the higher top-1 similarity
+
+It costs one more detector call (9 ms) and two embeddings. Follow-up issue: try it in the app's photo/lab path;
+live scan already frames with the guide.
+
+### Real-photo training set and fine-tune
+
+`corner_realset.py build` → `<data>/corner-train/real_corners.npz` (1.17 GB; counts in `results/corner_realset.json`):
+- **TCG-AR:** 567 train-role cards with annotated corners. The 90 val-role cards are the selection set, in the
+  evaluator's framing. The 175 test-role cards are left out.
+- **FORB:** 2,907 pseudo-labels from train-role photos where recognition with the learned (1,433) or refine
+  (1,474) quad is top-1 right at similarity ≥ 0.5 and the quad is card-shaped.
+  - 1,078 train photos are rejected.
+  - Val (461) and test (1,132) photos are never used.
+- **Roles:** `realset.role_of` on the card id, the same holdout as the embedder.
+- **Caveat:** a TCG-AR train crop can show a test card as an unlabelled neighbour. Almost every TCG-AR photo holds
+  a test card, so a photo-level split is not possible.
+
+`train_corners.py --real --init corners_mnv3`:
+- **Batches:** half of every batch are real samples (40 % of them TCG-AR). A random guide box is cut from each
+  sample's context window on the GPU: card at ~50–97 % of the height, the box clipped to the photo and stretched
+  to 192×256 like the app.
+- **Selection:** on the real val cards. The synthetic val and test sets are still scored.
+- **Real test split:** scored after the WSL export by `corner_analysis.py --corners <run>`, then
+  `corner_analysis.py compare`.
+- **On Vulcan** (CPU, no GPU): the sampler and one training step were smoke-tested; the run itself was not done.
+
+PC command (RTX 3080; the EN pack in `<data>\packs-work\en` must be embedded with `-Embedder`):
+
+```powershell
+cd D:\AI\pokemon-cards\ml
+powershell -ExecutionPolicy Bypass -File run_corner_finetune.ps1 -Embedder mnv3_256_real
+```
+
+Expected time: ~50 min.
+- rows: ~25 min (skipped when `corner_rows_mnv3_256_real.json` for FORB and TCG-AR is copied over from Vulcan)
+- build: 3 min
+- training, 10 epochs: ~15 min
+- export: 2 min
+- test-split evaluation: ~6 min
+
+### PC run: `corners_mnv3_real` is not accepted (2026-11-18)
+
+Run on Fabian-PC (RTX 3080) with `run_corner_finetune.ps1 -Embedder mnv3_256_forb`, from 09:09 to 09:38.
+- **Embedder:** the PC's EN pack (`packs-work\en`) is embedded with `mnv3_256_forb`, so the old and the new
+  detector are both scored with it, on the same machine and gallery.
+- **Training set:** `real_corners.npz` was built from the Vulcan `mnv3_256_real` rows. It is the same set as above:
+  3,474 train, 90 val, `results/corner_realset.json` unchanged. The pseudo-labels only depend on which crop was
+  recognised right.
+- **Training:** 10 epochs, lr 2e-4, 19.7 min. The real val cards pick epoch 3.
+
+Sources:
+- `results/train_corners_mnv3_real.json`
+- `results/export_corners_mnv3_real.json`
+- `results/corner_analysis_mnv3_256_forb.json` (baseline)
+- `results/corner_analysis_mnv3_256_forb_corners_mnv3_real.json`
+- `results/corner_compare_mnv3_256_forb_corners_mnv3_real.json`
+
+| Test split (never seen in training or selection) | n | `corners_mnv3` (shipped) | `corners_mnv3_real` | Criterion |
+|---|---|---|---|---|
+| TCG-AR: corner error, median % of the diagonal | 139 | 1.59 | **1.26** | met |
+| TCG-AR: within 3 % / over 10 % | 139 | 74.8 / 0.7 % | 75.5 / 0.7 % | |
+| TCG-AR: top-1 learned / refine | 139 | 87.1 / 84.9 % | 84.9 / 86.3 % | |
+| FORB: top-1 learned | 1,132 | **87.7 %** | 87.4 % | **not met** |
+| FORB: top-1 refine (second pass) | 1,132 | **90.5 %** | 89.4 % | **not met** |
+| FORB: top-1 higher-similarity of the two | 1,132 | 90.6 % | 89.8 % | |
+| FORB hard: top-1 learned | 80 | 41.2 % | 43.8 % | |
+| Synthetic test (PyTorch, 2,000 scenes): corner error mean / median, % of card height | 2,000 | **2.25 / 0.49** | 2.32 / 0.57 | **not met** |
+| Synthetic test: PCK@2 % / PCK@5 % | 2,000 | 0.758 / 0.852 | 0.753 / 0.850 | |
+
+The real val cards (selection set, PyTorch for both) improve a lot:
+- mean corner error 2.62 → 1.73 % of the diagonal
+- within 3 %: 75.6 → 91.1 %
+
+Paired, on the same test photos (`corner_analysis.py compare`):
+- **TCG-AR:** the corners clearly improve. 12 cards get better by more than 1 % of the diagonal and 1 gets
+  worse; the mean goes from 2.40 to 2.17 %. Recognition does not follow:
+  - learned: 5 cards lost, 2 gained
+  - refine: 4 lost, 6 gained
+  - higher-similarity rule: 5 lost, 5 gained
+
+  With 139 cards these are near-ties.
+- **FORB:**
+  - learned: 28 photos lost, 24 gained (−0.3 pp)
+  - refine: 24 lost, 12 gained (−1.1 pp)
+
+  On whole photos the new model is less confident. The share of learned scores under the live-scan gate
+  (`CornerDetector.DEFAULT_MIN_SCORE` = 0.10) goes from 5.9 % to 11.6 %. In the guide framing (TCG-AR) it goes the
+  other way, from 4.3 % to 1.4 %.
+
+**Decision: keep `corners_mnv3`.**
+- Two of the three criteria fail: FORB top-1 for both passes, and the synthetic test.
+- The fine-tune learned what TCG-AR teaches, the printed edge in the guide framing.
+- It did not turn that into better recognition, and it lost a little on FORB whole photos and on the synthetic
+  scenes.
+- This fits the analysis above: with today's embedding, corners cost little on TCG-AR. The FORB pseudo-labels mostly
+  repeat what the detector already does.
+- The exported `corners_mnv3_real_{f32,w8}.tflite` has the app's I/O contract: float32 `[1, 256, 192, 3]` in,
+  `[1, 4, 3]` out, the same as `corners_mnv3`. It stays in `<data>/export/` and is not shipped.
+  - w8 sha256: `d89c413a6e16bedbf9f48f02feedc46f425344db327ca47024385b657531fefb`
+- **Note:** `export_corners_mnv3_real.json` checks 400 synthetic scenes, while `export_corners_mnv3.json` checks
+  2,000. Its w8 numbers are therefore not comparable. The synthetic criterion uses the PyTorch `test_selected`
+  (2,000 scenes, same `corners_test.pt`) against epoch 30 of `train_corners_mnv3.json`.
+
+Two-pass detection (#78) is still the larger and cheaper gain: +2.8 pp FORB test top-1 here (87.7 → 90.5), with
+the shipped detector.
+
 ## Reproduce
 
 See [README.md](README.md). Data and checkpoints are in `D:\AI\pokemon-cards-data\`, not in the repo.

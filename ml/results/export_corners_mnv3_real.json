@@ -1,0 +1,65 @@
+{
+  "run": "corners_mnv3_real",
+  "backbone": "mobilenetv3_large_100.ra_in1k",
+  "epoch": 3,
+  "n_check": 400,
+  "params_m": 3.12,
+  "pytorch": {
+    "corner_err_mean_pct_h": 2.2218527793884277,
+    "corner_err_median_pct_h": 0.5464533567428589,
+    "pck_2pct": 0.749375,
+    "pck_5pct": 0.851875
+  },
+  "f32": {
+    "size_mb": 12.61,
+    "io_shapes": [
+      [
+        1,
+        256,
+        192,
+        3
+      ],
+      [
+        1,
+        4,
+        3
+      ]
+    ],
+    "coord_diff_vs_pytorch_px": {
+      "max": 0.005298614501953125,
+      "mean": 0.00035061119706369936
+    },
+    "conf_diff_max": 2.086162567138672e-06,
+    "x86_cpu_ms_4threads": 4.36,
+    "corner_err_mean_pct_h": 2.2219343185424805,
+    "corner_err_median_pct_h": 0.5463364720344543,
+    "pck_2pct": 0.749375,
+    "pck_5pct": 0.851875
+  },
+  "w8": {
+    "size_mb": 3.54,
+    "io_shapes": [
+      [
+        1,
+        256,
+        192,
+        3
+      ],
+      [
+        1,
+        4,
+        3
+      ]
+    ],
+    "coord_diff_vs_pytorch_px": {
+      "max": 12.180339813232422,
+      "mean": 0.5411871671676636
+    },
+    "conf_diff_max": 0.3146643042564392,
+    "x86_cpu_ms_4threads": 9.4,
+    "corner_err_mean_pct_h": 2.4004669189453125,
+    "corner_err_median_pct_h": 0.7984353303909302,
+    "pck_2pct": 0.72625,
+    "pck_5pct": 0.846875
+  }
+}

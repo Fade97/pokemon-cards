@@ -2,6 +2,8 @@
 package de.fabianduerkop.cardindex.recognition
 
 import org.json.JSONArray
+import java.io.File
+import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 
@@ -88,6 +90,32 @@ class ReferenceIndex(val cards: List<RefCard>, private val vectors: FloatArray, 
         fun parseVectors(bytes: ByteArray): FloatArray {
             val buf = ByteBuffer.wrap(bytes).order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
             return FloatArray(buf.remaining()).also { buf.get(it) }
+        }
+
+        /**
+         * Reads a whole file of float32 little-endian rows into [dest] at [offset], through a small buffer instead
+         * of a copy of the file.
+         */
+        fun readVectors(file: File, dest: FloatArray, offset: Int) {
+            val floats = file.length() / 4
+            require(file.length() % 4 == 0L && offset + floats <= dest.size) { "${file.name}: ${file.length()} bytes don't fit" }
+            val buf = ByteBuffer.allocate(1 shl 20).order(ByteOrder.LITTLE_ENDIAN)
+            var at = offset
+            FileInputStream(file).channel.use { ch ->
+                while (true) {
+                    val n = ch.read(buf)
+                    if (n < 0 && buf.position() == 0) break
+                    buf.flip()
+                    val f = buf.asFloatBuffer()
+                    val count = f.remaining()
+                    f.get(dest, at, count)
+                    at += count
+                    buf.position(count * 4)
+                    buf.compact()
+                    if (n < 0) break
+                }
+            }
+            check(at - offset.toLong() == floats) { "${file.name}: read ${at - offset} floats, expected $floats" }
         }
     }
 }
