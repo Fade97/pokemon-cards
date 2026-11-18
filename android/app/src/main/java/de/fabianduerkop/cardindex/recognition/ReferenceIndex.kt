@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.recognition
 
+import de.fabianduerkop.cardindex.data.images.ImageQuality
+import de.fabianduerkop.cardindex.data.images.cardImageUrl
 import org.json.JSONArray
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
@@ -19,8 +21,11 @@ data class RefCard(
     /** True for sets the model never saw in training (only added to the index). */
     val unseen: Boolean,
 ) {
-    /** Small card image from the TCGdex CDN. */
-    val thumbnailUrl: String get() = "$imageUrl/low.webp"
+    /**
+     * Small card image from the TCGdex CDN; null when the card has none (`imageUrl` is empty, e.g. set mee, whose
+     * index row comes from another reference source the app never loads).
+     */
+    val thumbnailUrl: String? get() = cardImageUrl(imageUrl, ImageQuality.LOW)
 }
 
 /** A candidate card and its cosine similarity to the query. */
