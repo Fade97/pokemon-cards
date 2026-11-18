@@ -82,12 +82,12 @@ def step_label(photos: list[Path], work: Path):
 
 
 # ---------------------------------------------------------------- 2. pipeline
-def step_pipeline(photos: list[Path], work: Path, run: str, detector: str):
+def step_pipeline(photos: list[Path], work: Path, run: str, detector: str, two_pass: bool = False):
     out_p = work / "pipeline.json"
     out = load_json(out_p, {})
     # entries from before the detector option ran the classic detector on the full image
     todo = [p for p in photos if out.get(p.name, {}).get("id") != file_id(p) or out[p.name].get("run") != run
-            or out[p.name].get("detector", "full") != detector]
+            or out[p.name].get("detector", "full") != detector or out[p.name].get("two_pass", False) != two_pass]
     if not todo:
         print("pipeline: all cached")
         return out
@@ -98,12 +98,12 @@ def step_pipeline(photos: list[Path], work: Path, run: str, detector: str):
     except ImportError:
         print("easyocr not installed: pipeline runs without OCR rerank")
         use_ocr = False
-    pipe = Pipeline(run, use_ocr=use_ocr, detector=detector)
+    pipe = Pipeline(run, use_ocr=use_ocr, detector=detector, two_pass=two_pass)
     (work / "crops").mkdir(exist_ok=True)
     for i, p in enumerate(todo):
         r = pipe.run(cv2.imread(str(p)))
         cv2.imwrite(str(work / "crops" / f"{p.stem}.jpg"), pipe.last_crop, [cv2.IMWRITE_JPEG_QUALITY, 90])
-        out[p.name] = {"id": file_id(p), "run": run, "detector": detector, **r.__dict__}
+        out[p.name] = {"id": file_id(p), "run": run, "detector": detector, "two_pass": two_pass, **r.__dict__}
         print(f"[pipeline {i + 1}/{len(todo)}] {p.name}: {r.top5_reranked[0]} (ocr {r.number}/{r.total})", flush=True)
         save_json(out_p, out)
     return out
@@ -333,6 +333,9 @@ def main():
                     help="pipeline: learned/classic = the app's detectors in the guide area, full = classic on the "
                          "whole image. Default: learned, or full for make-dryrun folders (their synthetic cards are "
                          "placed anywhere in the frame, not in the guide)")
+    ap.add_argument("--two-pass", action="store_true",
+                    help="pipeline, learned: detect again on the guide box around the first quad, keep the crop with "
+                         "the higher top-1 similarity (issue #78)")
     ap.add_argument("--n", type=int, default=30, help="make-dryrun: number of synthetic photos")
     ap.add_argument("--seed", type=int, default=1)
     ap.add_argument("--sources", nargs="*", default=["test", "test30th"], help="make-dryrun: synthetic sets")
@@ -358,7 +361,7 @@ def main():
     if args.step in ("label", "all"):
         step_label(photos, work)
     if args.step in ("pipeline", "all"):
-        step_pipeline(photos, work, args.run, args.detector)
+        step_pipeline(photos, work, args.run, args.detector, args.two_pass)
     if args.step in ("review", "all"):
         step_review(photos, work)
     if args.step in ("eval", "all"):

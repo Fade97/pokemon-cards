@@ -810,6 +810,74 @@ The photos are German prints. Installing all seven languages costs 5 of 28 (v2) 
 which other-language cards they land on was not broken down. The S25 check was not done (#54 covers the GPU path
 there).
 
+## Two-pass corner detection (#78, 2026-11-18)
+
+Run on Fabian-PC (CPU) with the shipped detector `corners_mnv3_w8`, no OCR rerank. The steps
+(`detect.two_pass`, flag `--two-pass` in `eval_forb.py`, `eval_tcgar.py`, `eval_real_manual.py`, `eval_real.py` /
+`pipeline.Pipeline(two_pass=True)`):
+1. detect
+2. cut the guide box around the quad (`detect.guide_crop`: card at 78 % of the box height, 63:88, 7 % margin)
+3. detect again on that box
+4. embed both crops (both 180° orientations each) and keep the crop with the higher top-1 similarity
+
+The second pass never decides alone. A tie keeps the first pass, and a box under 24 px skips the second pass. One
+run scores both: the one-pass result of the same photos is kept next to the two-pass one. The one-pass numbers
+reproduce #59 exactly: all 1,132 FORB test photos have the same top-1 outcome as the `learned` and
+higher-similarity columns of `corner_rows_mnv3_256_forb.json`.
+
+**Fair numbers** (cards the embedder never trained on):
+
+| Top-1 (exact print) | n | one pass | two-pass | delta | gained / lost |
+|---|---|---|---|---|---|
+| **FORB test**, `mnv3_256_forb` w8, EN gallery `packs-work` | 1,132 | 87.7 % | **90.6 %** | **+2.9 pp** | 36 / 3 |
+| FORB test, hard | 80 | 41.2 % | 46.2 % | +5.0 pp | 5 / 1 |
+| FORB test, medium | 915 | 90.4 % | 93.4 % | +3.1 pp | 30 / 2 |
+| FORB test, easy | 137 | 97.1 % | 97.8 % | +0.7 pp | 1 / 0 |
+| **TCG-AR test**, guide framing, `mnv3_256_forb` w8 | 139 | 86.3 % | 86.3 % | ±0 | 2 / 2 |
+| Own photos (29, `eval_real_manual.py`, the app's guide path), `mnv3_256_prod_f16` | 29 | 28 / 29 | 29 / 29 | +1 photo | 1 / 0 |
+
+- **FORB:** the second crop is kept for 567 of 1,132 photos. Top-5 goes from 91.8 to 92.9 %. Shown at similarity
+  ≥ 0.5: 932 photos (19 wrong) with one pass, 986 (17 wrong) with two-pass. So more answers are shown and fewer of
+  them are wrong.
+- **TCG-AR:** no gain. The second crop is kept for 71 of 139 test cards; top-5 goes from 94.2 to 96.4 %. On all
+  635 mapped cards top-1 goes from 91.5 to 91.3 % (4 gained, 5 lost). The corner error of the kept quad does not
+  improve either: median 1.21 → 1.24 % of the diagonal, ≤ 3 %: 82.5 → 81.6 % (same 635 cards). The input is
+  already the guide box, so the second pass sees nearly the same framing. This fits #59: with this embedding the
+  corners cost little in guide framing.
+- **Own photos:** the one photo that flips (de/30th) goes from similarity 0.300 (wrong) to 0.307 (right). Both are
+  under the 0.5 display threshold, so what the app shows does not change: 19 of 21 de/30th shown, 0 wrong, in
+  both runs. The median similarity of the right answers goes from 0.751 to 0.760.
+
+**Smoke test only** (`mnv3_256_prod_f16`, gallery `packs-work-v2`; prod trained on every FORB and TCG-AR photo,
+so these are not fair scores):
+
+| Top-1 | n | one pass | two-pass | delta | gained / lost |
+|---|---|---|---|---|---|
+| FORB test | 1,132 | 96.6 % | 97.0 % | +0.4 pp | 8 / 4 |
+| TCG-AR test | 139 | 89.2 % | 89.9 % | +0.7 pp | 1 / 0 |
+
+**Cost:** one more detector call (~9 ms on x86, #78) and two more embeddings per photo.
+
+**Recommendation: give the app's photo/lab path two-pass detection, and leave live scan as it is.**
+- It helps where the framing is loose: whole photos, a small card in a wide frame, a twisted first quad. FORB
+  (+2.9 pp, 36 gained against 3 lost) is that case. A gallery photo in the lab path can be framed anyhow.
+- In the guide framing it is neutral (TCG-AR ±0, own photos +1 under the threshold). It never made things clearly
+  worse in any set, so it is a safe default for single photos.
+- Live scan already frames with the guide, so the gain there is likely about zero. The cost per frame (one
+  detector call plus two embeddings) is not worth it.
+- **Open step:** measure it in the app. Run `RealPhotoTest` on the S25 with and without two-pass on the photo/lab
+  path, for accuracy and latency. Nothing was measured on a phone here.
+
+Sources:
+- `results/forb_mnv3_256_forb_w8_learned_twopass_test.json`
+- `results/tcgar_mnv3_256_forb_w8_twopass.json`
+- `results/real_manual_mnv3_256_prod_f16_learned{,_twopass}.json`
+- smoke tests: `results/forb_mnv3_256_prod_f16_learned_twopass_test.json`, `results/tcgar_mnv3_256_prod_f16_twopass.json`
+
+`eval_real_manual.py` now leaves cards without a local reference image out of its gallery. These are the 32 en/de
+`mee` cards (#60); none of the own photos shows one. With them in the manifest the script stopped with
+`FileNotFoundError`. The one-pass result is unchanged (`real_manual_mnv3_256_prod_f16_learned.json`).
+
 ## Reproduce
 
 See [README.md](README.md). Data and checkpoints are in `D:\AI\pokemon-cards-data\`, not in the repo.

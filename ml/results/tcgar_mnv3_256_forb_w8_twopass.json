@@ -1,0 +1,80 @@
+{
+ "cards": 832,
+ "unmapped_ids": {},
+ "detector_classic": {
+  "found": 95.1,
+  "err_median_pct_diag": 13.36,
+  "within_3pct": 23.4,
+  "within_5pct": 31.2
+ },
+ "detector_learned": {
+  "found": 100.0,
+  "err_median_pct_diag": 1.62,
+  "within_3pct": 67.4,
+  "within_5pct": 76.0
+ },
+ "detector_learned_mapped": {
+  "n": 635,
+  "err_median_pct_diag": 1.21,
+  "within_3pct": 82.5,
+  "within_5pct": 90.1
+ },
+ "detector_two_pass_mapped": {
+  "n": 635,
+  "err_median_pct_diag": 1.24,
+  "within_3pct": 81.6,
+  "within_5pct": 89.6
+ },
+ "recognition": {
+  "n": 635,
+  "top1_gt": 92.9,
+  "top5_gt": 98.9,
+  "name_gt": 98.1,
+  "top1_learned": 91.5,
+  "top5_learned": 97.8,
+  "name_learned": 96.4,
+  "top1_two_pass": 91.3,
+  "top5_two_pass": 98.1,
+  "name_two_pass": 97.0,
+  "two_pass_vs_learned": {
+   "second_pass_kept": 305,
+   "gained": 4,
+   "lost": 5
+  }
+ },
+ "recognition_split=train": {
+  "n": 496,
+  "top1_gt": 93.1,
+  "top5_gt": 99.2,
+  "name_gt": 98.8,
+  "top1_learned": 92.9,
+  "top5_learned": 98.8,
+  "name_learned": 98.0,
+  "top1_two_pass": 92.7,
+  "top5_two_pass": 98.6,
+  "name_two_pass": 98.4,
+  "two_pass_vs_learned": {
+   "second_pass_kept": 234,
+   "gained": 2,
+   "lost": 3
+  }
+ },
+ "recognition_split=test": {
+  "n": 139,
+  "top1_gt": 92.1,
+  "top5_gt": 97.8,
+  "name_gt": 95.7,
+  "top1_learned": 86.3,
+  "top5_learned": 94.2,
+  "name_learned": 90.6,
+  "top1_two_pass": 86.3,
+  "top5_two_pass": 96.4,
+  "name_two_pass": 92.1,
+  "two_pass_vs_learned": {
+   "second_pass_kept": 71,
+   "gained": 2,
+   "lost": 2
+  }
+ },
+ "median_card_width_px": 144.0
+}
