@@ -452,13 +452,14 @@ class CollectionDetailViewModel(
         val quotes = copies.mapNotNull { item ->
             PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), market, item.copy)?.let { item.copy.id to it }
         }.toMap()
+        val value = PriceSelection.total(copies.map { it.copy }, priceMap, market)
         CollectionDetailUiState(
             loading = false,
             collection = collection,
             missing = collectionId != CollectionsRoutes.ALL_CARDS && collection == null,
-            copies = sortCopies(copies, sort, quotes),
+            copies = sortCopies(copies, sort, quotes, value.currency),
             sort = sort,
-            value = PriceSelection.total(copies.map { it.copy }, priceMap, market),
+            value = value,
             quotes = quotes,
         )
     }.stateIn(this, CollectionDetailUiState())
@@ -476,12 +477,27 @@ class CollectionDetailViewModel(
     }
 }
 
+/**
+ * [CopySort.VALUE] never compares amounts in different currencies: copies priced in [totalCurrency] (the currency of
+ * the list's total) come first, then the other priced copies grouped by currency, then the copies without a price.
+ * Within a group the highest price comes first. Without [totalCurrency], the priced copies are grouped by currency only.
+ */
 internal fun sortCopies(
     copies: List<CopyWithCard>,
     sort: CopySort,
     quotes: Map<Long, PriceQuote> = emptyMap(),
+    totalCurrency: String? = null,
 ): List<CopyWithCard> = when (sort) {
-    CopySort.VALUE -> copies.sortedByDescending { quotes[it.copy.id]?.amountMinor ?: -1 }
+    CopySort.VALUE -> copies.sortedWith(
+        compareBy<CopyWithCard> {
+            when (quotes[it.copy.id]?.currency) {
+                null -> 2
+                totalCurrency -> 0
+                else -> 1
+            }
+        }.thenBy { quotes[it.copy.id]?.currency }
+            .thenByDescending { quotes[it.copy.id]?.amountMinor },
+    )
     CopySort.NEWEST -> copies.sortedWith(compareByDescending<CopyWithCard> { it.copy.createdAt }.thenByDescending { it.copy.id })
     CopySort.NUMBER -> copies.sortedWith(
         compareBy<CopyWithCard> { it.set.name }.thenBy(PrintOrder) { numberKey(it.card.localId) },
