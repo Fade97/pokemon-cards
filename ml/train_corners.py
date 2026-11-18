@@ -10,7 +10,15 @@ backgrounds). The fixed synthetic corner test set (seed 4711) is evaluated once 
 checkpoint, so its numbers are independent of model selection. It is scored for both the learned and the classic
 detector: mean corner error (% of card height), PCK@2 % / 5 %, and quad IoU >= 0.9 / 0.8.
 
+Fine-tune on real photos (issue #59): `--real` mixes real samples from corner_realset.py (TCG-AR annotated corners
+plus FORB pseudo-labels, train-role cards only) into every batch. Each real sample is a context window around the
+card; a random guide box is cut from it on the GPU every time (card at ~50-97 % of the box height, box clipped to
+the photo and stretched to 192x256 like the app). The checkpoint is then selected on the real TCG-AR val cards
+(annotated corners, the evaluator's framing), and the synthetic val/test sets are still scored so a regression
+there shows up. The real test split is scored after export (corner_analysis.py, see run_corner_finetune.ps1).
+
   uv run python train_corners.py --run corners_mnv3
+  uv run python train_corners.py --run corners_mnv3_real --init corners_mnv3 --real --epochs 10 --lr 2e-4
 """
 from __future__ import annotations
 
@@ -24,8 +32,9 @@ import numpy as np
 import torch
 
 import gpu_aug
-from common import CKPT_DIR, RESULTS_DIR, SYNTH_DIR, device, load_manifest
+from common import CKPT_DIR, DATA_DIR, RESULTS_DIR, SYNTH_DIR, device, load_manifest
 from corner_model import IN_H, IN_W, CornerNet, corner_loss
+from corner_real import RealCorners, real_val_metrics
 from corner_scenes import make_scenes
 from detect import detect, quad_iou
 from models import MEAN, STD
@@ -136,6 +145,11 @@ def eval_classic(test):
     return r
 
 
+def eval_real_val(net, real: RealCorners, dev):
+    pred, _ = predict(net, real.val_x, dev)
+    return real_val_metrics(pred, real.val_q)
+
+
 def save_checkpoint(net, backbone, epoch, path):
     # tensors and plain types only, so it loads with torch.load(weights_only=True)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -159,6 +173,12 @@ def main():
     ap.add_argument("--refresh", type=float, default=0.25)
     ap.add_argument("--batch", type=int, default=64)
     ap.add_argument("--lr", type=float, default=1e-3)
+    ap.add_argument("--init", default=None, help="start from this checkpoint run (e.g. corners_mnv3)")
+    ap.add_argument("--real", action="store_true", help="mix in real photos (corner_realset.py) and select on them")
+    ap.add_argument("--real-path", default=None, help="default <data>/corner-train/real_corners.npz")
+    ap.add_argument("--real-frac", type=float, default=0.5, help="share of real samples in every batch")
+    ap.add_argument("--tcgar-share", type=float, default=0.4, help="share of TCG-AR among the real samples")
+    ap.add_argument("--eval-every", type=int, default=5)
     args = ap.parse_args()
     dev = device()
     torch.backends.cudnn.benchmark = True
@@ -181,7 +201,17 @@ def main():
     gen_rate = args.cache / (time.time() - t1)
     print(f"cache {args.cache} scenes at {gen_rate:.0f}/s", flush=True)
 
-    net = CornerNet(args.backbone).to(dev)
+    net = CornerNet(args.backbone, pretrained=args.init is None).to(dev)
+    if args.init:
+        ck = torch.load(CKPT_DIR / f"{args.init}.pt", map_location="cpu", weights_only=True)
+        if ck["backbone"] != args.backbone:
+            raise SystemExit(f"--init {args.init} has backbone {ck['backbone']}, not {args.backbone}")
+        net.load_state_dict(ck["model"])
+    real = None
+    if args.real:
+        real = RealCorners(args.real_path or DATA_DIR / "corner-train" / "real_corners.npz", dev, args.tcgar_share)
+        print("real samples:", real.counts, flush=True)
+    n_real = round(args.batch * args.real_frac) if real else 0
     opt = torch.optim.AdamW(net.parameters(), lr=args.lr, weight_decay=1e-4)
     spe = args.cache // args.batch
     steps = args.epochs * spe
@@ -190,6 +220,11 @@ def main():
     scaler = torch.amp.GradScaler()
     flip_order = torch.tensor([1, 0, 3, 2])
     log = {"args": vars(args), "scene_gen_per_s": gen_rate, "epochs": []}
+    if real:
+        log["real_counts"] = real.counts
+        log["init_real_val"] = eval_real_val(net, real, dev)
+        log["init_val"] = eval_scenes(net, val, dev)
+        print("init real val:", json.dumps(log["init_real_val"]), "synth val:", json.dumps(log["init_val"]), flush=True)
     best = 1e9
     ckpt = CKPT_DIR / f"{args.run}.pt"
     train_time = 0.0
@@ -199,10 +234,13 @@ def main():
         perm = torch.randperm(args.cache)
         tl = tl1 = 0.0
         for st in range(spe):
-            sel = perm[st * args.batch:(st + 1) * args.batch]
+            sel = perm[st * (args.batch - n_real):(st + 1) * (args.batch - n_real)]
             x = cx[sel].to(dev, non_blocking=True).float() / 255
             c = cc[sel].to(dev)
-            fl = torch.rand(len(sel), device=dev) < 0.5
+            if n_real:
+                xr, cr = real.sample(n_real)
+                x, c = torch.cat([x, xr]), torch.cat([c, cr])
+            fl = torch.rand(len(x), device=dev) < 0.5
             x = torch.where(fl[:, None, None, None], x.flip(-1), x)
             cf = c[:, flip_order.to(dev)].clone()
             cf[..., 0] = IN_W - cf[..., 0]
@@ -226,11 +264,15 @@ def main():
             nx, nc = gen_cache(refs, bg, k, dev)
             cx[ri], cc[ri] = nx, nc
         entry = {"epoch": ep + 1, "loss": tl / spe, "l1_px": tl1 / spe, "minutes": (time.time() - t0) / 60}
-        if (ep + 1) % 5 == 0 or ep == args.epochs - 1:
+        if (ep + 1) % args.eval_every == 0 or ep == args.epochs - 1:
             # select on val only; the test set stays unseen until the end
             entry["val"] = eval_scenes(net, val, dev)
-            if entry["val"]["corner_err_mean_pct_h"] < best:
-                best = entry["val"]["corner_err_mean_pct_h"]
+            score = entry["val"]["corner_err_mean_pct_h"]
+            if real:  # real TCG-AR val cards decide; the synthetic val is logged as a regression check
+                entry["real_val"] = eval_real_val(net, real, dev)
+                score = entry["real_val"]["err_mean_pct_diag"]
+            if score < best:
+                best = score
                 save_checkpoint(net, args.backbone, ep + 1, ckpt)
         log["epochs"].append(entry)
         print(json.dumps(entry), flush=True)
@@ -241,6 +283,10 @@ def main():
     log["selected_epoch"] = sel_epoch
     log["val_selected"] = next(e["val"] for e in log["epochs"] if e["epoch"] == sel_epoch)
     log["selection"] = "lowest val corner_err_mean_pct_h; test evaluated once with that checkpoint"
+    if real:
+        log["real_val_selected"] = next(e["real_val"] for e in log["epochs"] if e["epoch"] == sel_epoch)
+        log["selection"] = ("lowest real val (TCG-AR val cards) err_mean_pct_diag; synthetic test evaluated once with "
+                            "that checkpoint; real test split: corner_analysis.py after export")
     print("selected epoch", sel_epoch, "test:", json.dumps(log["test_selected"]), flush=True)
     log["classic_synth"] = json.loads(classic_path.read_text())
     RESULTS_DIR.mkdir(exist_ok=True)

@@ -72,6 +72,20 @@ class PhoneCornerNet(nn.Module):
         return torch.cat([xy, conf[..., None]], -1)
 
 
+def order_corners(q):
+    """Geometric order TL, TR, BR, BL (portrait, long side vertical), like detect.order_quad, batched."""
+    c = q.mean(1, keepdim=True)
+    ang = torch.atan2(q[..., 1] - c[..., 1], q[..., 0] - c[..., 0])
+    q = torch.gather(q, 1, ang.argsort(1)[..., None].expand(-1, -1, 2))
+    start = q.sum(-1).argmin(1)
+    idx = (start[:, None] + torch.arange(4, device=q.device)[None]) % 4
+    q = torch.gather(q, 1, idx[..., None].expand(-1, -1, 2))
+    w = ((q[:, 1] - q[:, 0]).norm(dim=-1) + (q[:, 2] - q[:, 3]).norm(dim=-1)) / 2
+    h = ((q[:, 3] - q[:, 0]).norm(dim=-1) + (q[:, 2] - q[:, 1]).norm(dim=-1)) / 2
+    land = w > h
+    return torch.where(land[:, None, None], torch.roll(q, -1, 1), q)
+
+
 def corner_loss(net: CornerNet, logits, target_px, sigma: float = 1.0):
     """L1 on soft-argmax coordinates (input pixels) + cross-entropy against a Gaussian target heatmap."""
     xy, _, p = net.decode(logits)
