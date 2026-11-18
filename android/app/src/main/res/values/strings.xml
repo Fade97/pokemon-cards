@@ -279,7 +279,6 @@
     <string name="scan_engine_failed">Card recognition can\'t start: %1$s</string>
     <string name="scan_open_lab">Lab</string>
     <string name="scan_loading">Loading card recognition…</string>
-    <string name="scan_auto">Auto scan</string>
     <string name="scan_paused">Paused</string>
     <string name="scan_pause">Pause</string>
     <string name="scan_resume">Resume</string>
@@ -291,20 +290,54 @@
     <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->
-    <string name="scan_scanned">scanned</string>
-    <plurals name="scan_to_review">
-        <item quantity="one">%1$d to review</item>
-        <item quantity="other">%1$d to review</item>
-    </plurals>
     <string name="scan_nothing_to_review">Nothing to review</string>
-    <string name="scan_open_review">Open the review queue</string>
     <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning.</string>
     <!-- Set name, language -->
     <string name="scan_added">Added: %1$s, %2$s</string>
     <string name="scan_queued">Saved for review: %1$s</string>
     <string name="scan_undo">Undo</string>
     <string name="scan_undo_description">Undo adding %1$s</string>
-    <string name="scan_removed">Removed %1$s. Keep scanning.</string>
+    <string name="scan_removed">Took back %1$s.</string>
+    <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
+    <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
+    <string name="scan_title">Scan cards</string>
+    <string name="scan_live">Live · on device</string>
+    <string name="scan_hint_reading">Reading the number…</string>
+    <string name="scan_hint_added">Added. Take the next card.</string>
+    <string name="scan_hint_queued">Not sure, saved for review. Take the next card.</string>
+    <string name="scan_paused_notice">Scanning is paused. Cards in the frame are not added.</string>
+    <string name="scan_camera_denied">Camera access is off, so cards can\'t be scanned. Pictures would stay on this device.</string>
+    <string name="scan_camera_ask_again">Ask again</string>
+    <string name="scan_camera_settings">Open app settings</string>
+    <string name="scan_camera_none">This device has no back camera to scan with.</string>
+    <string name="scan_camera_in_use">Another app is using the camera. Close it, then come back.</string>
+    <string name="scan_camera_disabled">The camera is turned off on this device, for example by a privacy or work setting.</string>
+    <string name="scan_camera_dnd">Do Not Disturb is blocking the camera. Turn it off to scan.</string>
+    <string name="scan_camera_failed">The camera stopped. Leave this screen and come back to try again.</string>
+    <plurals name="scan_scanned_count">
+        <item quantity="one">%1$d card this session</item>
+        <item quantity="other">%1$d cards this session</item>
+    </plurals>
+    <string name="scan_review">Review</string>
+    <string name="scan_review_empty_description">Review queue, nothing waiting</string>
+    <plurals name="scan_review_description">
+        <item quantity="one">Review, %1$d scan waiting</item>
+        <item quantity="other">Review, %1$d scans waiting</item>
+    </plurals>
+    <string name="scan_variant_default">%1$s · %2$s · %3$s (defaults, not detected)</string>
+    <string name="scan_variant_chosen">%1$s · %2$s · %3$s (your choice)</string>
+    <string name="scan_variant_change">Change</string>
+    <string name="scan_variant_change_description">Change finish, edition and condition of %1$s</string>
+    <string name="scan_variant_done">Done</string>
+    <string name="variant_your_choice">Your choice</string>
+    <string name="variant_not_detected">The camera can\'t see finish, edition or condition. Pick what this copy is.</string>
+    <string name="variant_finish">Finish</string>
+    <string name="variant_edition">Edition</string>
+    <string name="variant_condition">Condition</string>
+    <string name="variant_state_separator">" · "</string>
+    <string name="variant_state_default">default</string>
+    <string name="variant_state_chosen">your choice</string>
+    <string name="variant_state_check">check this</string>
     <string name="review_reason_number_not_read">the number couldn\'t be read</string>
     <string name="review_reason_number_differs">the number doesn\'t match the picture</string>
     <string name="review_reason_similar_cards">two cards look alike</string>
@@ -316,6 +349,11 @@
     <!-- Position in the current pass, e.g. "1 of 3" -->
     <string name="review_position">%1$d of %2$d</string>
     <string name="review_crop">Your scan of the card</string>
+    <string name="review_number_read">Number read: %1$s</string>
+    <string name="review_added">Added %1$s.</string>
+    <string name="review_undo_description">Undo confirming %1$s</string>
+    <string name="review_empty_title">Nothing to review</string>
+    <string name="review_debug_sample">Add sample scans (debug build)</string>
     <string name="review_why_number_not_read">The number couldn\'t be read. Pick the right card.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
@@ -326,17 +364,14 @@
     <string name="review_set_language">%1$s, %2$s</string>
     <!-- Similarity of the scan to a candidate, in percent -->
     <string name="review_similarity">%1$d %%</string>
-    <string name="review_variant">Variant</string>
-    <string name="review_check_this">Check this</string>
     <string name="review_pick_variant">Pick the finish and the edition to confirm.</string>
-    <string name="review_condition">Condition</string>
     <string name="review_quantity">Quantity</string>
     <string name="review_quantity_less">One less</string>
     <string name="review_quantity_more">One more</string>
     <string name="review_skip">Skip</string>
     <string name="review_confirm">Confirm</string>
     <string name="review_discard">Not a card, remove it</string>
-    <string name="review_empty">Nothing to review. Unsure scans wait here, so scanning never has to stop.</string>
+    <string name="review_empty">Unsure scans wait here, so scanning never has to stop.</string>
     <string name="review_done">Review done</string>
     <plurals name="review_done_added">
         <item quantity="one">%1$d added</item>
