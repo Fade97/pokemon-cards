@@ -23,7 +23,14 @@ data class ImportResult(
     val copiesSkipped: Int = 0,
     val collectionsAdded: Int = 0,
     val collectionsUpdated: Int = 0,
-)
+    val alertsAdded: Int = 0,
+    /** Alerts this phone already has (same uuid); they keep their local state. */
+    val alertsUnchanged: Int = 0,
+    /** Alerts on cards neither the backup nor this phone's catalog has; left out like such copies. */
+    val alertsSkipped: Int = 0,
+) {
+    val hasAlerts: Boolean get() = alertsAdded + alertsUnchanged + alertsSkipped > 0
+}
 
 enum class BackupFileType { JSON, CSV }
 
@@ -32,20 +39,30 @@ enum class BackupFileType { JSON, CSV }
  * idempotent and can merge a backup into a collection that changed since. A copy or collection in the file replaces
  * the local one when the file's `updatedAt` is not older and the content differs; otherwise the local one stays.
  * Memberships are merged as a union: an import adds copies to collections but never takes them out.
+ *
+ * Price alerts (JSON only) are added when their uuid is new and left alone when it exists: the app can't edit an
+ * alert, only its armed/notified state changes, and the phone's own state is the one its checks rely on.
+ * [onAlertsImported] runs after an import that added alerts, so their daily check gets scheduled.
  */
-class BackupRepository(private val db: CardIndexDatabase, private val clock: Clock = Clock.systemUTC()) {
+class BackupRepository(
+    private val db: CardIndexDatabase,
+    private val clock: Clock = Clock.systemUTC(),
+    private val onAlertsImported: suspend () -> Unit = {},
+) {
     private val catalog = db.catalogDao()
     private val copies = db.copyDao()
     private val collections = db.collectionDao()
+    private val alerts = db.priceAlertDao()
 
     suspend fun snapshot(): BackupData = db.withTransaction {
         val custom = collections.allCustom()
         BackupData(
-            sets = catalog.ownedSets(),
-            cards = catalog.ownedCards(),
+            sets = catalog.backupSets(),
+            cards = catalog.backupCards(),
             copies = copies.all(),
             collections = custom,
             memberships = collections.membershipUuids().groupBy({ it.collectionUuid }, { it.copyUuid }),
+            alerts = alerts.all(),
         )
     }
 
@@ -69,7 +86,13 @@ class BackupRepository(private val db: CardIndexDatabase, private val clock: Clo
         }
     }
 
-    suspend fun import(data: BackupData, collectionNamesByCopy: Map<String, List<String>> = emptyMap()): ImportResult =
+    suspend fun import(data: BackupData, collectionNamesByCopy: Map<String, List<String>> = emptyMap()): ImportResult {
+        val result = importInTransaction(data, collectionNamesByCopy)
+        if (result.alertsAdded > 0) onAlertsImported()
+        return result
+    }
+
+    private suspend fun importInTransaction(data: BackupData, collectionNamesByCopy: Map<String, List<String>>): ImportResult =
         db.withTransaction {
             // Catalog rows only fill gaps: a language pack's data wins over a backup's copy of it.
             catalog.insertSetsIfMissing(data.sets)
@@ -140,6 +163,18 @@ class BackupRepository(private val db: CardIndexDatabase, private val clock: Clo
                         }
                         collections.addCopy(CollectionCopyCrossRef(id, copyId))
                     }
+                }
+            }
+
+            // Same rule as copies: an alert on a card nobody knows is skipped, not stored without its card.
+            for (alert in data.alerts) {
+                result = when {
+                    !catalog.hasCard(alert.cardId, alert.cardLanguage) -> result.copy(alertsSkipped = result.alertsSkipped + 1)
+                    alerts.byUuid(alert.uuid) == null -> {
+                        alerts.upsert(alert)
+                        result.copy(alertsAdded = result.alertsAdded + 1)
+                    }
+                    else -> result.copy(alertsUnchanged = result.alertsUnchanged + 1)
                 }
             }
             result

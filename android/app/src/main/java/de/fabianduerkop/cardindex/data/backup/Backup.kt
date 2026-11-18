@@ -4,7 +4,9 @@ package de.fabianduerkop.cardindex.data.backup
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
+import de.fabianduerkop.cardindex.data.alerts.AlertDirection
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.db.PriceAlertEntity
 import de.fabianduerkop.cardindex.model.CollectionKind
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
@@ -12,6 +14,8 @@ import de.fabianduerkop.cardindex.model.EnergyType
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.Money
+import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.Region
 import java.math.BigDecimal
 import java.time.Instant
@@ -21,8 +25,9 @@ import org.json.JSONArray
 import org.json.JSONObject
 
 /**
- * Everything a backup holds: the user's copies and custom collections, plus the catalog rows those copies point to,
- * so an import works on a phone whose language packs don't have the cards yet. Format: android/README.md, "Backup".
+ * Everything a backup holds: the user's copies, custom collections and price alerts, plus the catalog rows those
+ * point to, so an import works on a phone whose language packs don't have the cards yet. Format: android/README.md,
+ * "Backup".
  */
 data class BackupData(
     val sets: List<CardSetEntity>,
@@ -31,6 +36,8 @@ data class BackupData(
     val collections: List<CollectionEntity>,
     /** Collection uuid → uuids of the copies in it. */
     val memberships: Map<String, List<String>>,
+    /** Price alerts (#76), since format version 2. Only the JSON carries them; the CSV is one row per copy. */
+    val alerts: List<PriceAlertEntity> = emptyList(),
 )
 
 class BackupFormatException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -39,8 +46,11 @@ class BackupFormatException(message: String, cause: Throwable? = null) : Excepti
 object BackupJson {
     const val FORMAT = "cardindex-backup"
 
-    /** Bump when a reader of the old version would misread the new one; add fields without a bump. */
-    const val VERSION = 1
+    /**
+     * Bump when a reader of the old version would misread the new one or silently drop part of it; other new fields
+     * need no bump. 2 added `alerts` (#94): a version-1 app would restore such a file without its alerts and not say so.
+     */
+    const val VERSION = 2
 
     fun write(data: BackupData, exportedAt: Instant): String = JSONObject()
         .put("format", FORMAT)
@@ -62,6 +72,7 @@ object BackupJson {
                 },
             ),
         )
+        .put("alerts", JSONArray(data.alerts.map { it.toJson() }))
         .toString(2)
 
     fun read(text: String): BackupData {
@@ -90,6 +101,8 @@ object BackupJson {
                     )
                 },
                 memberships = collections.associate { it.getString("uuid") to it.optJSONArray("copies").strings() },
+                // Missing in version 1 files: those restore without alerts.
+                alerts = root.optJSONArray("alerts").objects().map(::alertFromJson),
             )
         } catch (e: org.json.JSONException) {
             throw BackupFormatException("Backup is damaged: ${e.message}", e)
@@ -161,6 +174,38 @@ object BackupJson {
             purchaseDate = o.optStringOrNull("purchaseDate")?.let(LocalDate::parse),
             createdAt = createdAt,
             updatedAt = o.optStringOrNull("updatedAt")?.let(Instant::parse) ?: createdAt,
+        )
+    }
+
+    /** Same field names as [PriceAlertEntity], which the server keeps when alerts move there with #16 (ADR 0013). */
+    private fun PriceAlertEntity.toJson() = JSONObject()
+        .put("uuid", uuid)
+        .put("cardId", cardId)
+        .put("cardLanguage", cardLanguage)
+        .put("source", source.name)
+        .put("variant", variant.name)
+        .put("direction", direction.name)
+        .put("thresholdMinor", thresholdMinor)
+        .put("currency", currency)
+        .put("createdAt", createdAt.toString())
+        .putOpt("triggeredAt", triggeredAt?.toString())
+        .put("armed", armed)
+
+    private fun alertFromJson(o: JSONObject): PriceAlertEntity {
+        val threshold = o.getLong("thresholdMinor")
+        require(threshold > 0) { "thresholdMinor $threshold" }
+        return PriceAlertEntity(
+            uuid = UUID.fromString(o.getString("uuid")).toString(),
+            cardId = o.getString("cardId"),
+            cardLanguage = o.getString("cardLanguage"),
+            source = PriceSource.valueOf(o.getString("source")),
+            variant = PriceVariant.valueOf(o.getString("variant")),
+            direction = AlertDirection.valueOf(o.getString("direction")),
+            thresholdMinor = threshold,
+            currency = o.getString("currency"),
+            createdAt = Instant.parse(o.getString("createdAt")),
+            triggeredAt = o.optStringOrNull("triggeredAt")?.let(Instant::parse),
+            armed = o.optBoolean("armed", true),
         )
     }
 }

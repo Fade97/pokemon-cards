@@ -168,15 +168,27 @@ fun SettingsScreen(
                     is BackupMessage.Exported -> ResultText(
                         pluralStringResource(R.plurals.settings_exported, message.copies, message.copies),
                     )
-                    is BackupMessage.Imported -> ResultText(
-                        stringResource(
+                    is BackupMessage.Imported -> {
+                        val result = message.result
+                        val copies = stringResource(
                             R.string.settings_imported,
-                            message.result.copiesAdded,
-                            message.result.copiesUpdated,
-                            message.result.copiesUnchanged,
-                            message.result.copiesSkipped,
-                        ),
-                    )
+                            result.copiesAdded,
+                            result.copiesUpdated,
+                            result.copiesUnchanged,
+                            result.copiesSkipped,
+                        )
+                        val alerts = if (result.hasAlerts) {
+                            stringResource(
+                                R.string.settings_imported_alerts,
+                                result.alertsAdded,
+                                result.alertsUnchanged,
+                                result.alertsSkipped,
+                            )
+                        } else {
+                            null
+                        }
+                        ResultText(listOfNotNull(copies, alerts).joinToString("\n"))
+                    }
                     is BackupMessage.Failed -> ResultText(stringResource(R.string.settings_backup_failed, message.reason))
                     null -> Unit
                 }

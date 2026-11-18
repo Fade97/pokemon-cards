@@ -93,7 +93,9 @@ class AppContainer(private val context: Context) {
         PriceAlertChecker(priceAlertStore, CachedCurrentPrices(prices, database.catalogDao()))
     }
 
-    val backup: BackupRepository by lazy { BackupRepository(database) }
+    val backup: BackupRepository by lazy {
+        BackupRepository(database, onAlertsImported = { priceAlerts.syncSchedule() })
+    }
 
     /**
      * Scan contributions (#14). Only while the consent version the user accepted is one this app shows: a newer text
