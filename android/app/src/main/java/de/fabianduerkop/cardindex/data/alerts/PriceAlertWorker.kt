@@ -40,6 +40,9 @@ class PriceAlertWorker(context: Context, params: WorkerParameters) : CoroutineWo
     override suspend fun doWork(): Result {
         val container = applicationContext.appContainer
         if (!container.entitlements.isPro.first()) return Result.success()
+        // Without the notification permission a check would disarm alerts that nobody saw; keep them armed until the
+        // user allows notifications again.
+        if (!PriceAlertNotifications.permitted(applicationContext)) return Result.success()
         return when (val result = container.priceAlertChecker.check()) {
             AlertCheckResult.PricesUnavailable -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
             is AlertCheckResult.Checked -> {
