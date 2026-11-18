@@ -338,6 +338,7 @@
     <string name="scan_lab_torch">Light</string>
     <string name="scan_lab_gate_none">Looking for a card</string>
     <string name="scan_lab_gate_low">Outline unsure (score %1$.2f): place one card in the frame, filling most of it</string>
+    <string name="scan_lab_gate_shape">Outline is not card-shaped</string>
     <string name="scan_lab_gate_moving">Hold still</string>
     <string name="scan_lab_no_match">No match (best %1$.2f, needs %2$.2f)</string>
     <string name="scan_lab_min_similarity">Min. similarity %1$.2f</string>

@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import math
 from multiprocessing import Pool
 from pathlib import Path
 
@@ -247,6 +248,35 @@ GUIDE_HEIGHT = 0.78     # ScanGuide.kt: guide height as a share of the frame hei
 GUIDE_MAX_WIDTH = 0.90  # ... capped at this share of the frame width
 GUIDE_MARGIN = 0.07     # search margin around the guide, as a share of the guide's size
 CORNER_MIN_SCORE = 0.10  # CornerDetector.DEFAULT_MIN_SCORE: mean corner peak below this = "no card"
+CARD_MAX_ASPECT_FACTOR = 1.5   # Quad.looksLikeCard: width:height within this factor of 63:88 either way ...
+CARD_MAX_ANGLE_DEV = 35.0      # ... and every inner angle within this many degrees of 90 (calib_corner_gate.py)
+
+
+def quad_shape(q: np.ndarray) -> dict:
+    """Shape of a quad (TL, TR, BR, BL in image pixels, y down): convex = clockwise on screen and not twisted,
+    aspect = (mean width / mean height) / (63/88), angle = largest deviation of an inner angle from 90 degrees,
+    area in square pixels."""
+    q = np.asarray(q, np.float64)
+    e = np.roll(q, -1, 0) - q                      # edge i: corner i -> corner i+1
+    f = np.roll(e, -1, 0)
+    convex = bool((e[:, 0] * f[:, 1] - e[:, 1] * f[:, 0] > 0).all())
+    w = (np.linalg.norm(e[0]) + np.linalg.norm(e[2])) / 2
+    h = (np.linalg.norm(e[1]) + np.linalg.norm(e[3])) / 2
+    x, y = q[:, 0], q[:, 1]
+    area = abs(float(np.dot(x, np.roll(y, -1)) - np.dot(y, np.roll(x, -1)))) / 2
+    angles = []
+    for i in range(4):
+        a, b = -e[(i - 1) % 4], e[i]
+        c = np.dot(a, b) / max(np.linalg.norm(a) * np.linalg.norm(b), 1e-9)
+        angles.append(abs(math.degrees(math.acos(max(-1.0, min(1.0, c)))) - 90))
+    return {"convex": convex, "aspect": float(w / max(h, 1e-6) / ASPECT), "angle": float(max(angles)), "area": area}
+
+
+def looks_like_card(q: np.ndarray) -> bool:
+    """Quad.looksLikeCard in the app: convex, roughly 63:88 and roughly square corners."""
+    s = quad_shape(q)
+    return (s["convex"] and 1 / CARD_MAX_ASPECT_FACTOR <= s["aspect"] <= CARD_MAX_ASPECT_FACTOR
+            and s["angle"] <= CARD_MAX_ANGLE_DEV)
 
 
 def app_resize(img: np.ndarray) -> np.ndarray:
@@ -299,7 +329,7 @@ def detect_app(img: np.ndarray, corners=None):
     LearnedDetector) or, when `corners` is None, the classic detector with the centred-crop fallback.
 
     Returns (quad in image pixels, found, score). The learned quad is always used, like the app does; `found` says
-    whether its score reaches CORNER_MIN_SCORE.
+    whether it passes the app's gate: score >= CORNER_MIN_SCORE and `looks_like_card`.
     """
     h, w = img.shape[:2]
     left, top, right, bottom = guide_area(w, h)
@@ -311,7 +341,8 @@ def detect_app(img: np.ndarray, corners=None):
             return center_crop_fallback(img), False, 0.0
         return np.asarray(q, np.float32) + offset, True, score
     q, score = corners(g)
-    return np.asarray(q, np.float32) + offset, score >= CORNER_MIN_SCORE, score
+    q = np.asarray(q, np.float32) + offset
+    return q, score >= CORNER_MIN_SCORE and looks_like_card(q), score
 
 
 def quad_iou(a: np.ndarray, b: np.ndarray) -> float:

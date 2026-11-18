@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.recognition
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -58,6 +59,27 @@ class OutlineGateTest {
     fun rejectsMissingAndLowScoreOutlines() {
         assertEquals(GateResult.NoOutline, outlineGate(null, det(), 0.3))
         assertEquals(GateResult.LowScore(0.2), outlineGate(det(score = 0.2), det(), 0.3))
+    }
+
+    @Test
+    fun rejectsOutlinesThatAreNotCardShaped() {
+        // Twisted (two corners swapped), as the corner model returns for an empty room.
+        val twisted = Detection(listOf(Pt(100.0, 100.0), Pt(730.0, 980.0), Pt(730.0, 100.0), Pt(100.0, 980.0)), 0.5)
+        assertEquals(GateResult.BadShape, outlineGate(twisted, det(), 0.3))
+        // Two cards of a binder page merged: twice as wide as a card.
+        val wide = Detection(listOf(Pt(100.0, 100.0), Pt(1360.0, 100.0), Pt(1360.0, 980.0), Pt(100.0, 980.0)), 0.5)
+        assertEquals(GateResult.BadShape, outlineGate(wide, det(), 0.3))
+        // Sheared: convex and roughly card-sized, but the corners are about 40 degrees off square.
+        val sheared = Detection(listOf(Pt(100.0, 100.0), Pt(730.0, 100.0), Pt(1430.0, 980.0), Pt(800.0, 980.0)), 0.5)
+        assertEquals(GateResult.BadShape, outlineGate(sheared, det(), 0.3))
+    }
+
+    @Test
+    fun cardShapeAllowsPerspective() {
+        // A card tilted away from the phone: the top edge is shorter (trapezoid), angles about 10 degrees off.
+        val tilted = listOf(Pt(180.0, 100.0), Pt(650.0, 100.0), Pt(730.0, 980.0), Pt(100.0, 980.0))
+        assertTrue(tilted.looksLikeCard())
+        assertTrue(det().quad.looksLikeCard())
     }
 
     @Test
