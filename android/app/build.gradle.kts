@@ -1,9 +1,35 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+}
+
+// Release signing with the upload key (#88). Play App Signing re-signs for the store, so this key only proves uploads.
+// Values come from environment variables or the git-ignored android/keystore.properties; nothing secret is in the
+// repo. The environment wins per value. Without any of them, release builds stay unsigned (CI checks R8 that way).
+// android/README.md, "Signed release".
+val uploadSigning: Map<String, String> = run {
+    val file = rootProject.file("keystore.properties")
+    val props = Properties()
+    if (file.isFile) file.inputStream().use { props.load(it) }
+    val keys = mapOf(
+        "storeFile" to "UPLOAD_KEYSTORE_FILE",
+        "storePassword" to "UPLOAD_KEYSTORE_PASSWORD",
+        "keyAlias" to "UPLOAD_KEY_ALIAS",
+        "keyPassword" to "UPLOAD_KEY_PASSWORD",
+    )
+    val values = keys.mapNotNull { (prop, env) ->
+        (providers.environmentVariable(env).orNull ?: props.getProperty(prop))?.takeIf { it.isNotBlank() }?.let { prop to it }
+    }.toMap()
+    require(values.isEmpty() || values.size == keys.size) {
+        "Release signing is incomplete, missing: " + keys.filterKeys { it !in values }.values.joinToString() +
+            " (environment) or the same keys in keystore.properties"
+    }
+    values
 }
 
 android {
@@ -36,6 +62,18 @@ android {
         buildConfigField("String", "PRIVACY_POLICY_URL", "\"${api.trimEnd('/')}/privacy\"")
     }
 
+    signingConfigs {
+        if (uploadSigning.isNotEmpty()) {
+            create("upload") {
+                // A relative storeFile is resolved against android/, where keystore.properties lives.
+                storeFile = rootProject.file(uploadSigning.getValue("storeFile"))
+                storePassword = uploadSigning.getValue("storePassword")
+                keyAlias = uploadSigning.getValue("keyAlias")
+                keyPassword = uploadSigning.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         debug {
             // Own package, so a debug build installs next to a release build.
@@ -54,7 +92,8 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // No signing config yet: assembleRelease produces an unsigned APK.
+            // Signed with the upload key when it is configured (top of this file), otherwise unsigned.
+            signingConfigs.findByName("upload")?.let { signingConfig = it }
         }
     }
 

@@ -24,3 +24,6 @@ output-metadata.json
 
 # Recognition lab assets (model, index, card data) are built by ml/app_assets.py and never committed
 android/app/src/main/assets/recognition/
+
+# Upload-key signing config for release builds (android/README.md, "Signed release")
+keystore.properties
