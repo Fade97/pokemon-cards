@@ -43,6 +43,22 @@ class AppSettings(context: Context) {
 
     fun stopContributing() = prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
 
+    /**
+     * Uuid of the custom collection scans are added to besides All Cards (#139), or null for All Cards only. Kept
+     * across app starts: sorting a pile into one binder often takes more than one sitting, and the Scan screen always
+     * shows the choice.
+     */
+    var scanTargetCollection: String?
+        get() = prefs.getString(KEY_SCAN_TARGET, null)
+        set(value) = prefs.edit { if (value == null) remove(KEY_SCAN_TARGET) else putString(KEY_SCAN_TARGET, value) }
+
+    val scanTargetCollectionFlow: Flow<String?> = observe { scanTargetCollection }
+
+    /** Back to All Cards only, if the target still is [uuid] (a deleted collection); a newer choice stays. */
+    fun clearScanTarget(uuid: String) {
+        if (scanTargetCollection == uuid) scanTargetCollection = null
+    }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -63,5 +79,6 @@ class AppSettings(context: Context) {
         const val KEY_PRICE_SOURCE = "price_source"
         const val KEY_CONTRIBUTION_CONSENT = "contribution_consent"
         const val KEY_DEBUG_PRO = "debug_pro"
+        const val KEY_SCAN_TARGET = "scan_target_collection"
     }
 }
