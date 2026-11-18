@@ -12,6 +12,12 @@ synth.py on the CPU, like the test set); the final numbers come from evaluate.py
 With --real the class set grows to every EN card with a real train-split photo (realset.py build), the real crops
 are mixed into every batch (--real-frac) with light augmentation, and the checkpoint is selected on the real
 validation cards (never trained) against the full EN gallery instead of on the synthetic val set.
+
+With --real --all-cards (production, issue #58) every card with a real photo is a class and every crop is trained
+on (realset.py build --all-cards). There is no real val set then: the run trains a fixed number of epochs and keeps
+the last checkpoint; the synthetic val score is only logged.
+
+  uv run python train.py --run mnv3_256_prod --realistic --init mnv3_256_real --real --all-cards --epochs 6 --lr 5e-4
 """
 from __future__ import annotations
 
@@ -147,7 +153,11 @@ def main():
     ap.add_argument("--init", default=None, help="start from this run's checkpoint (fine-tune)")
     ap.add_argument("--real", action="store_true", help="grow the classes and mix in the real crops of realset.py")
     ap.add_argument("--real-frac", type=float, default=0.25, help="share of real crops per batch with --real")
+    ap.add_argument("--all-cards", action="store_true",
+                    help="with --real: production run, no test/val holdout; keeps the last epoch")
     args = ap.parse_args()
+    if args.all_cards and not args.real:
+        ap.error("--all-cards needs --real")
     torch.backends.cudnn.benchmark = os.environ.get("CARDINDEX_CUDNN_BENCH", "1") == "1"
     dev = device()
     cards = load_manifest()
@@ -162,10 +172,13 @@ def main():
     real = None
     if args.real:
         import realset
+        if args.all_cards:
+            realset.use_all_cards()
         samples = json.loads(realset.SAMPLES.read_text())
         pc = realset.pack_cards()
-        extra = [pc[cid] for cid in sorted({s["card_id"] for s in samples if s["role"] == "train"})]
-        blocked = realset.load_blocked()  # same-art twins/reprints of test and val cards get no class
+        extra = [pc[cid] for cid in sorted({s["card_id"] for s in samples if realset.role_of(s["card_id"]) == "train"})]
+        # same-art twins/reprints of test and val cards get no class (none exist in production mode)
+        blocked = set() if args.all_cards else realset.load_blocked()
         cards, cls = realset.plan_classes(cards, extra, blocked=blocked)
         class_idx = [i for i in cls if cards[i].group not in args.holdout]
         key2i = {c.key: i for i, c in enumerate(cards)}
@@ -173,12 +186,12 @@ def main():
         # --holdout en/<set> would leave without a class index)
         tr = realset.real_samples(samples, "train", {cards[i].card_id for i in class_idx if cards[i].lang == "en"})
         va = realset.real_samples(samples, "val")
-        crops = realset.REAL_TRAIN / "crops"
+        crops = realset.CROPS
         real = {
             "x": gpu_aug.load_real_crops([crops / s["file"] for s in tr], [s["rot"] for s in tr]).pin_memory(),
             "card": torch.tensor([key2i[f"en/{s['card_id']}"] for s in tr], device=dev),
             "w": torch.tensor(realset.balanced_weights([s["card_id"] for s in tr]), device=dev),
-            "val_x": gpu_aug.load_real_crops([crops / s["file"] for s in va], [0] * len(va)),
+            "val_x": gpu_aug.load_real_crops([crops / s["file"] for s in va], [0] * len(va)) if va else None,
             "val_ids": [s["card_id"] for s in va],
             "gallery": np.load(realset.GALLERY_NPY, mmap_mode="r"),
             "gallery_ids": json.loads(realset.GALLERY_IDS.read_text()),
@@ -279,7 +292,7 @@ def main():
         entry = {"epoch": ep + 1, "loss": tl / steps_per_epoch, "val_top1": ev["top1"], "val_top5": ev["top5"],
                  "minutes": (time.time() - t0) / 60, "samples_per_s": n_samples / train_time}
         score = ev["top1"]
-        if real:
+        if real and real["val_x"] is not None:
             rv = real_val_eval(model, dev, real["gallery"], real["gallery_ids"], real["val_x"], real["val_ids"])
             entry["val_real_top1"], entry["val_real_top5"] = rv["top1"], rv["top5"]
             score = rv["top1"]
@@ -288,8 +301,8 @@ def main():
             entry["val_seen_top1"] = run_eval(model, dev, cards, val_crops, val_truth, ref_x, ~hold_mask)["top1"]
         log["epochs"].append(entry)
         print(json.dumps(entry), flush=True)
-        if score >= best:
-            best = score
+        if score >= best or args.all_cards:  # production: no held-out set to pick an epoch, keep the last
+            best = max(best, score)
             CKPT_DIR.mkdir(parents=True, exist_ok=True)
             torch.save({"model": model.state_dict(), "arc": arc.state_dict(), "backbone": args.backbone,
                         "dim": args.dim, "classes": class_keys, "epoch": ep + 1},
@@ -301,7 +314,8 @@ def main():
     log["throughput_samples_per_s"] = n_samples / train_time  # augment + forward + backward, excl. val
     log["aug_share_of_train_time_est"] = min(1.0, aug_time / train_time)
     log["gpu"] = mon.summary()
-    log["best_val_real_top1" if real else "best_val_top1"] = best
+    log["best_val_real_top1" if real and real["val_x"] is not None else "best_val_top1"] = best
+    log["saved_epoch"] = args.epochs if args.all_cards else None
     print(json.dumps({k: v for k, v in log.items() if k != "epochs"}, indent=2))
     RESULTS_DIR.mkdir(exist_ok=True)
     (RESULTS_DIR / f"train_{args.run}.json").write_text(json.dumps(log, indent=2))

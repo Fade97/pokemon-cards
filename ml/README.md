@@ -41,6 +41,7 @@ Windows) are optional. The core steps don't need them.
 | 15 | `uv run python realset.py gallery`, `realset.py twins`, then `realset.py build` | Real-photo training data: card roles (test = `split_of` holdout, never trained; val = 10 % of the rest; train), FORB/TCG-AR train and val photos cropped exactly like the evaluators (learned corners, rectify, upright), and the EN gallery as 224 px uint8 for validation during training. `twins` lists same-art twins and reprints of test/val cards (language twins by number, reprints by baseline cos ≥ 0.9); they get no class. Writes `<data>/real-train/`. |
 | 16 | `uv run python train.py --run mnv3_256_forb --realistic --init mnv3_256_real --real --epochs 10 --lr 5e-4` | Fine-tunes on real crops (25 % of each batch, light augmentation) plus synthetic samples of a grown class set (every EN card with a real train photo). Selects the epoch on the real val crops against the full EN gallery; `val_real.py --run <run>` gives the same score for any checkpoint; `leak_check.py --run <run>` checks classes, crops and test photos against the split. |
 | 17 | `powershell -File run_corner_finetune.ps1` | Corner fine-tune on real photos (#59), end to end: `corner_analysis.py` rows, `corner_realset.py build` (TCG-AR annotated corners + confident FORB pseudo-labels, train-role cards only; TCG-AR val cards for selection), `train_corners.py --real --init corners_mnv3`, WSL export, test-split evaluation and `corner_analysis.py compare`. |
+| 18 | `realset.py build --all-cards`, then `train.py --run mnv3_256_prod --realistic --init mnv3_256_real --real --all-cards --epochs 6 --lr 5e-4` | Production model (#58): the recipe of step 16 without any holdout. Every card is a class and every FORB/TCG-AR photo is trained on. Its crops and samples go to `<data>/real-train/all/`, so step 15's data stays as it was. There is no held-out real set in this mode, so the run trains a fixed number of epochs and keeps the last checkpoint. Use step 16 to measure the recipe; this step only ships it. |
 
 `trainset.py` is the older CPU pre-render of training crops. It is kept for reference, but training no longer
 uses it.
@@ -53,6 +54,10 @@ uses it.
 wsl -d Ubuntu -- bash /mnt/d/AI/pokemon-cards/ml/export_env.sh     # once: ~/cardindex-export venv (CPU torch)
 wsl -d Ubuntu -- ~/cardindex-export/.venv/bin/python /mnt/d/AI/pokemon-cards/ml/export_litert.py --run mnv3_256
 ```
+
+It writes `_f32`, `_int8`, `_w8` (dynamic_wi8_afp32, the pack model), `_wo8` (weight_only_wi8_afp32) and `_f16`
+(fp16 weights). `wo8` and `f16` do the same float math on CPU and GPU, while `w8` quantizes activations at runtime
+on the CPU (#54).
 
 The model takes NHWC float32 RGB in [0, 1] (`1×224×224×3`: the rectified card squashed to a square) and returns
 the L2-normalized embedding. ImageNet normalization is built into the model.

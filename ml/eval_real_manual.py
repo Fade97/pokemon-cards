@@ -97,11 +97,11 @@ def summarize(rows, key="ok_exact", top5="top5_exact"):
             "sim_correct_min_med_max": q(ok_s), "sim_wrong_min_med_max": q(bad_s), "threshold_sweep": sweep}
 
 
-def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False):
+def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False, variant="w8"):
     cards = load_manifest(include_holdout=True)
     key = lambda c: f"{c.lang}/{c.set_id}:{c.local_id}"
     keys = [key(c) for c in cards]
-    emb = Embedder(embedder_run)
+    emb = Embedder(embedder_run, variant)
     R = emb.index(cards)
     det = "classic" if detector == "classic" else LearnedDetector()
     labels = json.loads(LABELS.read_text(encoding="utf-8"))
@@ -122,7 +122,7 @@ def evaluate(embedder_run, detector, photos_dir=REAL_DIR, save_crops=False):
                      "top1": tk[0], "sim": float(sims[top[0]]), "detector_conf": conf,
                      "ok_exact": tk[0] in exact, "top5_exact": any(k in exact for k in tk),
                      "ok_art": tk[0] in art, "top5_art": any(k in art for k in tk)})
-    res = {"embedder": f"{embedder_run} (w8 .tflite)", "detector": detector, "gallery": len(cards),
+    res = {"embedder": f"{embedder_run} ({variant} .tflite)", "detector": detector, "gallery": len(cards),
            "threshold": THRESH, "groups": {}}
     for g in ("de/30th", "de/me04 (twin)"):
         rs = [r for r in rows if r["group"] == g]
@@ -142,12 +142,13 @@ def main():
     ap.add_argument("--detector", choices=["classic", "learned"], default="learned")
     ap.add_argument("--all", action="store_true", help="old/new embedder x classic/learned detector")
     ap.add_argument("--save-crops", action="store_true")
+    ap.add_argument("--variant", default="w8", help="export file <embedder>_<variant>.tflite (w8, f16, f32, ...)")
     args = ap.parse_args()
     combos = ([(e, d) for e in ("mnv3_256", "mnv3_256_real") for d in ("classic", "learned")] if args.all
               else [(args.embedder, args.detector)])
     out = {}
     for e, d in combos:
-        r = evaluate(e, d, save_crops=args.save_crops)
+        r = evaluate(e, d, save_crops=args.save_crops, variant=args.variant)
         out[f"{e}+{d}"] = r
         g1, g2 = r["groups"]["de/30th"], r["groups"]["de/me04 (twin)"]
         print(f"{e:>14} + {d:<8} | 30th top1 {g1['top1']}/{g1['n']} top5 {g1['top5']}/{g1['n']} "
@@ -155,7 +156,8 @@ def main():
               f"me04 DE exact top1 {g2['top1']}/{g2['n']} top5 {g2['top5']}/{g2['n']} | "
               f"art top1 {r['groups']['de/me04 (twin) artwork level (EN or DE accepted)']['top1']}", flush=True)
     RESULTS_DIR.mkdir(exist_ok=True)
-    name = "real_manual_matrix.json" if args.all else f"real_manual_{args.embedder}_{args.detector}.json"
+    tag = "" if args.variant == "w8" else f"_{args.variant}"
+    name = "real_manual_matrix.json" if args.all else f"real_manual_{args.embedder}{tag}_{args.detector}.json"
     (RESULTS_DIR / name).write_text(json.dumps(out, indent=2, ensure_ascii=False))
 
 

@@ -18,6 +18,7 @@ from __future__ import annotations
 import argparse
 import json
 import re
+from pathlib import Path
 
 import cv2
 import numpy as np
@@ -99,10 +100,12 @@ def guide_crop(img, quad):
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--embedder", default="mnv3_256_real")
+    ap.add_argument("--variant", default="w8", help="export file <embedder>_<variant>.tflite")
+    ap.add_argument("--work", type=Path, default=None, help="build_packs work dir with en embeddings of that file")
     args = ap.parse_args()
-    emb = Embedder(args.embedder)
+    emb = Embedder(args.embedder, args.variant)
     learned = LearnedDetector()
-    ids, R, cards = gallery("en", f"{args.embedder}_w8.tflite")
+    ids, R, cards = gallery("en", f"{args.embedder}_{args.variant}.tflite", **({"work": args.work} if args.work else {}))
     known, pos = set(cards), {cid: i for i, cid in enumerate(ids)}
     rows, unmapped, cache = [], {}, {}
     for img_path, quad, ptcg in annotations():
@@ -160,7 +163,7 @@ def main():
         summary[f"recognition_split={split}"] = rec_summary([r for r in rec if r["split"] == split])
     summary["median_card_width_px"] = round(float(np.median([r["card_px"] for r in rows])), 1)
     RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-    out = RESULTS_DIR / f"tcgar_{args.embedder}_w8.json"
+    out = RESULTS_DIR / f"tcgar_{args.embedder}_{args.variant}.json"
     out.write_text(json.dumps(summary, indent=1))
     (ROOT.parent.parent / f"tcgar_{args.embedder}_rows.json").write_text(json.dumps(rows))
     print(json.dumps(summary, indent=1))

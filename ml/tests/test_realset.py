@@ -110,3 +110,16 @@ def test_language_twins_by_number_and_secret_dex():
     # secret rares: numbers differ between the languages, the same Pokemon pairs up
     assert ("ja/SV2a-182", "sv03.5-198", "dex") in pairs
     assert not any(k == "ja/SV2a-182" and o == "sv03.5-182" for k, o, _ in pairs)
+
+
+def test_all_cards_mode_trains_on_every_card(monkeypatch):
+    import realset
+    monkeypatch.setattr(realset, "ALL_CARDS", True)
+    assert {role_of(c) for c in IDS} == {"train"}
+    te = next(c for c in IDS if split_of(c) == "test")
+    assert blocked_keys([(f"en/{IDS[0]}", te, 0.95)]) == set()
+    samples = [{"card_id": te, "sim_ref_baseline": 0.5, "top1_baseline": te}]
+    assert real_samples(samples, "train") == samples
+    assert real_samples(samples, "val") == []
+    cards, cls = plan_classes([make_card(f"en/{te}", "1")], [])
+    assert cls == [0]

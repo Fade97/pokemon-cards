@@ -728,6 +728,88 @@ Paired, on the same test photos (`corner_analysis.py compare`):
 Two-pass detection (#78) is still the larger and cheaper gain: +2.8 pp FORB test top-1 here (87.7 → 90.5), with
 the shipped detector.
 
+## Production model `mnv3_256_prod` and packs v2 (2026-11-18, issue #58)
+
+This is the shipped version of the `mnv3_256_forb` recipe. It has no holdout, so there is no fair real-photo score
+for it. The real-photo gain is the one measured in the section above. Here I only check that nothing got worse.
+
+### Data and training
+
+- **Crops** (`realset.py build --all-cards`, CROP_VERSION 2): every FORB and TCG-AR photo, with the fixed FORB
+  mapping and the TCG-AR rotation fix. That is 6,213 photos (5,578 FORB + 635 TCG-AR). 128 detector failures
+  (baseline similarity < 0.10) are dropped, which leaves **6,085 crops of 1,517 cards**. The #57 run had 4,288
+  crops of 1,068 cards (`realset_mnv3_256_prod.json`). The crops are in `<data>/real-train/all/`.
+- **Classes:** 2,389. These are all 870 manifest cards (so no twin is blocked) and the 1,519 other EN cards with a
+  real photo. The 870 keep their trained ArcFace rows from `mnv3_256_real`. Each new class starts at the embedding of
+  its reference image.
+- **Run:** `train.py --run mnv3_256_prod --realistic --init mnv3_256_real --real --all-cards --epochs 6 --lr 5e-4`,
+  32 min on the RTX 3080. There is no real val set, so the run keeps the last epoch. Epoch 6 was the best real-val
+  epoch of the 10-epoch #57 run, and here the cosine schedule ends at epoch 6. Synthetic val was 93.4–93.8 % in
+  every epoch (`train_mnv3_256_prod.json`).
+
+### Export and pack model
+
+The packs ship the **f16** file (fp16 weights, float math), not w8, for #54. On the phone CPU, w8
+(`dynamic_wi8_afp32`) quantizes the activations to int8 at runtime and lands at cosine 0.88 to the float model. A
+GPU computes in float, so CPU and GPU disagreed. With f16 they agree, and the app can use the GPU delegate.
+
+| Variant | Size | Cosine to PyTorch, mean / min (300 test crops) |
+|---|---|---|
+| `mnv3_256_prod_f16` (**packs v2**) | 9.3 MB | 1.0000 / 0.9999 |
+| `mnv3_256_prod_wo8` (weight-only int8) | 5.0 MB | 0.9976 / 0.9747 |
+| `mnv3_256_prod_w8` (dynamic int8) | 5.0 MB | 0.972 / 0.804 |
+| `mnv3_256_prod_f32` | 18.2 MB | 1.0 |
+
+### Sanity check against the live model
+
+| | `mnv3_256_real` (packs v1) | **`mnv3_256_prod`** |
+|---|---|---|
+| Synthetic `evaluate.py`, main (870) | 94.78 | **95.08** |
+| Synthetic, trained sets in the full gallery | 93.47 | **93.66** |
+| Synthetic, unseen de/30th | 94.30 | **95.44** |
+| Synthetic, language twin de/me04 | 88.85 | **91.64** |
+| Own photos de/30th top-1 (w8; prod also f16 / f32) | 21/21 | 21/21; 20/21 / 20/21 |
+| Own photos de/me04 twin, exact (w8; prod also f16 / f32) | 7/8 | 7/8; **8/8** / **8/8** |
+| Own photos shown at sim ≥ 0.5 | 19 (0 wrong) | 19 (0 wrong) in every variant |
+| Median similarity of correct own-photo matches | 0.669 | 0.705 (w8), **0.751** (f16) |
+
+Both models get 28 of 29 own photos exactly right. The f16 and f32 miss is a de/30th photo at similarity 0.30. The
+baseline found it at 0.38, which is also below the display threshold, so the app shows nothing for that photo with
+either model. Since f16 and f32 agree on it, the miss comes from the model and not from the f16 conversion.
+FORB and TCG-AR are training data now and only serve as a smoke test. TCG-AR (`eval_tcgar.py --variant f16`, v2 EN
+gallery, all 635 cards, every one trained on) gives 91.8 % top-1 with learned corners: the baseline had 71.2 % and
+`mnv3_256_forb` 91.5 % (`results/tcgar_mnv3_256_prod_f16.json`). Nothing broke, and that is all this number shows.
+FORB was not re-run.
+
+Sources: `results/eval_mnv3_256_prod.json`, `results/real_manual_mnv3_256_prod{,_f16,_f32}_learned.json`,
+`results/export_mnv3_256_prod.json`.
+
+### Packs v2 (published 2026-11-18)
+
+All seven live languages were re-embedded with `mnv3_256_prod_f16.tflite` (`build_packs.py embed`, CPU on
+Fabian-PC, about 25 min in four processes). They were built against the published v1 catalog on Vulcan and share one
+model, **`mnv3_256_prod_f16-0635d6230b38`** (embedder 9.3 MB plus the unchanged corner model). The card metadata is
+the same as v1, so the indexed counts are the same: en 22,213, de 15,598, ja 7,359, fr 18,767, it 14,622, es 14,916,
+pt 13,144. The model changed, so there is no delta: an installed v1 pack downloads v2 in full (124 MB for all seven
+plus the models). MEE (#60) is not in v2, because it has no image source that allows automated downloads yet.
+
+**App check before the catalog switch** (talos emulator, debug build of `main` @ 89dfa02 with #72, CPU backend).
+The test build loaded the staged v2 files from a local mirror, the same bytes that were uploaded. Its first-run
+picker downloaded all seven languages: `engine ready: mnv3_256_prod_f16-0635d6230b38 on CPU, [de, en, es, fr, it, ja,
+pt]`, 106,619 cards, no out-of-memory error. Then `RealPhotoTest` ran on the same 29 labelled own photos, once with
+v1 and once with v2, both with all seven packs installed:
+
+| `RealPhotoTest`, 29 photos | v1 `mnv3_256_real_w8` | **v2 `mnv3_256_prod_f16`** |
+|---|---|---|
+| Learned outline, all languages: right / shown / shown wrong | 20 / 28 / 8 | **23 / 27 / 5** |
+| Learned outline, German only | 27 / 28 / 1 | **28 / 27 / 0** |
+| Classic outline, all languages | 11 / 27 / 16 | **21 / 23 / 4** |
+| Classic outline, German only | 22 / 23 / 3 | **27 / 23 / 0** |
+
+The photos are German prints. Installing all seven languages costs 5 of 28 (v2) top-1 answers against German only;
+which other-language cards they land on was not broken down. The S25 check was not done (#54 covers the GPU path
+there).
+
 ## Reproduce
 
 See [README.md](README.md). Data and checkpoints are in `D:\AI\pokemon-cards-data\`, not in the repo.

@@ -21,9 +21,14 @@ Every card id gets one fixed role (`role_of`):
            gives such cards no class.
   stats    crop and card counts of a samples file -> results/realset_<name>.json (no images, no per-photo rows)
 
+Production (--all-cards, issue #58): every card id has role 'train' (no test, no val, no twin blocking), so the
+shipped model learns from every photo. Its crops and samples live apart in <data>/real-train/all/, so the measured
+run (#57) stays reproducible. There is no held-out real set in this mode: score the recipe with the default roles.
+
   uv run --extra litert python realset.py gallery
   uv run --extra litert python realset.py twins      # needs packs-embcache rows of mnv3_256_real_w8
   uv run --extra litert python realset.py build
+  uv run --extra litert python realset.py build --all-cards      # production: all photos, real-train/all/
 
 The images stay in <data>; nothing here is committed.
 """
@@ -43,6 +48,7 @@ from common import DATA_DIR, Card, split_of
 
 REAL_TRAIN = DATA_DIR / "real-train"
 SAMPLES = REAL_TRAIN / "samples.json"
+CROPS = REAL_TRAIN / "crops"
 GALLERY_NPY = REAL_TRAIN / "gallery_en_224.npy"
 GALLERY_IDS = REAL_TRAIN / "gallery_en_224.json"
 TWINS = REAL_TRAIN / "twins.json"
@@ -55,10 +61,22 @@ SIDE = 224
 # Train crops whose baseline embedding is this far from the true reference are detector failures, not hard photos
 # (checked by eye on a grid of the lowest-similarity crops).
 MIN_SIM_TRAIN = 0.10
+ALL_CARDS = False  # production mode (use_all_cards): every card is 'train'
+
+
+def use_all_cards() -> None:
+    """Production mode: every card id has role 'train'; crops and samples go to <data>/real-train/all/."""
+    global ALL_CARDS, SAMPLES, CROPS
+    ALL_CARDS = True
+    SAMPLES = REAL_TRAIN / "all" / "samples.json"
+    CROPS = REAL_TRAIN / "all" / "crops"
 
 
 def role_of(card_id: str) -> str:
-    """'test' (common.split_of holdout), 'val' (10 % of the rest, own hash) or 'train'."""
+    """'test' (common.split_of holdout), 'val' (10 % of the rest, own hash) or 'train'; always 'train' in
+    production mode (use_all_cards)."""
+    if ALL_CARDS:
+        return "train"
     if split_of(card_id) == "test":
         return "test"
     h = int(hashlib.sha1(f"val:{card_id}".encode()).hexdigest(), 16) % 100
@@ -209,7 +227,7 @@ def tcgar_items(cards: dict[str, Card]):
                    "file": f"tcgar/{img_path.stem}_{n[img_path.stem]}.jpg"}
 
 
-def cmd_build(threads: int):
+def cmd_build(threads: int, resume_crops: bool = False):
     import cv2
 
     from detect import LearnedDetector, order_quad, rectify
@@ -220,8 +238,8 @@ def cmd_build(threads: int):
     cards = pack_cards()
     items = [it for it in [*forb_items(cards), *tcgar_items(cards)] if role_of(it["card_id"]) != "test"]
     print(f"{len(items)} train/val photos: {Counter((i['source'], role_of(i['card_id'])) for i in items)}")
-    (REAL_TRAIN / "crops" / "forb").mkdir(parents=True, exist_ok=True)
-    (REAL_TRAIN / "crops" / "tcgar").mkdir(parents=True, exist_ok=True)
+    (CROPS / "forb").mkdir(parents=True, exist_ok=True)
+    (CROPS / "tcgar").mkdir(parents=True, exist_ok=True)
     old = {s["file"]: s for s in json.loads(SAMPLES.read_text())} if SAMPLES.exists() else {}
     ref_cache: dict[str, np.ndarray] = {}
     gal_ids, G = baseline_gallery()
@@ -235,38 +253,47 @@ def cmd_build(threads: int):
         return local.emb, local.det
 
     def one(it):
-        out = REAL_TRAIN / "crops" / it["file"]
+        out = CROPS / it["file"]
         o = old.get(it["file"])
         # reuse only a crop of the same card made by the same cropping code (a new ground-truth map or an
         # upright() fix changes either)
         if o and out.exists() and o["card_id"] == it["card_id"] and o.get("crop_version") == CROP_VERSION:
             return {**o, "role": role_of(o["card_id"])}
         emb, det = tools()
-        img = cv2.imread(it["photo"])
-        if img is None:
+        if resume_crops and out.exists() and out.stat().st_size > 0:
+            # a crop file of an interrupted build with the same code: skip the detector (det_conf unknown)
+            crop, conf = cv2.imread(str(out)), None
+        else:
+            crop, conf = None, None
+        img = None if crop is not None else cv2.imread(it["photo"])
+        if crop is None and img is None:
             return None
-        if it["source"] == "forb":
+        if crop is not None:
+            pass
+        elif it["source"] == "forb":
             h, w = img.shape[:2]
             s = 2048 / max(h, w)
             if s < 1:
                 img = cv2.resize(img, (round(w * s), round(h * s)), interpolation=cv2.INTER_AREA)
             q, conf = det(img)
+            crop = rectify(img, q)
         else:
             img, quad = upright(img, np.float32(it["quad"]))
             l, t, r, b = guide_crop(img, quad)
             q, conf = det(img[t:b, l:r])
             q = order_quad(q + np.float32([l, t]))
-        crop = rectify(img, q)
+            crop = rectify(img, q)
         cid = it["card_id"]
         if cid not in ref_cache:
             ref_cache[cid] = emb(load_ref_rgba(str(cards[cid].ref_path)))
         rot, sim = _orient(crop, emb, ref_cache[cid])
         up = cv2.rotate(crop, cv2.ROTATE_180) if rot == 180 else crop
         top1 = gal_ids[int(np.argmax(G @ emb(up)))]
-        cv2.imwrite(str(out), crop, [cv2.IMWRITE_JPEG_QUALITY, 95])
+        if conf is not None:
+            cv2.imwrite(str(out), crop, [cv2.IMWRITE_JPEG_QUALITY, 95])
         return {"file": it["file"], "source": it["source"], "card_id": cid, "role": role_of(cid),
                 "crop_version": CROP_VERSION, "rot": rot, "sim_ref_baseline": round(sim, 4),
-                "top1_baseline": top1, "det_conf": round(conf, 4),
+                "top1_baseline": top1, "det_conf": None if conf is None else round(conf, 4),
                 **({"difficulty": it["difficulty"]} if "difficulty" in it else {})}
 
     done = []
@@ -276,6 +303,8 @@ def cmd_build(threads: int):
                 done.append(r)
             if n % 500 == 0:
                 print(n, flush=True)
+                if n:  # partial save: an interrupted build keeps what it has (reused like any cached crop)
+                    SAMPLES.write_text(json.dumps(done + [o for f, o in old.items() if f not in {d["file"] for d in done}], indent=0))
     SAMPLES.write_text(json.dumps(done, indent=0))
     by = Counter((s["source"], s["role"]) for s in done)
     print(f"{len(done)} crops -> {SAMPLES}: {dict(by)}; train cards "
@@ -366,13 +395,21 @@ def main():
     ap.add_argument("--threads", type=int, default=6)
     ap.add_argument("--samples", type=Path, default=SAMPLES, help="stats: samples file")
     ap.add_argument("--name", default="current", help="stats: results/realset_<name>.json")
+    ap.add_argument("--resume-crops", action="store_true",
+                    help="build: reuse crop files of an interrupted build of the same code (no detector rerun)")
+    ap.add_argument("--all-cards", action="store_true",
+                    help="production: every card is train (no holdout); data in real-train/all/")
     args = ap.parse_args()
+    if args.all_cards:
+        use_all_cards()
+        if args.samples == REAL_TRAIN / "samples.json":
+            args.samples = SAMPLES
     if args.cmd == "twins":
         cmd_twins()
     elif args.cmd == "stats":
         cmd_stats(args.samples, args.name)
     else:
-        (cmd_build if args.cmd == "build" else cmd_gallery)(args.threads)
+        cmd_build(args.threads, args.resume_crops) if args.cmd == "build" else cmd_gallery(args.threads)
 
 
 if __name__ == "__main__":
