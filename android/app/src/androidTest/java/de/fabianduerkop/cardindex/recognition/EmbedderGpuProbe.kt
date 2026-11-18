@@ -22,7 +22,8 @@ import java.nio.ByteOrder
 /**
  * Issue #54: runs embedding models on the CPU (the app's XNNPACK interpreter) and on the GPU (the app's
  * `CompiledModel` path) and reports the cosine between them and the time per embedding. It reports, it does not
- * assert. Setup and run (models and card images stay off the repository):
+ * assert. One step: `ANDROID_SERIAL=<device> android/gpu-probe.sh f32.tflite f16.tflite w8.tflite [-- images...]`.
+ * By hand (models and card images stay off the repository):
  * ```
  * D=/sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/gpuprobe
  * adb push mnv3_256_real_{w8,wo8,f16,f32}.tflite $D/
