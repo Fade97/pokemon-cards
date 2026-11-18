@@ -22,6 +22,11 @@ import de.fabianduerkop.cardindex.data.packs.PackPreferences
 import de.fabianduerkop.cardindex.data.packs.PackStore
 import de.fabianduerkop.cardindex.data.packs.PackSyncWorker
 import de.fabianduerkop.cardindex.data.prices.HttpPriceApi
+import de.fabianduerkop.cardindex.data.prices.HttpPriceHistoryApi
+import de.fabianduerkop.cardindex.data.prices.PriceHistoryRepository
+import de.fabianduerkop.cardindex.data.pro.DebugEntitlements
+import de.fabianduerkop.cardindex.data.pro.Entitlements
+import de.fabianduerkop.cardindex.data.pro.NoEntitlements
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.settings.AppSettings
@@ -53,6 +58,19 @@ class AppContainer(private val context: Context) {
 
     val prices: PriceRepository by lazy {
         PriceRepository(database.catalogDao(), HttpPriceApi(BuildConfig.API_BASE_URL, httpClient))
+    }
+
+    /** Pro (#17). Until sign-in and billing exist (#16), only debug builds can switch it on. */
+    val entitlements: Entitlements by lazy {
+        if (BuildConfig.DEBUG) DebugEntitlements(settings, BuildConfig.PRO_TEST_TOKEN) else NoEntitlements
+    }
+
+    val priceHistory: PriceHistoryRepository by lazy {
+        PriceHistoryRepository(
+            database.priceHistoryDao(),
+            HttpPriceHistoryApi(BuildConfig.API_BASE_URL, httpClient),
+            entitlements,
+        )
     }
 
     val backup: BackupRepository by lazy { BackupRepository(database) }

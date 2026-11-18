@@ -7,6 +7,7 @@ import androidx.room.Room
 import androidx.room.RoomDatabase
 import androidx.room.TypeConverters
 import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 
 /** The local collection database (ADR 0006). Schemas are exported to `android/app/schemas` for migrations. */
 @Database(
@@ -20,6 +21,8 @@ import androidx.room.migration.Migration
         ReviewItemEntity::class,
         ReviewCandidateEntity::class,
         ContributionEntity::class,
+        PriceHistoryEntity::class,
+        PriceHistoryFetchEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -31,13 +34,29 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun collectionDao(): CollectionDao
     abstract fun reviewDao(): ReviewDao
     abstract fun contributionDao(): ContributionDao
+    abstract fun priceHistoryDao(): PriceHistoryDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 1
+        const val VERSION = 2
+
+        /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_history` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, " +
+                        "`variant` TEXT NOT NULL, `month` TEXT NOT NULL, `days` TEXT NOT NULL, `amounts` TEXT NOT NULL, " +
+                        "PRIMARY KEY(`cardId`, `source`, `variant`, `month`))",
+                )
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `price_history_fetches` (`cardId` TEXT NOT NULL, `month` TEXT NOT NULL, " +
+                        "`fetchedAt` INTEGER NOT NULL, PRIMARY KEY(`cardId`, `month`))",
+                )
+            }
+        }
 
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
-        val MIGRATIONS: Array<Migration> = emptyArray()
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2)
 
         private const val NAME = "cardindex.db"
 

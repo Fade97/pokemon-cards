@@ -167,6 +167,15 @@ fun SettingsScreen(
                     onClick = { scope.launch { DebugTools.addSampleData(context.appContainer) } },
                     modifier = Modifier.padding(top = 8.dp),
                 ) { Text(stringResource(R.string.collections_debug_sample)) }
+                val debugPro by viewModel.debugPro.collectAsStateWithLifecycle()
+                SettingsSection(stringResource(R.string.settings_debug_pro_title)) {
+                    SwitchRow(
+                        title = stringResource(R.string.settings_debug_pro),
+                        hint = stringResource(R.string.settings_debug_pro_hint),
+                        checked = debugPro,
+                        onCheckedChange = viewModel::setDebugPro,
+                    )
+                }
             }
             SettingsSection(stringResource(R.string.settings_about)) {
                 PrivacyPolicyLink()

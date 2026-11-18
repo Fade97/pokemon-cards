@@ -67,12 +67,15 @@ fun CardDetailScreen(
                 container.scans,
                 container.prices,
                 container.primaryPriceSource,
+                container.priceHistory,
+                container.entitlements.isPro,
                 saved,
             )
         },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val history by viewModel.history.collectAsStateWithLifecycle()
     val detail = state.detail
     var editing by remember { mutableStateOf<OwnedCopyEntity?>(null) }
     val context = LocalContext.current
@@ -98,8 +101,7 @@ fun CardDetailScreen(
                 item { CardHeader(detail, state.photos) }
                 item {
                     // Price the printing the user owns in this language, or the plain print if they own none.
-                    val owned = detail.copies.firstOrNull { it.card.language == detail.card.language }?.copy
-                        ?: detail.copies.firstOrNull()?.copy
+                    val owned = detail.pricedCopy()
                     SectionLabel(stringResource(R.string.price_title), Modifier.padding(top = 8.dp))
                     PriceBox(
                         prices = state.prices,
@@ -109,6 +111,16 @@ fun CardDetailScreen(
                         cardLanguage = detail.card.language,
                         modifier = Modifier.padding(horizontal = ScreenPadding),
                     )
+                }
+                history?.let { chart ->
+                    item {
+                        SectionLabel(stringResource(R.string.history_title), Modifier.padding(top = 16.dp))
+                        PriceHistoryBlock(
+                            chart,
+                            onRange = viewModel::setHistoryRange,
+                            modifier = Modifier.padding(horizontal = ScreenPadding),
+                        )
+                    }
                 }
                 item {
                     SectionLabel(

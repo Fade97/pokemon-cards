@@ -211,6 +211,25 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   Build against another backend with `./gradlew :app:assembleDebug -Pcardindex.apiBaseUrl=https://…`
   (`cardindex.priceApiBaseUrl` still works).
 
+## Pro: price history (issue #17)
+
+- **Entitlements** (`data/pro/`): `Entitlements.isPro` decides whether the Pro screens show; the backend checks Pro
+  again on every Pro request (ADR 0007). Sign-in and billing (#16) don't exist yet, so release builds are never Pro.
+  Debug builds have **Settings → Pro (debug build) → Pro features**, and send the tester token from the Gradle property
+  `cardindex.proTestToken` (put it in `~/.gradle/gradle.properties`, never in the repo; the backend needs its SHA-256
+  in `PRO_TEST_TOKENS`, see `backend/README.md`, "Price history"). Without the token the charts say the price service
+  did not accept the device. The token is compiled into the debug APK, so a debug APK that leaves your machine
+  is a Pro credential: remove its digest from `PRO_TEST_TOKENS` then.
+- **History cache** (`data/prices/PriceHistory*.kt`, Room `price_history` + `price_history_fetches`, DB v2): one row
+  per card, market, printing and month, with the month's days and amounts packed as text. Fetched from
+  `GET /v1/history/<month>?sets=…` (20 sets per call), only for cards the user owns or opens. A past month is fetched
+  once on or after the 8th of the next month (the backend rebuilds it until the 3rd), the current month again after 12 hours.
+  Months older than 13 are dropped.
+- **Charts** (`ui/collections/PriceHistoryViews.kt`): the card screen shows the daily price of the printing its price
+  box shows (same `PriceVariant.candidates` rule); the collections screen shows the portfolio under the value header:
+  today's copies valued with each day's prices, a copy's last price carried over gaps, copies without a price in the
+  main market left out (as in the total). Ranges 30 days, 90 days, 1 year.
+
 ## Backup (JSON and CSV)
 
 **Settings → Backup** exports all copies and custom collections through the Storage Access Framework and imports
@@ -278,7 +297,8 @@ by ` | `, matched by name on import (case-insensitive) and created when missing.
 | `app/src/main/java/.../data/collections/`, `data/catalog/` | Collection repository, set slots, the catalog seam |
 | `app/src/main/java/.../data/packs/`, `ui/packs/` | Language packs: catalog, planner, downloads, deltas, store, worker, picker and settings |
 | `app/src/main/java/.../data/contributions/`, `ui/contributions/` | Scan contributions: queue, API client, worker, consent and list |
-| `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links |
+| `app/src/main/java/.../data/prices/` | Price API client, cache refresh, price selection, region and market links, Pro price history |
+| `app/src/main/java/.../data/pro/` | Pro entitlements (debug switch until #16) |
 | `app/src/main/java/.../data/images/` | CDN image URLs, the user's own photos |
 | `app/src/main/java/.../data/backup/` | JSON/CSV export and import |
 | `app/src/debug/` | Debug-only sample data |

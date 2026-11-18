@@ -101,7 +101,9 @@ own scan can stand in as the card's image.
 
 Pro covers cloud sync across devices, price history and portfolio charts, and price alerts. It's sold as a
 cheap subscription plus a lifetime option through Play Billing, with sign-in through Google Sign-In
-(Credential Manager). Pro features are server-side, so the open-source code doesn't weaken them.
+(Credential Manager). Pro features are server-side, so the open-source code doesn't weaken them. Price history comes from
+per-set monthly files derived from the daily snapshots; until billing exists, Pro is gated by tester tokens
+([ADR 0012](adr/0012-price-history-and-pro-gate.md)).
 
 ## Open data and contributions
 

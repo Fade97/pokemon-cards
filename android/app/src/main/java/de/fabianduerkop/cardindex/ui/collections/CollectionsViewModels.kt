@@ -21,12 +21,24 @@ import de.fabianduerkop.cardindex.data.images.importPhoto
 import de.fabianduerkop.cardindex.data.collections.PrintOrder
 import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
+import de.fabianduerkop.cardindex.data.prices.HistoryRange
+import de.fabianduerkop.cardindex.data.prices.HistoryRefresh
+import de.fabianduerkop.cardindex.data.prices.PriceHistoryRepository
+import de.fabianduerkop.cardindex.data.prices.PriceHistorySelection
+import de.fabianduerkop.cardindex.data.prices.PricePoint
+import de.fabianduerkop.cardindex.data.prices.currency
+import de.fabianduerkop.cardindex.data.prices.forLanguage
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
+import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.EnergyType
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
+import java.time.LocalDate
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -37,6 +49,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -46,6 +59,58 @@ private fun <T> Flow<T>.stateIn(vm: ViewModel, initial: T): StateFlow<T> =
 
 /** Null selection in the UI means every language. */
 private fun Set<String>.orAll(): Set<String>? = ifEmpty { null }
+
+/** The copy whose printing the card detail prices: one in the shown language, else any; null if none is owned. */
+internal fun CardDetail.pricedCopy(): OwnedCopyEntity? =
+    copies.firstOrNull { it.card.language == card.language }?.copy ?: copies.firstOrNull()?.copy
+
+/**
+ * Range and refresh of a Pro price chart (#17), shared by the card detail and the collections screen: while Pro is on,
+ * every change of the range or of [cardIds] fetches what the cache lacks.
+ */
+@OptIn(ExperimentalCoroutinesApi::class)
+private class HistoryChart(
+    scope: CoroutineScope,
+    private val repository: PriceHistoryRepository,
+    private val isPro: Flow<Boolean>,
+    cardIds: Flow<Set<String>>,
+) {
+    val range = MutableStateFlow(HistoryRange.QUARTER)
+    private val status = MutableStateFlow(HistoryStatus.LOADING)
+
+    init {
+        scope.launch {
+            combine(isPro, range, cardIds.distinctUntilChanged(), ::Triple).collectLatest { (pro, range, ids) ->
+                if (!pro) return@collectLatest
+                if (ids.isEmpty()) {
+                    status.value = HistoryStatus.READY
+                    return@collectLatest
+                }
+                status.value = HistoryStatus.LOADING
+                status.value = when (repository.refresh(ids, range.from(repository.today()))) {
+                    is HistoryRefresh.Updated -> HistoryStatus.READY
+                    HistoryRefresh.NotPro -> HistoryStatus.REFUSED
+                    is HistoryRefresh.Failed -> HistoryStatus.FAILED
+                }
+            }
+        }
+    }
+
+    /** Null without Pro; otherwise [points] over the chosen range, computed off the main thread. */
+    fun state(points: (from: LocalDate) -> Flow<Pair<List<PricePoint>, String>>): Flow<HistoryUiState?> =
+        isPro.distinctUntilChanged().flatMapLatest { pro ->
+            if (!pro) {
+                flowOf(null)
+            } else {
+                range.flatMapLatest { range ->
+                    val from = range.from(repository.today())
+                    combine(points(from).flowOn(Dispatchers.Default), status) { (values, currency), status ->
+                        HistoryUiState(range, values, currency, status)
+                    }
+                }
+            }
+        }
+}
 
 /** A set row on the collections screen: completion, the owned numbers for its slot strip, and its value. */
 data class SetRowUi(
@@ -81,6 +146,8 @@ class CollectionsViewModel(
     private val repository: CollectionRepository,
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
+    history: PriceHistoryRepository,
+    isPro: Flow<Boolean>,
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
 
@@ -116,6 +183,23 @@ class CollectionsViewModel(
                 .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
         )
     }.stateIn(this, CollectionsUiState())
+
+    private val portfolioChart = HistoryChart(
+        viewModelScope,
+        history,
+        isPro,
+        repository.observeAllCopies().map { copies -> copies.map { it.card.id }.toSet() },
+    )
+
+    /** Pro (#17): every copy, as in the value header, valued with each day's prices. Null without Pro. */
+    val portfolio: StateFlow<HistoryUiState?> = portfolioChart.state { from ->
+        combine(repository.observeAllCopies(), history.observeAll(from), primarySource) { copies, rows, source ->
+            PriceHistorySelection.portfolio(copies.map { it.copy }, rows, source, from)
+                .map { PricePoint(it.date, it.valueMinor) } to source.currency
+        }
+    }.stateIn(this, null)
+
+    fun setPortfolioRange(range: HistoryRange) { portfolioChart.range.value = range }
 
     init {
         // Keep the cached prices of owned cards fresh; PriceRepository skips cards fetched in the last 12 hours.
@@ -212,6 +296,8 @@ class CardDetailViewModel(
     private val scans: ScanImageStore,
     private val priceRepository: PriceRepository,
     primarySource: Flow<PriceSource>,
+    historyRepository: PriceHistoryRepository,
+    isPro: Flow<Boolean>,
     savedState: SavedStateHandle,
 ) : ViewModel() {
     val cardId: String = checkNotNull(savedState[CollectionsRoutes.ARG_CARD_ID])
@@ -233,6 +319,20 @@ class CardDetailViewModel(
     }.combine(priceRepository.observe(cardId)) { state, prices -> state.copy(prices = prices) }
         .combine(primarySource) { state, source -> state.copy(source = source) }
         .stateIn(this, CardDetailUiState())
+
+    private val chart = HistoryChart(viewModelScope, historyRepository, isPro, flowOf(setOf(cardId)))
+
+    /** Pro (#17): the daily price of the printing the price box shows. Null without Pro. */
+    val history: StateFlow<HistoryUiState?> = chart.state { from ->
+        combine(historyRepository.observeCard(cardId, from), state) { rows, state ->
+            val copy = state.detail?.pricedCopy()
+            val source = state.source.forLanguage(language)
+            PriceHistorySelection.series(rows, source, copy?.finish ?: Finish.NORMAL, copy?.edition ?: Edition.UNLIMITED)
+                .filter { !it.date.isBefore(from) } to source.currency
+        }
+    }.stateIn(this, null)
+
+    fun setHistoryRange(range: HistoryRange) { chart.range.value = range }
 
     init {
         viewModelScope.launch { priceRepository.refresh(listOf(cardId)) }
