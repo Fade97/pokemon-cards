@@ -323,7 +323,8 @@ removes the argument.
 
 **Gaps before the form can be submitted:**
 
-- A **privacy policy URL** is required and does not exist yet. It must cover: no account, local-only collection,
+- A **privacy policy URL** is required. PR #75 (#70) adds it at `/privacy` on the Worker (DE/EN); its placeholders
+  must be filled before it is deployed and entered in the Console. It must cover: no account, local-only collection,
   the opt-in contribution (what, CC0, withdrawal, retention), ML Kit telemetry, Cloudflare (IP in request logs,
   `observability` retention) and TCGdex image requests. An Impressum (ยง 5 DDG) is needed at the latest when Pro
   makes it a commercial offer. Host both on the product domain or GitHub Pages.
@@ -370,7 +371,7 @@ production. Testers who leave and rejoin start over. After the test: Dashboard โ
 
 - [ ] Apply the section 2 diff; signed release AAB with Play App Signing (upload key outside the repo,
       signing config only from env or a git-ignored file). Install the AAB via bundletool and smoke-test R8 builds on the S25.
-- [ ] Privacy policy (EN/DE) and, if needed, Impressum, hosted at a stable URL.
+- [ ] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled; Impressum if needed.
 - [ ] In-app "About" with the disclaimer, licenses and the privacy link.
 - [ ] Screenshots and feature graphic (section 3).
 - [ ] A feedback channel for testers: a GitHub issue template or a short form, linked from the app.
