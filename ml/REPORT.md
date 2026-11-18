@@ -810,6 +810,41 @@ The photos are German prints. Installing all seven languages costs 5 of 28 (v2) 
 which other-language cards they land on was not broken down. The S25 check was not done (#54 covers the GPU path
 there).
 
+### Packs v2/v3 on the S25 (#83, 2026-11-18)
+
+Galaxy S25 Ultra (SM-S938B, Snapdragon SM8750, Android 17), debug build of `main` @ f0079e3, all seven packs installed
+(en, de, fr, it, es, pt at v3 = v2 plus MEE, ja at v2), model `mnv3_256_prod_f16-0635d6230b38`, 106,715 cards. The
+phone was reached over Tailscale with its screen locked, so the packs were installed by an instrumentation helper
+instead of the first-run picker (same `PackManager.addLanguages` + `sync` path).
+
+**GPU backend.** Loading the engine as the Scan screen does (`preferGpu = true`) keeps the GPU: `GPU embedder agrees
+with the CPU (cosine 1.0); 1 ms vs 14 ms`, `backend=GPU`. `RealPhotoTest` itself loads with the CPU default, so its
+times below are CPU times.
+
+**GPU precision** (`EmbedderGpuProbe`, synthetic probe + 3 card images, 50 runs):
+
+| Model | CPU | GPU FP32 | GPU FP16 | FP16 vs CPU (cosine, min) |
+|---|---|---|---|---|
+| `mnv3_256_prod_f32` | 12.5 ms | 2.4 ms | 1.6 ms | 0.9999 |
+| `mnv3_256_prod_f16` (shipped) | 12.5 ms | 2.4 ms | 1.6 ms | 0.9999 |
+
+FP16 is well above the 0.995 agreement gate and saves 0.8 ms per embedding (a scan embeds two orientations). The app
+keeps `GPU_PRECISION = FP32` for now: the gain is about 1.6 ms per frame next to ~25 ms detection.
+
+**`RealPhotoTest`, 29 labelled own photos** (right / shown / shown wrong; median detection + identification, CPU):
+
+| Outline | One pass | Two-pass (`-e twoPass true`) | Emulator v2 (above) |
+|---|---|---|---|
+| Learned, all languages | 24 / 28 / 4, 257 ms | 24 / 28 / 4, 509 ms (second crop kept 20×) | 23 / 27 / 5 |
+| Learned, German only | 29 / 28 / 0, 122 ms | 29 / 28 / 0, 224 ms (kept 19×) | 28 / 27 / 0 |
+| Classic, all languages | 21 / 23 / 4, 272 ms | (one pass) | 21 / 23 / 4 |
+| Classic, German only | 27 / 23 / 0, 133 ms | (one pass) | 27 / 23 / 0 |
+
+- The phone matches or beats the emulator run of the same packs (learned: +1 right, −1 shown wrong).
+- **Two-pass changes no answer on these photos** and doubles the time on the photo path (+250 ms all languages,
+  +100 ms German only). That is expected: these 29 photos were taken with the app's guide, where the first crop is
+  already good. The FORB gain (+2.9 pp, #78) came from wide or landscape frames, i.e. the gallery path.
+
 ## Two-pass corner detection (#78, 2026-11-18)
 
 Run on Fabian-PC (CPU) with the shipped detector `corners_mnv3_w8`, no OCR rerank. The steps
