@@ -224,6 +224,7 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     val url = BuildConfig.PRIVACY_POLICY_URL
+    val noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url)
     TextButton(onClick = {
         // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
         // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
@@ -236,7 +237,7 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
             false
         }
         if (!opened) {
-            Toast.makeText(context, context.getString(R.string.settings_privacy_policy_no_browser, url), Toast.LENGTH_LONG).show()
+            Toast.makeText(context, noBrowser, Toast.LENGTH_LONG).show()
         }
     }, modifier = modifier) {
         Text(stringResource(R.string.settings_privacy_policy))
