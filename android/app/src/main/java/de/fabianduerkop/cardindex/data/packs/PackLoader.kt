@@ -7,14 +7,16 @@ import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ReferenceIndex
 import de.fabianduerkop.cardindex.recognition.sha256Hex
 import java.io.File
+import java.nio.FloatBuffer
 
-/** The installed packs, checked and read into memory for the recognition engine. */
+/** The installed packs, checked and loaded for the recognition engine (the index rows memory-mapped). */
 class LoadedPacks(
     val model: InstalledModel,
     val modelBytes: ByteArray,
     /** Index rows of every usable language, one after the other. */
     val cards: List<RefCard>,
-    val vectors: FloatArray,
+    /** One memory-mapped `index.bin` per language, in the order of [cards] (off the Java heap, issue #74). */
+    val vectors: List<FloatBuffer>,
     val dim: Int,
     val languages: Set<String>,
 )
@@ -55,10 +57,9 @@ object PackLoader {
 
         val broken = HashSet<String>()
         val cards = ArrayList<RefCard>()
-        // One array for every language, filled straight from the files: with six languages (~100k cards) the index
-        // is ~100 MB, and a second copy per language did not fit a 192 MB heap (issue #56).
-        var vectors = FloatArray(candidates.values.sumOf { it.meta.cards.toLong() * it.meta.dim }.coerceAtMost(Int.MAX_VALUE.toLong()).toInt())
-        var offset = 0
+        // Each index.bin is mapped, not read: seven languages (~107k cards) are ~104 MB, which on the Java heap left
+        // a 192 MB heap at its limit (issues #56, #74). The mapped pages are clean and outside the heap.
+        val vectors = ArrayList<FloatBuffer>()
         for ((lang, pack) in candidates.toSortedMap()) {
             try {
                 val meta = pack.meta
@@ -81,9 +82,9 @@ object PackLoader {
                     throw PackIntegrityException("$lang card file does not match its index")
                 }
                 val setsById = sets.associateBy { it.id }
-                ReferenceIndex.readVectors(pack.indexFile, vectors, offset)
-                offset += meta.cards * meta.dim
-                cards += indexed.map { c ->
+                val rows = ReferenceIndex.mapVectors(pack.indexFile)
+                check(rows.capacity().toLong() == meta.cards.toLong() * meta.dim) { "$lang index.bin changed while loading" }
+                val langCards = indexed.map { c ->
                     val set = setsById[c.setId]
                     RefCard(
                         key = "$lang/${c.id}",
@@ -98,13 +99,14 @@ object PackLoader {
                         unseen = false,
                     )
                 }
+                vectors += rows
+                cards += langCards
             } catch (e: Exception) {
                 Log.w(TAG, "language pack $lang failed its check", e)
                 broken += lang
             }
         }
         if (cards.size < 2) return PackLoad(null, broken, modelBroken = false, from = installed)
-        if (offset < vectors.size) vectors = vectors.copyOf(offset) // a pack failed its check
         val languages = candidates.keys - broken
         return PackLoad(
             LoadedPacks(model, modelBytes, cards, vectors, model.dim, languages), broken, modelBroken = false, from = installed,
