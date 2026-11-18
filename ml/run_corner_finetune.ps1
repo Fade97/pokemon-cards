@@ -45,7 +45,8 @@ Step "1c baseline summary" { uv run python corner_analysis.py summary --embedder
 if (-not (Test-Path "$Data\corner-train\real_corners.npz")) {
     Step "2 real corner set" { uv run python corner_realset.py build --rows $Embedder }
 }
-if (-not (Test-Path "$Data\checkpoints\$Run.pt")) {
+# the checkpoint is saved at every improved eval, so it exists before training ends; the results JSON only at the end
+if (-not (Test-Path "results\train_$Run.json")) {
     Step "3 fine-tune" { uv run python train_corners.py --run $Run --init corners_mnv3 --real --epochs $Epochs --lr $Lr --eval-every 1 }
 }
 if (-not (Test-Path "$Data\export\${Run}_w8.tflite")) {
