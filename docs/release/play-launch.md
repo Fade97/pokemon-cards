@@ -93,9 +93,33 @@ split circles.
 
 Kartothek is the alternative if the `.com` matters more than trademark strength.
 
-**Decided (2026-11-18): Lumifoil.** After that, before the listing: (a) register the domain(s), (b) optionally file a
+**Decided (2026-11-18): Foilark** (section 1b). Lumifoil was picked first and dropped the same day. After that, before the listing: (a) register the domain(s), (b) optionally file a
 DE or EU trademark in classes 9 and 42 (DPMA online filing for up to three classes costs about EUR 290;
 **Assumption**, check the current fee list), (c) apply section 2.
+
+### 1b. Second round (2026-11-18): Foilark
+
+Lumifoil was dropped after the first pick: `lumifoil.com` has belonged to Signify (formerly Philips Lighting) since
+2007, and LunaLEC and Aerofoil Energy sell lighting products called Lumifoil. Binderkeep was out too: someone else
+registered `binderkeep.com` (2026-08) and `binderkeep.app` (2026-10), with a "BinderKeep" page.
+
+Fabian asked for a new round that keeps the foil/holo feel. Same sources as above. In addition, `.com` had to be free.
+
+- **Domains:** of about 80 coined names, 13 had `.com`, `.de` and `.app` all free.
+- **TMview** (EM/DE/WO/US, "contains" and "fuzzy", only filed or registered marks, classes 9/16/28/35/41/42):
+  - 12 of the 13 had no hit. The odd one out was Lumisheen, with "LUMISHEEP", US class 16.
+  - Control run: "card index" finds the known US class 9 filing, so the check does find conflicts.
+- **Play and web** (exact names): no app and no use for any of the 12.
+
+The 12 clean names: Foilark, Lumiholo, Shimmerfold, Foilnook, Irisfoil, Foilglint, Sheenvault, Foiltide,
+Foilcrate, Foilshelf, Lustrebook, Sheenbook.
+
+**Foilark** (foil + ark, a safe place for the collection), the details:
+- **Domains:** `foilark.com`, `.de` and `.app` were all free on 2026-11-18.
+- **Trademarks:** no mark "Foilark". "ARK" on its own is registered in the EU in classes 9/42. The compound looks
+  far enough from it (**Assumption**, not legal advice).
+- **Similar names:** foilack (car wrapping, MÃ¼nster) and FoilArt (craft foils) are one letter away, in other fields.
+- **Risk:** the name can be misread as "Foi-lark".
 
 ## 2. applicationId
 
@@ -363,8 +387,8 @@ production. Testers who leave and rejoin start over. After the test: Dashboard â
 - [ ] Decide the EU **trader status** (DSA). Free app without Pro: usually "not a trader". With Pro (#16) it
       becomes a trader, and address and phone become public in the listing.
 - [ ] Payments profile, only when Pro / Play Billing comes.
-- [x] Choose the name (section 1): Lumifoil. applicationId `de.fabianduerkop.lumifoil` (section 2) is applied.
-- [ ] Register `lumifoil.de` / `lumifoil.app`.
+- [x] Choose the name (section 1b): Foilark. applicationId `de.fabianduerkop.foilark` (section 2) is applied.
+- [ ] Register `foilark.com` / `foilark.de` / `foilark.app` (all free on 2026-11-18).
 - [ ] Recruit testers and approve the Google Group.
 - [ ] Sign the declarations in the Console (content rating, data safety, target audience, ads: no ads).
 
@@ -406,8 +430,8 @@ About 4 weeks from account creation to production, if nothing is rejected.
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 1 | App name | **Lumifoil** (Fabian, 2026-11-18; recommendation was Binderkeep, then Lumifoil, Prismbook) |
-| 2 | applicationId | `de.fabianduerkop.lumifoil` (applied), namespace stays `de.fabianduerkop.cardindex` |
+| 1 | App name | **Foilark** (Fabian, 2026-11-18, second round, section 1b; Lumifoil was dropped the same day) |
+| 2 | applicationId | `de.fabianduerkop.foilark` (applied), namespace stays `de.fabianduerkop.cardindex` |
 | 3 | Domain | Register `.de` (and `.app` if free) for the chosen name |
 | 4 | Contributed photos as "shared" in Data safety | Yes, declare as shared |
 | 5 | Target audience | 13+ |

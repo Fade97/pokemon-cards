@@ -1,7 +1,7 @@
 # Android app
 
 Kotlin + Jetpack Compose app (ADR 0001). Package `de.fabianduerkop.cardindex`, debug builds install as
-`de.fabianduerkop.lumifoil.debug` next to a release build.
+`de.fabianduerkop.foilark.debug` next to a release build.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ release build checks the R8 keep rules.
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n de.fabianduerkop.lumifoil.debug/de.fabianduerkop.cardindex.MainActivity
+adb shell am start -n de.fabianduerkop.foilark.debug/de.fabianduerkop.cardindex.MainActivity
 ```
 
 To smoke-test an unsigned release APK (R8 problems show up only there), sign it with the debug key just for the
@@ -39,7 +39,7 @@ test. The bundle Play gets is tested as in "Smoke test the bundle" below.
 apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android \
   --out /tmp/cardindex-release.apk app/build/outputs/apk/release/app-release-unsigned.apk
 adb install -r /tmp/cardindex-release.apk
-adb shell am start -n de.fabianduerkop.lumifoil/de.fabianduerkop.cardindex.MainActivity
+adb shell am start -n de.fabianduerkop.foilark/de.fabianduerkop.cardindex.MainActivity
 ```
 
 ## Signed release (issue #88)
@@ -81,11 +81,11 @@ R8 problems appear only in release builds, so install the bundle itself before u
 ```sh
 umask 077; tmp=$(mktemp -d)   # upload key from Vault into $tmp/upload.jks, its password into $tmp/pass
 java -jar bundletool.jar build-apks --bundle=app/build/outputs/bundle/release/app-release.aab \
-  --output=$tmp/lumifoil.apks --connected-device --device-id=$ANDROID_SERIAL \
+  --output=$tmp/foilark.apks --connected-device --device-id=$ANDROID_SERIAL \
   --ks=$tmp/upload.jks --ks-key-alias=upload --ks-pass=file:$tmp/pass --key-pass=file:$tmp/pass
-java -jar bundletool.jar install-apks --apks=$tmp/lumifoil.apks --device-id=$ANDROID_SERIAL
+java -jar bundletool.jar install-apks --apks=$tmp/foilark.apks --device-id=$ANDROID_SERIAL
 rm -rf "$tmp"
-adb shell am start -n de.fabianduerkop.lumifoil/de.fabianduerkop.cardindex.MainActivity
+adb shell am start -n de.fabianduerkop.foilark/de.fabianduerkop.cardindex.MainActivity
 ```
 
 bundletool takes passwords only as `pass:` or `file:`. Without `--ks` it signs with the debug key, which is fine
@@ -194,7 +194,7 @@ CARDINDEX_DATA=/path/to/pokemon-cards-data python app_assets.py   # needs <data>
 ```sh
 python ml/synth.py --per-card 1 --seed 777 --name parity --groups en/sv03.5 de/sv03.5 ja/SV2a en/me03 en/me04 de/30th
 python ml/app_parity.py --every 5          # writes <data>/app-parity/ (PNGs + expected.json)
-adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/parity/
+adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/parity/
 ./gradlew :app:connectedDebugAndroidTest   # results.json lands next to the images
 ```
 
@@ -217,7 +217,7 @@ Two of the three wrong matches with all languages are the right card in English;
 Without bundled lab assets the test uses the installed language packs, as the app does. Install the debug and
 test APKs with `adb install -r` (Gradle's `connectedAndroidTest` uninstalls the app afterwards, which deletes the
 packs and the photos), then run `adb shell am instrument --user 0 -w -e class
-de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner`.
+de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.foilark.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 Result on 2026-11-17 with the German, English and Japanese packs (45,170 cards), 73 photos of German cards
 (64 de/30th, 9 de/me04), similarity minimum 0.45:
 
@@ -240,10 +240,10 @@ pass; `ml/REPORT.md` ("Two-pass corner detection (#78)") measured no gain in gui
 writes `results-twopass.json` instead of `results.json` (the classic outline stays one pass), and both files carry
 `medianTotalMs` (detection plus identification, no OCR) and `secondPassKept` per configuration:
 ```
-adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner
-adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest -e twoPass true de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner
-adb pull /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/results.json
-adb pull /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/results-twopass.json
+adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.foilark.debug.test/androidx.test.runner.AndroidJUnitRunner
+adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.RealPhotoTest -e twoPass true de.fabianduerkop.foilark.debug.test/androidx.test.runner.AndroidJUnitRunner
+adb pull /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/realphotos/results.json
+adb pull /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/realphotos/results-twopass.json
 ```
 Not measured on a phone yet (#78, #83).
 
@@ -321,7 +321,7 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   threshold fires one notification and disarms; it re-arms, silently, once the price is back on the other side. No
   price or another currency changes nothing. The job is scheduled while alerts exist and cancelled with the last one.
 - **Notifications**: channel `price_alerts`; `POST_NOTIFICATIONS` (Android 13+) is asked when the first alert is created.
-  A notification opens the card (`lumifoil://card/<id>/<language>`, handled only inside the app). Without the
+  A notification opens the card (`foilark://card/<id>/<language>`, handled only inside the app). Without the
   permission the rules still fire and disarm; the lists show when they last did and warn that notifications are off.
 - This is a soft gate by decision ([ADR 0013](../docs/adr/0013-price-alerts-on-device.md)): the rules and the check are
   plain Kotlin so they can move to the backend with sign-in and push (#16).

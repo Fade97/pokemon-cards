@@ -21,8 +21,8 @@ import kotlin.math.roundToInt
  * Runs the app's photo pipeline (long side 2048 px, guide area, both outline detectors) on labelled real photos and
  * writes `results.json`; it reports, it does not assert. The photos are the user's own and stay off the repository:
  * ```
- * adb push real-photos/. /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/
- * adb push real-photos-labels-manual.json /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/realphotos/labels.json
+ * adb push real-photos/. /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/realphotos/
+ * adb push real-photos-labels-manual.json /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/realphotos/labels.json
  * ```
  * labels.json maps file name → accepted keys `"<lang>/<set id>:<collector number>"`. Without bundled assets the
  * test uses the installed language packs, so install the debug build with `adb install -r` (Gradle's

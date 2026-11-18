@@ -81,7 +81,7 @@ object BackupJson {
         } catch (e: org.json.JSONException) {
             throw BackupFormatException("Not a JSON file", e)
         }
-        if (root.optString("format") != FORMAT) throw BackupFormatException("Not a Lumifoil backup")
+        if (root.optString("format") != FORMAT) throw BackupFormatException("Not a Foilark backup")
         val version = root.optInt("version", -1)
         if (version < 1) throw BackupFormatException("Backup has no version")
         if (version > VERSION) throw BackupFormatException("Backup is from a newer app version ($version)")

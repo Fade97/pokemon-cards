@@ -20,7 +20,7 @@ export const CONTROLLER = {
 };
 
 /** The app's name in the text (final name, #15). */
-export const APP_NAME = "Lumifoil";
+export const APP_NAME = "Foilark";
 
 /** Shown as "last updated". Change it with every change of the text. */
 export const UPDATED = "2026-11-18";

@@ -25,12 +25,12 @@ import java.nio.ByteOrder
  * assert. One step: `ANDROID_SERIAL=<device> android/gpu-probe.sh f32.tflite f16.tflite w8.tflite [-- images...]`.
  * By hand (models and card images stay off the repository):
  * ```
- * D=/sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/gpuprobe
+ * D=/sdcard/Android/data/de.fabianduerkop.foilark.debug/files/gpuprobe
  * adb push mnv3_256_real_{w8,wo8,f16,f32}.tflite $D/
  * adb push some-card-crops/. $D/images/                    # optional: *.png / *.jpg card crops
  * adb install -r app/build/outputs/apk/androidTest/debug/app-debug-androidTest.apk
  * adb shell am instrument --user 0 -w -e class de.fabianduerkop.cardindex.recognition.EmbedderGpuProbe \
- *   de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner
+ *   de.fabianduerkop.foilark.debug.test/androidx.test.runner.AndroidJUnitRunner
  * adb pull $D/results.json
  * ```
  * Arguments (`-e name value`): `models` comma-separated file names in the probe folder or absolute paths (default:
