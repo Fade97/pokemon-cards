@@ -576,10 +576,39 @@ GPU computes in float, so CPU and GPU disagreed. With f16 they agree, and the ap
 Both models get 28 of 29 own photos exactly right. The f16 and f32 miss is a de/30th photo at similarity 0.30. The
 baseline found it at 0.38, which is also below the display threshold, so the app shows nothing for that photo with
 either model. Since f16 and f32 agree on it, the miss comes from the model and not from the f16 conversion.
-FORB and TCG-AR are training data now and only serve as a smoke test (below).
+FORB and TCG-AR are training data now and only serve as a smoke test. TCG-AR (`eval_tcgar.py --variant f16`, v2 EN
+gallery, all 635 cards, every one trained on) gives 91.8 % top-1 with learned corners: the baseline had 71.2 % and
+`mnv3_256_forb` 91.5 % (`results/tcgar_mnv3_256_prod_f16.json`). Nothing broke, and that is all this number shows.
+FORB was not re-run.
 
 Sources: `results/eval_mnv3_256_prod.json`, `results/real_manual_mnv3_256_prod{,_f16,_f32}_learned.json`,
 `results/export_mnv3_256_prod.json`.
+
+### Packs v2 (published 2026-11-18)
+
+All seven live languages were re-embedded with `mnv3_256_prod_f16.tflite` (`build_packs.py embed`, CPU on
+Fabian-PC, about 25 min in four processes). They were built against the published v1 catalog on Vulcan and share one
+model, **`mnv3_256_prod_f16-0635d6230b38`** (embedder 9.3 MB plus the unchanged corner model). The card metadata is
+the same as v1, so the indexed counts are the same: en 22,213, de 15,598, ja 7,359, fr 18,767, it 14,622, es 14,916,
+pt 13,144. The model changed, so there is no delta: an installed v1 pack downloads v2 in full (124 MB for all seven
+plus the models). MEE (#60) is not in v2, because it has no image source that allows automated downloads yet.
+
+**App check before the catalog switch** (talos emulator, debug build of `main` @ 89dfa02 with #72, CPU backend).
+The test build loaded the staged v2 files from a local mirror, the same bytes that were uploaded. Its first-run
+picker downloaded all seven languages: `engine ready: mnv3_256_prod_f16-0635d6230b38 on CPU, [de, en, es, fr, it, ja,
+pt]`, 106,619 cards, no out-of-memory error. Then `RealPhotoTest` ran on the same 29 labelled own photos, once with
+v1 and once with v2, both with all seven packs installed:
+
+| `RealPhotoTest`, 29 photos | v1 `mnv3_256_real_w8` | **v2 `mnv3_256_prod_f16`** |
+|---|---|---|
+| Learned outline, all languages: right / shown / shown wrong | 20 / 28 / 8 | **23 / 27 / 5** |
+| Learned outline, German only | 27 / 28 / 1 | **28 / 27 / 0** |
+| Classic outline, all languages | 11 / 27 / 16 | **21 / 23 / 4** |
+| Classic outline, German only | 22 / 23 / 3 | **27 / 23 / 0** |
+
+The photos are German prints. Installing all seven languages costs 5 of 28 (v2) top-1 answers against German only;
+which other-language cards they land on was not broken down. The S25 check was not done (#54 covers the GPU path
+there).
 
 ## Reproduce
 
