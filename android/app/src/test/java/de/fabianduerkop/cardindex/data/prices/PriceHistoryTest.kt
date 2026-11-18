@@ -159,8 +159,8 @@ class PriceHistoryTest {
     @Test
     fun finalMonths_endAfterTheBackendsRebuildWindow() {
         val november = YearMonth.of(2026, 11)
-        assertEquals(false, PriceHistoryRepository.isFinal(november, Instant.parse("2026-12-03T23:59:00Z")))
-        assertEquals(true, PriceHistoryRepository.isFinal(november, Instant.parse("2026-12-04T00:00:00Z")))
+        assertEquals(false, PriceHistoryRepository.isFinal(november, Instant.parse("2026-12-07T23:59:00Z")))
+        assertEquals(true, PriceHistoryRepository.isFinal(november, Instant.parse("2026-12-08T00:00:00Z")))
     }
 }
 
@@ -229,7 +229,7 @@ class PriceHistoryRepositoryTest {
 
         clock.advance(13 * 3600)
         repo.refresh(listOf("sv03.5-001"), d("2026-11-15"))
-        // November was fetched after Dec 4: final. December is still growing.
+        // November was fetched after Dec 8: final. December is still growing.
         assertEquals(listOf(YearMonth.of(2026, 12) to listOf("sv03.5")), api.calls)
 
         // A card new to the cache gets its whole range, even from a set already fetched.
@@ -240,7 +240,7 @@ class PriceHistoryRepositoryTest {
 
     @Test
     fun refresh_asksAgainForTheLastMonth_whileTheBackendMayStillRebuildIt() = runTest {
-        clock.now = Instant.parse("2026-12-02T10:00:00Z")
+        clock.now = Instant.parse("2026-12-06T10:00:00Z")
         val api = FakeApi()
         val repo = repo(api)
         repo.refresh(listOf("sv03.5-001"), d("2026-11-15"))

@@ -97,7 +97,8 @@ export class HistoryMonthBuilder {
           month: this.month,
           generatedAt: this.generatedAt.toISOString(),
           days: [...this.dates],
-          cards: {},
+          // No prototype: a card id or printing like "constructor" must not hit Object.prototype.
+          cards: Object.create(null) as Record<string, CardHistory>,
         };
         this.files.set(shard, file);
       }
@@ -106,7 +107,7 @@ export class HistoryMonthBuilder {
       const cardmarketId = row[m.cardmarketId] as number | null;
       const price = cardmarketId === null ? undefined : cardmarket.get(cardmarketId);
       if (price) {
-        const market = (card.cardmarket ??= {}) as Record<string, DailyCents>;
+        const market = (card.cardmarket ??= Object.create(null)) as Record<string, DailyCents>;
         const normal = cents(price[cm.trend]);
         const holo = cents(price[cm.holoTrend]);
         if (normal !== null) series(market, "normal")[i] = normal;
@@ -116,7 +117,7 @@ export class HistoryMonthBuilder {
       const tcgplayerId = row[m.tcgplayerId] as number | null;
       for (const variant of (tcgplayerId === null ? undefined : tcgplayer.get(tcgplayerId)) ?? []) {
         const market = cents(variant[tp.market]);
-        if (market !== null) series((card.tcgplayer ??= {}), variant[tp.subType] as string)[i] = market;
+        if (market !== null) series((card.tcgplayer ??= Object.create(null)), variant[tp.subType] as string)[i] = market;
       }
     }
   }

@@ -32,7 +32,7 @@ sealed interface HistoryRefresh {
  * Pro price history (#17), cached in Room per card and month. The backend's files are per set and month, so a refresh
  * asks for every month of the range once per 20 sets, and keeps only the cards it was asked about.
  *
- * Past months are final once the backend's rebuild window is over ([isFinal]) and are fetched once; the current month
+ * Past months are final a few days after the backend's rebuild window ([isFinal]) and are fetched once; the current month
  * again when older than [maxAge] (the backend adds a day each night).
  */
 class PriceHistoryRepository(
@@ -106,9 +106,14 @@ class PriceHistoryRepository(
         private const val MAX_ATTEMPTS = 3
         private const val KEEP_MONTHS = 13L
 
-        /** The backend rebuilds the previous month until the 3rd (importer/history.ts, `monthsToRebuild`). */
+        /**
+         * The backend rebuilds the previous month until the 3rd (importer/history.ts, `monthsToRebuild`); the days up to
+         * the 8th leave time for a manual `--rebuild-history` after failed nights before the app stops asking.
+         */
         fun isFinal(month: YearMonth, fetchedAt: Instant): Boolean =
-            !fetchedAt.isBefore(month.plusMonths(1).atDay(4).atStartOfDay().toInstant(ZoneOffset.UTC))
+            !fetchedAt.isBefore(month.plusMonths(1).atDay(FINAL_DAY).atStartOfDay().toInstant(ZoneOffset.UTC))
+
+        private const val FINAL_DAY = 8
 
         /** The id pattern the backend accepts (`CARD_ID` in backend/src/price-data.ts). */
         private val BACKEND_CARD_ID = Regex("^[A-Za-z0-9._-]{1,40}$")

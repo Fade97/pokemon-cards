@@ -7,6 +7,8 @@ import de.fabianduerkop.cardindex.model.PriceVariant
 import java.io.IOException
 import java.time.LocalDate
 import java.time.YearMonth
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.Request
@@ -42,7 +44,12 @@ class HttpPriceHistoryApi(private val baseUrl: String, private val client: Call.
             .addQueryParameter("sets", sets.joinToString(","))
             .build()
         val request = Request.Builder().url(url).header("Authorization", "Bearer $token").build()
-        return client.newCall(request).await().use { response ->
+        // The body is read and parsed here: off the main thread, a month of 20 sets is a few MB.
+        return withContext(Dispatchers.IO) { read(request) }
+    }
+
+    private suspend fun read(request: Request): Map<String, HistoryMonth> =
+        client.newCall(request).await().use { response ->
             when {
                 response.code == 401 || response.code == 403 -> throw ProRequiredException(response.code)
                 response.code == 429 -> throw RateLimitedException(response.header("Retry-After")?.toLongOrNull() ?: 60)
@@ -55,7 +62,6 @@ class HttpPriceHistoryApi(private val baseUrl: String, private val client: Call.
                 }
             }
         }
-    }
 }
 
 /** Maps the history files onto cache rows. Cardmarket's `holo` is stored as reverse holo, as in [PriceJson]. */

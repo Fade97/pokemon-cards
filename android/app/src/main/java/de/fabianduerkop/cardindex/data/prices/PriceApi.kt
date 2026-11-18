@@ -7,6 +7,8 @@ import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
 import java.io.IOException
 import java.time.Instant
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import okhttp3.Call
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.Request
@@ -41,14 +43,18 @@ class HttpPriceApi(
         if (ids.isEmpty()) return PriceBatch(emptyMap(), emptyList())
         val body = JSONObject().put("ids", JSONArray(ids)).toString().toRequestBody(JSON)
         val request = Request.Builder().url(baseUrl.trimEnd('/') + "/v1/prices").post(body).build()
-        return client.newCall(request).await().use { response ->
+        // await() resumes on the caller's dispatcher; reading the body there could be the main thread.
+        return withContext(Dispatchers.IO) { read(request) }
+    }
+
+    private suspend fun read(request: Request): PriceBatch =
+        client.newCall(request).await().use { response ->
             when {
                 response.code == 429 -> throw RateLimitedException(response.header("Retry-After")?.toLongOrNull() ?: 60)
                 !response.isSuccessful -> throw IOException("Price API answered ${response.code}")
-                else -> PriceJson.parseBatch(response.body!!.string(), clock())
+                else -> PriceJson.parseBatch(response.body.string(), clock())
             }
         }
-    }
 
     private companion object {
         val JSON = "application/json".toMediaType()
