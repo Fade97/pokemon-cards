@@ -241,7 +241,7 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   threshold fires one notification and disarms; it re-arms, silently, once the price is back on the other side. No
   price or another currency changes nothing. The job is scheduled while alerts exist and cancelled with the last one.
 - **Notifications**: channel `price_alerts`; `POST_NOTIFICATIONS` (Android 13+) is asked when the first alert is created.
-  A notification opens the card (`cardindex://card/<id>/<language>`, handled only inside the app). Without the
+  A notification opens the card (`lumifoil://card/<id>/<language>`, handled only inside the app). Without the
   permission the rules still fire and disarm; the lists show when they last did and warn that notifications are off.
 - This is a soft gate by decision ([ADR 0013](../docs/adr/0013-price-alerts-on-device.md)): the rules and the check are
   plain Kotlin so they can move to the backend with sign-in and push (#16).
