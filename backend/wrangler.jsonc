@@ -34,6 +34,10 @@
     { "binding": "CONTRIBUTIONS", "bucket_name": "pokemon-cards-contributions" }
   ],
 
+  // Uploads per UTC day for all clients together (#135): about 500 x 50 KB = 25 MB a day at most in R2. "0" pauses
+  // uploads (the app retries later). Unset or invalid means the default in src/contributions.ts.
+  "vars": { "CONTRIBUTION_DAILY_QUOTA": "500" },
+
   // Per-IP limit for all routes (#30). Generous for an app refreshing a collection in batches of 100 cards.
   // Uploads get a much tighter limit of their own on top (#14): a person scans a few cards a minute at most.
   "ratelimits": [

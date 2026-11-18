@@ -28,12 +28,7 @@ export class TestTokenEntitlements implements Entitlements {
   private readonly digests: Set<string>;
 
   constructor(secret: string | undefined) {
-    this.digests = new Set(
-      (secret ?? "")
-        .split(/[\s,]+/)
-        .map((d) => d.toLowerCase())
-        .filter((d) => /^[0-9a-f]{64}$/.test(d)),
-    );
+    this.digests = tokenDigests(secret);
   }
 
   async check(request: Request): Promise<Entitlement> {
@@ -41,6 +36,16 @@ export class TestTokenEntitlements implements Entitlements {
     if (!token) return "anonymous";
     return this.digests.has(await sha256Hex(token)) ? "pro" : "free";
   }
+}
+
+/** SHA-256 hex digests from a secret, separated by commas or whitespace; anything else is ignored. */
+export function tokenDigests(secret: string | undefined): Set<string> {
+  return new Set(
+    (secret ?? "")
+      .split(/[\s,]+/)
+      .map((d) => d.toLowerCase())
+      .filter((d) => /^[0-9a-f]{64}$/.test(d)),
+  );
 }
 
 export function entitlements(env: Env): Entitlements {

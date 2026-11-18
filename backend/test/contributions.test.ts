@@ -1,5 +1,8 @@
+import { createExecutionContext, waitOnExecutionContext } from "cloudflare:test";
 import { env, exports } from "cloudflare:workers";
 import { describe, expect, it } from "vitest";
+import { handleContributionReview } from "../src/contribution-review";
+import { DEFAULT_DAILY_QUOTA, dailyQuota, handleContributions } from "../src/contributions";
 import { ImageError, sniffType, stripMetadata } from "../src/image-meta";
 
 let clients = 0;
@@ -280,11 +283,11 @@ describe("POST /v1/contributions with a client id (idempotent)", () => {
     const id = crypto.randomUUID();
     const [a, b] = await Promise.all([
       upload(jpeg({ w: 252 }), { query: query(id), token, ip: "192.0.2.10" }),
-      upload(jpeg({ w: 300 }), { query: query(id), token: "D".repeat(43), ip: "192.0.2.11" }),
+      upload(jpeg({ w: 250 }), { query: query(id), token: "D".repeat(43), ip: "192.0.2.11" }),
     ]);
     const statuses = [a.status, b.status].sort();
     expect(statuses).toEqual([201, 409]);
-    const winner = a.status === 201 ? 252 : 300;
+    const winner = a.status === 201 ? 252 : 250;
     const row = await env.DB.prepare("SELECT width FROM contributions WHERE id = ?").bind(id).first<any>();
     expect(row.width).toBe(winner);
     const stored = await env.CONTRIBUTIONS.get(`scans/${id}`);
@@ -318,9 +321,11 @@ describe("POST /v1/contributions", () => {
     expect(row!.token_hash).toMatch(/^[0-9a-f]{64}$/);
     // Nothing about the client: no column could hold an IP address or device data.
     expect(Object.keys(row!).sort()).toEqual([
-      "card_id", "consent_version", "content_type", "created_at", "height", "id", "lang", "object_key", "sha256",
-      "size", "stored_at", "token_hash", "width", "withdrawn_at",
+      "card_id", "consent_version", "content_type", "created_at", "height", "id", "lang", "object_key", "review",
+      "reviewed_at", "sha256", "size", "stored_at", "token_hash", "width", "withdrawn_at",
     ]);
+    // Quarantined until an admin approves it (#135).
+    expect(row).toMatchObject({ review: "pending", reviewed_at: null });
 
     const obj = await env.CONTRIBUTIONS.get(`scans/${id}`);
     const stored = new Uint8Array(await obj!.arrayBuffer());
@@ -346,6 +351,9 @@ describe("POST /v1/contributions", () => {
       [upload(jpeg(), { type: "image/png" }), 415],
       [upload(webp(), { type: "image/jpeg" }), 415],
       [upload(new Uint8Array(1024 * 1024 + 1)), 413],
+      [upload(new Uint8Array(256 * 1024 + 1)), 413], // the app's crops are ~50 KB (#135)
+      [upload(jpeg({ w: 352, h: 352 })), 422], // square: not a card
+      [upload(jpeg({ w: 252, h: 600 })), 422], // too long for a card
       [upload(jpeg().slice(0, 40)), 422],
       [upload(jpeg({ w: 32, h: 44 })), 422],
       [upload(jpeg({ w: 3000, h: 4000 })), 422],
@@ -354,6 +362,14 @@ describe("POST /v1/contributions", () => {
     for (const [res, status] of cases) {
       const r = await res;
       expect(r.status).toBe(status);
+      await r.arrayBuffer();
+    }
+  });
+
+  it("accepts a card crop in either orientation and slightly off the exact ratio", async () => {
+    for (const [w, h] of [[352, 252], [240, 352], [270, 352]]) {
+      const r = await upload(jpeg({ w, h }));
+      expect(r.status).toBe(201);
       await r.arrayBuffer();
     }
   });
@@ -405,5 +421,213 @@ describe("DELETE /v1/contributions/:id", () => {
     expect((await withdraw("not-a-uuid", "x")).status).toBe(404);
     const put = await call("/v1/contributions/00000000-0000-4000-8000-000000000000", { method: "PUT" });
     expect(put.status).toBe(405);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Daily quota (#135)
+
+const DAY_START = () => `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
+
+async function uploadsToday(): Promise<number> {
+  const row = await env.DB.prepare("SELECT COUNT(*) AS n FROM contributions WHERE created_at >= ? AND object_key <> ''")
+    .bind(DAY_START())
+    .first<{ n: number }>();
+  return row!.n;
+}
+
+/** An upload straight through the handler with a given quota (the deployed default is in wrangler.jsonc). */
+async function uploadWithQuota(quota: number | string, opts: { query?: string; token?: string } = {}) {
+  const query = opts.query ?? "cardId=sv03.5-025&lang=de&consent=cc0-1";
+  const headers: Record<string, string> = { "Content-Type": "image/jpeg" };
+  if (opts.token) headers.Authorization = `Bearer ${opts.token}`;
+  const request = new Request(`https://api.test/v1/contributions?${query}`, { method: "POST", headers, body: jpeg() });
+  const ctx = createExecutionContext();
+  const quotaEnv = { ...env, CONTRIBUTION_DAILY_QUOTA: String(quota) } as unknown as Env;
+  const res = await handleContributions(request, quotaEnv, ctx, "/v1/contributions", `quota-client-${++clients}`);
+  await waitOnExecutionContext(ctx);
+  return res;
+}
+
+describe("daily upload quota", () => {
+  it("reads the quota from the environment, with a default", () => {
+    const q = (v: string | undefined) => dailyQuota({ ...env, CONTRIBUTION_DAILY_QUOTA: v } as unknown as Env);
+    expect(q(undefined)).toBe(DEFAULT_DAILY_QUOTA);
+    expect(q("")).toBe(DEFAULT_DAILY_QUOTA);
+    expect(q("lots")).toBe(DEFAULT_DAILY_QUOTA);
+    expect(q("-5")).toBe(DEFAULT_DAILY_QUOTA);
+    expect(q(" 42 ")).toBe(42);
+    expect(q("0")).toBe(0);
+    expect(dailyQuota(env)).toBe(500); // wrangler.jsonc
+  });
+
+  it("stops uploads for everyone once the day's quota is used, and answers retries of stored ones", async () => {
+    const id = crypto.randomUUID();
+    const token = "Q".repeat(43);
+    const query = `cardId=sv03.5-025&lang=de&consent=cc0-1&id=${id}`;
+    const quota = (await uploadsToday()) + 1;
+    expect((await uploadWithQuota(quota, { query, token })).status).toBe(201);
+
+    const full = await uploadWithQuota(quota);
+    expect(full.status).toBe(503); // the app ends its run and tries again later
+    expect(await full.json()).toEqual({ error: "daily upload quota reached" });
+    const wait = Number(full.headers.get("Retry-After"));
+    expect(wait).toBeGreaterThan(0);
+    expect(wait).toBeLessThanOrEqual(24 * 60 * 60);
+
+    // The upload that made it is still answered when its response got lost.
+    expect((await uploadWithQuota(quota, { query, token })).status).toBe(200);
+    // Withdrawing frees nothing (it took the writes), and a tombstone doesn't count.
+    expect((await withdraw(id, token)).status).toBe(200);
+    expect((await withdraw(crypto.randomUUID(), token)).status).toBe(404);
+    expect(await uploadsToday()).toBe(quota);
+    expect((await uploadWithQuota(quota)).status).toBe(503);
+    expect((await uploadWithQuota(quota + 1)).status).toBe(201);
+  });
+
+  it("holds under concurrent uploads: the claim checks the quota itself", async () => {
+    const quota = (await uploadsToday()) + 2;
+    const results = await Promise.all(Array.from({ length: 6 }, () => uploadWithQuota(quota)));
+    const statuses = results.map((r) => r.status).sort();
+    expect(statuses).toEqual([201, 201, 503, 503, 503, 503]);
+    expect(await uploadsToday()).toBe(quota);
+  });
+
+  it("0 pauses uploads", async () => {
+    expect((await uploadWithQuota(0)).status).toBe(503);
+  });
+});
+
+// ---------------------------------------------------------------------------------------------------------------
+// Quarantine and admin review (#135)
+
+const ADMIN = "test-admin-token-0123456789-abcdefghijkl"; // its SHA-256 is in vitest.config.ts
+
+function admin(path: string, init: RequestInit = {}, token: string | null = ADMIN) {
+  const headers = new Headers(init.headers);
+  if (token) headers.set("Authorization", `Bearer ${token}`);
+  return call(`/v1/admin/contributions${path}`, { ...init, headers });
+}
+
+const approve = (id: string) => admin(`/${id}/approve`, { method: "POST" });
+const reject = (id: string) => admin(`/${id}/reject`, { method: "POST" });
+
+async function stored(): Promise<{ id: string; withdrawToken: string }> {
+  const res = await upload(jpeg());
+  expect(res.status).toBe(201);
+  return res.json();
+}
+
+describe("admin review of contributions", () => {
+  it("is invisible without the admin token, or when no admin token is set up", async () => {
+    const { id } = await stored();
+    for (const token of [null, "wrong-token-0123456789-abcdefghijklmn", "short"]) {
+      expect((await admin("", {}, token)).status).toBe(404);
+      expect((await admin(`/${id}/approve`, { method: "POST" }, token)).status).toBe(404);
+      expect((await admin(`/${id}/image`, {}, token)).status).toBe(404);
+    }
+    // The withdraw token of a contribution is no admin token either.
+    const own = await stored();
+    expect((await admin(`/${own.id}/approve`, { method: "POST" }, own.withdrawToken)).status).toBe(404);
+
+    const request = new Request("https://api.test/v1/admin/contributions", { headers: { Authorization: `Bearer ${ADMIN}` } });
+    const unset = { ...env, CONTRIBUTION_ADMIN_TOKENS: undefined } as unknown as Env;
+    expect((await handleContributionReview(request, unset, "/v1/admin/contributions")).status).toBe(404);
+    const row = await env.DB.prepare("SELECT review FROM contributions WHERE id = ?").bind(id).first();
+    expect(row).toEqual({ review: "pending" });
+  });
+
+  it("lists pending scans with their labels, serves the image, and approves", async () => {
+    const { id } = await stored();
+    const list = await admin("?limit=200");
+    expect(list.status).toBe(200);
+    const { contributions } = await list.json<{ contributions: Record<string, unknown>[] }>();
+    expect(contributions.find((c) => c.id === id)).toMatchObject({
+      cardId: "sv03.5-025", lang: "de", contentType: "image/jpeg", width: 252, height: 352, review: "pending",
+      reviewedAt: null,
+    });
+    // No withdraw token hash or R2 key in the listing.
+    expect(Object.keys(contributions[0]!).sort()).toEqual([
+      "cardId", "contentType", "createdAt", "height", "id", "lang", "review", "reviewedAt", "size", "width",
+    ]);
+
+    const image = await admin(`/${id}/image`);
+    expect(image.status).toBe(200);
+    expect(image.headers.get("Content-Type")).toBe("image/jpeg");
+    expect(image.headers.get("Cache-Control")).toBe("private, no-store");
+    expect(new Uint8Array(await image.arrayBuffer())).toEqual(jpeg());
+
+    const ok = await approve(id);
+    expect(ok.status).toBe(200);
+    const body = await ok.json<{ id: string; review: string; reviewedAt: string }>();
+    expect(body).toMatchObject({ id, review: "approved" });
+    expect(await (await approve(id)).json()).toEqual(body); // repeat: same answer, same time
+    const row = await env.DB.prepare("SELECT review, reviewed_at FROM contributions WHERE id = ?").bind(id).first();
+    expect(row).toEqual({ review: "approved", reviewed_at: body.reviewedAt });
+
+    const approved = await (await admin("?review=approved&limit=200")).json<{ contributions: { id: string }[] }>();
+    expect(approved.contributions.map((c) => c.id)).toContain(id);
+    const pending = await (await admin("?limit=200")).json<{ contributions: { id: string }[] }>();
+    expect(pending.contributions.map((c) => c.id)).not.toContain(id);
+  });
+
+  it("rejects: image deleted, row kept, never approved again; also after an approval", async () => {
+    const a = await stored();
+    const res = await reject(a.id);
+    expect(res.status).toBe(200);
+    expect(((await res.json()) as any).review).toBe("rejected");
+    expect(await env.CONTRIBUTIONS.head(`scans/${a.id}`)).toBeNull();
+    expect((await admin(`/${a.id}/image`)).status).toBe(404);
+    expect((await approve(a.id)).status).toBe(409);
+    // A repeated rejection deletes again (an earlier delete may have failed).
+    await env.CONTRIBUTIONS.put(`scans/${a.id}`, jpeg());
+    expect((await reject(a.id)).status).toBe(200);
+    expect(await env.CONTRIBUTIONS.head(`scans/${a.id}`)).toBeNull();
+    // The contributor can still withdraw it.
+    expect((await withdraw(a.id, a.withdrawToken)).status).toBe(200);
+
+    const b = await stored();
+    expect((await approve(b.id)).status).toBe(200);
+    expect((await reject(b.id)).status).toBe(200);
+    expect(await env.DB.prepare("SELECT review FROM contributions WHERE id = ?").bind(b.id).first()).toEqual({
+      review: "rejected",
+    });
+  });
+
+  it("leaves withdrawn, unfinished and unknown contributions alone", async () => {
+    const w = await stored();
+    expect((await withdraw(w.id, w.withdrawToken)).status).toBe(200);
+    expect((await approve(w.id)).status).toBe(409);
+    expect((await reject(w.id)).status).toBe(409);
+    expect((await admin(`/${w.id}/image`)).status).toBe(404);
+
+    // A claim whose image is still being written.
+    const id = crypto.randomUUID();
+    await env.DB.prepare(
+      `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
+         width, height, sha256, created_at)
+       VALUES (?, 'x', 'sv03.5-025', 'de', 'cc0-1', ?, 'image/jpeg', 1, 252, 352, 'x', ?)`,
+    )
+      .bind(id, `scans/${id}`, new Date().toISOString())
+      .run();
+    expect((await approve(id)).status).toBe(409);
+    expect((await reject(id)).status).toBe(409);
+
+    // A tombstone, an unknown id, a malformed one.
+    const t = crypto.randomUUID();
+    expect((await withdraw(t, "T".repeat(43))).status).toBe(404);
+    expect((await approve(t)).status).toBe(404);
+    expect((await approve(crypto.randomUUID())).status).toBe(404);
+    expect((await approve("not-a-uuid")).status).toBe(404);
+  });
+
+  it("validates the listing and the methods", async () => {
+    for (const q of ["?review=maybe", "?limit=0", "?limit=201", "?limit=x", "?offset=-1"]) {
+      expect((await admin(q)).status).toBe(400);
+    }
+    expect((await admin("", { method: "POST" })).status).toBe(405);
+    expect((await admin(`/${crypto.randomUUID()}/approve`)).status).toBe(405);
+    expect((await admin(`/${crypto.randomUUID()}/image`, { method: "DELETE" })).status).toBe(405);
+    expect((await admin(`/${crypto.randomUUID()}/publish`, { method: "POST" })).status).toBe(404);
   });
 });
