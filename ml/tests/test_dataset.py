@@ -189,6 +189,12 @@ def test_export_writes_no_private_paths(tmp_path):
     bad = {**rows[0], "name": r"D:\AI\pokemon-cards-data\ref\en\x.png"}
     with pytest.raises(ValueError, match="private path"):
         export_manifest.check_public([bad])
+    for path in ("c:/data/x.png", r"\\nas\share\x.png", "/opt/cards/x.png", "./ref/x.png", "../ref/x.png",
+                 "~bob/x.png", "FILE:///x.png"):
+        with pytest.raises(ValueError, match="private path"):
+            export_manifest.check_public([{**rows[0], "name": path}])
+    with pytest.raises(ValueError, match="credentials"):
+        export_manifest.check_public([{**rows[0], "image_url": "https://user:token@assets.tcgdex.net/a/high.png"}])
 
 
 def test_export_cli(tmp_path):
@@ -216,6 +222,7 @@ class Server:
                       "/blocked/high.png": b"X"}
         self.hits: list[tuple[str, dict]] = []
         self.flaky = {"/c/high.png"}
+        self.break_range: set[str] = set()  # the next Range response for these paths breaks off mid-body
         srv = self
 
         class H(http.server.BaseHTTPRequestHandler):
@@ -226,6 +233,13 @@ class Server:
                 srv.hits.append((self.path, dict(self.headers)))
                 if self.path == "/robots.txt":
                     return self._send(200, b"User-agent: *\nDisallow: /blocked/\n")
+                if self.path == "/bad/high.png":
+                    return self._send(400, b"")
+                if self.path == "/redir/high.png":
+                    self.send_response(302)
+                    self.send_header("Location", "ftp://127.0.0.1/x.png")
+                    self.end_headers()
+                    return
                 if self.path in srv.flaky:
                     srv.flaky.discard(self.path)
                     self.send_response(429)
@@ -239,16 +253,23 @@ class Server:
                 rng = self.headers.get("Range")
                 if rng and self.headers.get("If-Range") == etag:
                     start = int(rng.split("=")[1].rstrip("-"))
-                    return self._send(206, body[start:], etag)
+                    rest = body[start:]
+                    cr = f"bytes {start}-{len(body) - 1}/{len(body)}"
+                    if self.path in srv.break_range:
+                        srv.break_range.discard(self.path)
+                        return self._send(206, rest, etag, content_range=cr, cut=len(rest) // 2)
+                    return self._send(206, rest, etag, content_range=cr)
                 return self._send(200, body, etag)
 
-            def _send(self, code, body, etag=None):
+            def _send(self, code, body, etag=None, content_range=None, cut=None):
                 self.send_response(code)
                 if etag:
                     self.send_header("ETag", etag)
+                if content_range:
+                    self.send_header("Content-Range", content_range)
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
-                self.wfile.write(body)
+                self.wfile.write(body if cut is None else body[:cut])
 
         self.httpd = http.server.ThreadingHTTPServer(("127.0.0.1", 0), H)
         self.base = f"http://127.0.0.1:{self.httpd.server_address[1]}"
@@ -294,7 +315,8 @@ def dl_manifest(tmp_path: Path, base: str, *, sha_a: str = "") -> tuple[Path, di
 
 
 def quiet_fetcher(**kw) -> download.Fetcher:
-    return download.Fetcher(retries=2, sleep=lambda s: None, log=lambda *a: None, **kw)
+    """The test server is plain http on 127.0.0.1; the real default is https only."""
+    return download.Fetcher(retries=2, sleep=lambda s: None, log=lambda *a: None, schemes=("http", "https"), **kw)
 
 
 def test_download_end_to_end_and_resume(tmp_path, server):
@@ -334,6 +356,69 @@ def test_download_resumes_a_partial_file_with_range(tmp_path, server):
     assert sent[-1].get("Range") == "bytes=400-"
 
 
+def write_rows(path: Path, rows: list[dict]) -> Path:
+    with open(path, "w", encoding="utf-8", newline="") as f:
+        w = csv.DictWriter(f, export_manifest.COLUMNS, restval="")
+        w.writeheader()
+        w.writerows(rows)
+    return path
+
+
+def card(cid: str, url: str, alt: str = "", source: str = "local") -> dict:
+    return {"key": f"en/{cid}", "card_id": cid, "lang": "en", "set_id": "s", "set_name": "S", "local_id": "1",
+            "name": cid, "category": "", "source": source, "image_url": url, "alt_url": alt, "split": "index"}
+
+
+def test_download_resume_survives_a_body_that_breaks_off(tmp_path, server):
+    """A resumed (206) body that breaks off is retried with the same Range: the bytes the failed attempt appended
+    must be cut, not kept in front of the second copy."""
+    man, terms = dl_manifest(tmp_path, server.base)
+    out = tmp_path / "img"
+    (out / "en").mkdir(parents=True)
+    body = server.files["/a/high.png"]
+    etag = '"' + hashlib.sha256(body).hexdigest()[:8] + '"'
+    (out / "en" / "a-1.png.part").write_bytes(body[:400])
+    (out / "en" / "a-1.png.part.json").write_text(json.dumps({"url": f"{server.base}/a/high.png", "etag": etag}))
+    server.break_range.add("/a/high.png")
+    rep = download.run(man, out, source_terms=terms, fetcher=quiet_fetcher(), log=lambda *a: None, limit=1)
+    assert rep["counts"] == {"ok": 1}
+    assert (out / "en" / "a-1.png").read_bytes() == body
+    assert [h.get("Range") for p, h in server.hits if p == "/a/high.png"] == ["bytes=400-", "bytes=400-"]
+
+
+def test_download_one_failing_card_does_not_stop_the_run(tmp_path, server):
+    man = write_rows(tmp_path / "cards.csv", [
+        card("bad-1", f"{server.base}/bad/high.png"),        # 400: not retried, not fatal
+        card("redir-1", f"{server.base}/redir/high.png"),    # redirect to ftp:// is refused
+        card("a-1", f"{server.base}/a/high.png"),
+    ])
+    terms = {"local": {"name": "L", "hosts": [server.base.split("//")[1]], "images": "", "credit": "",
+                       "min_interval_s": 0.0}}
+    rep = download.run(man, tmp_path / "img", source_terms=terms, fetcher=quiet_fetcher(), log=lambda *a: None)
+    assert rep["counts"] == {"error": 2, "ok": 1}
+    assert (tmp_path / "img" / "en" / "a-1.png").read_bytes() == server.files["/a/high.png"]
+
+
+def test_download_fetches_only_https_on_the_source_hosts(tmp_path, server):
+    secret = tmp_path / "secret.png"
+    secret.write_bytes(b"private")
+    host = server.base.split("//")[1]
+    man = write_rows(tmp_path / "cards.csv", [
+        card("file-1", secret.as_uri()),
+        card("http-1", f"{server.base}/a/high.png"),                    # plain http with the default fetcher
+        card("other-1", "https://elsewhere.example/a.png"),             # not a host of the source
+        card("alt-1", f"https://{host}/a/high.png", alt=secret.as_uri()),
+    ])
+    terms = {"local": {"name": "L", "hosts": [host], "images": "", "credit": "", "min_interval_s": 0.0}}
+    f = download.Fetcher(retries=0, sleep=lambda s: None, log=lambda *a: None)
+    out = tmp_path / "img"
+    rep = download.run(man, out, source_terms=terms, fetcher=f, log=lambda *a: None)
+    assert rep["counts"] == {"bad-url": 4}
+    assert server.hits == [] and not list(out.rglob("*.png"))
+    with pytest.raises(download.UnsafeRedirect):
+        f.get(secret.as_uri())
+
+
 def test_download_reports_checksum_mismatch(tmp_path, server):
     man, terms = dl_manifest(tmp_path, server.base, sha_a="00" * 32)
     rep = download.run(man, tmp_path / "img", source_terms=terms, fetcher=quiet_fetcher(), log=lambda *a: None,
@@ -352,7 +437,7 @@ def test_download_keeps_the_per_host_interval(tmp_path, server):
         slept.append(s)
         now[0] += s
 
-    f = download.Fetcher(retries=2, clock=lambda: now[0], sleep=sleep, log=lambda *a: None)
+    f = download.Fetcher(retries=2, clock=lambda: now[0], sleep=sleep, log=lambda *a: None, schemes=("http",))
     download.run(man, tmp_path / "img", source_terms=terms, fetcher=f, log=lambda *a: None, langs=["en"])
     # robots.txt, a, c (429), c again, blocked is not requested: no time passes otherwise, so every request after
     # the first waits the full 2 s (the 429's Retry-After: 0 adds a zero sleep).
@@ -370,6 +455,8 @@ def test_download_dry_run_and_filters(tmp_path, server):
 def test_download_target_path_is_sanitised(tmp_path):
     p = download.target_path(tmp_path, {"lang": "en", "card_id": "../../etc/passwd"}, "https://h/x/high.png")
     assert p.parent == tmp_path / "en" and p.suffix == ".png"
+    for url in ("https://h/x/a.png:stream", "https://h/x/a.png%2F..%2Fx", "https://h/x/a"):
+        assert download.target_path(tmp_path, {"lang": "en", "card_id": "a"}, url).name == "a.img"
     with pytest.raises(ValueError):
         download.target_path(tmp_path, {"lang": "../x", "card_id": "a"}, "https://h/a.png")
 
@@ -378,8 +465,8 @@ def test_download_script_is_standalone():
     """download.py ships inside the release: standard library only, no imports from the repo."""
     src = (ML / "dataset" / "download.py").read_text(encoding="utf-8")
     imports = {line.split()[1].split(".")[0] for line in src.splitlines() if line.startswith(("import ", "from "))}
-    assert imports <= {"__future__", "argparse", "csv", "hashlib", "json", "os", "re", "sys", "time", "urllib",
-                       "pathlib"}
+    assert imports <= {"__future__", "argparse", "csv", "hashlib", "http", "json", "os", "re", "sys", "time",
+                       "urllib", "pathlib"}
     out = subprocess.run([sys.executable, "-I", str(ML / "dataset" / "download.py"), "--help"], capture_output=True,
                          text=True, check=True)
     assert "Rebuild the reference images" in out.stdout
