@@ -2,7 +2,9 @@
 package de.fabianduerkop.cardindex.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -75,19 +77,29 @@ fun CardImage(
     }
 }
 
-/** The stand-in for a card without an image (ADR 0010): a muted card shape with its collector number. */
+/**
+ * The stand-in for a card without an image (ADR 0010): a muted card shape with its collector number, on a quiet
+ * outline so it reads as a card in both themes. The number grows with the shape, so a large placeholder (card detail)
+ * still says clearly which card it stands for; small ones (lists, slots) keep the label size.
+ */
 @Composable
 fun CardPlaceholder(localId: String, printedTotal: Int?, modifier: Modifier = Modifier) {
-    Box(
+    BoxWithConstraints(
         modifier
             .aspectRatio(CARD_ASPECT)
             .clip(MaterialTheme.shapes.small)
-            .background(MaterialTheme.colorScheme.surfaceVariant),
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.small),
         contentAlignment = Alignment.Center,
     ) {
+        val style = when {
+            maxWidth >= 140.dp -> MaterialTheme.typography.headlineMedium
+            maxWidth >= 80.dp -> MaterialTheme.typography.titleMedium
+            else -> MaterialTheme.typography.labelMedium
+        }
         Text(
             text = padCollectorNumber(localId, printedTotal),
-            style = MaterialTheme.typography.labelMedium.merge(TextStyle(fontFeatureSettings = TabularFigures)),
+            style = style.merge(TextStyle(fontFeatureSettings = TabularFigures)),
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
             maxLines = 1,

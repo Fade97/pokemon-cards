@@ -31,7 +31,7 @@ import de.fabianduerkop.cardindex.ui.navigation.AppNavigationBar
 import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
 import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.scan.ScanScreen
-import de.fabianduerkop.cardindex.ui.search.SearchScreen
+import de.fabianduerkop.cardindex.ui.search.searchGraph
 import de.fabianduerkop.cardindex.ui.settings.SettingsScreen
 
 /**
@@ -65,7 +65,7 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                 )
             }
             collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
-            composable(TopLevelDestination.SEARCH.route) { SearchScreen() }
+            searchGraph(navController, onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) })
             composable(TopLevelDestination.SETTINGS.route) {
                 SettingsScreen(
                     onOpenConsent = { navController.navigate(CONSENT_ROUTE) },

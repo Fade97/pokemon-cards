@@ -53,8 +53,8 @@
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <plurals name="collections_unpriced">
-        <item quantity="one">%1$d copy without a price</item>
-        <item quantity="other">%1$d copies without a price</item>
+        <item quantity="one">%1$d copy has no %2$s price</item>
+        <item quantity="other">%1$d copies have no %2$s price</item>
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
@@ -129,6 +129,9 @@
     <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s offers)</string>
     <string name="price_open_cardmarket">Open on Cardmarket</string>
     <string name="price_open_tcgplayer">Open on TCGplayer</string>
+    <string name="price_currencies">Each market\'s price is in its own currency. Prices are never converted.</string>
+    <string name="price_saved_on">Saved on %1$s and not updated since. Prices update when you are online.</string>
+    <string name="collections_quote_not_in_total">Not in the %1$s total</string>
     <!-- Pro price history (#17) -->
     <string name="history_title">Price history</string>
     <string name="history_range_month">30 days</string>
@@ -178,6 +181,7 @@
     <string name="copy_save">Save changes</string>
     <string name="copy_add">Add copy</string>
     <string name="copy_delete">Delete copy</string>
+    <string name="copy_unsaved">You changed this copy. Save to keep it.</string>
     <string name="ok">OK</string>
     <string name="copy_photo">Your photo</string>
     <string name="copy_photo_add">Add photo</string>
@@ -199,7 +203,29 @@
     <string name="condition_hp">HP</string>
     <string name="condition_poor">Poor</string>
     <string name="grader_other">Other</string>
-    <string name="search_placeholder">Search every card in your installed language packs by name, set or collector number.</string>
+    <string name="search_title">Find a card</string>
+    <string name="search_field">Name, set or number</string>
+    <string name="search_clear">Clear search</string>
+    <string name="search_scope">Searches the %1$s cards on this device.</string>
+    <string name="search_hint">Type a card name such as Pikachu, a set such as 151, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
+    <string name="search_loading">Searching…</string>
+    <string name="search_none_title">No cards found</string>
+    <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
+    <string name="search_failed">The card list on this device could not be read.</string>
+    <string name="search_no_languages">No card languages are installed yet. Download one to search its cards.</string>
+    <string name="search_choose_languages">Choose languages</string>
+    <plurals name="search_count">
+        <item quantity="one">%1$d card</item>
+        <item quantity="other">%1$d cards</item>
+    </plurals>
+    <plurals name="search_more">
+        <item quantity="one">The first %1$d card. Type more to narrow it down.</item>
+        <item quantity="other">The first %1$d cards. Type more to narrow it down.</item>
+    </plurals>
+    <plurals name="search_owned">
+        <item quantity="one">%1$d owned</item>
+        <item quantity="other">%1$d owned</item>
+    </plurals>
     <string name="settings_placeholder">Open-source licenses will live here.</string>
     <string name="settings_about">About</string>
     <string name="settings_privacy_policy">Privacy policy</string>

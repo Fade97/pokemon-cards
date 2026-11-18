@@ -6,6 +6,14 @@ import de.fabianduerkop.cardindex.model.CollectionKind
 import de.fabianduerkop.cardindex.model.Region
 import java.time.Instant
 
+/** A card found by search (#99), with its set's name and size and how many copies the user owns of this print. */
+data class CardSearchHit(
+    @Embedded val card: CardEntity,
+    val setName: String?,
+    val printedTotal: Int?,
+    val owned: Int,
+)
+
 /** An owned copy together with its card and set, for lists of copies. */
 data class CopyWithCard(
     @Embedded val copy: OwnedCopyEntity,
