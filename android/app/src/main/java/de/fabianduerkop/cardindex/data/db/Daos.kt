@@ -88,25 +88,30 @@ interface CatalogDao {
     @Query("SELECT EXISTS(SELECT 1 FROM cards WHERE id = :cardId AND language = :language)")
     suspend fun hasCard(cardId: String, language: String): Boolean
 
-    /** The catalog rows a backup must carry: every card the user owns a copy of, and its set. */
+    /** The catalog rows a backup must carry: every card the user owns a copy of or has a price alert on. */
     @Query(
         """
-        SELECT DISTINCT c.* FROM cards c
-        JOIN owned_copies o ON o.cardId = c.id AND o.cardLanguage = c.language
+        SELECT c.* FROM cards c
+        WHERE EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language)
+           OR EXISTS (SELECT 1 FROM price_alerts a WHERE a.cardId = c.id AND a.cardLanguage = c.language)
         ORDER BY c.setId, c.localId, c.language
         """,
     )
-    suspend fun ownedCards(): List<CardEntity>
+    suspend fun backupCards(): List<CardEntity>
 
+    /** The sets of [backupCards]. */
     @Query(
         """
-        SELECT DISTINCT s.* FROM card_sets s
-        JOIN cards c ON c.setId = s.id
-        JOIN owned_copies o ON o.cardId = c.id AND o.cardLanguage = c.language
+        SELECT s.* FROM card_sets s
+        WHERE s.id IN (
+            SELECT c.setId FROM cards c
+            WHERE EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language)
+               OR EXISTS (SELECT 1 FROM price_alerts a WHERE a.cardId = c.id AND a.cardLanguage = c.language)
+        )
         ORDER BY s.id
         """,
     )
-    suspend fun ownedSets(): List<CardSetEntity>
+    suspend fun backupSets(): List<CardSetEntity>
 
     /** Replaces all cached prices of [cardIds] with [prices], so printings a market dropped don't linger. */
     @Transaction

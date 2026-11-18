@@ -270,8 +270,8 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
 
 ## Backup (JSON and CSV)
 
-**Settings → Backup** exports all copies and custom collections through the Storage Access Framework and imports
-them back. Both formats are matched **by copy and collection uuid**, never by the local row id, so importing the
+**Settings → Backup** exports all copies, custom collections and price alerts (JSON only) through the Storage
+Access Framework and imports them back. Both formats are matched **by copy and collection uuid**, never by the local row id, so importing the
 same file twice changes nothing, and a backup can be merged into a phone whose collection changed since:
 
 - A row from the file replaces the local one when its `updatedAt` is not older and its content differs. A newer
@@ -279,17 +279,22 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
   spreadsheet), the row gets the import time as `updatedAt`.
 - Collection membership is merged as a union: an import adds copies to collections, it never removes them.
 - Catalog rows (sets, cards) in the file only fill gaps; data from language packs wins. Copies of cards that
-  neither the file nor the phone knows are skipped and counted.
+  neither the file nor the phone knows are skipped and counted. The file carries the catalog rows of every owned
+  and every alerted card.
+- Price alerts are matched by uuid too. A new uuid is added with its state (`armed`, `triggeredAt`), so a fired
+  alert doesn't notify again after a restore; an alert the phone already has stays as it is (the app can't edit
+  an alert, only the check changes its state). Like copies, an alert on a card neither the file nor the phone
+  knows is skipped and counted. An import that adds alerts schedules the daily check.
 - Own photos (`filesDir/scans/`) are in neither the JSON/CSV export nor the Android backup or device transfer
   (`backup_rules.xml`, `data_extraction_rules.xml`: database and settings only, which keeps the app far below
   Auto Backup's 25 MB quota). Copying a phone's collection keeps the copies; their photos stay on the old phone.
 
-### JSON format, version 1
+### JSON format, version 2
 
 ```json
 {
   "format": "cardindex-backup",
-  "version": 1,
+  "version": 2,
   "exportedAt": "2026-11-17T10:00:00Z",
   "sets": [{ "id": "sv03.5", "name": "151", "series": "Scarlet & Violet", "language": "en",
              "printedTotal": 165, "region": "INTERNATIONAL" }],
@@ -300,21 +305,29 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
                "grade": null, "purchasePriceMinor": 2450, "purchaseCurrency": "EUR", "purchaseDate": "2025-08-02",
                "createdAt": "2025-08-02T18:00:00Z", "updatedAt": "2026-03-12T09:30:00Z" }],
   "collections": [{ "uuid": "0b9e…", "name": "Trade binder", "description": null,
-                    "updatedAt": "2026-03-12T09:30:00Z", "copies": ["6f1c3c2e-…"] }]
+                    "updatedAt": "2026-03-12T09:30:00Z", "copies": ["6f1c3c2e-…"] }],
+  "alerts": [{ "uuid": "8a6b3a52-…", "cardId": "sv03.5-006", "cardLanguage": "de", "source": "CARDMARKET",
+               "variant": "HOLO", "direction": "ABOVE", "thresholdMinor": 5000, "currency": "EUR",
+               "createdAt": "2026-11-01T08:00:00Z", "triggeredAt": null, "armed": true }]
 }
 ```
 
 - Enums are stored by name: `finish` NORMAL, HOLO, REVERSE_HOLO, OTHER; `edition` UNLIMITED, FIRST_EDITION,
   SHADOWLESS; `condition` NEAR_MINT … POOR (null for graded copies); `grader` PSA, CGC, BGS, OTHER;
-  `region` INTERNATIONAL, JP.
+  `region` INTERNATIONAL, JP; alert `source` CARDMARKET, TCGPLAYER; `variant` NORMAL, HOLO, REVERSE_HOLO,
+  FIRST_EDITION, FIRST_EDITION_HOLO; `direction` ABOVE (fires at or above the threshold), BELOW (at or below).
+- An alert's fields are the `price_alerts` columns under the same names. `thresholdMinor` is in the market's
+  currency (`currency`); `armed` is false after the alert fired, until the price is back across the threshold.
+  Sign-in and sync (#16) will upload alerts with these names and uuids, so keep them stable.
 - Money is in minor units (cents) with an ISO 4217 code; dates are ISO-8601 (`LocalDate` for the purchase date,
   UTC instants for the timestamps). Fields that are null may be left out.
-- `version` is bumped only when an older app would misread the file; new optional fields don't bump it. The app
-  refuses files with a higher version than it knows.
+- `version` is bumped when an older app would misread the file or silently drop part of it; other new optional
+  fields don't bump it. The app refuses files with a higher version than it knows, and still reads every older
+  one. Version 2 added `alerts`: a version-1 app would restore such a file without its alerts and not say so.
 
 ### CSV format
 
-One row per copy, UTF-8 with a byte order mark (so Excel shows Japanese names), comma separated, RFC 4180 quoting:
+The CSV is a spreadsheet view of the copies, not a full backup: it has no price alerts. One row per copy, UTF-8 with a byte order mark (so Excel shows Japanese names), comma separated, RFC 4180 quoting:
 
 `uuid, card_id, language, set_id, set_name, set_total, set_region, number, name, quantity, finish, edition,
 condition, grader, grade, purchase_price, purchase_currency, purchase_date, collections, created_at, updated_at`

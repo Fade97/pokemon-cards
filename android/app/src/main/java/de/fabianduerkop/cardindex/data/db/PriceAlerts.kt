@@ -48,6 +48,9 @@ interface PriceAlertDao {
     @Query("SELECT * FROM price_alerts ORDER BY createdAt")
     suspend fun all(): List<PriceAlertEntity>
 
+    @Query("SELECT * FROM price_alerts WHERE uuid = :uuid")
+    suspend fun byUuid(uuid: String): PriceAlertEntity?
+
     @Query("SELECT COUNT(*) FROM price_alerts")
     suspend fun count(): Int
 
