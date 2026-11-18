@@ -22,7 +22,9 @@ own. Your collection stays on your phone. Pictures leave the phone only if you t
 <p>The following is processed only on your phone. We do not receive it.</p>
 <ul>
 <li><strong>Camera.</strong> The app asks for the camera permission to scan cards. Card detection, recognition and
-reading the collector number all run on the phone. Camera frames are not stored and not sent anywhere.</li>
+reading the collector number all run on the phone. Camera frames are not stored. Only the cropped picture of a card
+the app was unsure about is kept on the phone for the review queue, and a crop leaves the phone only if you contribute
+scans (section 6).</li>
 <li><strong>Your collection:</strong> copies, collections, condition, grade, purchase price and date, the review
 queue, saved prices and your settings.</li>
 <li><strong>Your own photos</strong> of copies, which you pick with Android’s photo picker. The app gets only the photos
@@ -32,12 +34,12 @@ you pick, not access to your gallery.</li>
 <p>The collection database and the settings are part of your phone’s Android backup and device transfer, if you have
 them turned on. That backup is a service of Google (or your phone’s maker) under your account and their terms; we
 have no access to it. Your own photos and card pictures are not included.</p>
-<p>Uninstalling the app deletes all of this from the phone.</p>
+<p>Uninstalling the app deletes all of this from the phone, except exports you saved outside the app.</p>
 
 <h2>3. Language packs and prices</h2>
 <p>The app downloads language packs (card data and recognition models) and current card prices from our server. The
-app checks for new packs about once a day in the background, and fetches prices for the cards in your collection
-when you view them or tap “Update prices now”.</p>
+app checks for new packs about once a day in the background. It fetches prices for the cards in your collection
+when you open it or tap “Update prices now”, and for a card whose details you open.</p>
 <ul>
 <li><strong>Data:</strong> your IP address, the time, the address requested (for example the pack file), technical
 headers (the app sends a generic user agent, <code>okhttp</code>, without any device details) and, for prices, the
@@ -76,9 +78,10 @@ The legal basis is Art. 6(1)(f) GDPR (reliable text recognition). We do not rece
 It is off by default, and it starts only after you accept the consent text in the app.</p>
 <h3>What is sent</h3>
 <ul>
-<li>for each scan you confirm, the cropped and straightened picture of the card, as a JPEG. All metadata (EXIF, location,
+<li>for each scanned card added to your collection (automatically after a confident scan, or after you confirm it in
+the review queue), the cropped and straightened picture of the card, as a JPEG. All metadata (EXIF, location,
 camera details) is removed on the phone and again on the server;</li>
-<li>the card’s ID and the language of the printed card, as you confirmed them;</li>
+<li>the card’s ID and the language of the printed card, as recognised or confirmed;</li>
 <li>the version of the consent text you accepted;</li>
 <li>a random ID and a random secret (the withdrawal key) the app creates for each picture. The server stores only a
 hash of the key.</li>
@@ -106,7 +109,8 @@ back.</li>
 <li>Turning the switch off deletes the pictures that are still waiting to be sent. Pictures already sent stay until
 you withdraw them.</li>
 <li>Otherwise a picture is kept as long as the dataset is maintained. After a withdrawal we keep only a record without
-the picture (ID, card ID, language, consent version, file size, checksums and times), so that a picture that
+the picture (ID, hash of the withdrawal key, card ID, language, consent version, file type, size and dimensions,
+checksum and times), so that a picture that
 was withdrawn is never released and an upload still on its way is refused.</li>
 <li><strong>Important:</strong> only the app on your phone knows which pictures are yours. If you uninstall the app
 (or clear its data) without restoring it from a backup, we can no longer tell which pictures you sent, because we
@@ -127,7 +131,7 @@ clauses (Art. 46 GDPR).</p>
 <ul>
 <li>When you install the app from Google Play, Google processes data about the download and, if you allow it, crash
 and performance data (Android vitals) under its own responsibility. We see only aggregated statistics.</li>
-<li>Links to Cardmarket, TCGplayer or GitHub open in your browser. Those sites are responsible for what they process.</li>
+<li>Links to Cardmarket and TCGplayer, and to this page, open in your browser. Those sites are responsible for what they process.</li>
 </ul>
 
 <h2>9. What we don’t do</h2>

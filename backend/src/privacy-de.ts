@@ -24,8 +24,9 @@ E-Mail-Adresse oben.</p>
 <p>Folgendes wird nur auf deinem Handy verarbeitet. Wir erhalten es nicht.</p>
 <ul>
 <li><strong>Kamera.</strong> Die App fragt nach der Kamera-Berechtigung, um Karten zu scannen. Kartenerkennung,
-Zuordnung und das Lesen der Kartennummer laufen auf dem Handy. Kamerabilder werden weder gespeichert noch
-irgendwohin gesendet.</li>
+Zuordnung und das Lesen der Kartennummer laufen auf dem Handy. Kamerabilder werden nicht gespeichert. Nur das
+zugeschnittene Bild einer Karte, bei der die App unsicher war, bleibt für die Prüfliste auf dem Handy, und ein
+Zuschnitt verlässt das Handy nur, wenn du Scans beiträgst (Abschnitt 6).</li>
 <li><strong>Deine Sammlung:</strong> Exemplare, Sammlungen, Zustand, Grading, Kaufpreis und -datum, die Prüfliste,
 gespeicherte Preise und deine Einstellungen.</li>
 <li><strong>Eigene Fotos</strong> deiner Exemplare, die du mit der Fotoauswahl von Android auswählst. Die App erhält nur
@@ -36,12 +37,14 @@ die ausgewählten Fotos, keinen Zugriff auf deine Galerie.</li>
 Handys, wenn du diese eingeschaltet hast. Diese Sicherung ist ein Dienst von Google (oder des Herstellers deines
 Handys) unter deinem Konto und deren Bedingungen; wir haben keinen Zugriff darauf. Eigene Fotos und Kartenbilder sind
 nicht enthalten.</p>
-<p>Wenn du die App deinstallierst, wird all das vom Handy gelöscht.</p>
+<p>Wenn du die App deinstallierst, wird all das vom Handy gelöscht, außer Exporten, die du außerhalb der App
+gespeichert hast.</p>
 
 <h2>3. Sprachpakete und Preise</h2>
 <p>Die App lädt Sprachpakete (Kartendaten und Erkennungsmodelle) und aktuelle Kartenpreise von unserem Server. Etwa
-einmal am Tag sucht die App im Hintergrund nach neuen Paketen; Preise für die Karten deiner Sammlung lädt sie, wenn
-du sie ansiehst oder auf „Update prices now“ (Preise jetzt aktualisieren) tippst.</p>
+einmal am Tag sucht die App im Hintergrund nach neuen Paketen. Preise für die Karten deiner Sammlung lädt sie, wenn
+du die Sammlung öffnest oder auf „Update prices now“ (Preise jetzt aktualisieren) tippst, und für eine Karte, deren
+Details du öffnest.</p>
 <ul>
 <li><strong>Daten:</strong> deine IP-Adresse, der Zeitpunkt, die abgerufene Adresse (zum Beispiel die Paketdatei),
 technische Header (die App sendet eine allgemeine Kennung, <code>okhttp</code>, ohne Angaben zum Gerät) und bei
@@ -83,9 +86,10 @@ my scans</strong> einschaltest. Das ist standardmäßig aus und beginnt erst, we
 zustimmst.</p>
 <h3>Was gesendet wird</h3>
 <ul>
-<li>für jeden Scan, den du bestätigst, das zugeschnittene und entzerrte Bild der Karte als JPEG. Alle Metadaten (EXIF,
+<li>für jede gescannte Karte, die in deine Sammlung kommt (automatisch nach einem sicheren Scan oder nachdem du sie
+in der Prüfliste bestätigt hast), das zugeschnittene und entzerrte Bild der Karte als JPEG. Alle Metadaten (EXIF,
 Standort, Kameradaten) werden auf dem Handy und noch einmal auf dem Server entfernt;</li>
-<li>die ID der Karte und die Sprache der gedruckten Karte, so wie du sie bestätigt hast;</li>
+<li>die ID der Karte und die Sprache der gedruckten Karte, so wie sie erkannt oder bestätigt wurden;</li>
 <li>die Version des Einwilligungstextes, dem du zugestimmt hast;</li>
 <li>eine zufällige ID und ein zufälliger geheimer Schlüssel (Widerrufsschlüssel), die die App für jedes Bild erzeugt.
 Der Server speichert nur einen Hash des Schlüssels.</li>
@@ -117,7 +121,8 @@ Version lassen sich nicht zurückholen.</li>
 <li>Schaltest du die Funktion aus, werden die Bilder gelöscht, die noch auf das Senden warten. Bereits gesendete Bilder
 bleiben, bis du sie widerrufst.</li>
 <li>Ansonsten wird ein Bild gespeichert, solange der Datensatz gepflegt wird. Nach einem Widerruf behalten wir nur
-einen Eintrag ohne Bild (ID, Karten-ID, Sprache, Version der Einwilligung, Dateigröße, Prüfsummen und Zeitpunkte),
+einen Eintrag ohne Bild (ID, Hash des Widerrufsschlüssels, Karten-ID, Sprache, Version der Einwilligung, Dateityp,
+-größe und Bildmaße, Prüfsumme und Zeitpunkte),
 damit ein widerrufenes Bild nie veröffentlicht und ein noch laufendes Hochladen abgewiesen wird.</li>
 <li><strong>Wichtig:</strong> Nur die App auf deinem Handy weiß, welche Bilder von dir sind. Deinstallierst du die App
 (oder löschst ihre Daten), ohne sie aus einer Sicherung wiederherzustellen, können wir nicht mehr erkennen, welche
@@ -139,7 +144,7 @@ enthält zusätzlich die EU-Standardvertragsklauseln (Art. 46 DSGVO).</p>
 <ul>
 <li>Wenn du die App über Google Play installierst, verarbeitet Google Daten zum Download und, wenn du es erlaubst,
 Absturz- und Leistungsdaten (Android Vitals) in eigener Verantwortung. Wir sehen nur zusammengefasste Statistiken.</li>
-<li>Links zu Cardmarket, TCGplayer oder GitHub öffnen sich in deinem Browser. Für die Verarbeitung dort sind diese
+<li>Links zu Cardmarket und TCGplayer sowie zu dieser Seite öffnen sich in deinem Browser. Für die Verarbeitung dort sind diese
 Seiten verantwortlich.</li>
 </ul>
 
