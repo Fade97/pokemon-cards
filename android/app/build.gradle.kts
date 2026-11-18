@@ -40,7 +40,7 @@ android {
 
     defaultConfig {
         // Play package (#15). It can never change after the first upload to Play.
-        applicationId = "de.fabianduerkop.lumifoil"
+        applicationId = "de.fabianduerkop.foilark"
         minSdk = 26
         targetSdk = 36
         versionCode = 1

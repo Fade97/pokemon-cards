@@ -90,9 +90,9 @@ object PriceAlertNotifications {
 
     /** The card screen of an alert; matched by the deep link on the card route (CollectionsNavigation.kt). */
     fun cardUri(cardId: String, language: String): Uri =
-        Uri.Builder().scheme("lumifoil").authority("card").appendPath(cardId).appendPath(language).build()
+        Uri.Builder().scheme("foilark").authority("card").appendPath(cardId).appendPath(language).build()
 
-    const val CARD_URI_PATTERN = "lumifoil://card/{cardId}/{language}"
+    const val CARD_URI_PATTERN = "foilark://card/{cardId}/{language}"
 
     fun createChannel(context: Context) {
         val channel = NotificationChannel(
