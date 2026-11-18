@@ -8,7 +8,7 @@
     <string name="nav_settings">Settings</string>
 
     <!-- Pearl design system (#96, ADR 0014). -->
-    <string name="wordmark" translatable="false">lumifoil</string>
+    <string name="wordmark" translatable="false">foilark</string>
     <string name="action_back">Back</string>
     <!-- The header shortcut always opens scanning; never shown as a bare plus. -->
     <string name="shortcut_scan">Scan</string>

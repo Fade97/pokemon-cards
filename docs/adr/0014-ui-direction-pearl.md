@@ -36,7 +36,8 @@ it does not say which screens already follow them (see "Implementation status").
 - **Shapes**: corners 5 dp (slots), 7 dp (chips, card images), 10 dp (buttons, fields), 14 dp (featured cover),
   22 dp (sheets). **Spacing** in steps of 2, 4, 8, 12, 16, 24 and 32 dp, a 20 dp screen gutter, 48 dp touch targets.
 - **Icons**: one outline set on a 24 dp grid, 1.7 stroke, round caps. No filled or third-party icon sets.
-- **Brand**: the wordmark is lower-case "lumifoil" next to a neutral faceted mark (a cut prism in one line weight).
+- **Brand**: the wordmark is the lower-case app name, "foilark" since the rename in #106 (it was "lumifoil" when
+  this ADR was written), next to a neutral faceted mark (a cut prism in one line weight).
   No Poké Ball, no card back. The launcher icon and the app identity are unchanged.
 - **Foil**: one still, thin horizontal band of four pale stops, only on the **featured set cover**. No gradients,
   shimmer or animation on buttons, chips, bars or backgrounds.
