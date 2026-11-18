@@ -39,6 +39,7 @@ import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
 import de.fabianduerkop.cardindex.data.db.ContributionItem
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.languageName
+import de.fabianduerkop.cardindex.ui.settings.PrivacyPolicyLink
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -89,6 +90,8 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
+            // Who processes the uploads, legal basis, retention and rights (#70).
+            PrivacyPolicyLink()
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = {
                     viewModel.accept()
