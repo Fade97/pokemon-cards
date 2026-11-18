@@ -1,5 +1,8 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
-"""Export a fine-tuned embedding model to LiteRT (.tflite), float32 and int8, and verify it.
+"""Export a fine-tuned embedding model to LiteRT (.tflite) and verify it.
+
+Variants: f32; int8 (static); w8 (dynamic_wi8_afp32, the pack model); wo8 (weight_only_wi8_afp32) and f16 (fp16
+weights). wo8 and f16 run the same float math on CPU and GPU; w8 quantizes activations at runtime on the CPU (#54).
 
 Runs in the separate export environment (export_env.sh; on Windows inside WSL because litert-converter has no
 Windows wheels):
@@ -29,6 +32,11 @@ sys.path.insert(0, str(ML))
 from models import INPUT, MEAN, STD, EmbeddingNet  # noqa: E402
 
 DATA = Path(os.environ.get("CARDINDEX_DATA_POSIX", "/mnt/d/AI/pokemon-cards-data"))
+# fp16 weights, dequantized to float32 at load time (ai-edge-quantizer float casting)
+FP16_RECIPE = [{"regex": ".*", "operation": "*", "algorithm_key": "float_casting",
+                "op_config": {"weight_tensor_config": {"num_bits": 16, "symmetric": False, "granularity": "TENSORWISE",
+                                                       "dtype": "FLOAT"},
+                              "compute_precision": "FLOAT", "explicit_dequantize": True}}]
 
 
 class PhoneModel(nn.Module):
@@ -141,6 +149,18 @@ def main():
     report["w8_method"] = "ai-edge-quantizer dynamic_wi8_afp32 (int8 weights, float activations)"
     report["size_mb_w8"] = round(w8.stat().st_size / 1e6, 2)
 
+    # int8 weights only, float math (no runtime activation quantization) and fp16 weights: GPU delegate tests (#54)
+    wo8 = out_dir / f"{args.run}_wo8.tflite"
+    qt = quantizer.Quantizer(str(f32))
+    qt.load_quantization_recipe(recipe.weight_only_wi8_afp32())
+    qt.quantize().export_model(str(wo8), overwrite=True)
+    report["size_mb_wo8"] = round(wo8.stat().st_size / 1e6, 2)
+    f16 = out_dir / f"{args.run}_f16.tflite"
+    qt = quantizer.Quantizer(str(f32))
+    qt.load_quantization_recipe(FP16_RECIPE)
+    qt.quantize().export_model(str(f16), overwrite=True)
+    report["size_mb_f16"] = round(f16.stat().st_size / 1e6, 2)
+
     # equivalence on real test crops
     labels = json.loads((DATA / "synth" / "test" / "labels.json").read_text())
     step = max(1, len(labels) // args.n_check)
@@ -154,7 +174,7 @@ def main():
     with torch.no_grad():
         idx_pt = l2n(torch.cat([model(torch.from_numpy(x)) for x in refs_in]).numpy())
     report["top1_pytorch_subset"] = float(((ref @ idx_pt.T).argmax(1) == truth).mean())
-    for tag, path in (("f32", f32), ("int8", i8), ("w8", w8)):
+    for tag, path in (("f32", f32), ("int8", i8), ("w8", w8), ("wo8", wo8), ("f16", f16)):
         emb, ms = run_tflite(path, xs)
         emb = l2n(emb)
         cos = (emb * ref).sum(1)

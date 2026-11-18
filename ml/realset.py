@@ -21,9 +21,14 @@ Every card id gets one fixed role (`role_of`):
            gives such cards no class.
   stats    crop and card counts of a samples file -> results/realset_<name>.json (no images, no per-photo rows)
 
+Production (--all-cards, issue #58): every card id has role 'train' (no test, no val, no twin blocking), so the
+shipped model learns from every photo. Its crops and samples live apart in <data>/real-train/all/, so the measured
+run (#57) stays reproducible. There is no held-out real set in this mode: score the recipe with the default roles.
+
   uv run --extra litert python realset.py gallery
   uv run --extra litert python realset.py twins      # needs packs-embcache rows of mnv3_256_real_w8
   uv run --extra litert python realset.py build
+  uv run --extra litert python realset.py build --all-cards      # production: all photos, real-train/all/
 
 The images stay in <data>; nothing here is committed.
 """
@@ -43,6 +48,7 @@ from common import DATA_DIR, Card, split_of
 
 REAL_TRAIN = DATA_DIR / "real-train"
 SAMPLES = REAL_TRAIN / "samples.json"
+CROPS = REAL_TRAIN / "crops"
 GALLERY_NPY = REAL_TRAIN / "gallery_en_224.npy"
 GALLERY_IDS = REAL_TRAIN / "gallery_en_224.json"
 TWINS = REAL_TRAIN / "twins.json"
@@ -55,10 +61,22 @@ SIDE = 224
 # Train crops whose baseline embedding is this far from the true reference are detector failures, not hard photos
 # (checked by eye on a grid of the lowest-similarity crops).
 MIN_SIM_TRAIN = 0.10
+ALL_CARDS = False  # production mode (use_all_cards): every card is 'train'
+
+
+def use_all_cards() -> None:
+    """Production mode: every card id has role 'train'; crops and samples go to <data>/real-train/all/."""
+    global ALL_CARDS, SAMPLES, CROPS
+    ALL_CARDS = True
+    SAMPLES = REAL_TRAIN / "all" / "samples.json"
+    CROPS = REAL_TRAIN / "all" / "crops"
 
 
 def role_of(card_id: str) -> str:
-    """'test' (common.split_of holdout), 'val' (10 % of the rest, own hash) or 'train'."""
+    """'test' (common.split_of holdout), 'val' (10 % of the rest, own hash) or 'train'; always 'train' in
+    production mode (use_all_cards)."""
+    if ALL_CARDS:
+        return "train"
     if split_of(card_id) == "test":
         return "test"
     h = int(hashlib.sha1(f"val:{card_id}".encode()).hexdigest(), 16) % 100
@@ -220,8 +238,8 @@ def cmd_build(threads: int):
     cards = pack_cards()
     items = [it for it in [*forb_items(cards), *tcgar_items(cards)] if role_of(it["card_id"]) != "test"]
     print(f"{len(items)} train/val photos: {Counter((i['source'], role_of(i['card_id'])) for i in items)}")
-    (REAL_TRAIN / "crops" / "forb").mkdir(parents=True, exist_ok=True)
-    (REAL_TRAIN / "crops" / "tcgar").mkdir(parents=True, exist_ok=True)
+    (CROPS / "forb").mkdir(parents=True, exist_ok=True)
+    (CROPS / "tcgar").mkdir(parents=True, exist_ok=True)
     old = {s["file"]: s for s in json.loads(SAMPLES.read_text())} if SAMPLES.exists() else {}
     ref_cache: dict[str, np.ndarray] = {}
     gal_ids, G = baseline_gallery()
@@ -235,7 +253,7 @@ def cmd_build(threads: int):
         return local.emb, local.det
 
     def one(it):
-        out = REAL_TRAIN / "crops" / it["file"]
+        out = CROPS / it["file"]
         o = old.get(it["file"])
         # reuse only a crop of the same card made by the same cropping code (a new ground-truth map or an
         # upright() fix changes either)
@@ -366,7 +384,13 @@ def main():
     ap.add_argument("--threads", type=int, default=6)
     ap.add_argument("--samples", type=Path, default=SAMPLES, help="stats: samples file")
     ap.add_argument("--name", default="current", help="stats: results/realset_<name>.json")
+    ap.add_argument("--all-cards", action="store_true",
+                    help="production: every card is train (no holdout); data in real-train/all/")
     args = ap.parse_args()
+    if args.all_cards:
+        use_all_cards()
+        if args.samples == REAL_TRAIN / "samples.json":
+            args.samples = SAMPLES
     if args.cmd == "twins":
         cmd_twins()
     elif args.cmd == "stats":
