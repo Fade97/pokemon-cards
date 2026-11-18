@@ -138,6 +138,11 @@ printf %s "$token" | sha256sum | cut -d' ' -f1 | pnpm exec wrangler secret put P
 `wrangler secret put` replaces the whole list, so pass all digests at once (comma-separated). Locally, put
 `PRO_TEST_TOKENS=<digest>` into `.dev.vars` for `pnpm run dev`.
 
+**First deploy: backfill before the first Pro request.** The app asks for a past month once (from the 8th of the next
+month on) and keeps the answer, also an empty one. Run `run-nightly.sh --no-import --no-publish --rebuild-history`
+on Vulcan before setting `PRO_TEST_TOKENS` (or before a tester opens a chart); a device that fetched earlier shows
+no history for those months until its app data is cleared.
+
 ## Scan contributions
 
 Issue #14, ADR 0008. Opt-in uploads of the rectified card crop for the open dataset. The app shows the consent
