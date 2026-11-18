@@ -226,7 +226,11 @@
         <item quantity="one">%1$d owned</item>
         <item quantity="other">%1$d owned</item>
     </plurals>
-    <string name="settings_placeholder">Open-source licenses will live here.</string>
+    <!-- The non-affiliation notice of the store listing (docs/release/play-launch.md, #130). %1$s is the app name. -->
+    <string name="settings_disclaimer">%1$s is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their respective owners.</string>
+    <string name="settings_credits">Card data and images: TCGdex. Prices: the Cardmarket price guide and TCGplayer, via TCGCSV. Cardmarket and TCGplayer are trademarks of their owners; %1$s is not affiliated with them.</string>
+    <string name="settings_source_code">Source code (GPLv3)</string>
+    <string name="settings_source_code_no_browser">No browser to open the source code. It is at %1$s</string>
     <string name="settings_about">About</string>
     <string name="settings_privacy_policy">Privacy policy</string>
     <string name="settings_privacy_policy_no_browser">No browser to open the privacy policy. It is at %1$s</string>
@@ -353,6 +357,7 @@
     <string name="scan_undo">Undo</string>
     <string name="scan_undo_description">Undo adding %1$s</string>
     <string name="scan_removed">Took back %1$s.</string>
+    <string name="scan_save_failed">Couldn’t save %1$s. Hold it in view again to retry.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
@@ -425,7 +430,11 @@
     <string name="review_quantity_more">One more</string>
     <string name="review_skip">Skip</string>
     <string name="review_confirm">Confirm</string>
-    <string name="review_discard">Not a card, remove it</string>
+    <string name="review_discard">Remove this scan</string>
+    <string name="review_find_card">None of these? Find the card</string>
+    <!-- Shown instead of the similarity for a card the user found in search -->
+    <string name="review_picked_by_hand">Your pick</string>
+    <string name="review_find_title">Find the card</string>
     <string name="review_empty">Unsure scans wait here, so scanning never has to stop.</string>
     <string name="review_done">Review done</string>
     <plurals name="review_done_added">

@@ -231,9 +231,12 @@ fun SettingsScreen(
                 SettingsHint(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
                 Column {
                     PrivacyPolicyLink()
+                    SourceCodeLink()
                     TesterFeedbackLink()
                 }
-                SettingsHint(stringResource(R.string.settings_placeholder))
+                val appName = stringResource(R.string.app_name)
+                SettingsHint(stringResource(R.string.settings_disclaimer, appName))
+                SettingsHint(stringResource(R.string.settings_credits, appName))
             }
         }
     }
@@ -276,6 +279,18 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
         modifier = modifier,
     )
 }
+
+/** The app's source, which GPLv3 asks to offer (#130). */
+@Composable
+private fun SourceCodeLink() {
+    ExternalLink(
+        url = SOURCE_CODE_URL,
+        label = stringResource(R.string.settings_source_code),
+        noBrowser = stringResource(R.string.settings_source_code_no_browser, SOURCE_CODE_URL),
+    )
+}
+
+private const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
 
 /** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */
 @Composable
