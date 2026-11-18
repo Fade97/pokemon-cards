@@ -63,6 +63,17 @@ data class LanguagesUiState(
     /** What picking [languages] costs to download, model included. */
     fun downloadSize(languages: Set<String>): Long =
         rows.filter { it.code in languages }.sumOf { it.downloadSize ?: 0 } + (modelDownload ?: 0)
+
+    /**
+     * The first-run picker's choice: [picked] once the user touched it, else the device language, else English.
+     * Only languages with a pack count: a disabled row shows no tick, so it must not be downloaded either
+     * (a Dutch phone would otherwise "download" nothing, issue #56).
+     */
+    fun pickerChoice(picked: Set<String>?, deviceLanguage: String): Set<String> {
+        val available = rows.filter { it.available }.map { it.code }.toSet()
+        val start = picked ?: listOf(deviceLanguage, "en").firstOrNull { it in available }?.let(::setOf).orEmpty()
+        return start intersect available
+    }
 }
 
 /** Language management (Settings) and the first-run picker. Opening either polls the catalog (docs/packs.md). */
