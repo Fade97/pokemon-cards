@@ -194,7 +194,15 @@
     <string name="settings_price_auto">Automatic</string>
     <string name="settings_price_cardmarket">Cardmarket, EUR</string>
     <string name="settings_price_tcgplayer">TCGplayer, USD</string>
-    <string name="settings_price_auto_hint">Automatic follows your region: %1$s.</string>
+    <string name="settings_price_auto_sub">Follows your region: %1$s</string>
+    <string name="settings_price_cardmarket_name">Cardmarket</string>
+    <string name="settings_price_tcgplayer_name">TCGplayer</string>
+    <string name="settings_price_eur">Prices in euros (EUR)</string>
+    <string name="settings_price_usd">Prices in US dollars (USD)</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Light or dark</string>
+    <string name="settings_theme_system">Same as your phone</string>
+    <string name="settings_debug_title">Debug tools (debug build)</string>
     <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
     <string name="settings_price_refresh">Update prices now</string>
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
@@ -237,6 +245,7 @@
     <string name="packs_none">No language installed yet, so scanning can\'t recognize cards.</string>
     <string name="packs_add">Add languages</string>
     <string name="packs_remove">Remove</string>
+    <string name="packs_remove_language">Remove %1$s</string>
     <string name="packs_remove_title">Remove %1$s?</string>
     <string name="packs_remove_text">Cards in this language are no longer recognized. Your copies and collections stay.</string>
     <string name="packs_download_again">Download again</string>
@@ -268,6 +277,7 @@
     <string name="contribute_withdraw_hint">Withdrawing deletes a picture from the server and keeps it out of future dataset releases. Releases already published keep it.</string>
     <string name="contribute_none">No contributions yet.</string>
     <string name="contribute_withdraw">Withdraw</string>
+    <string name="contribute_withdraw_one">Withdraw %1$s</string>
     <string name="contribute_withdraw_all">Withdraw all</string>
     <string name="contribute_withdraw_all_text">All your pictures are deleted from the server and left out of future releases. Releases already published keep them.</string>
     <string name="contribute_state_queued">waiting to upload</string>

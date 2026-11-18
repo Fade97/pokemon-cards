@@ -3,20 +3,19 @@ package de.fabianduerkop.cardindex.ui.contributions
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.consumeWindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -25,7 +24,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -35,9 +33,16 @@ import de.fabianduerkop.cardindex.data.AppContainer
 import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
 import de.fabianduerkop.cardindex.data.db.ContributionItem
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.PrimaryButton
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.StatusNotice
+import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.languageName
+import de.fabianduerkop.cardindex.ui.settings.ConfirmDialog
 import de.fabianduerkop.cardindex.ui.settings.PrivacyPolicyLink
+import de.fabianduerkop.cardindex.ui.settings.SettingsHint
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.stateIn
@@ -68,7 +73,8 @@ private fun contributionsViewModel(): ContributionsViewModel =
 
 /**
  * The consent screen (issue #14, ADR 0008): what is shared, under which license, and what withdrawing can and can't
- * undo. Agreeing turns contributing on; the version shown is the one sent with every upload.
+ * undo. Only "I agree" turns contributing on; Back and "Not now" leave it off. The version shown is the one sent with
+ * every upload.
  */
 @Composable
 fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewModel = contributionsViewModel()) {
@@ -77,25 +83,24 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
             Modifier
                 .fillMaxSize()
                 .padding(padding)
+                .consumeWindowInsets(padding)
                 .verticalScroll(rememberScrollState())
-                .padding(horizontal = 18.dp, vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+                .padding(horizontal = Spacing.gutter, vertical = Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(stringResource(R.string.contribute_consent_body), style = MaterialTheme.typography.bodyLarge)
-            Text(
-                stringResource(R.string.contribute_consent_version, ContributionConsent.VERSION),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            SettingsHint(stringResource(R.string.contribute_consent_version, ContributionConsent.VERSION))
             // Who processes the uploads, legal basis, retention and rights (#70).
             PrivacyPolicyLink()
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Button(onClick = {
+            PrimaryButton(
+                stringResource(R.string.contribute_agree),
+                onClick = {
                     viewModel.accept()
                     onBack()
-                }) { Text(stringResource(R.string.contribute_agree)) }
-                TextButton(onClick = onBack) { Text(stringResource(R.string.contribute_decline)) }
-            }
+                },
+                modifier = Modifier.fillMaxWidth(),
+            )
+            SecondaryButton(stringResource(R.string.contribute_decline), onClick = onBack, modifier = Modifier.fillMaxWidth())
         }
     }
 }
@@ -106,39 +111,40 @@ fun ContributionsScreen(onBack: () -> Unit, viewModel: ContributionsViewModel = 
     val items by viewModel.items.collectAsStateWithLifecycle()
     var confirmAll by remember { mutableStateOf(false) }
     DetailScaffold(title = stringResource(R.string.contribute_mine), onBack = onBack) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(horizontal = 18.dp)) {
-            Text(
-                stringResource(R.string.contribute_withdraw_hint),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+        LazyColumn(
+            Modifier.fillMaxSize().padding(padding).consumeWindowInsets(padding),
+            contentPadding = PaddingValues(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.sm, bottom = Spacing.xl),
+        ) {
+            item {
+                SettingsHint(stringResource(R.string.contribute_withdraw_hint))
+            }
             if (items.isEmpty()) {
-                Text(stringResource(R.string.contribute_none), Modifier.padding(vertical = 16.dp))
+                item { StatusNotice(stringResource(R.string.contribute_none), Modifier.padding(vertical = Spacing.lg)) }
             } else {
-                OutlinedButton(onClick = { confirmAll = true }, modifier = Modifier.padding(vertical = 8.dp)) {
-                    Text(stringResource(R.string.contribute_withdraw_all))
+                item {
+                    SecondaryButton(
+                        stringResource(R.string.contribute_withdraw_all),
+                        onClick = { confirmAll = true },
+                        modifier = Modifier.padding(vertical = Spacing.md),
+                    )
                 }
-                LazyColumn {
-                    items(items, key = { it.contribution.id }) { item ->
-                        ContributionRow(item, onWithdraw = { viewModel.withdraw(item.contribution.id) })
-                        HorizontalDivider()
-                    }
+                items(items, key = { it.contribution.id }) { item ->
+                    ContributionRow(item, onWithdraw = { viewModel.withdraw(item.contribution.id) })
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 }
             }
         }
     }
     if (confirmAll) {
-        AlertDialog(
-            onDismissRequest = { confirmAll = false },
-            title = { Text(stringResource(R.string.contribute_withdraw_all)) },
-            text = { Text(stringResource(R.string.contribute_withdraw_all_text)) },
-            confirmButton = {
-                TextButton(onClick = {
-                    viewModel.withdrawAll()
-                    confirmAll = false
-                }) { Text(stringResource(R.string.contribute_withdraw)) }
+        ConfirmDialog(
+            title = stringResource(R.string.contribute_withdraw_all),
+            text = stringResource(R.string.contribute_withdraw_all_text),
+            confirmLabel = stringResource(R.string.contribute_withdraw),
+            onConfirm = {
+                viewModel.withdrawAll()
+                confirmAll = false
             },
-            dismissButton = { TextButton(onClick = { confirmAll = false }) { Text(stringResource(android.R.string.cancel)) } },
+            onDismiss = { confirmAll = false },
         )
     }
 }
@@ -148,13 +154,11 @@ private val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT
 @Composable
 private fun ContributionRow(item: ContributionItem, onWithdraw: () -> Unit) {
     val c = item.contribution
-    Row(Modifier.padding(vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+    val title = listOfNotNull(item.cardName ?: c.cardId, item.localId, languageName(c.language)).joinToString(" · ")
+    Row(Modifier.padding(vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(
-                listOfNotNull(item.cardName ?: c.cardId, item.localId, languageName(c.language)).joinToString(" · "),
-                style = MaterialTheme.typography.titleSmall,
-            )
-            Text(
+            Text(title, style = MaterialTheme.typography.titleSmall)
+            SettingsHint(
                 dateFormat.format(c.createdAt) + " · " + stringResource(
                     when {
                         c.withdrawRequested -> R.string.contribute_state_withdrawing
@@ -162,10 +166,14 @@ private fun ContributionRow(item: ContributionItem, onWithdraw: () -> Unit) {
                         else -> R.string.contribute_state_shared
                     },
                 ),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        if (!c.withdrawRequested) TextButton(onClick = onWithdraw) { Text(stringResource(R.string.contribute_withdraw)) }
+        if (!c.withdrawRequested) {
+            TextAction(
+                stringResource(R.string.contribute_withdraw),
+                onClick = onWithdraw,
+                contentDescription = stringResource(R.string.contribute_withdraw_one, title),
+            )
+        }
     }
 }
