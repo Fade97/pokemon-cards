@@ -51,6 +51,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -301,7 +302,7 @@ private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> U
                 )
             }
             Text(
-                if (c.similarity < 0f) {
+                if (c.similarity == ReviewCandidateEntity.PICKED_BY_HAND) {
                     stringResource(R.string.review_picked_by_hand)
                 } else {
                     stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100))
