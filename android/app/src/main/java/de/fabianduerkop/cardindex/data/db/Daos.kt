@@ -130,6 +130,42 @@ interface CatalogDao {
     /** The prints of one card: one row per language the catalog has it in. */
     @Query("SELECT * FROM cards WHERE id = :cardId ORDER BY language")
     fun observeCardPrints(cardId: String): Flow<List<CardEntity>>
+
+    /**
+     * Search (#99) over the current cards in [languages]. [text] is a LIKE pattern for the card or set name, [number] a
+     * collector number without leading zeros, upper case. With [both] a card must match the name and the number
+     * ("pikachu 25"), else either one ("151" is a set name and a number). Number matches come first, then names that
+     * start with [prefix]. A [total] keeps only sets of that printed size. See [de.fabianduerkop.cardindex.data.search.SearchTerms].
+     */
+    @Query(
+        """
+        SELECT c.*, s.name AS setName, s.printedTotal AS printedTotal,
+            (SELECT COALESCE(SUM(o.quantity), 0) FROM owned_copies o
+                WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS owned
+        FROM cards c LEFT JOIN card_sets s ON s.id = c.setId
+        WHERE c.retired = 0 AND c.language IN (:languages) AND (:total IS NULL OR s.printedTotal = :total) AND (
+            CASE WHEN :both THEN
+                (c.name LIKE :text ESCAPE '\' OR s.name LIKE :text ESCAPE '\')
+                    AND UPPER(LTRIM(c.localId, '0')) = :number
+            ELSE
+                (:text IS NOT NULL AND (c.name LIKE :text ESCAPE '\' OR s.name LIKE :text ESCAPE '\'))
+                    OR (:number IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = :number)
+            END
+        )
+        ORDER BY (:number IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = :number) DESC,
+            (c.name LIKE :prefix ESCAPE '\') DESC, c.name, s.name, c.language, LENGTH(c.localId), c.localId
+        LIMIT :limit
+        """,
+    )
+    fun searchCards(
+        text: String?,
+        prefix: String?,
+        number: String?,
+        both: Boolean,
+        total: Int?,
+        languages: List<String>,
+        limit: Int,
+    ): Flow<List<CardSearchHit>>
 }
 
 @Dao

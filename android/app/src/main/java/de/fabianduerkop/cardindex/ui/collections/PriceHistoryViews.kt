@@ -5,12 +5,13 @@ import androidx.annotation.StringRes
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -24,15 +25,15 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.data.prices.PricePoint
 import de.fabianduerkop.cardindex.model.Money
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
-import de.fabianduerkop.cardindex.ui.theme.TabularFigures
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.text.NumberFormat
@@ -68,22 +69,23 @@ private fun HistoryRange.label(): Int = when (this) {
  * Range chips, the change over the range and the chart; a line of text instead while there are fewer than two days.
  * Shared by the card detail (one printing's price) and the collections screen (the portfolio).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun PriceHistoryBlock(state: HistoryUiState, onRange: (HistoryRange) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             HistoryRange.entries.forEach { range ->
-                FilterChip(
+                ChoiceChip(
                     selected = range == state.range,
                     onClick = { onRange(range) },
-                    label = { Text(stringResource(range.label())) },
+                    label = stringResource(range.label()),
                 )
             }
         }
         val points = state.points
         if (points.size >= 2) {
             ChangeLine(points.first(), points.last(), state.currency)
-            PriceChart(points, state.currency, Modifier.padding(top = 8.dp))
+            PriceChart(points, state.currency, Modifier.padding(top = Spacing.sm))
             if (state.status == HistoryStatus.FAILED) HistoryNote(stringResource(R.string.history_offline))
         } else {
             HistoryNote(
@@ -106,7 +108,7 @@ private fun HistoryNote(text: String) {
         text,
         style = MaterialTheme.typography.bodySmall,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
-        modifier = Modifier.padding(top = 8.dp),
+        modifier = Modifier.padding(top = Spacing.sm),
     )
 }
 
@@ -125,7 +127,7 @@ private fun ChangeLine(first: PricePoint, last: PricePoint, currency: String) {
             delta < 0 -> MaterialTheme.colorScheme.error
             else -> MaterialTheme.colorScheme.onSurfaceVariant
         },
-        modifier = Modifier.padding(top = 10.dp),
+        modifier = Modifier.padding(top = Spacing.md),
     )
 }
 
@@ -139,8 +141,8 @@ internal fun percentChange(from: Long, to: Long): String? {
 
 /**
  * A line over the range with the highest and lowest amount on the right and the first and last date under it.
- * Days are placed by date, so a gap in the data shows as a longer segment. Drawn in the action blue; the energy colors
- * stay reserved for card data (ADR 0010).
+ * Days are placed by date, so a gap in the data shows as a longer segment. Drawn in sea-glass, the action colour
+ * (ADR 0014); up and down in the change line above also say "+" or "−", so colour is never the only signal.
  */
 @Composable
 internal fun PriceChart(points: List<PricePoint>, currency: String, modifier: Modifier = Modifier) {
@@ -148,7 +150,8 @@ internal fun PriceChart(points: List<PricePoint>, currency: String, modifier: Mo
     val max = points.maxOf { it.amountMinor }
     val line = MaterialTheme.colorScheme.primary
     val rule = MaterialTheme.colorScheme.outlineVariant
-    val labelStyle = MaterialTheme.typography.bodySmall.merge(TextStyle(fontFeatureSettings = TabularFigures))
+    // Proportional figures: Schibsted's tabular set also widens `.` and `,`, which breaks up prices (ADR 0014).
+    val labelStyle = MaterialTheme.typography.bodySmall
     val description = stringResource(
         R.string.history_chart_description,
         formatDate(points.first().date),

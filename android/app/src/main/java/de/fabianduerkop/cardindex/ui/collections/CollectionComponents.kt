@@ -112,7 +112,7 @@ internal fun ValueSummary(
         )
         val details = buildList {
             if (value != null && value.unpricedCopies > 0 && priced) {
-                add(pluralStringResource(R.plurals.collections_unpriced, value.unpricedCopies, value.unpricedCopies))
+                add(pluralStringResource(R.plurals.collections_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency))
             }
             priceDate?.let { add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()))) }
         }

@@ -5,6 +5,7 @@ import android.Manifest
 import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,7 +17,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SegmentedButton
 import androidx.compose.material3.SegmentedButtonDefaults
@@ -40,6 +40,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 import de.fabianduerkop.cardindex.data.alerts.AlertDirection
 import de.fabianduerkop.cardindex.data.alerts.PriceAlert
 import de.fabianduerkop.cardindex.data.alerts.PriceAlertNotifications
@@ -70,11 +73,12 @@ internal fun PriceAlertsBlock(
         }
         NotificationsOffHint(visible = alerts.isNotEmpty())
         alerts.forEach { PriceAlertRow(it, title = null, onDelete = { onDelete(it.uuid) }) }
-        OutlinedButton(
+        SecondaryButton(
+            stringResource(R.string.alerts_add),
             onClick = { adding = true },
             enabled = quotes.isNotEmpty(),
-            modifier = Modifier.fillMaxWidth().padding(top = 8.dp),
-        ) { Text(stringResource(R.string.alerts_add)) }
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.sm),
+        )
         if (quotes.isEmpty()) {
             Text(
                 stringResource(R.string.alerts_no_price),
@@ -156,11 +160,11 @@ internal fun PriceAlertRow(alert: PriceAlert, title: String?, onDelete: () -> Un
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
-        IconButton(onClick = onDelete) {
+        IconButton(onClick = onDelete, modifier = Modifier.focusRing(CircleShape)) {
             Icon(painterResource(R.drawable.ic_close), contentDescription = stringResource(R.string.alerts_delete))
         }
     }
-    HorizontalDivider()
+    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)

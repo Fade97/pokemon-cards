@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import androidx.annotation.DrawableRes
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -9,11 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -21,7 +24,6 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedIconButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
@@ -39,6 +41,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -52,6 +58,11 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.PrimaryButton
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
 import java.time.Instant
 import java.time.ZoneOffset
@@ -75,44 +86,50 @@ internal fun CopySheet(
 ) {
     var draft by remember(copy.uuid) { mutableStateOf(copy) }
     var chosenCollections by remember(copy.uuid, initialCollections) { mutableStateOf(initialCollections) }
-    var priceText by rememberSaveable(copy.uuid) {
-        mutableStateOf(copy.purchasePriceCents?.let { Money.formatPlain(it) }.orEmpty())
-    }
+    val initialPrice = remember(copy.uuid) { copy.purchasePriceCents?.let { Money.formatPlain(it) }.orEmpty() }
+    var priceText by rememberSaveable(copy.uuid) { mutableStateOf(initialPrice) }
     var pickingDate by remember { mutableStateOf(false) }
     val graded = draft.grader != null
     val priceValid = priceText.isBlank() || Money.parseMinor(priceText) != null
+    // An edit of a saved copy says so above the buttons, so leaving with Cancel or Back is a clear choice.
+    val changed = copy.id != 0L && (draft != copy || priceText != initialPrice || chosenCollections != initialCollections)
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.navigationBarsPadding()) {
             Column(
                 Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding),
-                verticalArrangement = Arrangement.spacedBy(6.dp),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
             ) {
                 Text(
                     stringResource(if (copy.id == 0L) R.string.copy_add_title else R.string.copy_edit_title),
                     style = MaterialTheme.typography.headlineSmall,
+                    modifier = Modifier.semantics { heading() },
                 )
                 Text(title, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-                Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
                     FieldLabel(stringResource(R.string.copy_quantity), Modifier.weight(1f))
-                    OutlinedIconButton(
-                        onClick = { draft = draft.copy(quantity = (draft.quantity - 1).coerceAtLeast(1)) },
+                    StepButton(
+                        icon = R.drawable.ic_remove,
+                        description = stringResource(R.string.copy_quantity_decrease),
                         enabled = draft.quantity > 1,
-                    ) { Icon(painterResource(R.drawable.ic_remove), stringResource(R.string.copy_quantity_decrease)) }
+                        onClick = { draft = draft.copy(quantity = (draft.quantity - 1).coerceAtLeast(1)) },
+                    )
                     Text(
                         draft.quantity.toString(),
                         style = MaterialTheme.typography.titleLarge.merge(TextStyle(fontFeatureSettings = TabularFigures)),
-                        modifier = Modifier.padding(horizontal = 16.dp),
+                        modifier = Modifier.padding(horizontal = Spacing.lg),
                     )
-                    OutlinedIconButton(onClick = { draft = draft.copy(quantity = draft.quantity + 1) }) {
-                        Icon(painterResource(R.drawable.ic_add), stringResource(R.string.copy_quantity_increase))
-                    }
+                    StepButton(
+                        icon = R.drawable.ic_add,
+                        description = stringResource(R.string.copy_quantity_increase),
+                        onClick = { draft = draft.copy(quantity = draft.quantity + 1) },
+                    )
                 }
 
                 if (prints.size > 1) {
                     FieldLabel(stringResource(R.string.copy_language))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         prints.forEach { print ->
                             ChoiceChip(
                                 selected = draft.cardLanguage == print.language,
@@ -124,7 +141,7 @@ internal fun CopySheet(
                 }
 
                 FieldLabel(stringResource(R.string.copy_finish))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Finish.entries.forEach { finish ->
                         ChoiceChip(
                             selected = draft.finish == finish,
@@ -134,7 +151,7 @@ internal fun CopySheet(
                     }
                 }
                 FieldLabel(stringResource(R.string.copy_edition))
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     Edition.entries.forEach { edition ->
                         ChoiceChip(
                             selected = draft.edition == edition,
@@ -144,8 +161,8 @@ internal fun CopySheet(
                     }
                 }
 
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Column(Modifier.weight(1f)) {
+                Row(Modifier.fillMaxWidth().padding(top = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    Column(Modifier.weight(1f).padding(end = Spacing.md)) {
                         FieldLabel(stringResource(R.string.copy_graded))
                         Text(
                             stringResource(R.string.copy_graded_hint),
@@ -166,7 +183,7 @@ internal fun CopySheet(
                 }
                 if (graded) {
                     FieldLabel(stringResource(R.string.copy_grader))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Grader.entries.forEach { grader ->
                             ChoiceChip(
                                 selected = draft.grader == grader,
@@ -180,12 +197,13 @@ internal fun CopySheet(
                         onValueChange = { draft = draft.copy(grade = it.take(8)) },
                         label = { Text(stringResource(R.string.copy_grade)) },
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.width(140.dp),
                     )
                 } else {
                     FieldLabel(stringResource(R.string.copy_condition))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Condition.entries.forEach { condition ->
                             ChoiceChip(
                                 selected = draft.condition == condition,
@@ -196,7 +214,11 @@ internal fun CopySheet(
                     }
                 }
 
-                Row(Modifier.fillMaxWidth().padding(top = 6.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().padding(top = Spacing.sm),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
                     OutlinedTextField(
                         value = priceText,
                         onValueChange = { priceText = it.take(12) },
@@ -204,17 +226,20 @@ internal fun CopySheet(
                         suffix = { Text(draft.purchaseCurrency ?: Money.localCurrency()) },
                         isError = !priceValid,
                         singleLine = true,
+                        shape = MaterialTheme.shapes.medium,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f),
                     )
-                    OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.weight(1f).padding(top = 8.dp)) {
-                        Text(draft.purchaseDate?.let(::formatDate) ?: stringResource(R.string.copy_bought_on), maxLines = 1)
-                    }
+                    SecondaryButton(
+                        draft.purchaseDate?.let(::formatDate) ?: stringResource(R.string.copy_bought_on),
+                        onClick = { pickingDate = true },
+                        modifier = Modifier.weight(1f),
+                    )
                 }
 
                 if (collections.isNotEmpty()) {
                     FieldLabel(stringResource(R.string.copy_collections))
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         ChoiceChip(
                             selected = chosenCollections.isEmpty(),
                             onClick = { chosenCollections = emptySet() },
@@ -239,18 +264,28 @@ internal fun CopySheet(
                 extraContent(draft)
 
                 if (onDelete != null) {
-                    TextButton(onClick = onDelete) {
-                        Text(stringResource(R.string.copy_delete), color = MaterialTheme.colorScheme.error)
-                    }
+                    TextAction(stringResource(R.string.copy_delete), onClick = onDelete, destructive = true)
                 }
             }
-            HorizontalDivider(Modifier.padding(top = 8.dp))
+            HorizontalDivider(Modifier.padding(top = Spacing.sm), color = MaterialTheme.colorScheme.outlineVariant)
+            if (changed) {
+                Text(
+                    stringResource(R.string.copy_unsaved),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = ScreenPadding)
+                        .padding(top = Spacing.md)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
+                )
+            }
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = 12.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = Spacing.md),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                OutlinedButton(onClick = onDismiss) { Text(stringResource(R.string.cancel)) }
-                Button(
+                SecondaryButton(stringResource(R.string.cancel), onClick = onDismiss)
+                PrimaryButton(
+                    text = stringResource(if (copy.id == 0L) R.string.copy_add else R.string.copy_save),
                     onClick = {
                         val cents = Money.parseMinor(priceText)
                         val saved = draft.copy(
@@ -261,7 +296,7 @@ internal fun CopySheet(
                     },
                     enabled = priceValid && (!graded || !draft.grade.isNullOrBlank()),
                     modifier = Modifier.weight(1f),
-                ) { Text(stringResource(if (copy.id == 0L) R.string.copy_add else R.string.copy_save)) }
+                )
             }
         }
     }
@@ -295,7 +330,19 @@ internal fun CopySheet(
 
 @Composable
 private fun FieldLabel(text: String, modifier: Modifier = Modifier) {
-    Text(text, style = MaterialTheme.typography.titleSmall, modifier = modifier.padding(top = 8.dp))
+    Text(text, style = MaterialTheme.typography.titleSmall, modifier = modifier.padding(top = Spacing.md))
+}
+
+/** A round 48 dp minus or plus for the quantity, on the quiet Pearl outline. */
+@Composable
+private fun StepButton(@DrawableRes icon: Int, description: String, onClick: () -> Unit, enabled: Boolean = true) {
+    val colors = MaterialTheme.colorScheme
+    OutlinedIconButton(
+        onClick = onClick,
+        enabled = enabled,
+        modifier = Modifier.focusRing(CircleShape).size(Spacing.touchTarget),
+        border = BorderStroke(1.dp, if (enabled) colors.outlineVariant else colors.onSurface.copy(alpha = 0.12f)),
+    ) { Icon(painterResource(icon), description, tint = if (enabled) colors.primary else colors.onSurface.copy(alpha = 0.38f)) }
 }
 
 /** A new copy of [card] with the defaults a scan would use. */
