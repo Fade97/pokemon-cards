@@ -103,7 +103,9 @@ Pro covers cloud sync across devices, price history and portfolio charts, and pr
 cheap subscription plus a lifetime option through Play Billing, with sign-in through Google Sign-In
 (Credential Manager). Pro features are server-side, so the open-source code doesn't weaken them. Price history comes from
 per-set monthly files derived from the daily snapshots; until billing exists, Pro is gated by tester tokens
-([ADR 0012](adr/0012-price-history-and-pro-gate.md)).
+([ADR 0012](adr/0012-price-history-and-pro-gate.md)). Price alerts are the one exception: until sign-in and push
+exist, the phone checks them once a day against the free current prices, a soft gate that moves to the server with
+#16 ([ADR 0013](adr/0013-price-alerts-on-device.md)).
 
 ## Open data and contributions
 
