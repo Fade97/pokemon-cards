@@ -133,11 +133,15 @@ class LabViewModel(application: Application) : AndroidViewModel(application) {
      * from the same model; without them it tests the installed language packs.
      */
     private fun loadEngine(application: Application): RecognitionEngine {
-        if (RecognitionEngine.hasBundledAssets(application)) return RecognitionEngine.load(application)
+        val numberReader = application.appContainer::newNumberReader
+        if (RecognitionEngine.hasBundledAssets(application)) return RecognitionEngine.load(application, numberReader)
         val packs = application.appContainer.packs
         val load = PackLoader.load(packs.installed.value)
         packs.reportLoad(load)
-        return RecognitionEngine.load(load.loaded ?: throw FileNotFoundException("no lab assets and no usable language pack"))
+        return RecognitionEngine.load(
+            load.loaded ?: throw FileNotFoundException("no lab assets and no usable language pack"),
+            numberReader,
+        )
     }
 
     fun setPaused(value: Boolean) = _paused.update { value }

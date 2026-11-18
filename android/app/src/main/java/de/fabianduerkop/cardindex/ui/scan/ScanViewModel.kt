@@ -138,6 +138,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     private val packs = application.appContainer.packs
     private val contributions = application.appContainer.contributions
+    private val numberReader = application.appContainer::newNumberReader
 
     init {
         // Reload when a pack or the model is installed, replaced or removed; not when a pack is only marked broken
@@ -162,11 +163,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         _engine.value = try {
             val installed = packs.installed.value
             val loaded = if (installed.isEmpty && RecognitionEngine.hasBundledAssets(application)) {
-                RecognitionEngine.load(application, preferGpu = true)
+                RecognitionEngine.load(application, numberReader, preferGpu = true)
             } else {
                 val load = PackLoader.load(installed)
                 packs.reportLoad(load)
-                load.loaded?.let { RecognitionEngine.load(it, preferGpu = true) }
+                load.loaded?.let { RecognitionEngine.load(it, numberReader, preferGpu = true) }
             }
             if (loaded == null) {
                 ScanEngineState.NoLanguages(packs.installed.value.broken)

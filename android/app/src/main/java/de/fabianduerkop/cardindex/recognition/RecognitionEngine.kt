@@ -7,10 +7,6 @@ import android.os.SystemClock
 import android.util.Log
 import androidx.annotation.WorkerThread
 import androidx.core.graphics.createBitmap
-import com.google.android.gms.tasks.Tasks
-import com.google.mlkit.vision.common.InputImage
-import com.google.mlkit.vision.text.TextRecognition
-import com.google.mlkit.vision.text.latin.TextRecognizerOptions
 import de.fabianduerkop.cardindex.data.packs.LoadedPacks
 import org.json.JSONObject
 import org.opencv.android.OpenCVLoader
@@ -23,7 +19,6 @@ import org.opencv.imgproc.Imgproc
 import java.io.FileNotFoundException
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
-import java.util.concurrent.TimeUnit
 
 /** How long each step took, in milliseconds. */
 data class Timings(val detect: Long, val embed: Long, val knn: Long, val ocr: Long, val total: Long) {
@@ -66,18 +61,19 @@ data class ModelInfo(val model: String, val dim: Int, val cards: Int, val corner
 /**
  * The on-device recognition pipeline of the test app, mirroring ml/pipeline.py: classic-CV detection → rectify to
  * 63:88 → embedding (LiteRT) for the crop and its 180° rotation → cosine kNN over the reference index →
- * collector-number OCR (ML Kit) → rerank. Not thread-safe: call it from one worker thread.
+ * collector-number OCR ([NumberReader], ML Kit in the app today) → rerank. Not thread-safe: call it from one worker thread.
  */
 class RecognitionEngine private constructor(
     private val embedder: Embedder,
     private val cornerDetector: CornerDetector?,
+    private val numberReader: NumberReader,
     val index: ReferenceIndex,
     val info: ModelInfo,
 ) : AutoCloseable {
     /** Whether the learned corner detector is in this build (assets/recognition/corners.tflite). */
     val hasLearnedDetector: Boolean get() = cornerDetector != null
 
-    private val textRecognizer = TextRecognition.getClient(TextRecognizerOptions.DEFAULT_OPTIONS)
+    private val numberOcr = TimedNumberReader(numberReader, OCR_TIMEOUT_MS)
 
     /** Recognizes the card in an upright ARGB bitmap (camera frame or photo). */
     @WorkerThread
@@ -209,9 +205,10 @@ class RecognitionEngine private constructor(
     @WorkerThread
     fun readNumber(bgr: Mat, result: RecognitionResult): RecognitionResult {
         val t0 = SystemClock.elapsedRealtime()
-        // OCR only reranks: if it fails or hangs, the embedding candidates still stand.
+        // OCR only reranks: if it fails, hangs or is still busy with a read that timed out, the embedding candidates
+        // still stand.
         val lines = runCatching { readNumberStrip(bgr, result.quad) }
-            .onFailure { Log.w(TAG, "number OCR failed", it) }
+            .onFailure { if (it is NumberReaderBusyException) Log.i(TAG, "number OCR skipped: ${it.message}") else Log.w(TAG, "number OCR failed", it) }
             .getOrDefault(emptyList())
         val reading = parseCollectorNumber(lines)
         val ocrMs = SystemClock.elapsedRealtime() - t0
@@ -241,22 +238,24 @@ class RecognitionEngine private constructor(
             big.release()
             up.release()
         }
-        val text = Tasks.await(textRecognizer.process(InputImage.fromBitmap(bitmap, 0)), OCR_TIMEOUT_S, TimeUnit.SECONDS)
-        return text.textBlocks.flatMap { b -> b.lines.map { it.text } }
+        return numberOcr.read(bitmap)
     }
 
     override fun close() {
         embedder.close()
         cornerDetector?.close()
-        textRecognizer.close()
+        numberReader.close()
     }
 
     companion object {
         const val ASSET_DIR = "recognition"
         private const val TAG = "RecognitionEngine"
 
-        /** Upper bound for one number OCR, so a stuck ML Kit task cannot block the recognition worker. */
-        private const val OCR_TIMEOUT_S = 5L
+        /**
+         * Upper bound for one number OCR, so a stuck OCR task cannot block the recognition worker. While a timed-out
+         * read still runs, the next reads are skipped ([TimedNumberReader]).
+         */
+        private const val OCR_TIMEOUT_MS = 5_000L
 
         /** Whether this build has the recognition-lab assets (debug builds made after ml/app_assets.py). */
         fun hasBundledAssets(context: Context): Boolean =
@@ -265,9 +264,10 @@ class RecognitionEngine private constructor(
         /**
          * Loads the installed language packs, already checked by
          * [de.fabianduerkop.cardindex.data.packs.PackLoader] (model and index SHA-256, index size, card ids).
+         * [numberReader] makes the OCR, called once the rest has loaded; the engine owns and closes it.
          */
         @WorkerThread
-        fun load(packs: LoadedPacks, preferGpu: Boolean = false): RecognitionEngine {
+        fun load(packs: LoadedPacks, numberReader: () -> NumberReader, preferGpu: Boolean = false): RecognitionEngine {
             check(OpenCVLoader.initLocal()) { "OpenCV native library failed to load" }
             val index = ReferenceIndex(packs.cards, packs.vectors, packs.dim)
             val embedder = Embedder.create(direct(packs.modelBytes), packs.model.embedderFile, preferGpu)
@@ -278,17 +278,17 @@ class RecognitionEngine private constructor(
                 throw PackIntegrityException("model dim ${embedder.dim} != index dim ${info.dim}")
             }
             val cornerDetector = corners?.let { CornerDetector(direct(it.readBytes())) }
-            return RecognitionEngine(embedder, cornerDetector, index, info)
+            return RecognitionEngine(embedder, cornerDetector, numberReader(), index, info)
         }
 
         /**
          * Loads OpenCV, the model and the index from `assets/recognition/` (built by ml/app_assets.py). The model
          * and the index must match the SHA-256 sums in meta.json ([PackIntegrityException] otherwise). With
          * [preferGpu] the embedder runs on the GPU when it can (see [Embedder.create]); the CPU default is what the
-         * parity tests compare with Python.
+         * parity tests compare with Python. [numberReader] as for the pack variant.
          */
         @WorkerThread
-        fun load(context: Context, preferGpu: Boolean = false): RecognitionEngine {
+        fun load(context: Context, numberReader: () -> NumberReader, preferGpu: Boolean = false): RecognitionEngine {
             check(OpenCVLoader.initLocal()) { "OpenCV native library failed to load" }
             val assets = context.assets
             val names = assets.list(ASSET_DIR).orEmpty().toSet()
@@ -309,7 +309,7 @@ class RecognitionEngine private constructor(
             val info = ModelInfo(meta.getString("model"), dim, meta.getInt("cards"), corners, embedder.backend)
             check(embedder.dim == info.dim) { "model dim ${embedder.dim} != index dim ${info.dim}" }
             val cornerDetector = if ("corners.tflite" in names) CornerDetector(direct(bytes("corners.tflite"))) else null
-            return RecognitionEngine(embedder, cornerDetector, index, info)
+            return RecognitionEngine(embedder, cornerDetector, numberReader(), index, info)
         }
 
         private fun direct(b: ByteArray): ByteBuffer =

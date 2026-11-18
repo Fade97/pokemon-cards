@@ -45,11 +45,11 @@ class RealPhotoTest {
         // Like the lab: bundled assets from ml/app_assets.py first, else the installed language packs (what the app
         // runs). Only missing assets skip the test; present but broken ones (bad model, dim mismatch) must fail it.
         val engine = if (RecognitionEngine.hasBundledAssets(context)) {
-            RecognitionEngine.load(context)
+            RecognitionEngine.load(context, context.appContainer::newNumberReader)
         } else {
             val loaded = PackLoader.load(context.appContainer.packs.installed.value).loaded
             assumeTrue("no bundled recognition assets and no usable language pack", loaded != null)
-            RecognitionEngine.load(loaded!!)
+            RecognitionEngine.load(loaded!!, context.appContainer::newNumberReader)
         }
         Log.i("RealPhotoTest", "engine: ${engine.info}, twoPass=$twoPass")
         val labels = JSONObject(labelsFile.readText())
