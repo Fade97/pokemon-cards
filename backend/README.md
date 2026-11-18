@@ -119,10 +119,11 @@ Issue #17, ADR 0007. The importer derives one file per set and month from the da
 - One value per card, market, printing and day: the headline price the app shows (Cardmarket `trend`, TCGplayer
   `market`) in **cents**, aligned with `days`; `null` is no price that day. Series without any price are left out.
 - The snapshots stay the source of truth. The history files can be deleted and rebuilt (`--rebuild-history`).
-- Size: ~15–20 bytes per card, printing and day, so a 200-card set is ~125 KB a month (~30–40 KB compressed on the
-  wire) and all cards ~150–200 MB a year in R2.
-- The Worker streams the requested files into one answer without parsing them, so its CPU time doesn't grow with
-  the file size. Set ids are `shardOf` of the card id, which the app computes the same way.
+- Size: ~15–25 bytes per card, printing and day. A 200-card set with four priced printings per card is 143 KB a
+  month (53 KB gzipped on the wire; measured with synthetic prices); all cards together are ~150–250 MB a year in R2.
+- Parsing such a file takes ~7 ms, most of the free plan's 10 ms CPU limit, so the Worker streams the requested files
+  into one answer without parsing them and its CPU time doesn't grow with the file size. Set ids are `shardOf` of the
+  card id, which the app computes the same way.
 
 **Who is Pro** ([`src/entitlements.ts`](src/entitlements.ts)): until sign-in and billing exist (#16), the Worker
 secret `PRO_TEST_TOKENS` lists the SHA-256 hex digests of tester tokens (32–128 URL-safe characters, sent as
