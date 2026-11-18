@@ -10,17 +10,17 @@ import { privacyDe } from "./privacy-de";
 import { privacyEn } from "./privacy-en";
 
 /**
- * The controller's details (Art. 13(1)(a) GDPR), shown on both pages. PLACEHOLDERS: fill in before the page is
- * deployed and linked from the Play listing (#70). They are inserted HTML-escaped.
+ * The controller's details (Art. 13(1)(a) GDPR), shown on both pages, same as the Karelo imprint.
+ * They are inserted HTML-escaped.
  */
 export const CONTROLLER = {
-  name: "[CONTROLLER NAME]",
-  address: "[POSTAL ADDRESS]",
-  email: "[CONTACT EMAIL]",
+  name: "Fabian Dürkop",
+  address: "Vor dem Berge 40\n38524 Sassenburg\nGermany",
+  email: "fabian@karelo.de",
 };
 
-/** The app's name in the text. The working title; changes with the final name (#15). */
-export const APP_NAME = "Card Index";
+/** The app's name in the text (final name, #15). */
+export const APP_NAME = "Lumifoil";
 
 /** Shown as "last updated". Change it with every change of the text. */
 export const UPDATED = "2026-11-18";
