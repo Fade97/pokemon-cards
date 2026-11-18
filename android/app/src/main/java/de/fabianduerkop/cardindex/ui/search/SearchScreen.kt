@@ -3,6 +3,7 @@ package de.fabianduerkop.cardindex.ui.search
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -54,6 +55,7 @@ import de.fabianduerkop.cardindex.ui.collections.languageList
 import de.fabianduerkop.cardindex.ui.collections.languageName
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
+import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
@@ -65,12 +67,17 @@ import kotlinx.coroutines.flow.map
 /**
  * Search (#99, Pearl study "Search cards"): find any card of the installed language packs by name, set or collector
  * number, then open it to see its price or add a copy. Manual add lives here and on the card detail (ADR 0014).
+ *
+ * With [onBack] the screen is a picker opened from another screen (Review's "Find the card", #129): it gets a back
+ * button and [title], and [onOpenCard] hands the chosen card back instead of opening it.
  */
 @Composable
 fun SearchScreen(
     onOpenCard: (cardId: String, language: String) -> Unit,
     onOpenLanguages: () -> Unit,
     modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null,
+    title: String = stringResource(R.string.search_title),
     viewModel: SearchViewModel = viewModel(
         factory = containerViewModelFactory { container, saved ->
             SearchViewModel(
@@ -85,7 +92,14 @@ fun SearchScreen(
     var text by rememberSaveable { mutableStateOf(viewModel.query.value) }
     val keyboard = LocalSoftwareKeyboardController.current
 
-    TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier) { padding ->
+    val scaffold: @Composable (@Composable (PaddingValues) -> Unit) -> Unit = { content ->
+        if (onBack != null) {
+            DetailScaffold(title = title, onBack = onBack, modifier = modifier, content = content)
+        } else {
+            TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, content = content)
+        }
+    }
+    scaffold { padding ->
         LazyColumn(
             Modifier.fillMaxSize().consumeWindowInsets(padding).imePadding(),
             contentPadding = padding,
@@ -93,7 +107,7 @@ fun SearchScreen(
             item {
                 Column(Modifier.padding(horizontal = Spacing.gutter)) {
                     Text(
-                        stringResource(R.string.search_title),
+                        title,
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.semantics { heading() },
                     )

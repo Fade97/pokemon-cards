@@ -99,6 +99,24 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun selectCandidate(rank: Int) = editDraft { it.copy(rank = rank) }
+
+    /**
+     * The card the user found in search for item [itemId] (#129): it becomes the item's chosen candidate, and the
+     * finish, edition and condition picked so far stay.
+     */
+    fun useCard(itemId: Long, cardId: String, language: String) {
+        viewModelScope.launch {
+            runCatching { withContext(Dispatchers.IO) { queue.pickCard(itemId, cardId, language) } }
+                .onSuccess { picked ->
+                    if (picked == null) return@onSuccess // confirmed or removed meanwhile
+                    drafts.update { all ->
+                        val draft = all[itemId] ?: ReviewDraft.forItem(picked.checkVariant)
+                        all + (itemId to draft.copy(rank = picked.rank))
+                    }
+                }
+                .onFailure { Log.e(TAG, "picking $cardId for review item $itemId failed", it) }
+        }
+    }
     fun setFinish(finish: Finish) = editDraft { it.withFinish(finish) }
     fun setEdition(edition: Edition) = editDraft { it.withEdition(edition) }
     fun setCondition(condition: Condition) = editDraft { it.withCondition(condition) }
@@ -165,7 +183,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch { runCatching { queue.skip(id) }.onFailure { Log.e(TAG, "skipping $id failed", it) } }
     }
 
-    /** Not a card, or not worth keeping: removes the item and its crop. */
+    /** Not a card, or a scan not worth keeping: removes the item and its crop. */
     fun discard() {
         val item = state.value.current ?: return
         val id = item.entity.id
