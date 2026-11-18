@@ -72,6 +72,7 @@ and never written to disk.
 | `POST /v1/prices` with `{ "ids": [...] }` | `{ "prices": { id: … }, "missing": [ids] }` for up to 100 cards |
 | `GET /v1/packs/catalog.json` | Language-pack catalog ([`docs/packs.md`](../docs/packs.md)), cached 5 min |
 | `GET /v1/packs/<lang>/<file>`, `GET /v1/packs/models/<file>` | A pack or model file from R2 `PACKS`, cached for a year (versioned names, never overwritten). `ETag`/`If-None-Match` → `304`, a single `Range: bytes=…` → `206` (`416` past the end), `HEAD` gives the size. |
+| `GET /privacy`, `/privacy/de`, `/privacy/en` | The privacy policy as HTML (see below) |
 | any, over the rate limit | `429` with `Retry-After: 60` |
 
 A card price looks like this. A market is `null` when the card has no product there (TCGplayer covers EN
@@ -131,6 +132,21 @@ today `cc0-1`).
   behind; a repeated withdrawal deletes again. Dataset releases (#20) take only
   `WHERE withdrawn_at IS NULL AND stored_at IS NOT NULL`; a scan already in a published release stays there, later releases drop it.
 - **Rate limit**: 10 uploads per minute per client IP (`CONTRIBUTION_RATE_LIMIT`), on top of the API limit.
+
+## Privacy policy
+
+Issue #70, for the Play listing (#15). `GET /privacy` answers in German or English by `Accept-Language` (English
+when neither is asked for, `Vary: Accept-Language`); `/privacy/de` and `/privacy/en` are fixed. The texts are in
+[`src/privacy-de.ts`](src/privacy-de.ts) and [`src/privacy-en.ts`](src/privacy-en.ts), the page frame and the
+controller's details in [`src/privacy.ts`](src/privacy.ts). The data inventory behind the text is in issue #70.
+
+- Before the first deploy, fill in `CONTROLLER` (name, postal address, email) in `src/privacy.ts`; the pages show
+  the bracketed placeholders until then.
+- Change both languages together and set `UPDATED` to the day of the change.
+- Anything that changes what the app or the Worker does with data (a new SDK, logging, accounts for Pro, a new
+  upload) needs a matching change here and in the Play Data safety form.
+- The app links to `<API_BASE_URL>/privacy` (`BuildConfig.PRIVACY_POLICY_URL`) from Settings → About and from the
+  contribution consent screen. The Play listing uses `https://cards-api.fdu.gg/privacy` until the final domain exists.
 
 ## Storage
 

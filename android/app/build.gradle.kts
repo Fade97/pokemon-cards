@@ -27,6 +27,8 @@ android {
             .orElse(providers.gradleProperty("cardindex.priceApiBaseUrl"))
             .getOrElse("https://cards-api.fdu.gg")
         buildConfigField("String", "API_BASE_URL", "\"$api\"")
+        // The privacy policy the Play listing links to, served by the same Worker (#70).
+        buildConfigField("String", "PRIVACY_POLICY_URL", "\"${api.trimEnd('/')}/privacy\"")
     }
 
     buildTypes {
