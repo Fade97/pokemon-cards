@@ -23,7 +23,7 @@ for a in "$@"; do
 done
 (( ${#models[@]} )) || { echo "usage: $0 model.tflite... [-- images...]" >&2; exit 2; }
 
-pkg=de.fabianduerkop.cardindex.debug
+pkg=de.fabianduerkop.lumifoil.debug
 dir=/sdcard/Android/data/$pkg/files/gpuprobe
 names=()
 for m in "${models[@]}"; do

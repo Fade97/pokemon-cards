@@ -120,9 +120,10 @@ per-set monthly files derived from the daily snapshots; until billing exists, Pr
 - minSdk 26, aimed at mid-range phones from 2020 on.
 - Distributed through the Google Play Store. A new personal developer account must run a closed test with 12
   testers over 14 days.
-- The name will be a neutral TCG/binder name without "Poké…" and without a Pokéball icon. The store text says
-  "for Pokémon TCG cards" and carries a disclaimer of no affiliation. The working title stays until a trademark
-  check before the listing.
+- The name is **Lumifoil** (#15, chosen 2026-11-18 after the trademark screening in
+  `docs/release/play-launch.md`): a neutral TCG/binder name without "Poké…" and without a Pokéball icon. The store
+  text says "for Pokémon TCG cards" and carries a disclaimer of no affiliation. Play package
+  `de.fabianduerkop.lumifoil`; the Kotlin namespace stays `de.fabianduerkop.cardindex`.
 
 ## MVP scope
 

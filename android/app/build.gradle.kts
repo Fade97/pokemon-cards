@@ -7,12 +7,14 @@ plugins {
 }
 
 android {
+    // Kotlin package. Deliberately separate from the applicationId and never renamed (#15).
     namespace = "de.fabianduerkop.cardindex"
     // Platform android-37.0: AGP 9 addresses Android 17 by release and minor API level.
     compileSdk { version = release(37) { minorApiLevel = 0 } }
 
     defaultConfig {
-        applicationId = "de.fabianduerkop.cardindex"
+        // Play package (#15). It can never change after the first upload to Play.
+        applicationId = "de.fabianduerkop.lumifoil"
         minSdk = 26
         targetSdk = 36
         versionCode = 1
