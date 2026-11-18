@@ -1,6 +1,6 @@
 <img src="assets/icon.svg" width="64" height="64" alt="">
 
-# Pokemon cards (working title)
+# Lumifoil
 
 A free, open-source Android app that identifies Pokémon TCG cards **on-device** in many languages, shows
 Cardmarket and TCGplayer prices, and sorts cards into collections.

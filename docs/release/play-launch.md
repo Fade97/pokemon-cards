@@ -93,7 +93,7 @@ split circles.
 
 Kartothek is the alternative if the `.com` matters more than trademark strength.
 
-**Decision:** pick the name. After that, before the listing: (a) register the domain(s), (b) optionally file a
+**Decided (2026-11-18): Lumifoil.** After that, before the listing: (a) register the domain(s), (b) optionally file a
 DE or EU trademark in classes 9 and 42 (DPMA online filing for up to three classes costs about EUR 290;
 **Assumption**, check the current fee list), (c) apply section 2.
 
@@ -363,13 +363,15 @@ production. Testers who leave and rejoin start over. After the test: Dashboard â
 - [ ] Decide the EU **trader status** (DSA). Free app without Pro: usually "not a trader". With Pro (#16) it
       becomes a trader, and address and phone become public in the listing.
 - [ ] Payments profile, only when Pro / Play Billing comes.
-- [ ] Choose the name (section 1), confirm the applicationId (section 2), register the domain.
+- [x] Choose the name (section 1): Lumifoil. applicationId `de.fabianduerkop.lumifoil` (section 2) is applied.
+- [ ] Register `lumifoil.de` / `lumifoil.app`.
 - [ ] Recruit testers and approve the Google Group.
 - [ ] Sign the declarations in the Console (content rating, data safety, target audience, ads: no ads).
 
 ### Prepared by agents (follow-up issues)
 
-- [ ] Apply the section 2 diff; signed release AAB with Play App Signing (upload key outside the repo,
+- [x] Apply the section 2 diff.
+- [ ] signed release AAB with Play App Signing (upload key outside the repo,
       signing config only from env or a git-ignored file). Install the AAB via bundletool and smoke-test R8 builds on the S25.
 - [ ] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled; Impressum if needed.
 - [ ] In-app "About" with the disclaimer, licenses and the privacy link.
@@ -403,8 +405,8 @@ About 4 weeks from account creation to production, if nothing is rejected.
 
 | # | Decision | Recommendation |
 |---|---|---|
-| 1 | App name | Binderkeep (then Lumifoil, Prismbook) |
-| 2 | applicationId | `de.fabianduerkop.<name>`, namespace stays `de.fabianduerkop.cardindex` |
+| 1 | App name | **Lumifoil** (Fabian, 2026-11-18; recommendation was Binderkeep, then Lumifoil, Prismbook) |
+| 2 | applicationId | `de.fabianduerkop.lumifoil` (applied), namespace stays `de.fabianduerkop.cardindex` |
 | 3 | Domain | Register `.de` (and `.app` if free) for the chosen name |
 | 4 | Contributed photos as "shared" in Data safety | Yes, declare as shared |
 | 5 | Target audience | 13+ |

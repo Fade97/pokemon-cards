@@ -21,9 +21,9 @@ import kotlin.math.abs
  * Setup (images are derived from card art and stay off the repository):
  * ```
  * python ml/app_parity.py                      # writes <data>/app-parity/{*.png, expected.json}
- * adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/parity/
+ * adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/parity/
  * ./gradlew :app:connectedDebugAndroidTest
- * adb pull /sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/parity/results.json
+ * adb pull /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/parity/results.json
  * ```
  * Skipped when the folder or the recognition assets are missing.
  */

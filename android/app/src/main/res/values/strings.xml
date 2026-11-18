@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Card Index</string>
+    <string name="app_name">Lumifoil</string>
 
     <string name="nav_scan">Scan</string>
     <string name="nav_collections">Collections</string>

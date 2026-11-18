@@ -1,7 +1,7 @@
 # Android app
 
 Kotlin + Jetpack Compose app (ADR 0001). Package `de.fabianduerkop.cardindex`, debug builds install as
-`de.fabianduerkop.cardindex.debug` next to a release build.
+`de.fabianduerkop.lumifoil.debug` next to a release build.
 
 ## Requirements
 
@@ -29,7 +29,7 @@ release build checks the R8 keep rules.
 
 ```sh
 adb install -r app/build/outputs/apk/debug/app-debug.apk
-adb shell am start -n de.fabianduerkop.cardindex.debug/de.fabianduerkop.cardindex.MainActivity
+adb shell am start -n de.fabianduerkop.lumifoil.debug/de.fabianduerkop.cardindex.MainActivity
 ```
 
 To smoke-test a release build (R8 problems show up only there), sign it with the debug key just for the test:
@@ -38,7 +38,7 @@ To smoke-test a release build (R8 problems show up only there), sign it with the
 apksigner sign --ks ~/.android/debug.keystore --ks-pass pass:android \
   --out /tmp/cardindex-release.apk app/build/outputs/apk/release/app-release-unsigned.apk
 adb install -r /tmp/cardindex-release.apk
-adb shell am start -n de.fabianduerkop.cardindex/.MainActivity
+adb shell am start -n de.fabianduerkop.lumifoil/de.fabianduerkop.cardindex.MainActivity
 ```
 
 ## Live scan (Scan tab)
@@ -133,7 +133,7 @@ CARDINDEX_DATA=/path/to/pokemon-cards-data python app_assets.py   # needs <data>
 ```sh
 python ml/synth.py --per-card 1 --seed 777 --name parity --groups en/sv03.5 de/sv03.5 ja/SV2a en/me03 en/me04 de/30th
 python ml/app_parity.py --every 5          # writes <data>/app-parity/ (PNGs + expected.json)
-adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.cardindex.debug/files/parity/
+adb push <data>/app-parity/. /sdcard/Android/data/de.fabianduerkop.lumifoil.debug/files/parity/
 ./gradlew :app:connectedDebugAndroidTest   # results.json lands next to the images
 ```
 
@@ -156,7 +156,7 @@ Two of the three wrong matches with all languages are the right card in English;
 Without bundled lab assets the test uses the installed language packs, as the app does. Install the debug and
 test APKs with `adb install -r` (Gradle's `connectedAndroidTest` uninstalls the app afterwards, which deletes the
 packs and the photos), then run `adb shell am instrument --user 0 -w -e class
-de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.cardindex.debug.test/androidx.test.runner.AndroidJUnitRunner`.
+de.fabianduerkop.cardindex.recognition.RealPhotoTest de.fabianduerkop.lumifoil.debug.test/androidx.test.runner.AndroidJUnitRunner`.
 Result on 2026-11-17 with the German, English and Japanese packs (45,170 cards), 73 photos of German cards
 (64 de/30th, 9 de/me04), similarity minimum 0.45:
 
