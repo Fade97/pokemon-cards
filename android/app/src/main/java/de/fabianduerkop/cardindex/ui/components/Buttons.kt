@@ -75,7 +75,8 @@ fun SecondaryButton(
 
 /**
  * A small inline action such as Undo or Show all. [contentDescription] gives TalkBack a fuller name when the visible
- * word is short (it must start with the visible text, so voice control still finds it).
+ * word is short (it must start with the visible text, so voice control still finds it). [destructive] shows the
+ * text in the error colour, for actions like "Delete collection"; the word itself must still say what happens.
  */
 @Composable
 fun TextAction(
@@ -84,6 +85,7 @@ fun TextAction(
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
     contentDescription: String? = null,
+    destructive: Boolean = false,
 ) {
     val shape = MaterialTheme.shapes.medium
     TextButton(
@@ -94,6 +96,11 @@ fun TextAction(
             .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
         enabled = enabled,
         shape = shape,
+        colors = if (destructive) {
+            ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+        } else {
+            ButtonDefaults.textButtonColors()
+        },
     ) { Text(text) }
 }
 
