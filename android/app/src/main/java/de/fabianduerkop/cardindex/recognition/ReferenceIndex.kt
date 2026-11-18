@@ -8,6 +8,8 @@ import java.io.File
 import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.nio.FloatBuffer
+import java.nio.channels.FileChannel
 
 /** One reference card of the index (TCGdex data, see ml/app_assets.py). */
 data class RefCard(
@@ -34,12 +36,23 @@ data class RefCard(
 data class Match(val index: Int, val card: RefCard, val similarity: Float)
 
 /**
- * The reference index: one L2-normalized embedding per card. Brute-force cosine kNN is fast enough for a few
- * thousand cards (1,028 × 256 is ~0.3 M multiply-adds per query).
+ * The reference index: one L2-normalized embedding per card, brute-force cosine kNN.
+ *
+ * The rows live in [segments], read one after the other: usually one memory-mapped `index.bin` per language pack
+ * ([mapVectors]), so the ~100 MB of seven languages stay off the Java heap (issue #74) and the kernel can drop the
+ * clean pages under memory pressure. A heap [FloatArray] works too ([FloatBuffer.wrap], the secondary constructor).
  */
-class ReferenceIndex(val cards: List<RefCard>, private val vectors: FloatArray, val dim: Int) {
+class ReferenceIndex(val cards: List<RefCard>, segments: List<FloatBuffer>, val dim: Int) {
+    constructor(cards: List<RefCard>, vectors: FloatArray, dim: Int) : this(cards, listOf(FloatBuffer.wrap(vectors)), dim)
+
+    /** Read-only views starting at row 0; [similarities] reads through duplicates, so calls may run concurrently. */
+    private val segments: List<FloatBuffer> = segments.map { it.slice().asReadOnlyBuffer() }
+
     init {
-        require(vectors.size == cards.size * dim) { "index has ${vectors.size / dim} rows, cards.json ${cards.size}" }
+        require(dim > 0)
+        this.segments.forEach { require(it.capacity() % dim == 0) { "segment of ${it.capacity()} floats is not whole rows of $dim" } }
+        val rows = this.segments.sumOf { it.capacity().toLong() } / dim
+        require(rows == cards.size.toLong()) { "index has $rows rows, cards.json ${cards.size}" }
         // RecognitionResult.margin compares the two best candidates.
         require(cards.size >= 2) { "index needs at least 2 cards, has ${cards.size}" }
     }
@@ -52,19 +65,42 @@ class ReferenceIndex(val cards: List<RefCard>, private val vectors: FloatArray, 
     /**
      * Cosine similarity of [query] (L2-normalized) to every card. Cards outside [languages] (null = all) get -2, so
      * they never win: the lab's stand-in for installed language packs (ADR 0003).
+     *
+     * Rows are copied [CHUNK_ROWS] at a time into a small array (one bulk copy, cache-resident) and summed there in
+     * the same order as a plain array loop, so the results are bit-identical to it. On talos (107k × 256) this
+     * takes 48 ms against 57 ms for the old heap array; element-wise `FloatBuffer.get` on the mapping took 1.3 s
+     * (ReferenceIndexBenchmark).
      */
     fun similarities(query: FloatArray, languages: Set<String>? = null): FloatArray {
         require(query.size == dim)
         val out = FloatArray(cards.size)
-        for (i in cards.indices) {
-            if (languages != null && cards[i].lang !in languages) {
-                out[i] = -2f
-                continue
+        val chunk = FloatArray(CHUNK_ROWS * dim)
+        var row = 0
+        for (segment in segments) {
+            val buf = segment.duplicate()
+            while (buf.hasRemaining()) {
+                val rows = minOf(CHUNK_ROWS, buf.remaining() / dim)
+                val wanted = languages == null || (row until row + rows).any { cards[it].lang in languages }
+                if (!wanted) {
+                    out.fill(-2f, row, row + rows)
+                    buf.position(buf.position() + rows * dim)
+                    row += rows
+                    continue
+                }
+                buf.get(chunk, 0, rows * dim)
+                for (r in 0 until rows) {
+                    val i = row + r
+                    if (languages != null && cards[i].lang !in languages) {
+                        out[i] = -2f
+                        continue
+                    }
+                    var s = 0f
+                    val base = r * dim
+                    for (j in 0 until dim) s += chunk[base + j] * query[j]
+                    out[i] = s
+                }
+                row += rows
             }
-            var s = 0f
-            val base = i * dim
-            for (j in 0 until dim) s += vectors[base + j] * query[j]
-            out[i] = s
         }
         return out
     }
@@ -97,30 +133,20 @@ class ReferenceIndex(val cards: List<RefCard>, private val vectors: FloatArray, 
             return FloatArray(buf.remaining()).also { buf.get(it) }
         }
 
+        /** Rows per bulk copy in [similarities]: 64 × 256 floats = 64 KB, small enough to stay in the cache. */
+        const val CHUNK_ROWS = 64
+
         /**
-         * Reads a whole file of float32 little-endian rows into [dest] at [offset], through a small buffer instead
-         * of a copy of the file.
+         * Maps a file of float32 little-endian rows read-only, without reading it onto the Java heap. The mapping
+         * outlives the channel and a later delete of the file (pack directories are replaced, never rewritten).
+         * The pages are faulted in here ([java.nio.MappedByteBuffer.load], on the loading thread), so the first scan
+         * does not pay for it (~240 ms for seven languages on talos).
          */
-        fun readVectors(file: File, dest: FloatArray, offset: Int) {
-            val floats = file.length() / 4
-            require(file.length() % 4 == 0L && offset + floats <= dest.size) { "${file.name}: ${file.length()} bytes don't fit" }
-            val buf = ByteBuffer.allocate(1 shl 20).order(ByteOrder.LITTLE_ENDIAN)
-            var at = offset
-            FileInputStream(file).channel.use { ch ->
-                while (true) {
-                    val n = ch.read(buf)
-                    if (n < 0 && buf.position() == 0) break
-                    buf.flip()
-                    val f = buf.asFloatBuffer()
-                    val count = f.remaining()
-                    f.get(dest, at, count)
-                    at += count
-                    buf.position(count * 4)
-                    buf.compact()
-                    if (n < 0) break
-                }
+        fun mapVectors(file: File): FloatBuffer {
+            require(file.length() % 4 == 0L) { "${file.name}: ${file.length()} bytes is not whole floats" }
+            return FileInputStream(file).channel.use { ch ->
+                ch.map(FileChannel.MapMode.READ_ONLY, 0, ch.size()).load().order(ByteOrder.LITTLE_ENDIAN).asFloatBuffer()
             }
-            check(at - offset.toLong() == floats) { "${file.name}: read ${at - offset} floats, expected $floats" }
         }
     }
 }
