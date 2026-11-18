@@ -20,6 +20,7 @@ import de.fabianduerkop.cardindex.data.images.ScanImageStore
 import de.fabianduerkop.cardindex.data.images.importPhoto
 import de.fabianduerkop.cardindex.data.collections.PrintOrder
 import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
+import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.alerts.AlertDirection
 import de.fabianduerkop.cardindex.data.alerts.PriceAlert
 import de.fabianduerkop.cardindex.data.alerts.PriceAlertRepository
@@ -35,7 +36,6 @@ import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.model.Edition
-import de.fabianduerkop.cardindex.model.EnergyType
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
@@ -56,6 +56,9 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+
+/** Cards fanned on the featured set cover. */
+private const val FEATURED_ART = 3
 
 private fun <T> Flow<T>.stateIn(vm: ViewModel, initial: T): StateFlow<T> =
     stateIn(vm.viewModelScope, SharingStarted.WhileSubscribed(5_000), initial)
@@ -115,12 +118,24 @@ private class HistoryChart(
         }
 }
 
-/** A set row on the collections screen: completion, the owned numbers for its slot strip, and its value. */
+/**
+ * A set on the collections screen: completion, the owned slot numbers, its value, and a few owned cards for the
+ * featured cover's artwork (newest first).
+ */
 data class SetRowUi(
     val completion: SetCompletion,
-    val ownedSlots: Map<String, EnergyType?>,
+    /** Owned slots as [numberKey]s, the same keys the set detail's checklist uses. */
+    val ownedSlots: Set<String>,
     val value: CollectionValue? = null,
-)
+    val series: String? = null,
+    val art: List<CardEntity> = emptyList(),
+) {
+    /**
+     * Owned numbers counted like the checklist (`006` and `6` are one slot), so the row, the cover and the set
+     * detail always agree. Secret rares above the printed total count too.
+     */
+    val ownedNumbers: Int get() = ownedSlots.size
+}
 
 data class CollectionsUiState(
     val loading: Boolean = true,
@@ -175,8 +190,10 @@ class CollectionsViewModel(
                 val copies = bySet[completion.setId].orEmpty()
                 SetRowUi(
                     completion = completion,
-                    ownedSlots = copies.associate { numberKey(it.card.localId) to it.card.energyType },
+                    ownedSlots = copies.mapTo(HashSet()) { numberKey(it.card.localId) },
                     value = PriceSelection.total(copies.map { it.copy }, priceMap, source),
+                    series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
+                    art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
                 )
             },
             collections = b.collections,

@@ -3,15 +3,16 @@ package de.fabianduerkop.cardindex.ui.collections
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -21,16 +22,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
+import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /** A custom collection or All cards: the copies in it, sortable. Tapping a copy opens its card. */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CollectionDetailScreen(
     onBack: () -> Unit,
@@ -50,7 +53,11 @@ fun CollectionDetailScreen(
         onBack = onBack,
         actions = {
             if (collection != null) {
-                TextButton(onClick = { editing = true }) { Text(stringResource(R.string.collections_edit)) }
+                TextAction(
+                    stringResource(R.string.collections_edit),
+                    onClick = { editing = true },
+                    contentDescription = stringResource(R.string.collection_edit_title),
+                )
             }
         },
     ) { padding ->
@@ -63,27 +70,33 @@ fun CollectionDetailScreen(
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
                 item {
                     Column(Modifier.padding(horizontal = ScreenPadding)) {
-                        collection?.description?.let {
-                            Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        collection?.description?.takeIf { it.isNotBlank() }?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(bottom = Spacing.sm),
+                            )
                         }
-                        ValueBlock(
+                        ValueSummary(
                             value = state.value,
                             caption = pluralStringResource(R.plurals.collections_cards_count, state.cardCount, state.cardCount),
-                            modifier = Modifier.padding(vertical = 6.dp),
+                            label = state.value?.let { stringResource(it.source.label()) },
                         )
-                        HorizontalDivider()
+                        HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
                     }
                 }
                 item {
-                    Row(
-                        Modifier.padding(horizontal = ScreenPadding, vertical = 8.dp),
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        verticalAlignment = Alignment.CenterVertically,
+                    FlowRow(
+                        Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = Spacing.sm),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        verticalArrangement = Arrangement.Center,
                     ) {
                         Text(
                             stringResource(R.string.collections_sort_by),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.align(Alignment.CenterVertically),
                         )
                         CopySort.entries.forEach { sort ->
                             ChoiceChip(state.sort == sort, { viewModel.setSort(sort) }, stringResource(sort.label()))
@@ -94,7 +107,7 @@ fun CollectionDetailScreen(
                     item {
                         PlaceholderText(
                             stringResource(R.string.collections_collection_empty),
-                            Modifier.padding(horizontal = ScreenPadding, vertical = 12.dp),
+                            Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md),
                         )
                     }
                 }

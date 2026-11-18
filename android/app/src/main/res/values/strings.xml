@@ -8,7 +8,7 @@
     <string name="nav_settings">Settings</string>
 
     <!-- Pearl design system (#96, ADR 0014). -->
-    <string name="wordmark" translatable="false">lumifoil</string>
+    <string name="wordmark" translatable="false">foilark</string>
     <string name="action_back">Back</string>
     <!-- The header shortcut always opens scanning; never shown as a bare plus. -->
     <string name="shortcut_scan">Scan</string>
@@ -71,6 +71,25 @@
     <string name="collections_empty_body">Scan a card to add it. Every set you own a card from gets its own collection, with each number as a slot.</string>
     <string name="collections_no_sets_in_language">No cards in the chosen languages.</string>
     <string name="collections_debug_sample">Add sample data (debug build)</string>
+    <string name="collections_empty_scan">Scan a card</string>
+    <plurals name="collections_sets_count">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
+    <plurals name="collections_count">
+        <item quantity="one">%1$d collection</item>
+        <item quantity="other">%1$d collections</item>
+    </plurals>
+    <string name="collections_open_set">Open set</string>
+    <string name="collections_open_collection">Open collection</string>
+    <!-- After a count like "87/165" on the featured set cover. -->
+    <string name="collections_collected">collected</string>
+    <!-- Spoken form of a set's count, e.g. "87 of 165 collected". -->
+    <string name="collections_progress_description">%1$d of %2$d collected</string>
+    <string name="collections_legend_compact">Filled slots are owned. Outlined slots are missing.</string>
+    <string name="collections_legend_cards">Missing cards are grey, with an outline and the word Missing.</string>
+    <string name="collections_region_jp">JP</string>
+    <string name="collections_region_jp_description">Japanese set</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
     <string name="collections_mode_compact">Compact</string>
@@ -194,7 +213,15 @@
     <string name="settings_price_auto">Automatic</string>
     <string name="settings_price_cardmarket">Cardmarket, EUR</string>
     <string name="settings_price_tcgplayer">TCGplayer, USD</string>
-    <string name="settings_price_auto_hint">Automatic follows your region: %1$s.</string>
+    <string name="settings_price_auto_sub">Follows your region: %1$s</string>
+    <string name="settings_price_cardmarket_name">Cardmarket</string>
+    <string name="settings_price_tcgplayer_name">TCGplayer</string>
+    <string name="settings_price_eur">Prices in euros (EUR)</string>
+    <string name="settings_price_usd">Prices in US dollars (USD)</string>
+    <string name="settings_appearance">Appearance</string>
+    <string name="settings_theme">Light or dark</string>
+    <string name="settings_theme_system">Same as your phone</string>
+    <string name="settings_debug_title">Debug tools (debug build)</string>
     <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
     <string name="settings_price_refresh">Update prices now</string>
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
@@ -237,6 +264,7 @@
     <string name="packs_none">No language installed yet, so scanning can\'t recognize cards.</string>
     <string name="packs_add">Add languages</string>
     <string name="packs_remove">Remove</string>
+    <string name="packs_remove_language">Remove %1$s</string>
     <string name="packs_remove_title">Remove %1$s?</string>
     <string name="packs_remove_text">Cards in this language are no longer recognized. Your copies and collections stay.</string>
     <string name="packs_download_again">Download again</string>
@@ -268,6 +296,7 @@
     <string name="contribute_withdraw_hint">Withdrawing deletes a picture from the server and keeps it out of future dataset releases. Releases already published keep it.</string>
     <string name="contribute_none">No contributions yet.</string>
     <string name="contribute_withdraw">Withdraw</string>
+    <string name="contribute_withdraw_one">Withdraw %1$s</string>
     <string name="contribute_withdraw_all">Withdraw all</string>
     <string name="contribute_withdraw_all_text">All your pictures are deleted from the server and left out of future releases. Releases already published keep them.</string>
     <string name="contribute_state_queued">waiting to upload</string>

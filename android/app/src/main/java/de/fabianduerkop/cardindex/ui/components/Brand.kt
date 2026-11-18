@@ -33,7 +33,7 @@ fun LumifoilMark(modifier: Modifier = Modifier, size: Dp = 26.dp) {
 }
 
 /**
- * The Lumifoil wordmark: the faceted mark and lower-case "lumifoil" in Schibsted (ADR 0014). It scales with the font
+ * The app wordmark: the faceted mark and the lower-case app name ("foilark") in Schibsted (ADR 0014). It scales with the font
  * size. Screen readers hear the app name once, as a heading.
  */
 @Composable
