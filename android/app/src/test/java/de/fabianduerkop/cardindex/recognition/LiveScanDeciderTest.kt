@@ -79,6 +79,19 @@ class LiveScanDeciderTest {
     }
 
     @Test
+    fun aForgottenCardIsDecidedAgainWhileStillInView() {
+        frame(unsure("a"))
+        assertTrue(frame(sure("a")) is ScanEvent.Add)
+        // Saving it failed (#126): the same card still in view gets a second chance.
+        decider.forget("b")
+        assertTrue(decider.isHandled("a"))
+        decider.forget("a")
+        assertFalse(decider.isHandled("a"))
+        frame(sure("a"))
+        assertTrue(frame(sure("a")) is ScanEvent.Add)
+    }
+
+    @Test
     fun oneConfidentFrameAloneIsNotEnough() {
         assertNull(frame(sure("a")))
         assertNull(frame(sure("b")))

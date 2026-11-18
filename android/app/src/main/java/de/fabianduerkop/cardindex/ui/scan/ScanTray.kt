@@ -54,6 +54,8 @@ data class ScanTray(
     val scanned: Int = 0,
     /** The card the last Undo took back; cleared by the next decision. */
     val removed: RefCard? = null,
+    /** A card whose copy or review item could not be saved (#126); cleared by the next decision or Undo. */
+    val failed: RefCard? = null,
     /** Counts new decisions only (Undo leaves it), so the screen can confirm each one with a haptic. */
     val decisions: Long = 0,
 ) {
@@ -64,13 +66,17 @@ data class ScanTray(
         history = (history + scan).takeLast(MAX_UNDO),
         scanned = scanned + 1,
         removed = null,
+        failed = null,
         decisions = decisions + 1,
     )
+
+    /** Saving [card] failed: nothing was added or queued, so the history stays as it is. */
+    fun failed(card: RefCard): ScanTray = copy(failed = card, removed = null)
 
     /** The newest decision and the tray without it; null when there is nothing left to undo. */
     fun undo(): Pair<LastScan, ScanTray>? {
         val last = latest ?: return null
-        return last to copy(history = history.dropLast(1), scanned = maxOf(0, scanned - 1), removed = last.card)
+        return last to copy(history = history.dropLast(1), scanned = maxOf(0, scanned - 1), removed = last.card, failed = null)
     }
 
     /** The user's [variant] for copy [copyId], if that copy is still in the history. */

@@ -279,7 +279,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                             .getOrNull()
                         _tray.update { it.record(LastScan.Added(card, id, contributionId = contribution)) }
                     }
-                    .onFailure { Log.e(TAG, "adding ${card.key} failed", it) }
+                    .onFailure {
+                        Log.e(TAG, "adding ${card.key} failed", it)
+                        onSaveFailed(card)
+                    }
             }
             else -> {
                 val reason = (event as? ScanEvent.Review)?.reason ?: ReviewReason.CHECK_VARIANT
@@ -288,8 +291,26 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                         reviewQueue.enqueue(jpeg(result.crop), result.reranked, result.reading, reason, checkVariant)
                     }
                         .onSuccess { itemId -> _tray.update { it.record(LastScan.Queued(card, reason, itemId)) } }
-                        .onFailure { Log.e(TAG, "queueing ${card.key} failed", it) }
+                        .onFailure {
+                            Log.e(TAG, "queueing ${card.key} failed", it)
+                            onSaveFailed(card)
+                        }
                 }
+            }
+        }
+    }
+
+    /**
+     * Nothing was saved for [card] (#126): the tray says so instead of showing it as added or queued, and the decider
+     * forgets the card, so holding it in view again retries.
+     */
+    private fun onSaveFailed(card: RefCard) {
+        _tray.update { it.failed(card) }
+        // The worker is gone once the screen is cleared; then there is no session left to retry in.
+        runCatching {
+            worker.execute {
+                decider.forget(card.key)
+                queuedKeys -= card.key
             }
         }
     }
