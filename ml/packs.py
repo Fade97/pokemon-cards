@@ -111,22 +111,24 @@ def fill_cdn_gap(cards: list[dict], found: dict[str, str]) -> list[dict]:
 
 
 # Reference images from another source for sets TCGdex lists without any image (issue #60). They come from the
-# malie.io export of Pokémon TCG Live (https://malie.io/static/): rendered card PNGs in TCGdex's high.png format
-# (733 x 1024, RGBA, transparent corners). The export states no licence and asks for a credit. These URLs are only
-# used to embed the cards for the index; the pack's `image` stays TCGdex's (null), so the app never loads them
-# (ADR 0009). TCGdex set id -> malie.io set key.
-REF_FALLBACK = "https://cdn.malie.io/file/malie-io/tcgl/cards/png"
-REF_FALLBACK_SETS = {"mee": "mee"}  # Mega Evolution Energy: 16 basic energies, TCGdex CDN has none (#60)
-REF_FALLBACK_LANGS = {"en": "en", "de": "de", "fr": "fr", "it": "it", "es": "es", "pt": "ptbr"}  # TCGdex -> malie
+# Limitless TCG image CDN (https://limitlesstcg.com), which serves the official card renders (460 x 640 PNG, RGBA,
+# transparent corners) per set, number and language. limitlesstcg.com/robots.txt allows all agents and the site states
+# no terms of use beyond a (c) TPC notice (checked 2026-11-18). Its upstream, the malie.io export of Pokemon TCG Live,
+# disallows all crawling in cdn.malie.io/robots.txt, so it is not used. These URLs are only used to embed the cards for
+# the index; the pack's `image` stays TCGdex's (null), so the app never loads them (ADR 0009).
+# TCGdex set id -> Limitless set code.
+REF_FALLBACK = "https://limitlesstcg.nyc3.cdn.digitaloceanspaces.com/tpci"
+REF_FALLBACK_SETS = {"mee": "MEE"}  # Mega Evolution Energy: 16 basic energies, TCGdex CDN has none (#60)
+REF_FALLBACK_LANGS = {"en": "EN", "de": "DE", "fr": "FR", "it": "IT", "es": "ES", "pt": "PT"}  # TCGdex -> Limitless
 
 
 def ref_fallback_url(lang: str, set_id: str, local_id: str) -> str | None:
     """Full URL of a PNG reference image for a card TCGdex has no image of, or None if there is no other source.
     Unlike TCGdex's base URLs it already ends in `.png`."""
-    key, mlang = REF_FALLBACK_SETS.get(set_id), REF_FALLBACK_LANGS.get(lang)
-    if not key or not mlang or not local_id.isdigit():
+    code, llang = REF_FALLBACK_SETS.get(set_id), REF_FALLBACK_LANGS.get(lang)
+    if not code or not llang or not local_id.isdigit():
         return None
-    return f"{REF_FALLBACK}/{mlang}/{key}/{key}_{mlang}_{int(local_id):03d}_std.png"
+    return f"{REF_FALLBACK}/{code}/{code}_{int(local_id):03d}_R_{llang}_LG.png"
 
 
 def reference_image(lang: str, card: dict) -> str | None:
