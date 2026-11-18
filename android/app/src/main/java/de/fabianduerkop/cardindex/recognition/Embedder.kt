@@ -83,13 +83,21 @@ class Embedder private constructor(private val runner: Runner) : AutoCloseable {
         private val model = compile(
             CompiledModel.Options(Accelerator.GPU).apply { gpuOptions = CompiledModel.GpuOptions(precision = precision) },
         )
-        private val inputs: List<TensorBuffer> = model.createInputBuffers()
-        private val outputs: List<TensorBuffer> = model.createOutputBuffers()
+        private val inputs = mutableListOf<TensorBuffer>()
+        private val outputs = mutableListOf<TensorBuffer>()
         override val backend = EmbedderBackend.GPU
         override val dim: Int
 
         init {
-            dim = run(FloatArray(INPUT * INPUT * 3)).size
+            // Setup after compile can fail too (buffers, first run): release what exists before rethrowing (#80).
+            try {
+                inputs += model.createInputBuffers()
+                outputs += model.createOutputBuffers()
+                dim = run(FloatArray(INPUT * INPUT * 3)).size
+            } catch (t: Throwable) {
+                runCatching { close() }.exceptionOrNull()?.let(t::addSuppressed)
+                throw t
+            }
         }
 
         override fun run(input: FloatArray): FloatArray {
