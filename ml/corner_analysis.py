@@ -314,6 +314,47 @@ def cmd_compare(model: str, corners: str):
     print(f"{'':42s} {DEFAULT_CORNERS:>14s} {corners:>18s}")
     for label, path in lines:
         print(f"{label:42s} {str(get(a, *path)):>14s} {str(get(b, *path)):>18s}")
+    res = {"model": model, "old": DEFAULT_CORNERS, "new": corners, "table": {
+        label: [get(a, *path), get(b, *path)] for label, path in lines}}
+    for name, root, key in (("forb_test", FORB, "query"), ("tcgar_test", TCGAR_ROOT.parent.parent, "k")):
+        pa, pb = root / f"corner_rows_{model}.json", root / f"corner_rows_{tag(model, corners)}.json"
+        if pa.exists() and pb.exists():
+            res[name] = paired(json.loads(pa.read_text()), json.loads(pb.read_text()), key)
+    out = RESULTS_DIR / f"corner_compare_{tag(model, corners)}.json"
+    out.write_text(json.dumps(res, indent=1))
+    print(json.dumps({k: v for k, v in res.items() if k != "table"}, indent=1))
+    print("->", out)
+
+
+def paired(old_rows, new_rows, key: str) -> dict:
+    """Same test photos, old vs. new detector: how many each one gets right that the other misses, the share of
+    learned scores under the app's live-scan gate (CornerDetector.DEFAULT_MIN_SCORE = 0.10) and, for TCG-AR,
+    the per-card corner error change."""
+    a = {r[key]: r for r in old_rows if r.get("split") == "test"}
+    b = {r[key]: r for r in new_rows if r.get("split") == "test"}
+    ks = sorted(set(a) & set(b))
+    out = {"n": len(ks)}
+    if not ks:
+        return out
+
+    def pick(r):  # the deployable two-pass rule: keep the crop with the higher top-1 similarity
+        return r["refine"] if r["refine"]["sim"] > r["learned"]["sim"] else r["learned"]
+
+    for crop, f in (("learned", lambda r: r["learned"]), ("refine", lambda r: r["refine"]), ("pick_higher_sim", pick)):
+        oo = np.array([f(a[k])["ok"] for k in ks])
+        nn = np.array([f(b[k])["ok"] for k in ks])
+        out[crop] = {"old_top1": pct(oo), "new_top1": pct(nn), "old_only": int((oo & ~nn).sum()),
+                     "new_only": int((~oo & nn).sum())}
+    sa = np.array([a[k]["score_learned"] for k in ks])
+    sb = np.array([b[k]["score_learned"] for k in ks])
+    out["score_learned_median"] = [round(float(np.median(sa)), 3), round(float(np.median(sb)), 3)]
+    out["score_learned_below_0.10_pct"] = [pct(sa < 0.10), pct(sb < 0.10)]
+    if "err_learned" in a[ks[0]]:
+        ea = np.array([a[k]["err_learned"] for k in ks])
+        eb = np.array([b[k]["err_learned"] for k in ks])
+        out["err_learned_mean"] = [round(float(ea.mean()), 2), round(float(eb.mean()), 2)]
+        out["err_better_by_1pct"], out["err_worse_by_1pct"] = int((eb < ea - 1).sum()), int((eb > ea + 1).sum())
+    return out
 
 
 # ---------------------------------------------------------------- contact sheets (local only, never committed)

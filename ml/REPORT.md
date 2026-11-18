@@ -662,6 +662,72 @@ Expected time: ~50 min.
 - export: 2 min
 - test-split evaluation: ~6 min
 
+### PC run: `corners_mnv3_real` is not accepted (2026-11-18)
+
+Run on Fabian-PC (RTX 3080) with `run_corner_finetune.ps1 -Embedder mnv3_256_forb`, from 09:09 to 09:38.
+- **Embedder:** the PC's EN pack (`packs-work\en`) is embedded with `mnv3_256_forb`, so the old and the new
+  detector are both scored with it, on the same machine and gallery.
+- **Training set:** `real_corners.npz` was built from the Vulcan `mnv3_256_real` rows. It is the same set as above:
+  3,474 train, 90 val, `results/corner_realset.json` unchanged. The pseudo-labels only depend on which crop was
+  recognised right.
+- **Training:** 10 epochs, lr 2e-4, 19.7 min. The real val cards pick epoch 3.
+
+Sources:
+- `results/train_corners_mnv3_real.json`
+- `results/export_corners_mnv3_real.json`
+- `results/corner_analysis_mnv3_256_forb.json` (baseline)
+- `results/corner_analysis_mnv3_256_forb_corners_mnv3_real.json`
+- `results/corner_compare_mnv3_256_forb_corners_mnv3_real.json`
+
+| Test split (never seen in training or selection) | n | `corners_mnv3` (shipped) | `corners_mnv3_real` | Criterion |
+|---|---|---|---|---|
+| TCG-AR: corner error, median % of the diagonal | 139 | 1.59 | **1.26** | met |
+| TCG-AR: within 3 % / over 10 % | 139 | 74.8 / 0.7 % | 75.5 / 0.7 % | |
+| TCG-AR: top-1 learned / refine | 139 | 87.1 / 84.9 % | 84.9 / 86.3 % | |
+| FORB: top-1 learned | 1,132 | **87.7 %** | 87.4 % | **not met** |
+| FORB: top-1 refine (second pass) | 1,132 | **90.5 %** | 89.4 % | **not met** |
+| FORB: top-1 higher-similarity of the two | 1,132 | 90.6 % | 89.8 % | |
+| FORB hard: top-1 learned | 80 | 41.2 % | 43.8 % | |
+| Synthetic test (PyTorch, 2,000 scenes): corner error mean / median, % of card height | 2,000 | **2.25 / 0.49** | 2.32 / 0.57 | **not met** |
+| Synthetic test: PCK@2 % / PCK@5 % | 2,000 | 0.758 / 0.852 | 0.753 / 0.850 | |
+
+The real val cards (selection set, PyTorch for both) improve a lot:
+- mean corner error 2.62 → 1.73 % of the diagonal
+- within 3 %: 75.6 → 91.1 %
+
+Paired, on the same test photos (`corner_analysis.py compare`):
+- **TCG-AR:** the corners clearly improve. 12 cards get better by more than 1 % of the diagonal and 1 gets
+  worse; the mean goes from 2.40 to 2.17 %. Recognition does not follow:
+  - learned: 5 cards lost, 2 gained
+  - refine: 4 lost, 6 gained
+  - higher-similarity rule: 5 lost, 5 gained
+
+  With 139 cards these are near-ties.
+- **FORB:**
+  - learned: 28 photos lost, 24 gained (−0.3 pp)
+  - refine: 24 lost, 12 gained (−1.1 pp)
+
+  On whole photos the new model is less confident. The share of learned scores under the live-scan gate
+  (`CornerDetector.DEFAULT_MIN_SCORE` = 0.10) goes from 5.9 % to 11.6 %. In the guide framing (TCG-AR) it goes the
+  other way, from 4.3 % to 1.4 %.
+
+**Decision: keep `corners_mnv3`.**
+- Two of the three criteria fail: FORB top-1 for both passes, and the synthetic test.
+- The fine-tune learned what TCG-AR teaches, the printed edge in the guide framing.
+- It did not turn that into better recognition, and it lost a little on FORB whole photos and on the synthetic
+  scenes.
+- This fits the analysis above: with today's embedding, corners cost little on TCG-AR. The FORB pseudo-labels mostly
+  repeat what the detector already does.
+- The exported `corners_mnv3_real_{f32,w8}.tflite` has the app's I/O contract: float32 `[1, 256, 192, 3]` in,
+  `[1, 4, 3]` out, the same as `corners_mnv3`. It stays in `<data>/export/` and is not shipped.
+  - w8 sha256: `d89c413a6e16bedbf9f48f02feedc46f425344db327ca47024385b657531fefb`
+- **Note:** `export_corners_mnv3_real.json` checks 400 synthetic scenes, while `export_corners_mnv3.json` checks
+  2,000. Its w8 numbers are therefore not comparable. The synthetic criterion uses the PyTorch `test_selected`
+  (2,000 scenes, same `corners_test.pt`) against epoch 30 of `train_corners_mnv3.json`.
+
+Two-pass detection (#78) is still the larger and cheaper gain: +2.8 pp FORB test top-1 here (87.7 → 90.5), with
+the shipped detector.
+
 ## Reproduce
 
 See [README.md](README.md). Data and checkpoints are in `D:\AI\pokemon-cards-data\`, not in the repo.
