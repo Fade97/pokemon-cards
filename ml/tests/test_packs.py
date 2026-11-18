@@ -445,6 +445,13 @@ def test_reference_image_prefers_tcgdex_and_leaves_the_pack_image_alone():
     assert doc["cards"] == [{**missing, "indexed": True}]
 
 
+def test_app_image_url_drops_fallback_sources():
+    tcgdex = "https://assets.tcgdex.net/de/me/me04/001"
+    assert packs.app_image_url(tcgdex) == tcgdex
+    assert packs.app_image_url(packs.ref_fallback_url("de", "mee", "009")) is None
+    assert packs.app_image_url(None) is None and packs.app_image_url("") is None
+
+
 def test_probe_cdn_gap_caches_answers_and_retries_unclear_ones(tmp_path, monkeypatch):
     sets, cards = gap_fixture()
     calls = []

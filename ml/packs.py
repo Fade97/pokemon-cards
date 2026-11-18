@@ -134,6 +134,12 @@ def reference_image(lang: str, card: dict) -> str | None:
     return card["image"] or ref_fallback_url(lang, card["setId"], card["localId"] or "")
 
 
+def app_image_url(url: str | None) -> str | None:
+    """The image base URL the app may load for a reference image URL: TCGdex's as it is, None for a
+    `ref_fallback_url` (the app never loads that source, ADR 0009)."""
+    return None if not url or url.startswith(REF_FALLBACK + "/") else url
+
+
 def sort_cards(cards: list[dict]) -> list[dict]:
     """Canonical card order: by id, comparing the strings code point by code point (ids are ASCII)."""
     return sorted(cards, key=lambda c: c["id"])
