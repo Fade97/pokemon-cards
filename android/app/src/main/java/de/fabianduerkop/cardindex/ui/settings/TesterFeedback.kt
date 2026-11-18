@@ -27,5 +27,5 @@ object TesterFeedback {
         if (model.startsWith(manufacturer, ignoreCase = true)) model else "$manufacturer $model".trim()
 
     // URLEncoder writes form encoding: a space becomes "+", which the query of a GitHub URL would keep literally.
-    private fun encode(value: String): String = URLEncoder.encode(value, Charsets.UTF_8).replace("+", "%20")
+    private fun encode(value: String): String = URLEncoder.encode(value, "UTF-8").replace("+", "%20")
 }
