@@ -98,6 +98,7 @@ import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.model.ReviewReason
+import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
@@ -797,6 +798,7 @@ private fun VariantSheet(added: LastScan.Added, onChoose: (CopyVariant) -> Unit,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         VariantChoices(
+            finishes = finishOrder(added.card.printings),
             finish = v.finish,
             edition = v.edition,
             condition = v.condition,

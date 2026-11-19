@@ -55,11 +55,12 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
-import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.Money
+import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -145,7 +146,10 @@ internal fun CopySheet(
 
                 FieldLabel(stringResource(R.string.copy_finish))
                 FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    Finish.entries.forEach { finish ->
+                    // Printings are the same in every language; the chosen print's row may still lack them.
+                    val printings = prints.firstOrNull { it.language == draft.cardLanguage }?.printings
+                        ?: prints.firstNotNullOfOrNull { it.printings }
+                    finishOrder(printings).forEach { finish ->
                         ChoiceChip(
                             selected = draft.finish == finish,
                             onClick = { draft = draft.copy(finish = finish) },
@@ -361,4 +365,9 @@ private fun StepButton(@DrawableRes icon: Int, description: String, onClick: () 
 
 /** A new copy of [card] with the defaults a scan would use. */
 internal fun newCopyOf(card: CardEntity): OwnedCopyEntity =
-    OwnedCopyEntity(cardId = card.id, cardLanguage = card.language, createdAt = Instant.EPOCH)
+    OwnedCopyEntity(
+        cardId = card.id,
+        cardLanguage = card.language,
+        finish = CopyDefaults.finishFor(card.printings),
+        createdAt = Instant.EPOCH,
+    )
