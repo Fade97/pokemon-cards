@@ -34,6 +34,7 @@ import de.fabianduerkop.cardindex.data.pro.Entitlements
 import de.fabianduerkop.cardindex.data.pro.NoEntitlements
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
+import de.fabianduerkop.cardindex.data.scan.ScanTargetChoice
 import de.fabianduerkop.cardindex.data.settings.AppSettings
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.recognition.MlKitNumberReader
@@ -52,6 +53,7 @@ class AppContainer(private val context: Context) {
     val settings: AppSettings by lazy { AppSettings(context) }
     val scans: ScanImageStore by lazy { ScanImageStore(context.filesDir.resolve("scans")) }
     val collections: CollectionRepository by lazy { CollectionRepository(database, catalog, scans) }
+    val scanTarget: ScanTargetChoice by lazy { ScanTargetChoice(database, settings) }
 
     /** Own photos plus the preference, for every screen that shows card images. */
     val ownPhotos: Flow<OwnPhotos> by lazy {

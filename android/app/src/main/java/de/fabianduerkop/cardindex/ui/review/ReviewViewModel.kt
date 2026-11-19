@@ -7,6 +7,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.data.scan.ConfirmedReview
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
@@ -63,6 +64,11 @@ data class ReviewUndo(
 class ReviewViewModel(application: Application) : AndroidViewModel(application) {
     private val queue = ReviewQueueRepository(CardIndexDatabase.get(application), application.filesDir)
     private val contributions = application.appContainer.contributions
+    private val scanTarget = application.appContainer.scanTarget
+
+    /** Where Confirm adds the card besides All Cards: the scan target chosen now (#139); null is All Cards only. */
+    val target: StateFlow<CollectionEntity?> = scanTarget.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     private val skippedInPass = MutableStateFlow<Set<Long>>(emptySet())
     private val confirmedInPass = MutableStateFlow(0)
@@ -144,7 +150,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         viewModelScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
-                    queue.confirm(id, draft.rank, draft.finish!!, draft.edition!!, draft.condition, draft.quantity)
+                    queue.confirm(id, draft.rank, draft.finish!!, draft.edition!!, draft.condition, draft.quantity, scanTarget.uuid)
                 }
             }
                 .onSuccess { confirmed ->

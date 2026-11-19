@@ -28,6 +28,8 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -94,9 +96,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
+import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.CountBadge
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
@@ -121,7 +125,7 @@ import kotlin.coroutines.resume
 /**
  * Live scan (DESIGN.md, Recognition; Pearl scanner in `design/mockups/lumifoil`, #98): no shutter. A card held in
  * the guide is added to All Cards as soon as its number confirms it, unsure cards go to Review, and the camera never
- * stops for either. The camera area says what is happening (searching, reading, added, saved for review, not
+ * stops for either. A chip in the tray picks a custom collection the scans go into as well (#139). The camera area says what is happening (searching, reading, added, saved for review, not
  * recognized, paused, camera error); the tray below shows the count, the review queue and the latest card with its
  * finish, edition and condition as the user's choice, plus Undo.
  */
@@ -510,6 +514,8 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
         felt = tray.decisions
     }
     var editing by remember { mutableStateOf<LastScan.Added?>(null) }
+    val target by viewModel.target.collectAsStateWithLifecycle()
+    var choosingTarget by remember { mutableStateOf(false) }
 
     val sheetShape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
     Surface(modifier, color = MaterialTheme.colorScheme.surface, shape = sheetShape) {
@@ -531,6 +537,22 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
                 )
                 ReviewQueueButton(toReview, onOpenReview)
             }
+            ScanTargetChip(target?.name, onClick = { choosingTarget = true })
+        }
+    }
+
+    if (choosingTarget) {
+        val collections by viewModel.collections.collectAsStateWithLifecycle()
+        val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { choosingTarget = false }, sheetState = sheet) {
+            ScanTargetSheet(
+                collections = collections,
+                chosenId = target?.id,
+                onChoose = {
+                    viewModel.chooseTarget(it)
+                    choosingTarget = false
+                },
+            )
         }
     }
 
@@ -545,6 +567,84 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
                 onChoose = { viewModel.chooseVariant(current.copyId, it) },
                 onDone = { editing = null },
             )
+        }
+    }
+}
+
+/**
+ * "Scanning into: All cards" (#139): where the next scans go, and the way to change it. A quiet outlined control
+ * like the empty review button; the chosen collection's name is the one thing that stands out.
+ */
+@Composable
+private fun ScanTargetChip(target: String?, onClick: () -> Unit) {
+    val name = target ?: stringResource(R.string.collections_all_cards)
+    val description = stringResource(R.string.scan_target_description, name)
+    val shape = MaterialTheme.shapes.small
+    val colors = MaterialTheme.colorScheme
+    OutlinedButton(
+        onClick = onClick,
+        modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget).semantics { contentDescription = description },
+        shape = shape,
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurfaceVariant),
+        border = BorderStroke(1.dp, if (target != null) colors.primary else colors.outlineVariant),
+        contentPadding = PaddingValues(start = Spacing.md, end = Spacing.sm),
+    ) {
+        Text(stringResource(R.string.scan_target_label), style = MaterialTheme.typography.labelLarge)
+        Spacer(Modifier.width(Spacing.xs))
+        Text(
+            name,
+            Modifier.weight(1f, fill = false),
+            style = MaterialTheme.typography.labelLarge,
+            color = if (target != null) colors.primary else colors.onSurface,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Icon(
+            painterResource(R.drawable.ic_chevron_right),
+            contentDescription = null,
+            modifier = Modifier.padding(start = Spacing.xs).size(ButtonDefaults.IconSize),
+        )
+    }
+}
+
+/**
+ * Where scans go besides All Cards: All cards only, or one custom collection. The choice is kept (also after a
+ * restart) until the user changes it or deletes that collection.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun ScanTargetSheet(collections: List<CollectionSummary>, chosenId: Long?, onChoose: (Long?) -> Unit) {
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.gutter)
+            .padding(bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        Text(
+            stringResource(R.string.scan_target_title),
+            Modifier.semantics { heading() },
+            style = MaterialTheme.typography.titleLarge,
+        )
+        Text(
+            stringResource(if (collections.isEmpty()) R.string.scan_target_none else R.string.scan_target_hint),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            ChoiceChip(
+                selected = chosenId == null,
+                onClick = { onChoose(null) },
+                label = stringResource(R.string.collections_only_all_cards),
+            )
+            collections.forEach { collection ->
+                ChoiceChip(
+                    selected = collection.id == chosenId,
+                    onClick = { onChoose(collection.id) },
+                    label = collection.name,
+                )
+            }
         }
     }
 }

@@ -56,6 +56,8 @@ Offline: training on the RTX 3080 (detector, embeddings, later the OCR model)
 5. **Decide**: confident hits are added with the default variant and condition. Unsure hits go to a **review
    queue** with a top-3 picker and variant chips. Normal and reverse holo can't be told apart reliably from a
    photo, so the variant is always editable.
+   Scans land in All Cards; a "Scanning into" chip on the Scan screen adds them to one custom collection as well
+   (kept until changed; a deleted collection falls back to All Cards only).
 
 Reference images: TCGdex for the EU languages. For JP, TCGdex has images for only ~3.9k of ~13k cards, so the
 gaps are filled by a one-time crawl of the official JP card database (check its terms first) and by opt-in

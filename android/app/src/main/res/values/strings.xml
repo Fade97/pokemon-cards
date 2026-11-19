@@ -375,6 +375,13 @@
     <string name="scan_camera_disabled">The camera is turned off on this device, for example by a privacy or work setting.</string>
     <string name="scan_camera_dnd">Do Not Disturb is blocking the camera. Turn it off to scan.</string>
     <string name="scan_camera_failed">The camera stopped. Leave this screen and come back to try again.</string>
+    <!-- Scan target (#139): label before the collection name, e.g. "Scanning into: All cards" -->
+    <string name="scan_target_label">Scanning into:</string>
+    <!-- Collection name -->
+    <string name="scan_target_description">Scanning into %1$s. Change</string>
+    <string name="scan_target_title">Scan into</string>
+    <string name="scan_target_hint">Every scan is in All cards. Pick a collection to add the next scans there too.</string>
+    <string name="scan_target_none">Every scan is in All cards. Create a collection in Collections to scan straight into it.</string>
     <plurals name="scan_scanned_count">
         <item quantity="one">%1$d card this session</item>
         <item quantity="other">%1$d cards this session</item>
@@ -412,6 +419,8 @@
     <string name="review_crop">Your scan of the card</string>
     <string name="review_number_read">Number read: %1$s</string>
     <string name="review_added">Added %1$s.</string>
+    <!-- Scan target collection (#139) -->
+    <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
