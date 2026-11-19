@@ -12,7 +12,6 @@ import androidx.compose.foundation.gestures.calculatePan
 import androidx.compose.foundation.gestures.calculateZoom
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -92,6 +91,8 @@ import kotlinx.coroutines.launch
  * @property label the short name in the viewer's bar, e.g. "Card image" or "Your photo, 1× Holo, NM".
  * @property description what TalkBack says for the image.
  * @property key stable per image, so the pager keeps each page's zoom while paging.
+ * @property foil the simulated light drawn over this image (#167, ADR 0015); only for the official art of a print the
+ *   user owns as Holo or Reverse Holo, never for own photos.
  */
 @Immutable
 data class CardViewerImage(
@@ -99,6 +100,7 @@ data class CardViewerImage(
     val label: String,
     val description: String,
     val key: String = model.toString(),
+    val foil: FoilFinish? = null,
 )
 
 /** Side and top/bottom room around the fitted card, so it never sits under the bar or the gesture handle. */
@@ -116,15 +118,15 @@ private val DismissFlingVelocity = 1200.dp
  * With reduced motion ([rememberReducedMotion]) the double-tap zoom, the spring back after a short swipe and the
  * slide away all snap; what follows the finger still follows it.
  *
- * The viewer is the base of the tilt showcase (#167): [overlay] is drawn over each image, inside its zoom and at its
- * fitted size. It draws nothing by default; chrome stays static (ADR 0014).
+ * Images with a [CardViewerImage.foil] get the tilt showcase (#167, ADR 0015): a simulated light over the card, inside
+ * its zoom, moved by the gyroscope or, without one, by touching and holding the card. The bar says the light is
+ * simulated. With reduced motion the light stays still at rest and no sensor runs. The chrome never moves.
  */
 @Composable
 fun CardViewer(
     images: List<CardViewerImage>,
     onDismiss: () -> Unit,
     initialPage: Int = 0,
-    overlay: @Composable BoxScope.(image: CardViewerImage) -> Unit = {},
 ) {
     if (images.isEmpty()) return
     Dialog(
@@ -133,6 +135,7 @@ fun CardViewer(
     ) {
         LightSystemBarIcons()
         val reducedMotion = rememberReducedMotion()
+        val foilTilt = rememberFoilTilt(enabled = !reducedMotion && images.any { it.foil != null })
         val camera = LumifoilTheme.colors.camera
         val scope = rememberCoroutineScope()
         val pager = rememberPagerState(initialPage.coerceIn(images.indices)) { images.size }
@@ -183,12 +186,17 @@ fun CardViewer(
                             }
                         }
                     },
-                    overlay = overlay,
+                    foilTilt = foilTilt,
                 )
             }
+            val current = images[pager.currentPage]
             ViewerBar(
-                label = images[pager.currentPage].label,
+                label = current.label,
                 position = if (images.size > 1) stringResource(R.string.viewer_position, pager.currentPage + 1, images.size) else null,
+                foilNote = current.foil?.let { foil ->
+                    stringResource(if (foil == FoilFinish.HOLO) R.string.viewer_foil_holo else R.string.viewer_foil_reverse_holo)
+                },
+                foilHint = if (current.foil != null && foilTilt.touchControlled) stringResource(R.string.viewer_foil_touch) else null,
                 onClose = onDismiss,
                 modifier = Modifier.align(Alignment.TopStart),
             )
@@ -199,9 +207,20 @@ fun CardViewer(
 private const val SlideAwayMillis = 160
 private const val DoubleTapZoomMillis = 220
 
-/** The close button and the name of the shown image, on the dark surface; never animated (ADR 0014). */
+/**
+ * The close button and the name of the shown image, on the dark surface; never animated (ADR 0014). [foilNote] says
+ * that the light over the card is simulated (ADR 0015), so a screenshot or recording carries it too; [foilHint] says
+ * how to move it by touch.
+ */
 @Composable
-private fun ViewerBar(label: String, position: String?, onClose: () -> Unit, modifier: Modifier = Modifier) {
+private fun ViewerBar(
+    label: String,
+    position: String?,
+    foilNote: String?,
+    foilHint: String?,
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val camera = LumifoilTheme.colors.camera
     Row(
         modifier
@@ -221,6 +240,12 @@ private fun ViewerBar(label: String, position: String?, onClose: () -> Unit, mod
             Text(label, style = MaterialTheme.typography.titleSmall, color = camera.content, maxLines = 2)
             if (position != null) {
                 Text(position, style = MaterialTheme.typography.bodySmall, color = camera.muted)
+            }
+            if (foilNote != null) {
+                Text(foilNote, style = MaterialTheme.typography.bodySmall, color = camera.muted)
+            }
+            if (foilHint != null) {
+                Text(foilHint, style = MaterialTheme.typography.bodySmall, color = camera.muted)
             }
         }
     }
@@ -251,7 +276,7 @@ private fun ZoomablePage(
     onZoomedChange: (Boolean) -> Unit,
     onDismissDrag: (Float) -> Unit,
     onDismissEnd: (velocityY: Float?) -> Unit,
-    overlay: @Composable BoxScope.(image: CardViewerImage) -> Unit,
+    foilTilt: FoilTiltState,
 ) {
     var scale by remember { mutableFloatStateOf(ViewerZoom.MIN_SCALE) }
     var offset by remember { mutableStateOf(Offset.Zero) }
@@ -374,7 +399,11 @@ private fun ZoomablePage(
                         }
                     },
                 )
-                overlay(image)
+                // Only over a loaded image: no light on the placeholder bounds or a failed page.
+                val foil = image.foil
+                if (foil != null && intrinsic.isFinite() && !failed) {
+                    FoilLightLayer(foil, foilTilt)
+                }
             }
             if (failed) {
                 Text(
@@ -418,6 +447,8 @@ private suspend fun PointerInputScope.detectViewerGestures(
         val zoom = event.calculateZoom()
         val pan = event.calculatePan()
         if (mode == GestureMode.UNDECIDED) {
+            // The card took the gesture (the foil light's touch and hold, #167): leave it alone.
+            if (event.changes.any { it.isConsumed }) return@awaitEachGesture
             travel += pan
             mode = when {
                 pressed > 1 -> GestureMode.TRANSFORM

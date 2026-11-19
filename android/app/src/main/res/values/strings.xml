@@ -272,6 +272,12 @@
     <string name="viewer_zoom_in">Zoom in</string>
     <string name="viewer_zoom_reset">Reset zoom</string>
     <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
+    <!-- Tilt light (#167, ADR 0015): under the image name whenever the app draws its own light over the card, so it
+         never passes for the card's real finish. -->
+    <string name="viewer_foil_holo">Simulated holo light</string>
+    <string name="viewer_foil_reverse_holo">Simulated reverse holo light</string>
+    <!-- Only on phones without a gyroscope. -->
+    <string name="viewer_foil_touch">Touch and hold the card, then drag to move the light</string>
 
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
