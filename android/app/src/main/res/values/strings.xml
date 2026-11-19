@@ -108,8 +108,13 @@
     <string name="collections_region_jp_description">Japanese set</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
-    <string name="collections_mode_compact">Compact</string>
-    <string name="collections_mode_cards">Cards</string>
+    <!-- The view toggle on the set detail filter row names the view it switches to (#165). -->
+    <string name="collections_view_show_cards">Show card images</string>
+    <string name="collections_view_show_compact">Show numbers only</string>
+    <string name="collections_legend_toggle">What the slots mean</string>
+    <string name="collections_languages_title">Languages</string>
+    <!-- Spoken form of the language chip, e.g. "Languages: All languages". -->
+    <string name="collections_languages_chip_description">Languages: %1$s</string>
     <string name="collections_filter_all">All</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
