@@ -524,6 +524,7 @@
     <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted are not on it.</string>
     <string name="receipt_share">Share image</string>
     <string name="receipt_share_title">Share session receipt</string>
+    <string name="receipt_share_failed">The receipt could not be shared. Try again.</string>
     <string name="receipt_close">Close</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
@@ -572,7 +573,6 @@
     <string name="review_card">Card</string>
     <!-- Set name, language -->
     <string name="review_set_language">%1$s, %2$s</string>
-    <!-- Similarity of the scan to a candidate, in percent -->
     <!-- Tap action on the scan crop (#161) -->
     <string name="review_crop_enlarge">Compare large</string>
     <string name="review_compare_scan">Your scan</string>

@@ -29,9 +29,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -325,12 +330,15 @@ internal fun ViewSwitch(
         labels.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val shape = SegmentedButtonDefaults.itemShape(index, labels.size, MaterialTheme.shapes.medium)
+            var focused by remember { mutableStateOf(false) }
             Box(
                 Modifier
                     .weight(1f)
-                    // Neighbours share one outline, as in Material's segmented buttons; the selected one draws on top.
+                    // Neighbours share one outline, as in Material's segmented buttons; the selected one draws on top,
+                    // and a focused one above that, so no neighbour covers its focus ring.
                     .offset(x = (-1).dp * index)
-                    .zIndex(if (selected) 1f else 0f)
+                    .zIndex(if (focused) 2f else if (selected) 1f else 0f)
+                    .onFocusChanged { focused = it.isFocused }
                     .fillMaxHeight()
                     .heightIn(min = Spacing.touchTarget)
                     .focusRing(shape)

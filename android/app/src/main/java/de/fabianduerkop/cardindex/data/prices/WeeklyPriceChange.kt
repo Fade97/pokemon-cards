@@ -55,6 +55,9 @@ object WeeklyPriceChange {
     /** As [PriceFreshness.STALE_AFTER]: the backend imports once a night, so three missed nights is the limit. */
     const val MAX_GAP_DAYS = 3L
 
+    /** The share of a list's current value its covered copies must hold before the list shows a change. */
+    const val MIN_COVERED_VALUE = 0.5
+
     /** The first day the history cache needs for a weekly change on [today]. */
     fun from(today: LocalDate): LocalDate = today.minusDays(DAYS + MAX_GAP_DAYS)
 
@@ -73,7 +76,9 @@ object WeeklyPriceChange {
     /**
      * The change of [copies]' value in [source]'s currency: each copy with a current price, valued at both ends with
      * its printing's history, times its quantity. Copies [source] doesn't price (their language, or no fitting
-     * printing) are left out, as in [PriceSelection.total]. Null when no copy has a price at both ends.
+     * printing) are left out, as in [PriceSelection.total]. Null when no copy has a price at both ends, and when the
+     * copies that have one hold less than [MIN_COVERED_VALUE] of the list's current value: thirty bulk cards with history
+     * say nothing about a set whose chase card has none.
      */
     fun ofCopies(
         copies: List<OwnedCopyEntity>,
@@ -82,28 +87,34 @@ object WeeklyPriceChange {
         source: PriceSource,
         today: LocalDate,
     ): WeeklyChange? {
-        // Copies of the same card and printing share one series.
+        // Copies of the same card and printing share one series and one current price.
         val groups = copies.mapNotNull { copy ->
-            PriceSelection.quote(pricesByCard[copy.cardId].orEmpty(), source, copy)?.let { (copy.cardId to it.variant) to copy.quantity }
-        }.groupBy({ it.first }, { it.second }).map { (key, quantities) ->
-            series(historyByCard[key.first].orEmpty(), source, key.second) to quantities.sum()
+            PriceSelection.quote(pricesByCard[copy.cardId].orEmpty(), source, copy)?.let { Triple(copy.cardId to it.variant, it.amountMinor, copy.quantity) }
+        }.groupBy { it.first }.map { (key, rows) ->
+            PricedGroup(series(historyByCard[key.first].orEmpty(), source, key.second), rows.first().second, rows.sumOf { it.third })
         }
-        val priced = groups.sumOf { it.second }
-        val end = groups.mapNotNull { it.first.lastOrNull()?.date }.maxOrNull() ?: return null
+        val priced = groups.sumOf { it.quantity }
+        val pricedValue = groups.sumOf { it.currentMinor * it.quantity }
+        val end = groups.mapNotNull { it.points.lastOrNull()?.date }.maxOrNull() ?: return null
         if (end.isBefore(today.minusDays(MAX_GAP_DAYS))) return null
 
         var startSum = 0L
         var endSum = 0L
         var covered = 0
-        for ((points, quantity) in groups) {
+        var coveredValue = 0L
+        for ((points, currentMinor, quantity) in groups) {
             val (startPrice, endPrice) = ends(points, end) ?: continue
             startSum += startPrice * quantity
             endSum += endPrice * quantity
             covered += quantity
+            coveredValue += currentMinor * quantity
         }
         if (covered == 0) return null
+        if (coveredValue < pricedValue * MIN_COVERED_VALUE) return null
         return WeeklyChange(startSum, endSum, source.currency, end.minusDays(DAYS), end, covered, priced)
     }
+
+    private data class PricedGroup(val points: List<PricePoint>, val currentMinor: Long, val quantity: Int)
 
     /** One printing's daily prices in [source], ascending; days without a price are left out. */
     private fun series(rows: List<PriceHistoryEntity>, source: PriceSource, variant: PriceVariant): List<PricePoint> =

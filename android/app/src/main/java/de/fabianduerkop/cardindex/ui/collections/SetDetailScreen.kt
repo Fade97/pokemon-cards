@@ -30,6 +30,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -66,6 +67,7 @@ import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.MenuChip
 import de.fabianduerkop.cardindex.ui.components.CompletionBar
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
@@ -329,11 +331,10 @@ private fun FilterRow(
                     ?: stringResource(R.string.collections_all_languages)
                 val description = stringResource(R.string.collections_languages_chip_description, label)
                 // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
-                ChoiceChip(
-                    selected = state.selectedLanguages.isNotEmpty(),
+                MenuChip(
+                    active = state.selectedLanguages.isNotEmpty(),
                     onClick = onLanguages,
                     label = label,
-                    trailingIcon = R.drawable.ic_expand_more,
                     modifier = Modifier.semantics { contentDescription = description },
                 )
             }
@@ -354,6 +355,10 @@ private fun FilterRow(
             checked = state.legendShown,
             onCheckedChange = { onToggleLegend() },
             modifier = Modifier.focusRing(CircleShape),
+            // Pearl's selection tint behind the icon while the legend is open, as on a selected chip (ADR 0014).
+            colors = IconButtonDefaults.iconToggleButtonColors(
+                checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+            ),
         ) {
             Icon(
                 painterResource(R.drawable.ic_info),

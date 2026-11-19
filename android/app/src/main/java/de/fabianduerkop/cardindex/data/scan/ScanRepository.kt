@@ -30,14 +30,15 @@ object CopyDefaults {
     fun finishFor(printings: Printings?): Finish = printings?.onlyFinish ?: finish
 }
 
+/** A copy [ScanRepository.addHit] made: its row id, and whether it was the first copy of a wanted print. */
+data class ScanHit(val copyId: Long, val wishlistFound: Boolean)
+
 /**
  * Writes confident live-scan hits into All Cards, and into the scan target collection if the user chose one (#139).
  * Each hit is its own copy with the [CopyDefaults] (DESIGN.md, Recognition): finish and edition can't be told
  * reliably from a photo, and merging into an existing copy would make Undo and later edits touch copies the user
  * added by hand. A card printed in a single finish gets that finish ([CopyDefaults.finishFor]).
  */
-/** A copy [ScanRepository.addHit] made: its row id, and whether it was the first copy of a wanted print. */
-data class ScanHit(val copyId: Long, val wishlistFound: Boolean)
 
 class ScanRepository(private val db: CardIndexDatabase, private val clock: () -> Instant = Instant::now) {
     /**

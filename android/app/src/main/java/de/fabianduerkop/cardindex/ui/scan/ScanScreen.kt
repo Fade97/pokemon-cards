@@ -295,7 +295,7 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                     engine,
                     viewfinder,
                     // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
-                    hit = (tray.latest as? LastScan.Added)?.takeIf { it.card.key == viewfinder.card?.key },
+                    hit = hitFor(tray.latest, viewfinder.decision),
                     priceSource = priceSource,
                     paused = paused,
                     problem = problem,

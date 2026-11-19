@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import android.graphics.Bitmap
+import android.util.Log
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -38,11 +40,14 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.scale
 import de.fabianduerkop.cardindex.R
@@ -58,6 +63,7 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.share.ImageShare
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -69,8 +75,13 @@ import java.time.ZoneId
 private val ReceiptWidth = 360.dp
 private val ReceiptHeight = 640.dp
 
-/** Pixel width of the shared PNG; other screen densities are scaled to it. */
+/**
+ * The receipt is always laid out at this density, whatever the phone's: the PNG is exactly 1080 × 1920 px and sharp,
+ * never a smaller render stretched up.
+ */
+private const val ReceiptDensity = 3f
 private const val ReceiptPixelWidth = 1080
+private const val ReceiptPixelHeight = 1920
 
 /** Prints listed by name; the rest are summed up as "+ 12 more". */
 private const val ReceiptLines = 6
@@ -86,6 +97,7 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
     val layer = rememberGraphicsLayer()
     val chooserTitle = stringResource(R.string.receipt_share_title)
     var sharing by remember { mutableStateOf(false) }
+    var shareFailed by remember { mutableStateOf(false) }
     val description = receiptDescription(receipt)
 
     Column(
@@ -103,19 +115,22 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
             style = MaterialTheme.typography.titleLarge,
         )
         BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            // The image is laid out at its own size and only drawn smaller here, so the PNG doesn't depend on
-            // the phone's width.
-            val scale = minOf(1f, maxWidth / ReceiptWidth)
+            // The image is laid out at its own pixel size and only drawn smaller here, so the PNG depends on
+            // neither the phone's width nor its density.
+            val shown = minOf(maxWidth, ReceiptWidth)
+            val density = LocalDensity.current
+            val pixels = with(density) { DpSize(ReceiptPixelWidth.toDp(), ReceiptPixelHeight.toDp()) }
+            val scale = with(density) { shown.toPx() } / ReceiptPixelWidth
             Box(
                 Modifier
-                    .size(ReceiptWidth * scale, ReceiptHeight * scale)
+                    .size(shown, shown * (ReceiptHeight / ReceiptWidth))
                     .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
                     .semantics { contentDescription = description },
                 contentAlignment = Alignment.Center,
             ) {
                 Box(
                     Modifier
-                        .requiredSize(ReceiptWidth, ReceiptHeight)
+                        .requiredSize(pixels)
                         .graphicsLayer(scaleX = scale, scaleY = scale)
                         .drawWithContent {
                             layer.record { this@drawWithContent.drawContent() }
@@ -137,25 +152,42 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
             enabled = !sharing,
             onClick = {
                 sharing = true
+                shareFailed = false
                 scope.launch {
-                    runCatching {
+                    try {
                         val rendered = layer.toImageBitmap().asAndroidBitmap()
                         val file = withContext(Dispatchers.IO) {
-                            val png = if (rendered.width == ReceiptPixelWidth) {
-                                rendered
+                            // A software copy: a hardware bitmap can't always be scaled or compressed directly.
+                            val software = rendered.copy(Bitmap.Config.ARGB_8888, false)
+                            val png = if (software.width == ReceiptPixelWidth && software.height == ReceiptPixelHeight) {
+                                software
                             } else {
-                                val height = rendered.height * ReceiptPixelWidth / rendered.width
-                                rendered.scale(ReceiptPixelWidth, height)
+                                software.scale(ReceiptPixelWidth, ReceiptPixelHeight)
                             }
                             ImageShare.write(context, png, "foilark-session-${today}")
                         }
                         context.startActivity(ImageShare.intent(context, file, chooserTitle))
+                    } catch (e: CancellationException) {
+                        throw e
+                    } catch (e: Exception) {
+                        Log.e(TAG, "sharing the session receipt failed", e)
+                        shareFailed = true
+                    } finally {
+                        sharing = false
                     }
-                    sharing = false
                 }
             },
             modifier = Modifier.fillMaxWidth(),
         )
+        if (shareFailed) {
+            Text(
+                stringResource(R.string.receipt_share_failed),
+                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                textAlign = TextAlign.Center,
+            )
+        }
         TextAction(stringResource(R.string.receipt_close), onClick = onDone)
     }
 }
@@ -167,8 +199,7 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
  */
 @Composable
 internal fun ReceiptImage(receipt: SessionReceipt, today: LocalDate) {
-    val density = LocalDensity.current
-    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+    CompositionLocalProvider(LocalDensity provides Density(ReceiptDensity, fontScale = 1f)) {
         LumifoilTheme(darkTheme = false) {
             val colors = MaterialTheme.colorScheme
             Column(
@@ -298,3 +329,5 @@ private fun marketLabel(source: PriceSource): Int = when (source) {
 }
 
 private fun Instant.localDate(): LocalDate = atZone(ZoneId.systemDefault()).toLocalDate()
+
+private const val TAG = "SessionReceipt"

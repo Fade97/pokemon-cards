@@ -50,6 +50,8 @@ sealed interface LastScan {
         val variant: CopyVariant = CopyVariant(),
         val prices: List<CachedPriceEntity> = emptyList(),
         val wishlistFound: Boolean = false,
+        /** The viewfinder decision that added it: the hit is shown only while the camera still means this copy. */
+        val decision: Long = 0,
     ) : LastScan {
         /** Its price in [source]'s own market for its finish and edition; null when that market doesn't price it. */
         fun marketQuote(source: PriceSource): PriceQuote? =
@@ -149,3 +151,10 @@ data class ScanTray(
         const val MAX_UNDO = 50
     }
 }
+
+/**
+ * The tray entry the camera's current [decision] produced, once its copy is saved; null while that copy is still being
+ * saved, so a second copy of a print never shows the first copy's price or wishlist find (#162).
+ */
+internal fun hitFor(latest: LastScan?, decision: Long): LastScan.Added? =
+    (latest as? LastScan.Added)?.takeIf { decision != 0L && it.decision == decision }
