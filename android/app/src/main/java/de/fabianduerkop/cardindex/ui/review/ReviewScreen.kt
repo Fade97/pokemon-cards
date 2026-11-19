@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.ui.review
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -31,6 +33,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -44,14 +49,21 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
+import de.fabianduerkop.cardindex.data.images.ImageQuality
+import de.fabianduerkop.cardindex.data.images.cardImageUrl
 import de.fabianduerkop.cardindex.data.scan.ReviewCandidate
 import de.fabianduerkop.cardindex.data.scan.ReviewItem
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -72,7 +84,6 @@ import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.scan.languageName
 import de.fabianduerkop.cardindex.ui.theme.Spacing
-import kotlin.math.roundToInt
 
 /**
  * Review queue (#9, Pearl review in `design/mockups/lumifoil`, #98): one unsure scan at a time with the crop, the
@@ -141,15 +152,24 @@ fun ReviewScreen(
 @Composable
 private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewViewModel, onFindCard: () -> Unit) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
+    val differences = remember(item.candidates) { candidateDifferences(item.candidates) }
+    var comparing by remember { mutableStateOf(false) }
+    if (comparing) CompareDialog(item, chosen, onDismiss = { comparing = false })
     Column(
         Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = Spacing.gutter, vertical = Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
+            // Tap to see the scan large, next to the card Confirm would add (#161).
+            val enlargeLabel = stringResource(R.string.review_crop_enlarge)
             AsyncImage(
                 model = item.cropFile,
                 contentDescription = stringResource(R.string.review_crop),
-                modifier = Modifier.width(88.dp).aspectRatio(63f / 88f).clip(MaterialTheme.shapes.small),
+                modifier = Modifier
+                    .width(88.dp)
+                    .aspectRatio(63f / 88f)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClickLabel = enlargeLabel, role = Role.Image) { comparing = true },
                 contentScale = ContentScale.Crop,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -181,7 +201,7 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
         SectionHeader(stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card))
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             item.candidates.forEach { c ->
-                CandidateRow(c, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
+                CandidateRow(c, differences, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
             }
         }
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below.
@@ -266,8 +286,12 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
     }
 }
 
+/**
+ * One candidate: number, name, then set and language, with the parts that tell the candidates apart
+ * ([differences]) in strong type (#161). No similarity score: it reads as precision it doesn't have; Lab keeps it.
+ */
 @Composable
-private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> Unit) {
+private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.medium
     Surface(
@@ -296,27 +320,82 @@ private fun CandidateRow(c: ReviewCandidate, selected: Boolean, onClick: () -> U
                     localId = c.card.localId,
                     printedTotal = c.set.printedTotal,
                     style = MaterialTheme.typography.titleLarge,
-                    color = if (selected) colors.primary else colors.onSurface,
+                    color = when {
+                        selected -> colors.primary
+                        differences.number || !(differences.set || differences.language) -> colors.onSurface
+                        else -> colors.onSurfaceVariant
+                    },
                 )
                 Text(c.card.name, style = MaterialTheme.typography.titleSmall, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                val setName = c.set.name
+                val language = languageName(c.card.language)
+                val line = stringResource(R.string.review_set_language, setName, language)
+                val strong = SpanStyle(color = colors.onSurface, fontWeight = FontWeight.SemiBold)
                 Text(
-                    stringResource(R.string.review_set_language, c.set.name, languageName(c.card.language)),
+                    buildAnnotatedString {
+                        append(line)
+                        if (differences.set) line.indexOf(setName).takeIf { it >= 0 }?.let { addStyle(strong, it, it + setName.length) }
+                        if (differences.language) {
+                            line.lastIndexOf(language).takeIf { it >= 0 }?.let { addStyle(strong, it, it + language.length) }
+                        }
+                    },
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
-            Text(
-                if (c.similarity == ReviewCandidateEntity.PICKED_BY_HAND) {
-                    stringResource(R.string.review_picked_by_hand)
-                } else {
-                    stringResource(R.string.review_similarity, (c.similarity * 100).roundToInt().coerceIn(0, 100))
-                },
-                style = MaterialTheme.typography.labelLarge,
-                color = if (selected) colors.primary else colors.onSurfaceVariant,
-            )
+            if (c.similarity == ReviewCandidateEntity.PICKED_BY_HAND) {
+                Text(
+                    stringResource(R.string.review_picked_by_hand),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = if (selected) colors.primary else colors.onSurfaceVariant,
+                )
+            }
         }
+    }
+}
+
+/**
+ * The scan large, next to the picture of the card Confirm would add (#161), so a worn corner or a language mark can
+ * be checked without squinting at the 88 dp crop. Tap anywhere or Back to close.
+ */
+@Composable
+private fun CompareDialog(item: ReviewItem, chosen: ReviewCandidate?, onDismiss: () -> Unit) {
+    Dialog(onDismissRequest = onDismiss, properties = DialogProperties(usePlatformDefaultWidth = false)) {
+        Surface(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.gutter)
+                .clickable(onClickLabel = stringResource(R.string.review_compare_close), onClick = onDismiss),
+            shape = MaterialTheme.shapes.extraLarge,
+            color = MaterialTheme.colorScheme.surface,
+        ) {
+            Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                ComparePicture(item.cropFile, stringResource(R.string.review_crop), stringResource(R.string.review_compare_scan))
+                if (chosen != null) {
+                    val label = "${padCollectorNumber(chosen.card.localId, chosen.set.printedTotal)}/${chosen.set.printedTotal}"
+                    ComparePicture(
+                        cardImageUrl(chosen.card.imageUrl, ImageQuality.HIGH),
+                        stringResource(R.string.review_compare_card_description, chosen.card.name, label),
+                        label,
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.ComparePicture(model: Any?, description: String, caption: String) {
+    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        AsyncImage(
+            model = model,
+            contentDescription = description,
+            modifier = Modifier.fillMaxWidth().aspectRatio(63f / 88f).clip(MaterialTheme.shapes.small),
+            contentScale = ContentScale.Fit,
+        )
+        Text(caption, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
 

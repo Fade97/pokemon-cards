@@ -75,9 +75,27 @@ data class SetProgress(val base: Int, val printedTotal: Int, val secret: Int) {
 /** [SetProgress] from owned slot keys ([numberKey]s, so `006` and `6` count once). */
 fun setProgress(ownedKeys: Collection<String>, printedTotal: Int): SetProgress {
     val keys = ownedKeys.mapTo(HashSet()) { numberKey(it) }
-    val base = keys.count { key -> key.toIntOrNull()?.let { it in 1..printedTotal } == true }
+    val base = keys.count { isBaseNumber(it, printedTotal) }
     return SetProgress(base = base, printedTotal = printedTotal, secret = keys.size - base)
 }
+
+/**
+ * The slots still missing, split like [SetProgress] (#161): [base] numbers of the printed total and [secret] slots
+ * beyond it. So the Missing filter reads "Missing 158 · +42 secret" next to a 7/165 header, and both add up.
+ */
+data class SetMissing(val base: Int, val secret: Int) {
+    val total: Int get() = base + secret
+}
+
+/** [SetMissing] of a slot grid from [buildSetSlots]. */
+fun setMissing(slots: List<SetSlot>, printedTotal: Int): SetMissing {
+    val keys = slots.filterNot { it.owned }.mapTo(HashSet()) { numberKey(it.localId) }
+    val base = keys.count { isBaseNumber(it, printedTotal) }
+    return SetMissing(base = base, secret = keys.size - base)
+}
+
+/** Whether a [numberKey] is one of the numbers 1 to [printedTotal] rather than a secret rare. */
+private fun isBaseNumber(key: String, printedTotal: Int): Boolean = key.toIntOrNull()?.let { it in 1..printedTotal } == true
 
 /** `"006"` and `"6"` are the same slot; non-numeric ids (`TG05`) stay as they are. */
 internal fun numberKey(localId: String): String =

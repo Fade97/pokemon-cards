@@ -72,18 +72,33 @@ object PriceSelection {
         source: PriceSource,
     ): CollectionValue {
         var sum = 0L
+        var priced = 0
         var unpriced = 0
         for (copy in copies) {
             val quote = quote(pricesByCard[copy.cardId].orEmpty(), source, copy)
-            if (quote == null) unpriced += copy.quantity else sum += quote.amountMinor * copy.quantity
+            if (quote == null) {
+                unpriced += copy.quantity
+            } else {
+                sum += quote.amountMinor * copy.quantity
+                priced += copy.quantity
+            }
         }
-        return CollectionValue(sum, source, unpriced)
+        return CollectionValue(sum, source, unpriced, priced)
     }
 }
 
-/** The value of a list of copies in one market's currency. */
-data class CollectionValue(val amountMinor: Long, val source: PriceSource, val unpricedCopies: Int) {
+/**
+ * The value of a list of copies in one market's currency: [amountMinor] sums the [pricedCopies], the
+ * [unpricedCopies] add nothing, so the value line says what it covers ("for 6 of 12 copies", #161).
+ */
+data class CollectionValue(
+    val amountMinor: Long,
+    val source: PriceSource,
+    val unpricedCopies: Int,
+    val pricedCopies: Int = 0,
+) {
     val currency: String get() = source.currency
+    val totalCopies: Int get() = pricedCopies + unpricedCopies
 }
 
 val PriceSource.currency: String get() = if (this == PriceSource.CARDMARKET) "EUR" else "USD"

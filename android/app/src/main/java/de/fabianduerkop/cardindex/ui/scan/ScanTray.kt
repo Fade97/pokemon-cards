@@ -50,8 +50,10 @@ sealed interface LastScan {
  */
 data class ScanTray(
     val history: List<LastScan> = emptyList(),
-    /** Cards added or queued in this session, minus undone ones. */
-    val scanned: Int = 0,
+    /** Cards added to the collection in this session, minus undone ones. */
+    val added: Int = 0,
+    /** Cards saved for review in this session ("need checking", #161), minus undone ones. */
+    val queued: Int = 0,
     /** The card the last Undo took back; cleared by the next decision. */
     val removed: RefCard? = null,
     /** A card whose copy or review item could not be saved (#126); cleared by the next decision or Undo. */
@@ -60,11 +62,15 @@ data class ScanTray(
     val decisions: Long = 0,
 ) {
     val latest: LastScan? get() = history.lastOrNull()
+
+    /** Cards added or queued in this session, minus undone ones. */
+    val scanned: Int get() = added + queued
     val canUndo: Boolean get() = history.isNotEmpty()
 
     fun record(scan: LastScan): ScanTray = copy(
         history = (history + scan).takeLast(MAX_UNDO),
-        scanned = scanned + 1,
+        added = added + if (scan is LastScan.Added) 1 else 0,
+        queued = queued + if (scan is LastScan.Queued) 1 else 0,
         removed = null,
         failed = null,
         decisions = decisions + 1,
@@ -76,7 +82,13 @@ data class ScanTray(
     /** The newest decision and the tray without it; null when there is nothing left to undo. */
     fun undo(): Pair<LastScan, ScanTray>? {
         val last = latest ?: return null
-        return last to copy(history = history.dropLast(1), scanned = maxOf(0, scanned - 1), removed = last.card, failed = null)
+        return last to copy(
+            history = history.dropLast(1),
+            added = if (last is LastScan.Added) maxOf(0, added - 1) else added,
+            queued = if (last is LastScan.Queued) maxOf(0, queued - 1) else queued,
+            removed = last.card,
+            failed = null,
+        )
     }
 
     /** The user's [variant] for copy [copyId], if that copy is still in the history. */

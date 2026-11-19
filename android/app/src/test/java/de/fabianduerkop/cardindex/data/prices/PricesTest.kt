@@ -118,6 +118,8 @@ class PricesTest {
         assertEquals(3 * 120L + 240L, value.amountMinor)
         assertEquals("EUR", value.currency)
         assertEquals(3, value.unpricedCopies)
+        assertEquals(4, value.pricedCopies)
+        assertEquals(7, value.totalCopies)
     }
 
     @Test

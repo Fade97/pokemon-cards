@@ -508,10 +508,14 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
-    // Only a new decision buzzes; Undo and coming back to the screen don't.
+    // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
+    // tick than an added one, so the hand can tell them apart without looking (#161).
     var felt by remember { mutableLongStateOf(tray.decisions) }
     LaunchedEffect(tray.decisions) {
-        if (tray.decisions > felt) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+        if (tray.decisions > felt) {
+            val queued = tray.latest is LastScan.Queued
+            haptics.performHapticFeedback(if (queued) HapticFeedbackType.ContextClick else HapticFeedbackType.Confirm)
+        }
         felt = tray.decisions
     }
     var editing by remember { mutableStateOf<LastScan.Added?>(null) }
@@ -531,7 +535,7 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
             LatestScan(tray, onUndo = viewModel::undo, onChange = { editing = it })
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(
-                    pluralStringResource(R.plurals.scan_scanned_count, tray.scanned, tray.scanned),
+                    sessionCount(tray),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -570,6 +574,14 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
             )
         }
     }
+}
+
+/** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */
+@Composable
+private fun sessionCount(tray: ScanTray): String {
+    val added = pluralStringResource(R.plurals.scan_session_added, tray.added, tray.added)
+    if (tray.queued == 0) return added
+    return added + " · " + pluralStringResource(R.plurals.scan_session_queued, tray.queued, tray.queued)
 }
 
 /**
