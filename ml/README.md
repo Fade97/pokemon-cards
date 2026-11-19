@@ -166,6 +166,25 @@ default to `--detector full`, because their synthetic cards sit anywhere in the 
 `eval_real.py truthcheck --photos <dir>` measures the labeler's accuracy and how often both sources are wrong
 the same way.
 
+### Finish photo set (#144)
+
+A private, hand-labelled set for measuring finish detection (#146). It lives in `<data>/real-photos-finish/`
+(`CARDINDEX_DATA`), never in the repo and never uploaded. Each card is one *burst*: 8 live frames, at least
+200 ms apart, while the card is tilted slightly, plus the rectified crop of each (504 × 704) and `burst.json`
+with the labels (finish `normal`/`holo`/`reverse`, holder `bare`/`penny`/`double`/`toploader`/`binder`, light
+`room`/`daylight`/`torch`). The format is in [`finish_set.py`](finish_set.py).
+
+Recording, in a debug build: Scan → Lab → Details → *Finish burst*. Pick the labels, hold the card until it is
+stable, press *Record*, tilt it. Only frames of that card are kept. Then:
+
+```sh
+adb pull /sdcard/Android/data/de.fabianduerkop.foilark.debug/files/finish-bursts/. ~/data/pokemon-cards-data/real-photos-finish/
+python finish_set.py summary      # coverage against the targets of #144
+```
+
+A burst of the wrong card is fixed or dropped in `real-photos-finish/overrides.json`, not by editing it:
+`{"<burst id>": {"cardId": "sv03.5-006", "finish": "reverse"}, "<burst id>": null}`.
+
 ### Android test app
 
 `app_assets.py` builds the model, index and card list for the recognition lab in the app, and `app_parity.py` writes

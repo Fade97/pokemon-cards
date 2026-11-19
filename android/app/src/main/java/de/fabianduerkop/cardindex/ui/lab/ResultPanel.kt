@@ -141,6 +141,7 @@ fun LabSettings(viewModel: LabViewModel) {
     val engine by viewModel.engineState.collectAsStateWithLifecycle()
     val learnedAvailable = (engine as? EngineState.Ready)?.learnedDetector == true
     Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp, vertical = 4.dp)) {
+        BurstControls(viewModel)
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.scan_lab_detector), style = MaterialTheme.typography.labelMedium)
             FilterChip(selected = detector == DetectorKind.LEARNED, enabled = learnedAvailable,
@@ -177,6 +178,51 @@ fun LabSettings(viewModel: LabViewModel) {
             LabeledSlider(stringResource(R.string.scan_lab_min_score, minScore), minScore, viewModel::setMinScore,
                 0f..0.7f, steps = 13)
         }
+    }
+}
+
+/**
+ * Finish bursts (#144): pick the labels, hold a stable card in view, press Record and tilt the card slightly until
+ * the frames are saved. Each burst is a folder below [BurstState.folder].
+ */
+@Composable
+private fun BurstControls(viewModel: LabViewModel) {
+    val burst by viewModel.burst.collectAsStateWithLifecycle()
+    val live by viewModel.live.collectAsStateWithLifecycle()
+    val labels = burst.labels
+    Column(Modifier.fillMaxWidth().padding(bottom = 6.dp), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+        Text(stringResource(R.string.scan_lab_burst), style = MaterialTheme.typography.titleSmall)
+        BurstChips(BurstFinish.entries, labels.finish, { it.key }) { viewModel.setBurstLabels(labels.copy(finish = it)) }
+        BurstChips(BurstHolder.entries, labels.holder, { it.key }) { viewModel.setBurstLabels(labels.copy(holder = it)) }
+        BurstChips(BurstLight.entries, labels.light, { it.key }) { viewModel.setBurstLabels(labels.copy(light = it)) }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+            val recording = burst.recording
+            if (recording == null) {
+                TextButton(onClick = viewModel::startBurst, enabled = live.stable && !live.outdated) {
+                    Text(stringResource(R.string.scan_lab_burst_record))
+                }
+            } else {
+                TextButton(onClick = viewModel::cancelBurst) { Text(stringResource(R.string.scan_lab_burst_cancel)) }
+            }
+            Text(
+                when {
+                    recording != null -> stringResource(R.string.scan_lab_burst_recording, recording, burst.frames, burst.card.orEmpty())
+                    burst.error != null -> burst.error.orEmpty()
+                    burst.saved > 0 -> stringResource(R.string.scan_lab_burst_saved, burst.saved, burst.card.orEmpty())
+                    else -> stringResource(R.string.scan_lab_burst_hint)
+                },
+                style = MaterialTheme.typography.labelMedium.merge(Tabular),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun <T> BurstChips(values: List<T>, selected: T, label: (T) -> String, onSelect: (T) -> Unit) {
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+        values.forEach { v -> FilterChip(selected = v == selected, onClick = { onSelect(v) }, label = { Text(label(v)) }) }
     }
 }
 

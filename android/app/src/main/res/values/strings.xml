@@ -553,6 +553,12 @@
     <string name="scan_lab_ocr">Read number</string>
     <string name="scan_lab_save">Save photos</string>
     <string name="scan_lab_two_pass">Two-pass (photos)</string>
+    <string name="scan_lab_burst">Finish burst (#144)</string>
+    <string name="scan_lab_burst_record">Record</string>
+    <string name="scan_lab_burst_cancel">Cancel</string>
+    <string name="scan_lab_burst_hint">Hold a card until it is stable, press Record, tilt it slightly.</string>
+    <string name="scan_lab_burst_recording">Tilt the card: %1$d of %2$d frames (%3$s)</string>
+    <string name="scan_lab_burst_saved">%1$d bursts saved, last %2$s</string>
     <string name="scan_lab_torch">Light</string>
     <string name="scan_lab_gate_none">Looking for a card</string>
     <string name="scan_lab_gate_low">Outline unsure (score %1$.2f): place one card in the frame, filling most of it</string>
