@@ -6,8 +6,8 @@
     <uses-feature android:name="android.hardware.camera" android:required="false" />
     <uses-permission android:name="android.permission.CAMERA" />
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Pro price alerts (#76): asked when the first alert is created. -->
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- POST_NOTIFICATIONS for Pro price alerts (#76) is in src/debug/AndroidManifest.xml until release builds can reach
+         alerts (#16, #138). -->
 
     <application
         android:name=".CardIndexApplication"

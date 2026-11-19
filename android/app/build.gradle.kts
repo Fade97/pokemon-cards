@@ -6,6 +6,7 @@ plugins {
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.room)
+    alias(libs.plugins.aboutlibraries)
 }
 
 // Release signing with the upload key (#88). Play App Signing re-signs for the store, so this key only proves uploads.
@@ -116,6 +117,17 @@ android {
 
 room { schemaDirectory("$projectDir/schemas") }
 
+// Open-source licenses (#136): the Android plugin writes R.raw.aboutlibraries for each variant at build time, from
+// the POMs of the dependencies that variant packages. LicensesScreen reads it; nothing is fetched at runtime.
+aboutLibraries {
+    // BOMs only pin versions; they ship no code.
+    collect { includePlatform = false }
+    export {
+        // Developer names and funding links aren't shown; keep the generated file small.
+        excludeFields.addAll("developers", "funding")
+    }
+}
+
 dependencies {
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.activity.compose)
@@ -141,7 +153,6 @@ dependencies {
     implementation(libs.androidx.camera.view)
 
     implementation(libs.mlkit.text.recognition.latin)
-    implementation(libs.mlkit.text.recognition.japanese)
     implementation(libs.litert)
     implementation(libs.litert.gpu)
     implementation(libs.opencv)
@@ -159,6 +170,7 @@ dependencies {
     testImplementation(libs.androidx.room.testing)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.okhttp.mockwebserver)
+    testImplementation(libs.androidx.work.testing)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.androidx.test.runner)

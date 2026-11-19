@@ -10,6 +10,7 @@
     <!-- Pearl design system (#96, ADR 0014). -->
     <string name="wordmark" translatable="false">foilark</string>
     <string name="action_back">Back</string>
+    <string name="action_close">Close</string>
     <!-- The header shortcut always opens scanning; never shown as a bare plus. -->
     <string name="shortcut_scan">Scan</string>
     <string name="settings_debug_design_gallery">Design system gallery (debug build)</string>
@@ -239,6 +240,13 @@
     <string name="settings_feedback">Send feedback</string>
     <string name="settings_feedback_hint">Opens a form on GitHub (you need a GitHub account). The app version and your phone model are filled in, and everything you send there is public.</string>
     <string name="settings_feedback_no_browser">No browser to open the feedback form. It is at %1$s</string>
+    <!-- Open-source licenses (#136). settings_licenses_hint: %1$s is the app name. -->
+    <string name="settings_licenses">Open-source licenses</string>
+    <string name="settings_licenses_hint">%1$s is built with these open-source libraries. Tap one for its license.</string>
+    <string name="settings_licenses_unknown">License not stated</string>
+    <string name="settings_licenses_read">Read the license</string>
+    <string name="settings_licenses_website">Project website</string>
+    <string name="settings_licenses_no_browser">No browser to open the page. It is at %1$s</string>
     <string name="settings_prices">Prices</string>
     <string name="settings_main_price">Main price</string>
     <string name="settings_price_auto">Automatic</string>
@@ -304,6 +312,10 @@
     <string name="packs_downloading">Downloading %1$s of %2$s</string>
     <string name="packs_installing">Installing…</string>
     <string name="packs_waiting">Waiting for a connection</string>
+    <string name="packs_waiting_wifi">Waiting for Wi-Fi</string>
+    <!-- Language packs over mobile data (#137): off by default, all packs together are about 110 MB. -->
+    <string name="packs_mobile_data">Use mobile data for language packs</string>
+    <string name="packs_mobile_data_hint">Off: language packs and their updates download only on Wi-Fi or another network without a data limit.</string>
     <string name="packs_failed">Download failed: %1$s</string>
     <string name="packs_broken">Damaged, so recognition skips this language. Download it again.</string>
     <string name="packs_model_storage">Recognition model: %1$s</string>

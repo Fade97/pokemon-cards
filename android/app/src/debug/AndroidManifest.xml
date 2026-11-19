@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <!-- Pro price alerts (#76): asked when the first alert is created. Debug builds only, where the "Pro (debug)"
+         switch reaches alerts; release builds have no Pro until sign-in and billing exist (#16). Move this line back
+         to src/main/AndroidManifest.xml then (#138). -->
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+
+</manifest>

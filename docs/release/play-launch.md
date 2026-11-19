@@ -306,7 +306,7 @@ requirements was not checked.
 
 ### Data safety form
 
-Based on the code on `main` (2026-11-18): `AndroidManifest.xml` asks only for `CAMERA` and `INTERNET`. The app
+Based on the code on `main` (2026-11-18): the release manifest asks only for `CAMERA` and `INTERNET` (`POST_NOTIFICATIONS` is debug-only until price alerts ship, #138). The app
 talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributions) and to the TCGdex CDN
 (`assets.tcgdex.net`, card images). There is no analytics, crash reporting, ads SDK, Firebase or account.
 
@@ -398,7 +398,7 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
       signing config only from env or a git-ignored file), smoke-tested on talos via bundletool (#88).
       Steps in `android/README.md`, "Signed release". The S25 follows in #83.
 - [ ] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled; Impressum if needed.
-- [ ] In-app "About" with the disclaimer, licenses and the privacy link.
+- [x] In-app "About" with the disclaimer, licenses and the privacy link (Settings → About; licenses #136).
 - [ ] Screenshots and feature graphic (section 3).
 - [x] A feedback channel for testers: the GitHub issue form `tester-feedback.yml`, linked from Settings → About (#88).
 - [ ] Optional: CI upload to the internal/closed track with a service account limited to testing tracks.

@@ -133,7 +133,8 @@ Format, checks and download rules: [`docs/packs.md`](../docs/packs.md). The app 
 - **First run** asks for the card languages (`ui/packs/`), with each pack's download size from `catalog.json` plus
   the model once. "Not now" leaves it to **Settings → Card languages**, which adds and removes languages, shows the
   installed version and storage, and offers **Download again** for a pack that failed its checks.
-- **Sync** (`PackManager`, run by `PackSyncWorker` on WorkManager, network required): full pack or delta chain
+- **Sync** (`PackManager`, run by `PackSyncWorker` on WorkManager): waits for an unmetered network unless the
+  Settings switch "Use mobile data for language packs" is on (#137; flipping it moves waiting work). Full pack or delta chain
   (`PackPlanner`), downloads resumed with `Range` (`PackHttp`), size + SHA-256 checked after every download (a file
   that fails is fetched again at most twice), deltas applied in memory and checked against their `result`, a delta
   that fails falls back to the full pack. A new model downloads the model plus the full packs of every installed
@@ -321,6 +322,8 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
   threshold fires one notification and disarms; it re-arms, silently, once the price is back on the other side. No
   price or another currency changes nothing. The job is scheduled while alerts exist and cancelled with the last one.
 - **Notifications**: channel `price_alerts`; `POST_NOTIFICATIONS` (Android 13+) is asked when the first alert is created.
+  Only debug builds declare it (`src/debug/AndroidManifest.xml`) and create the channel, since release builds can't
+  reach alerts before sign-in and billing (#16, #138); move the permission to the main manifest with #16.
   A notification opens the card (`foilark://card/<id>/<language>`, handled only inside the app). Without the
   permission the rules still fire and disarm; the lists show when they last did and warn that notifications are off.
 - This is a soft gate by decision ([ADR 0013](../docs/adr/0013-price-alerts-on-device.md)): the rules and the check are

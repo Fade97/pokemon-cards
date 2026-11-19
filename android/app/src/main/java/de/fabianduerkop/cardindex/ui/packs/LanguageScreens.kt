@@ -51,6 +51,7 @@ import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.settings.ConfirmDialog
 import de.fabianduerkop.cardindex.ui.settings.SettingsHint
+import de.fabianduerkop.cardindex.ui.settings.SwitchRow
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 @Composable
@@ -104,6 +105,7 @@ fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = lan
                     style = MaterialTheme.typography.labelLarge,
                 )
             }
+            MobileDataSwitch(state.mobileData, viewModel::setMobileData)
             PrimaryButton(
                 stringResource(R.string.packs_picker_download),
                 onClick = {
@@ -123,6 +125,17 @@ fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = lan
             )
         }
     }
+}
+
+/** "Use mobile data for language packs" (#137), in the first-run picker and in Settings. Off by default. */
+@Composable
+private fun MobileDataSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    SwitchRow(
+        title = stringResource(R.string.packs_mobile_data),
+        hint = stringResource(R.string.packs_mobile_data_hint),
+        checked = checked,
+        onCheckedChange = onCheckedChange,
+    )
 }
 
 /** A language to pick, with its download size. The whole row is the checkbox, so it is one 48 dp target. */
@@ -200,7 +213,7 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
     if (installed.isNotEmpty()) {
         Column {
             installed.forEach { row ->
-                InstalledLanguageRow(row, onRemove = { removing = row.code }, onRepair = { viewModel.repair(row.code) })
+                InstalledLanguageRow(row, state.mobileData, onRemove = { removing = row.code }, onRepair = { viewModel.repair(row.code) })
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             }
         }
@@ -220,6 +233,7 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
         enabled = state.addable.any { it.available },
         icon = R.drawable.ic_add,
     )
+    MobileDataSwitch(state.mobileData, viewModel::setMobileData)
 
     if (adding) AddLanguagesDialog(state, onDismiss = { adding = false }) { picked ->
         viewModel.add(picked)
@@ -240,7 +254,7 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
 }
 
 @Composable
-private fun InstalledLanguageRow(row: LanguageRow, onRemove: () -> Unit, onRepair: () -> Unit) {
+private fun InstalledLanguageRow(row: LanguageRow, mobileData: Boolean, onRemove: () -> Unit, onRepair: () -> Unit) {
     val failed = row.broken || row.progress is LanguageProgress.Failed
     val name = languageName(row.code)
     Column(Modifier.padding(vertical = Spacing.sm)) {
@@ -248,7 +262,7 @@ private fun InstalledLanguageRow(row: LanguageRow, onRemove: () -> Unit, onRepai
             Column(Modifier.weight(1f)) {
                 Text(name, style = MaterialTheme.typography.titleSmall)
                 Text(
-                    statusText(row),
+                    statusText(row, mobileData),
                     style = MaterialTheme.typography.bodySmall,
                     color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -276,7 +290,7 @@ private fun InstalledLanguageRow(row: LanguageRow, onRemove: () -> Unit, onRepai
 }
 
 @Composable
-private fun statusText(row: LanguageRow): String {
+private fun statusText(row: LanguageRow, mobileData: Boolean): String {
     val progress = row.progress
     return when {
         progress is LanguageProgress.Downloading -> stringResource(R.string.packs_downloading, size(progress.done), size(progress.total))
@@ -285,7 +299,8 @@ private fun statusText(row: LanguageRow): String {
         row.broken -> stringResource(R.string.packs_broken)
         row.installedVersion != null -> stringResource(R.string.packs_installed, row.installedVersion, size(row.storage))
         !row.available -> stringResource(R.string.packs_not_available)
-        else -> stringResource(R.string.packs_waiting)
+        // Without the mobile data switch a pending download waits for an unmetered network (#137).
+        else -> stringResource(if (mobileData) R.string.packs_waiting else R.string.packs_waiting_wifi)
     }
 }
 
