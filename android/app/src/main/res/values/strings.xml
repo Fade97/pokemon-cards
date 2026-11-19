@@ -462,6 +462,9 @@
     <string name="scan_hint_added">Added. Take the next card.</string>
     <!-- A scan added a card that was on the wishlist and not owned yet (#162). -->
     <string name="scan_hint_wishlist">On your wishlist. Added.</string>
+    <!-- A scan added a card priced at or over the reveal threshold in the main market (#168); %1$s is "€20" or "$20". -->
+    <string name="scan_hint_valuable">Worth %1$s or more. Added.</string>
+    <string name="scan_hint_wishlist_valuable">On your wishlist, worth %1$s or more. Added.</string>
     <!-- Price of the card just added, e.g. "€8.40 · Cardmarket trend" (#162). -->
     <string name="scan_price_cardmarket">%1$s · Cardmarket trend</string>
     <string name="scan_price_tcgplayer">%1$s · TCGplayer market</string>

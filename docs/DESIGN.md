@@ -59,6 +59,12 @@ Offline: training on the RTX 3080 (detector, embeddings, later the OCR model)
    from a photo, so the variant is always editable.
    Scans land in All Cards; a "Scanning into" chip on the Scan screen adds them to one custom collection as well
    (kept until changed; a deleted collection falls back to All Cards only).
+6. **Reveal** (#168): an added card worth **€20 / $20 or more** gets a brief light halo around it in the frame, a
+   double-pulse haptic and the hint "Worth €20 or more. Added." The test is the hit's own price (for its finish and
+   edition) in the user's **main market**, against the threshold in that market's currency: €20 for Cardmarket, $20
+   for TCGplayer. There is no conversion and no fallback to the other market, so EUR and USD never mix; a card the
+   main market doesn't price gets no reveal. The reveal never waits: the camera keeps deciding, and the next
+   decision replaces it. With animations off there is no halo, only the haptic and the text. No sound.
 
 Reference images: TCGdex for the EU languages. For JP, TCGdex has images for only ~3.9k of ~13k cards, so the
 gaps are filled by a one-time crawl of the official JP card database (check its terms first) and by opt-in
