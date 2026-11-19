@@ -70,15 +70,7 @@ fun WishlistScreen(
     DetailScaffold(title = stringResource(R.string.wishlist_title), onBack = onBack) { padding ->
         val list = entries ?: return@DetailScaffold
         LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
-            item {
-                Column(Modifier.padding(horizontal = ScreenPadding)) {
-                    PlaceholderText(
-                        stringResource(if (list.isEmpty()) R.string.wishlist_empty else R.string.wishlist_hint),
-                        Modifier.padding(vertical = Spacing.md),
-                    )
-                    if (list.isNotEmpty()) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                }
-            }
+            item { WishlistIntro(empty = list.isEmpty()) }
             items(list, key = { it.wanted.id }) { entry ->
                 WantedRow(
                     entry,
@@ -90,12 +82,24 @@ fun WishlistScreen(
     }
 }
 
+/** What wanted cards are (or how to add one, while there are none), above the wanted rows. */
+@Composable
+internal fun WishlistIntro(empty: Boolean) {
+    Column(Modifier.padding(horizontal = ScreenPadding)) {
+        PlaceholderText(
+            stringResource(if (empty) R.string.wishlist_empty else R.string.wishlist_hint),
+            Modifier.padding(vertical = Spacing.md),
+        )
+        if (!empty) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
 /**
  * One wanted print: the collector number, the name, set and language, and Remove. On a narrow row (#121) the number
  * goes above the name, as in [CopyRow].
  */
 @Composable
-private fun WantedRow(entry: WantedWithCard, onClick: () -> Unit, onRemove: () -> Unit) {
+internal fun WantedRow(entry: WantedWithCard, onClick: () -> Unit, onRemove: () -> Unit) {
     val fontScale = LocalDensity.current.fontScale
     BoxWithConstraints(
         Modifier
