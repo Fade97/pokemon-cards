@@ -436,6 +436,14 @@ class SetDetailViewModel(
 
     /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
     fun togglePinned() = pinSet(if (state.value.pinned) null else setId)
+
+    /**
+     * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist
+     * mark them (#170), so a friend sees which missing cards matter most.
+     */
+    val wantedNumbers: StateFlow<Set<String>> = repository.observeWishlist()
+        .map { wanted -> wanted.filter { !it.found && it.set.id == setId }.mapTo(HashSet()) { numberKey(it.card.localId) } }
+        .stateIn(this, emptySet())
 }
 
 data class CardDetailUiState(

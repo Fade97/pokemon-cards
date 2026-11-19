@@ -539,8 +539,41 @@
     <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted are not on it.</string>
     <string name="receipt_share">Share image</string>
     <string name="receipt_share_title">Share session receipt</string>
-    <string name="receipt_share_failed">The receipt could not be shared. Try again.</string>
+    <string name="share_failed">This could not be shared. Try again.</string>
     <string name="receipt_close">Close</string>
+    <!-- Sharing a set (#170): the slot map and the missing list as images, the missing list also as text -->
+    <string name="set_share_action">Share</string>
+    <string name="set_share_action_description">Share this set</string>
+    <string name="set_share_title">Share this set</string>
+    <string name="set_share_map">Slot map</string>
+    <string name="set_share_missing">Missing list</string>
+    <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
+    <string name="set_share_image">Share image</string>
+    <string name="set_share_text">Share as text</string>
+    <string name="set_share_chooser">Share set</string>
+    <string name="set_share_map_overline">My set</string>
+    <string name="set_share_missing_overline">Still missing</string>
+    <!-- e.g. "87 of 165" -->
+    <string name="set_share_progress">%1$d of %2$d</string>
+    <plurals name="set_share_secret">
+        <item quantity="one">%1$d secret rare</item>
+        <item quantity="other">%1$d secret rares</item>
+    </plurals>
+    <string name="set_share_legend_owned">Owned</string>
+    <string name="set_share_legend_missing">Missing</string>
+    <string name="set_share_legend_wanted">Wanted most</string>
+    <plurals name="set_share_missing_count">
+        <item quantity="one">%1$d card missing</item>
+        <item quantity="other">%1$d cards missing</item>
+    </plurals>
+    <string name="set_share_trade">These are the ones I need. Got any to trade?</string>
+    <string name="set_share_complete">Complete. Nothing missing.</string>
+    <string name="set_share_wanted_note">★ wanted most</string>
+    <!-- First line of the text checklist, e.g. "151 (EN): 9 cards missing" -->
+    <string name="set_share_text_heading">%1$s: %2$s</string>
+    <string name="set_share_text_footer">From my Foilark collection</string>
+    <string name="set_share_map_description">Slot map of %1$s: %2$s owned</string>
+    <string name="set_share_missing_description">Missing list of %1$s: %2$s</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
     <string name="scan_review_empty_description">Review queue, nothing waiting</string>

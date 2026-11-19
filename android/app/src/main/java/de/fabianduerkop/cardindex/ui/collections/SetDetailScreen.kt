@@ -94,6 +94,7 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
  * slots, owned solid and missing hollow; Cards shows small card images, missing ones grey and outlined in place.
  * A missing slot opens a bar at the bottom instead of a new screen, so the user can scan the grid quickly.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SetDetailScreen(
     onBack: () -> Unit,
@@ -118,6 +119,8 @@ fun SetDetailScreen(
     val detail = state.detail
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = detail?.slots?.firstOrNull { it.localId == selectedKey }
+    val wantedNumbers by viewModel.wantedNumbers.collectAsStateWithLifecycle()
+    var sharing by rememberSaveable { mutableStateOf(false) }
     // Back closes the missing-card bar first, then leaves the set (#101).
     BackHandler(enabled = selected != null) { selectedKey = null }
 
@@ -126,6 +129,11 @@ fun SetDetailScreen(
         onBack = onBack,
         actions = {
             if (detail != null) {
+                TextAction(
+                    text = stringResource(R.string.set_share_action),
+                    onClick = { sharing = true },
+                    contentDescription = stringResource(R.string.set_share_action_description),
+                )
                 TextAction(
                     text = stringResource(if (state.pinned) R.string.collections_unpin_set else R.string.collections_pin_set),
                     onClick = viewModel::togglePinned,
@@ -146,6 +154,17 @@ fun SetDetailScreen(
             }
         },
     ) { padding ->
+        if (sharing && detail != null) {
+            ModalBottomSheet(
+                onDismissRequest = { sharing = false },
+                sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+            ) {
+                // The set as the screen shows it now: its chosen languages, or all of them.
+                val languages = languageChipLabel(detail.languages, state.selectedLanguages)
+                    ?: detail.languages.joinToString(", ") { it.uppercase() }.ifEmpty { null }
+                SetShareSheet(SetShare.build(detail, languages, wantedNumbers), onDone = { sharing = false })
+            }
+        }
         when {
             state.loading -> Unit
             detail == null -> PlaceholderText(
