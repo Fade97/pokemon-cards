@@ -9,6 +9,8 @@ import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
 import de.fabianduerkop.cardindex.data.collections.SetDetail
+import de.fabianduerkop.cardindex.data.collections.SetProgress
+import de.fabianduerkop.cardindex.data.collections.setProgress
 import de.fabianduerkop.cardindex.data.collections.numberKey
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
@@ -131,10 +133,10 @@ data class SetRowUi(
     val art: List<CardEntity> = emptyList(),
 ) {
     /**
-     * Owned numbers counted like the checklist (`006` and `6` are one slot), so the row, the cover and the set
-     * detail always agree. Secret rares above the printed total count too.
+     * Owned numbers counted like the set detail's header (`006` and `6` are one slot), so the row, the cover and the
+     * set detail always agree: base numbers of the printed total, secret rares apart (#132).
      */
-    val ownedNumbers: Int get() = ownedSlots.size
+    val progress: SetProgress get() = setProgress(ownedSlots, completion.printedTotal)
 }
 
 data class CollectionsUiState(
@@ -311,6 +313,8 @@ data class CardDetailUiState(
     val photos: OwnPhotos = OwnPhotos(),
     val prices: List<CachedPriceEntity> = emptyList(),
     val source: PriceSource = PriceSource.CARDMARKET,
+    /** This screen's own price refresh, so a failure without a saved price can say so and offer a retry (#133). */
+    val priceLoad: PriceLoad = PriceLoad.LOADING,
 )
 
 class CardDetailViewModel(
@@ -327,6 +331,8 @@ class CardDetailViewModel(
     val cardId: String = checkNotNull(savedState[CollectionsRoutes.ARG_CARD_ID])
     val language: String = checkNotNull(savedState[CollectionsRoutes.ARG_LANGUAGE])
 
+    private val priceLoad = MutableStateFlow(PriceLoad.LOADING)
+
     val state: StateFlow<CardDetailUiState> = combine(
         repository.observeCardDetail(cardId, language),
         repository.observeCustomCollections(),
@@ -342,6 +348,7 @@ class CardDetailViewModel(
         )
     }.combine(priceRepository.observe(cardId)) { state, prices -> state.copy(prices = prices) }
         .combine(primarySource) { state, source -> state.copy(source = source) }
+        .combine(priceLoad) { state, load -> state.copy(priceLoad = load) }
         .stateIn(this, CardDetailUiState())
 
     private val chart = HistoryChart(viewModelScope, historyRepository, isPro, flowOf(setOf(cardId)))
@@ -394,7 +401,17 @@ class CardDetailViewModel(
     }
 
     init {
-        viewModelScope.launch { priceRepository.refresh(listOf(cardId)) }
+        loadPrices()
+    }
+
+    /** Try again after a failed refresh (#133). */
+    fun retryPrices() {
+        if (priceLoad.value != PriceLoad.LOADING) loadPrices()
+    }
+
+    private fun loadPrices() {
+        priceLoad.value = PriceLoad.LOADING
+        viewModelScope.launch { priceLoad.value = priceRepository.refresh(listOf(cardId)).toLoad() }
     }
 
     /** Stores a picked photo as the copy's own image; [onError] runs when it can't be read as an image. */

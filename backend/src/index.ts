@@ -12,6 +12,7 @@
 // Every route is rate-limited per client IP (#30).
 
 import { handleContributions } from "./contributions";
+import { handleContributionReview } from "./contribution-review";
 import { handleHistory } from "./history";
 import { packKey, servePack } from "./packs";
 import { handlePrivacy } from "./privacy";
@@ -74,6 +75,10 @@ async function route(request: Request, env: Env, ctx: ExecutionContext): Promise
 
   if (pathname === "/v1/contributions" || pathname.startsWith("/v1/contributions/")) {
     return handleContributions(request, env, ctx, pathname, client);
+  }
+
+  if (pathname === "/v1/admin/contributions" || pathname.startsWith("/v1/admin/contributions/")) {
+    return handleContributionReview(request, env, pathname);
   }
 
   if (pathname.startsWith("/v1/history/")) {

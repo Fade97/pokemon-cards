@@ -7,6 +7,7 @@ import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
+import java.time.Duration
 import java.time.Instant
 import java.util.Locale
 
@@ -147,4 +148,20 @@ object MarketLinks {
     fun filtersLanguage(cardLanguage: String): Boolean = cardLanguage.lowercase(Locale.ROOT) in cardmarketLanguages
 
     fun tcgplayer(productId: Long): String = "https://www.tcgplayer.com/product/$productId"
+}
+
+/**
+ * How current one market's price is (#133): the date that market set it, or the download time when it gave none.
+ * Each market is judged on its own date, so a fresh TCGplayer price can't hide an old Cardmarket one.
+ */
+data class MarketDate(val source: PriceSource, val date: Instant, val stale: Boolean)
+
+object PriceFreshness {
+    /** Older than this is called out (the backend imports both markets once a night). */
+    val STALE_AFTER: Duration = Duration.ofDays(3)
+
+    fun of(quote: PriceQuote, now: Instant): MarketDate {
+        val date = quote.priceDate ?: quote.fetchedAt
+        return MarketDate(quote.source, date, date.isBefore(now.minus(STALE_AFTER)))
+    }
 }

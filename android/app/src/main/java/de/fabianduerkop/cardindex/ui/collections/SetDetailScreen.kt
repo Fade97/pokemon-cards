@@ -45,6 +45,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
@@ -150,7 +151,7 @@ private fun SetGrid(
     onFilter: (SlotFilter) -> Unit,
     onSlot: (SetSlot) -> Unit,
 ) {
-    // Header, filters and grid all count the same slots (buildSetSlots), secret rares included.
+    // Filters and grid list every slot (buildSetSlots), secret rares included; the header counts the base set (#132).
     val owned = detail.ownedNumbers
     val missing = detail.slots.size - owned
     val shown = when (state.filter) {
@@ -226,13 +227,13 @@ private fun LazyGridScope.header(content: @Composable () -> Unit) {
 
 /**
  * The set's count as the strongest type (ADR 0010), its series and languages above, the value with its source at the
- * end, and the completion bar. All from the same slots as the checklist.
+ * end, and the completion bar. All from the same slots as the checklist: the count and bar cover the printed total,
+ * owned secret rares beyond it show apart as "+N secret" (#132).
  */
 @Composable
 private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?) {
     val languages = selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted()
-    val owned = detail.ownedNumbers
-    val total = detail.set.printedTotal
+    val progress = detail.progress
     val languageLabel = if (selectedLanguages.isEmpty() && languages.size != 1) {
         stringResource(R.string.collections_all_languages)
     } else {
@@ -244,10 +245,10 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        val description = progressDescription(owned, total)
+        val description = progressDescription(progress)
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = Spacing.xs)) {
             Text(
-                text = progressText(owned, total),
+                text = progressText(progress.base, progress.printedTotal),
                 style = MaterialTheme.typography.displayMedium,
                 maxLines = 1,
                 modifier = Modifier.weight(1f).semantics { contentDescription = description },
@@ -264,7 +265,16 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                 }
             }
         }
-        CompletionBar(owned, total, Modifier.padding(top = Spacing.md))
+        secretText(progress)?.let {
+            // Part of the count's spoken description above.
+            Text(
+                it,
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.clearAndSetSemantics {},
+            )
+        }
+        CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md))
     }
 }
 

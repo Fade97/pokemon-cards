@@ -84,10 +84,15 @@ A row is released only if all of these hold:
 
 - `stored_at IS NOT NULL` and `withdrawn_at IS NULL` (backend README). Dumps from before migration 0002 have no
   `stored_at`; such a row counts as stored when it has an object key, as the migration assumes. Tombstones stay out.
+- `review = 'approved'`: every upload starts in quarantine (`pending`) and goes out only after an admin approved it
+  ([backend README, Reviewing contributions](../backend/README.md#reviewing-contributions), #135). `pending` and
+  `rejected` rows are skipped as `not approved`, and so is every row of a dump from before migration 0003 (no
+  `review` column: nothing was looked at then).
 - `consent_version` is a CC0 consent (`CC0_CONSENTS` in `export_scans.py`, today `cc0-1`). A new consent text must
   be added there on purpose; an unknown version is never released.
 - Card id and language are well-formed, the object key is `scans/<uuid>[.jpg|.webp]`, the object exists and its
-  SHA-256 matches the row, the magic bytes match `content_type`, and it is 64–2048 px and at most 1 MiB.
+  SHA-256 matches the row, the magic bytes match `content_type`, and it is 64–2048 px and at most 1 MiB (the
+  backend's limit before #135; new uploads are at most 256 KiB).
 - The image passes the backend's metadata rules again (a Python port of `backend/src/image-meta.ts`): JPEG APPn
   (except the fixed Adobe APP14), comments and trailing bytes, WebP `EXIF`/`XMP `/`ICCP`/unknown chunks are dropped.
   The backend already did this, so normally nothing changes; the count is printed.
@@ -104,8 +109,10 @@ What is published per scan, and what is not:
 does not contain, whether withdrawn or failing a check. A scan already in a published release stays in that
 release; later ones drop it (ADR 0008).
 
-Before publishing, look through `<release>.review.html`: a crop can still show fingers, a face in a reflection, a
-background or a wrong label.
+The review happens in the backend, before the export: list the pending scans, look at each image and its label, and
+approve or reject it (a crop can show fingers, a face in a reflection, a background, a wrong label, or no card at
+all). The backend's own checks are only cheap ones: size, a card's aspect ratio, a daily upload quota.
+`<release>.review.html` is the last look at exactly what a release contains.
 
 ## Building a release
 
@@ -131,8 +138,10 @@ Tests (CPU, standard library and pytest only): `cd ml && uv run --no-project --w
 Not done yet; nothing in this repo uploads a release. Steps once the open decisions on #20 are made:
 
 1. Pick name, host and whether to get a DOI (#20). On Zenodo, reserve the DOI first, so it can go into the README.
-2. Build the release as above from the published packs (all languages) and a fresh copy of the contributions.
-3. Look through the review sheet; drop a scan by withdrawing it in the backend and rebuilding, not by hand.
+2. Review the pending contributions in the backend (approve or reject each), then build the release as above from
+   the published packs (all languages) and a fresh copy of the contributions.
+3. Look through the review sheet; drop a scan by rejecting it in the backend (`POST
+   /v1/admin/contributions/<id>/reject`) and rebuilding, not by hand.
 4. Check `sha256sum -c SHA256SUMS`, open the README, and make sure the directory holds no reference images.
 5. Upload the directory (or a zip of it) to the host, then link it from the repo README and the app's about screen.
 6. For every later release, pass `--previous` so `withdrawn.csv` is filled.

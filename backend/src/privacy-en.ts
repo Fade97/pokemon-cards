@@ -98,7 +98,9 @@ the public domain under <a href="https://creativecommons.org/publicdomain/zero/1
 for any purpose without credit.</p>
 <h3>Recipients</h3>
 <p>The pictures are stored privately with our hosting provider Cloudflare (section 7). When we publish a dataset
-release, the pictures it contains are public and can be downloaded and copied by anyone.</p>
+release, the pictures it contains are public and can be downloaded and copied by anyone. Before that we look at
+every picture: only approved pictures go into the dataset. A rejected picture (no card, the wrong card, more than the
+card visible) is deleted, and we keep only the record without the picture, as after a withdrawal.</p>
 <h3>Withdrawal and retention</h3>
 <ul>
 <li>You can withdraw your consent at any time, for one picture or for all, under <strong>Settings → My

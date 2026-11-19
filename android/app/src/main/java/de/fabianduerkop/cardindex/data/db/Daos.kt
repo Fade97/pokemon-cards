@@ -325,6 +325,9 @@ interface CollectionDao {
     @Query("SELECT * FROM collections WHERE id = :id")
     fun observe(id: Long): Flow<CollectionEntity?>
 
+    @Query("SELECT * FROM collections WHERE uuid = :uuid")
+    fun observeByUuid(uuid: String): Flow<CollectionEntity?>
+
     /** The custom collections a copy is in, for the collection chips of the copy sheet. */
     @Query("SELECT collectionId FROM collection_copies WHERE copyId = :copyId")
     fun observeCollectionIdsOf(copyId: Long): Flow<List<Long>>

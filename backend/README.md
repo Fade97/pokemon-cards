@@ -156,13 +156,16 @@ today `cc0-1`).
 | The same POST plus `&id=<uuid>` and `Authorization: Bearer <43-char token>` chosen by the app | `201 { "id", "withdrawToken" }` with those values; a retry with the same id and token answers `200` with the same values instead of storing a second copy; `409` if the id belongs to another token. The app uses this form, so a lost response never leaves a copy it can't withdraw. |
 | `DELETE /v1/contributions/:id` with `Authorization: Bearer <withdrawToken>` | `200 { "id", "withdrawnAt" }`, the same again on repeat; `404` for an unknown id or a wrong token, `401` without a token |
 
-- **Validation**: body at most 1 MiB (`413`); declared type and magic bytes must agree (`415`); 64–2048 px per side
-  and a well-formed container (`422`); `cardId`, `lang` and `consent` checked (`400`). Animated WebP is refused.
+- **Validation**: body at most 256 KiB (`413`; the app's 252 × 352 JPEG crops are 20–60 KB); declared type and
+  magic bytes must agree (`415`); 64–2048 px per side, card-shaped (short/long side 0.66–0.78, a card is 63:88,
+  either orientation) and a well-formed container (`422`); `cardId`, `lang` and `consent` checked (`400`). Animated
+  WebP is refused.
 - **No metadata**: the file is walked, not re-encoded. JPEG: every APPn segment (EXIF, XMP, JFIF, ICC, …) except
   APP14 in its fixed 12-byte Adobe form, comments and bytes after the end marker are dropped. WebP: `ICCP`, `EXIF`, `XMP ` and
   unknown chunks are dropped and the VP8X flags cleared. Metadata segments between progressive scans → `422`.
 - **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, card id, language,
-  consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at` and `withdrawn_at`. No IP
+  consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at`, `withdrawn_at` and the
+  review state (`review`, `reviewed_at`). No IP
   address, user agent or device data. The client IP is only the in-memory rate-limit key.
 - **Order of writes**: an upload first claims its id in D1, then writes the image, then checks again; so of two
   uploads with one id only one writes, and a withdrawal always wins. A withdrawal for an id the server doesn't know
@@ -174,8 +177,39 @@ today `cc0-1`).
   taken over by a retry with the same token.
 - **Withdrawal** sets `withdrawn_at` first and then deletes the image, so an upload still writing can't leave it
   behind; a repeated withdrawal deletes again. Dataset releases (#20) take only
-  `WHERE withdrawn_at IS NULL AND stored_at IS NOT NULL`; a scan already in a published release stays there, later releases drop it.
+  `WHERE withdrawn_at IS NULL AND stored_at IS NOT NULL AND review = 'approved'`; a scan already in a published release stays there, later releases drop it.
 - **Rate limit**: 10 uploads per minute per client IP (`CONTRIBUTION_RATE_LIMIT`), on top of the API limit.
+- **Daily quota** (#135): at most `CONTRIBUTION_DAILY_QUOTA` uploads per UTC day for all clients together (a var in
+  `wrangler.jsonc`, today `500`; unset or invalid means the default in `src/contributions.ts`, `0` pauses uploads).
+  Over it, an upload gets `503` with `Retry-After` until the next UTC midnight; the app ends its run and tries
+  later. Withdrawn uploads count for their day, tombstones don't. The claim checks the quota in the same statement,
+  so concurrent uploads can't pass it. Retries of an already stored upload are still answered.
+- **Quarantine** (#135): every upload is stored with `review = 'pending'`. A dataset release takes only rows an
+  admin approved (below); `rejected` deletes the image and keeps the row, so it is never released.
+
+### Reviewing contributions
+
+Admin-only routes, in [`src/contribution-review.ts`](src/contribution-review.ts). The Worker secret
+`CONTRIBUTION_ADMIN_TOKENS` lists the SHA-256 hex digests of the admin tokens (32–128 URL-safe characters, sent as
+`Authorization: Bearer`). Without the secret, and for a missing or wrong token, every admin path answers `404`.
+
+| Request | Answer |
+|---|---|
+| `GET /v1/admin/contributions[?review=pending\|approved\|rejected][&limit=1-200][&offset=n]` | `200 { "contributions": [{ "id", "cardId", "lang", "contentType", "size", "width", "height", "createdAt", "review", "reviewedAt" }] }`, stored and not withdrawn rows, oldest first; `review` defaults to `pending` |
+| `GET /v1/admin/contributions/:id/image` | the stored crop (`404` once rejected: the image is gone) |
+| `POST /v1/admin/contributions/:id/approve` | `200 { "id", "review": "approved", "reviewedAt" }`, the same on repeat |
+| `POST /v1/admin/contributions/:id/reject` | `200 { "id", "review": "rejected", "reviewedAt" }`, image deleted; also for an approved scan (later releases drop it) |
+
+Approving a rejected scan, or deciding on a withdrawn or unfinished upload, is a `409`. Set up a token and review:
+
+```sh
+token=$(openssl rand -base64 48 | tr '+/' '-_' | tr -d '=\n' | cut -c1-43)   # keep it in Vault, not here
+printf %s "$token" | sha256sum | cut -d' ' -f1 | pnpm exec wrangler secret put CONTRIBUTION_ADMIN_TOKENS
+api=https://cards-api.fdu.gg/v1/admin/contributions
+curl -s -H "Authorization: Bearer $token" "$api?limit=50"                       # pending, oldest first
+curl -s -H "Authorization: Bearer $token" -o scan.jpg "$api/<id>/image"        # look at it
+curl -s -X POST -H "Authorization: Bearer $token" "$api/<id>/approve"           # or …/reject
+```
 
 ## Privacy policy
 
