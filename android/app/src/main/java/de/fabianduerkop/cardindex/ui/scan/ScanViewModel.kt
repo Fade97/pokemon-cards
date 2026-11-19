@@ -276,12 +276,12 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     /** An unsure card, or one whose set needs a variant check, goes to review instead of All Cards. */
     private fun goesToReview(event: ScanEvent<RecognitionResult>): Boolean =
-        event !is ScanEvent.Add || needsVariantCheck(event.payload.best.card.setId)
+        event !is ScanEvent.Add || event.payload.best.card.let { needsVariantCheck(it.setId, it.printings) }
 
     private fun onDecision(event: ScanEvent<RecognitionResult>) {
         val result = event.payload
         val card = result.best.card
-        val checkVariant = needsVariantCheck(card.setId)
+        val checkVariant = needsVariantCheck(card.setId, card.printings)
         when {
             !goesToReview(event) -> viewModelScope.launch(Dispatchers.IO) {
                 runCatching { scans.addFromScan(card, scanTarget.uuid) }

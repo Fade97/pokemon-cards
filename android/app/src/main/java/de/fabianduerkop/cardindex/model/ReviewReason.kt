@@ -18,10 +18,14 @@ enum class ReviewReason {
 
 /**
  * Sets with 1st-edition prints, by TCGdex set id: Base Set, Jungle, Fossil, Team Rocket, both Gym sets and the four
- * Neo sets. Base Set 2 and Legendary Collection had none. A stand-in until language packs carry each card's
- * printings (TCGdex `variants`); scans from these sets always ask for the edition.
+ * Neo sets. Base Set 2 and Legendary Collection had none. Only the fallback for cards with unknown printings (a pack
+ * from before #143, or no TCGdex answer); every card from these sets then asks for the edition.
  */
 private val FIRST_EDITION_SETS = setOf("base1", "base2", "base3", "base5", "gym1", "gym2", "neo1", "neo2", "neo3", "neo4")
 
-/** Whether a scan of a card from [setId] has to ask for the variant before it is added. */
-fun needsVariantCheck(setId: String): Boolean = setId.lowercase() in FIRST_EDITION_SETS
+/**
+ * Whether a scan of a card has to ask for the variant before it is added: when the card has a 1st-edition printing
+ * (#145), or, with unknown [printings], when its set [setId] had 1st-edition prints.
+ */
+fun needsVariantCheck(setId: String, printings: Printings?): Boolean =
+    printings?.hasFirstEdition ?: (setId.lowercase() in FIRST_EDITION_SETS)

@@ -28,6 +28,9 @@ class Printings private constructor(val values: Set<Printing>) {
     /** The card's finish when TCGdex lists exactly one (holo-only rares, ex/V/full arts); null when there are more. */
     val onlyFinish: Finish? get() = values.mapNotNull { it.finish }.singleOrNull()
 
+    /** The card has a 1st-edition print run, so a scan has to ask which edition the copy is (#145). */
+    val hasFirstEdition: Boolean get() = Printing.FIRST_EDITION in values
+
     /** The keys in [Printing] order, as the pack and the database store them (`holo,firstEdition`). */
     fun keys(): List<String> = Printing.entries.filter { it in values }.map { it.key }
 
@@ -47,4 +50,14 @@ class Printings private constructor(val values: Set<Printing>) {
         fun parse(stored: String?): Printings? =
             stored?.takeIf { it.isNotBlank() }?.let { s -> ofKeys(s.split(',').map(String::trim)) }
     }
+}
+
+/**
+ * The finish chips for a card with these [printings] (#145): the finishes it was printed in first, then the others,
+ * each part in [Finish] order. The others stay selectable, since TCGdex has gaps (#108). Unknown printings keep
+ * [Finish] order.
+ */
+fun finishOrder(printings: Printings?): List<Finish> {
+    val printed = printings?.values?.mapNotNullTo(HashSet()) { it.finish } ?: return Finish.entries
+    return Finish.entries.sortedBy { it !in printed }
 }

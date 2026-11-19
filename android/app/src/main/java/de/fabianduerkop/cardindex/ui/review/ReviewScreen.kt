@@ -59,6 +59,7 @@ import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
+import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
@@ -193,6 +194,7 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
         VariantChoices(
+            finishes = finishOrder(item.candidates.firstOrNull { it.rank == draft.rank }?.card?.printings),
             finish = draft.finish,
             edition = draft.edition,
             condition = draft.condition,
@@ -220,6 +222,8 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 internal fun VariantChoices(
+    /** The finish chips in order: the card's printed finishes first ([finishOrder]). */
+    finishes: List<Finish>,
     finish: Finish?,
     edition: Edition?,
     condition: Condition,
@@ -231,7 +235,7 @@ internal fun VariantChoices(
     onCondition: (Condition) -> Unit,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        ChoiceGroup(R.string.variant_finish, Finish.entries, finish, finishChosen, ::finishLabel, onFinish)
+        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish)
         ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition)
         ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition)
     }
