@@ -43,6 +43,9 @@ class PriceRepository(
 
     fun observe(cardId: String): Flow<List<CachedPriceEntity>> = dao.observePrices(cardId)
 
+    /** The cached prices of one card, as they are now (no network). */
+    suspend fun cached(cardId: String): List<CachedPriceEntity> = dao.prices(cardId)
+
     suspend fun refresh(cardIds: Collection<String>, force: Boolean = false): RefreshResult = mutex.withLock {
         // The backend rejects a whole batch with 400 if one id breaks its pattern, which would stop every later chunk
         // too. Such cards can't have prices there anyway, so they are treated as unknown.

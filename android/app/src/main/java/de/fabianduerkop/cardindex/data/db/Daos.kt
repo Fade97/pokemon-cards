@@ -110,6 +110,9 @@ interface CatalogDao {
     @Query("SELECT * FROM cached_prices WHERE cardId = :cardId")
     fun observePrices(cardId: String): Flow<List<CachedPriceEntity>>
 
+    @Query("SELECT * FROM cached_prices WHERE cardId = :cardId")
+    suspend fun prices(cardId: String): List<CachedPriceEntity>
+
     /** Every cached price; small (a few rows per owned card) and needed whole to value the collection. */
     @Query("SELECT * FROM cached_prices")
     fun observeAllPrices(): Flow<List<CachedPriceEntity>>

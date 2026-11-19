@@ -66,6 +66,15 @@ interface WishlistDao {
     @Query("SELECT EXISTS(SELECT 1 FROM wanted_cards WHERE cardId = :cardId AND cardLanguage = :language)")
     suspend fun isWanted(cardId: String, language: String): Boolean
 
+    /** On the wishlist and not owned yet: a copy of this print now would be "found" (#162). */
+    @Query(
+        """
+        SELECT EXISTS(SELECT 1 FROM wanted_cards w WHERE w.cardId = :cardId AND w.cardLanguage = :language
+            AND NOT EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = w.cardId AND o.cardLanguage = w.cardLanguage))
+        """,
+    )
+    suspend fun isOpenWish(cardId: String, language: String): Boolean
+
     /** Every entry, oldest first, for the backup export. */
     @Query("SELECT * FROM wanted_cards ORDER BY createdAt, id")
     suspend fun all(): List<WantedCardEntity>

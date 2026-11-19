@@ -35,6 +35,9 @@ object CopyDefaults {
  * reliably from a photo, and merging into an existing copy would make Undo and later edits touch copies the user
  * added by hand. A card printed in a single finish gets that finish ([CopyDefaults.finishFor]).
  */
+/** A copy [ScanRepository.addHit] made: its row id, and whether it was the first copy of a wanted print. */
+data class ScanHit(val copyId: Long, val wishlistFound: Boolean)
+
 class ScanRepository(private val db: CardIndexDatabase, private val clock: () -> Instant = Instant::now) {
     /**
      * Adds one copy of [card], also to the custom collection [targetUuid] when it still exists (see [ScanTarget]);
@@ -54,6 +57,14 @@ class ScanRepository(private val db: CardIndexDatabase, private val clock: () ->
         )
         ScanTarget.addCopy(db, id, targetUuid)
         id
+    }
+
+    /**
+     * [addFromScan], and whether the copy found a wishlist entry (#162): the print was wanted and not owned before.
+     */
+    suspend fun addHit(card: RefCard, targetUuid: String? = null): ScanHit = db.withTransaction {
+        val found = db.wishlistDao().isOpenWish(card.cardId, card.lang)
+        ScanHit(copyId = addFromScan(card, targetUuid), wishlistFound = found)
     }
 
     /**
