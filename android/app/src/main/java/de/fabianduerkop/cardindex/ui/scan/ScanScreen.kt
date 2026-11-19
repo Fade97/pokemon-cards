@@ -97,6 +97,9 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
+import de.fabianduerkop.cardindex.data.prices.CollectionValue
+import de.fabianduerkop.cardindex.model.Money
+import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.recognition.RefCard
@@ -230,6 +233,8 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewfinder by viewModel.viewfinder.collectAsStateWithLifecycle()
     val paused by viewModel.paused.collectAsStateWithLifecycle()
+    val tray by viewModel.tray.collectAsStateWithLifecycle()
+    val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     var torch by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<CameraProblem?>(null) }
 
@@ -288,8 +293,11 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                 CameraReading(
                     engine,
                     viewfinder,
-                    paused,
-                    problem,
+                    // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
+                    hit = (tray.latest as? LastScan.Added)?.takeIf { it.card.key == viewfinder.card?.key },
+                    priceSource = priceSource,
+                    paused = paused,
+                    problem = problem,
                     onResume = { viewModel.setPaused(false) },
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = Spacing.lg, end = Spacing.lg),
                 )
@@ -393,6 +401,8 @@ private fun LiveStatus(paused: Boolean, modifier: Modifier) {
 private fun CameraReading(
     engine: ScanEngineState,
     viewfinder: Viewfinder,
+    hit: LastScan.Added?,
+    priceSource: PriceSource,
     paused: Boolean,
     problem: CameraProblem?,
     onResume: () -> Unit,
@@ -431,11 +441,22 @@ private fun CameraReading(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                val done = hit?.takeIf { viewfinder.hint == ScanHint.DONE }
+                // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
+                done?.ownQuote(priceSource)?.let { quote ->
+                    Text(
+                        stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency)),
+                        color = camera.content,
+                        style = MaterialTheme.typography.titleSmall,
+                        textAlign = TextAlign.Center,
+                    )
+                }
                 HintPill(
                     stringResource(
-                        when (viewfinder.hint) {
-                            ScanHint.DONE -> R.string.scan_hint_added
-                            ScanHint.QUEUED -> R.string.scan_hint_queued
+                        when {
+                            done?.wishlistFound == true -> R.string.scan_hint_wishlist
+                            viewfinder.hint == ScanHint.DONE -> R.string.scan_hint_added
+                            viewfinder.hint == ScanHint.QUEUED -> R.string.scan_hint_queued
                             else -> R.string.scan_hint_reading
                         },
                     ),
@@ -453,6 +474,12 @@ private fun CameraReading(
             )
         }
     }
+}
+
+/** "€8.40 · Cardmarket trend": the hit's price with its market, as the card screen names it. */
+private fun priceLine(source: PriceSource): Int = when (source) {
+    PriceSource.CARDMARKET -> R.string.scan_price_cardmarket
+    PriceSource.TCGPLAYER -> R.string.scan_price_tcgplayer
 }
 
 private fun problemText(problem: CameraProblem): Int = when (problem) {
@@ -507,14 +534,23 @@ private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
 private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: Modifier = Modifier) {
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
+    val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
+    val introSeen by viewModel.introSeen.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
     // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
     // tick than an added one, so the hand can tell them apart without looking (#161).
     var felt by remember { mutableLongStateOf(tray.decisions) }
     LaunchedEffect(tray.decisions) {
         if (tray.decisions > felt) {
-            val queued = tray.latest is LastScan.Queued
-            haptics.performHapticFeedback(if (queued) HapticFeedbackType.ContextClick else HapticFeedbackType.Confirm)
+            val latest = tray.latest
+            haptics.performHapticFeedback(
+                when {
+                    latest is LastScan.Queued -> HapticFeedbackType.ContextClick
+                    // A wanted card found (#162) feels different from every other hit.
+                    latest is LastScan.Added && latest.wishlistFound -> HapticFeedbackType.LongPress
+                    else -> HapticFeedbackType.Confirm
+                },
+            )
         }
         felt = tray.decisions
     }
@@ -532,14 +568,18 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
                 .padding(horizontal = Spacing.gutter, vertical = Spacing.md),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
-            LatestScan(tray, onUndo = viewModel::undo, onChange = { editing = it })
+            LatestScan(tray, introSeen, onUndo = viewModel::undo, onChange = { editing = it })
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-                Text(
-                    sessionCount(tray),
-                    Modifier.weight(1f),
-                    style = MaterialTheme.typography.titleMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        sessionCount(tray),
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    sessionValue(tray.value(priceSource))?.let {
+                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    }
+                }
                 ReviewQueueButton(toReview, onOpenReview)
             }
             ScanTargetChip(target?.name, onClick = { choosingTarget = true })
@@ -574,6 +614,19 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
             )
         }
     }
+}
+
+/**
+ * "€48.20" for the session's added cards in the main market (#162), with "· 2 without a EUR price" when some have
+ * none there; null until any added card has a price, so the line never says €0.00.
+ */
+@Composable
+private fun sessionValue(value: CollectionValue): String? {
+    if (value.pricedCopies == 0) return null
+    val amount = Money.format(value.amountMinor, value.currency)
+    if (value.unpricedCopies == 0) return amount
+    return amount + " · " +
+        pluralStringResource(R.plurals.scan_session_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency)
 }
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */
@@ -698,7 +751,7 @@ private fun ReviewQueueButton(count: Int, onOpen: () -> Unit) {
  * decision and then shows the one before it; with nothing left, Undo is off.
  */
 @Composable
-private fun LatestScan(tray: ScanTray, onUndo: () -> Unit, onChange: (LastScan.Added) -> Unit) {
+private fun LatestScan(tray: ScanTray, introSeen: Boolean, onUndo: () -> Unit, onChange: (LastScan.Added) -> Unit) {
     val colors = MaterialTheme.colorScheme
     val rowModifier = Modifier
         .fillMaxWidth()
@@ -723,7 +776,14 @@ private fun LatestScan(tray: ScanTray, onUndo: () -> Unit, onChange: (LastScan.A
         }
         if (last == null) {
             Text(
-                stringResource(if (removed != null) R.string.scan_tray_nothing_left else R.string.scan_tray_empty),
+                stringResource(
+                    when {
+                        removed != null -> R.string.scan_tray_nothing_left
+                        // The long explanation only until the first scan ever (#162).
+                        introSeen -> R.string.scan_tray_ready
+                        else -> R.string.scan_tray_empty
+                    },
+                ),
                 rowModifier,
                 style = MaterialTheme.typography.bodyMedium,
                 color = colors.onSurfaceVariant,

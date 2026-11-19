@@ -80,6 +80,16 @@ class AppSettings(context: Context) {
 
     val featuredSetFlow: Flow<String?> = observe { featuredSet }
 
+    /**
+     * The user has scanned a card before (#162): the Scan tray's long explanation is a first-run hint, later sessions
+     * start with a short line.
+     */
+    var scanIntroSeen: Boolean
+        get() = prefs.getBoolean(KEY_SCAN_INTRO_SEEN, false)
+        set(value) = prefs.edit { putBoolean(KEY_SCAN_INTRO_SEEN, value) }
+
+    val scanIntroSeenFlow: Flow<Boolean> = observe { scanIntroSeen }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -103,5 +113,6 @@ class AppSettings(context: Context) {
         const val KEY_PACKS_ON_MOBILE_DATA = "packs_on_mobile_data"
         const val KEY_SCAN_TARGET = "scan_target_collection"
         const val KEY_FEATURED_SET = "featured_set"
+        const val KEY_SCAN_INTRO_SEEN = "scan_intro_seen"
     }
 }

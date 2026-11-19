@@ -1,9 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
+import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.RefCard
 import org.junit.Assert.assertEquals
@@ -11,12 +15,67 @@ import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.time.Instant
 
 class ScanTrayTest {
-    private fun ref(localId: String) = RefCard(
-        key = "en/sv03.5-$localId", cardId = "sv03.5-$localId", lang = "en", setId = "sv03.5", setName = "151",
+    private fun ref(localId: String, lang: String = "en") = RefCard(
+        key = "$lang/sv03.5-$localId", cardId = "sv03.5-$localId", lang = lang, setId = "sv03.5", setName = "151",
         localId = localId, official = 165, name = "Card $localId", imageUrl = "", unseen = false,
     )
+
+    private fun price(source: PriceSource, variant: PriceVariant, minor: Long) = CachedPriceEntity(
+        cardId = "c", source = source, variant = variant, currency = if (source == PriceSource.CARDMARKET) "EUR" else "USD",
+        trend = minor, low = null, avg = null, priceDate = null, fetchedAt = Instant.EPOCH,
+    )
+
+    private val prices = listOf(
+        price(PriceSource.CARDMARKET, PriceVariant.NORMAL, 840),
+        price(PriceSource.CARDMARKET, PriceVariant.REVERSE_HOLO, 1500),
+        price(PriceSource.TCGPLAYER, PriceVariant.NORMAL, 900),
+    )
+
+    @Test
+    fun sessionValue_sumsAddedCardsInOneMarket_countsUnpricedOnes_andUndoTakesThemOut() {
+        var tray = ScanTray()
+            .record(LastScan.Added(ref("001"), copyId = 1, prices = prices))
+            .record(LastScan.Added(ref("002"), copyId = 2))
+            .record(LastScan.Queued(ref("003"), ReviewReason.NUMBER_NOT_READ, itemId = 9))
+            .record(LastScan.Added(ref("004", lang = "de"), copyId = 3, prices = prices))
+
+        assertEquals(CollectionValue(1680, PriceSource.CARDMARKET, unpricedCopies = 1, pricedCopies = 2), tray.value(PriceSource.CARDMARKET))
+        // TCGplayer doesn't price the German copy: it counts as unpriced in USD, never as its EUR price.
+        assertEquals(CollectionValue(900, PriceSource.TCGPLAYER, unpricedCopies = 2, pricedCopies = 1), tray.value(PriceSource.TCGPLAYER))
+        // The hit itself still shows a price: Cardmarket's, as the card screen does.
+        assertEquals(PriceSource.CARDMARKET, (tray.latest as LastScan.Added).ownQuote(PriceSource.TCGPLAYER)!!.source)
+
+        tray = tray.undo()!!.second
+        assertEquals(840L, tray.value(PriceSource.CARDMARKET).amountMinor)
+    }
+
+    @Test
+    fun sessionValue_followsTheChosenFinish_andPricesArrivingLater() {
+        val tray = ScanTray()
+            .record(LastScan.Added(ref("001"), copyId = 1))
+            .withPrices(1, prices)
+        assertEquals(840L, tray.value(PriceSource.CARDMARKET).amountMinor)
+
+        val reverse = tray.withVariant(1, CopyVariant().withFinish(Finish.REVERSE_HOLO))
+        assertEquals(1500L, reverse.value(PriceSource.CARDMARKET).amountMinor)
+        // TCGplayer has no reverse holo price here: the card is unpriced there, not valued as the normal print.
+        assertEquals(0, reverse.value(PriceSource.TCGPLAYER).pricedCopies)
+    }
+
+    @Test
+    fun sessionValue_keepsCardsPastTheUndoLimit() {
+        var tray = ScanTray()
+        repeat(ScanTray.MAX_UNDO + 3) { tray = tray.record(LastScan.Added(ref("001"), copyId = it.toLong(), prices = prices)) }
+
+        assertEquals(ScanTray.MAX_UNDO, tray.history.size)
+        val value = tray.value(PriceSource.CARDMARKET)
+        assertEquals((ScanTray.MAX_UNDO + 3) * 840L, value.amountMinor)
+        assertEquals(ScanTray.MAX_UNDO + 3, value.pricedCopies)
+        assertEquals((ScanTray.MAX_UNDO + 3) * 900L, tray.value(PriceSource.TCGPLAYER).amountMinor)
+    }
 
     @Test
     fun undoGoesBackOneDecisionAtATimeWithTheChosenFinishAndThenStops() {

@@ -7,6 +7,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
+import de.fabianduerkop.cardindex.data.db.WantedCardEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
@@ -59,6 +60,18 @@ class ScanRepositoriesTest {
 
     @After
     fun tearDown() = db.close()
+
+    @Test
+    fun aScanFindsAWishlistEntryOnlyWithTheFirstCopyOfThatPrint() = runTest {
+        // A wishlist entry points at a catalog print, so the card has to be known first.
+        ScanCatalog.ensure(db.catalogDao(), listOf(ref("006")))
+        db.wishlistDao().insert(WantedCardEntity(cardId = "sv03.5-006", cardLanguage = "de", createdAt = Instant.EPOCH))
+
+        assertTrue(scans.addHit(ref("006")).wishlistFound)
+        // Owned now: a second copy finds nothing, and neither does the English print, which wasn't wanted.
+        assertFalse(scans.addHit(ref("006")).wishlistFound)
+        assertFalse(scans.addHit(ref("006", lang = "en")).wishlistFound)
+    }
 
     @Test
     fun scannedCardIsAddedWithDefaultsAndUndoRemovesIt() = runTest {

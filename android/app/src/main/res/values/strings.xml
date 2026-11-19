@@ -409,12 +409,19 @@
     <string name="scan_undo_description">Undo adding %1$s</string>
     <string name="scan_removed">Took back %1$s.</string>
     <string name="scan_save_failed">Couldn’t save %1$s. Keep it in view to try again.</string>
+    <!-- Empty tray once the user has scanned before (#162); scan_tray_empty is the first-run explanation. -->
+    <string name="scan_tray_ready">Hold a card in the frame to add it.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
     <string name="scan_live">Live · on device</string>
     <string name="scan_hint_reading">Reading the number…</string>
     <string name="scan_hint_added">Added. Take the next card.</string>
+    <!-- A scan added a card that was on the wishlist and not owned yet (#162). -->
+    <string name="scan_hint_wishlist">On your wishlist. Added.</string>
+    <!-- Price of the card just added, e.g. "€8.40 · Cardmarket trend" (#162). -->
+    <string name="scan_price_cardmarket">%1$s · Cardmarket trend</string>
+    <string name="scan_price_tcgplayer">%1$s · TCGplayer market</string>
     <string name="scan_hint_queued">Not sure, saved for review. Take the next card.</string>
     <string name="scan_paused_notice">Scanning is paused. Cards in the frame are not added.</string>
     <string name="scan_camera_denied">Camera access is off, so cards can\'t be scanned. Pictures would stay on this device.</string>
@@ -436,6 +443,11 @@
     <plurals name="scan_session_added">
         <item quantity="one">%1$d added this session</item>
         <item quantity="other">%1$d added this session</item>
+    </plurals>
+    <!-- After the session value: added cards the main market has no price for (#162). -->
+    <plurals name="scan_session_unpriced">
+        <item quantity="one">%1$d without a %2$s price</item>
+        <item quantity="other">%1$d without a %2$s price</item>
     </plurals>
     <plurals name="scan_session_queued">
         <item quantity="one">%1$d needs checking</item>

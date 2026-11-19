@@ -14,9 +14,11 @@ import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.packs.PackLoader
+import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
+import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.needsVariantCheck
 import de.fabianduerkop.cardindex.recognition.CornerDetector
@@ -138,6 +140,16 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val packs = application.appContainer.packs
+    private val prices = application.appContainer.prices
+    private val settings = application.appContainer.settings
+
+    /** The user's main market, for the price of a hit and the session total (#162). */
+    val priceSource: StateFlow<PriceSource> = application.appContainer.primaryPriceSource
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PriceRegion.defaultSource())
+
+    /** Whether the user has scanned before; until then the tray explains how scanning works (#162). */
+    val introSeen: StateFlow<Boolean> = settings.scanIntroSeenFlow
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), settings.scanIntroSeen)
     private val contributions = application.appContainer.contributions
     private val numberReader = application.appContainer::newNumberReader
 
@@ -284,15 +296,32 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val checkVariant = needsVariantCheck(card.setId, card.printings)
         when {
             !goesToReview(event) -> viewModelScope.launch(Dispatchers.IO) {
-                runCatching { scans.addFromScan(card, scanTarget.uuid) }
-                    .onSuccess { id ->
+                runCatching { scans.addHit(card, scanTarget.uuid) }
+                    .onSuccess { hit ->
+                        val id = hit.copyId
                         // An auto-added card counts as confirmed (issue #14); Undo below withdraws it again.
                         val contribution = runCatching { contributions.contribute(card.cardId, card.lang, jpeg(result.crop)) }
                             .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
                             .getOrNull()
                         // The tray shows the finish the copy got: a single-printing card's own one (#143).
                         val variant = CopyVariant(finish = CopyDefaults.finishFor(card.printings))
-                        _tray.update { it.record(LastScan.Added(card, id, contributionId = contribution, variant = variant)) }
+                        val cached = runCatching { prices.cached(card.cardId) }.getOrDefault(emptyList())
+                        _tray.update {
+                            it.record(
+                                LastScan.Added(
+                                    card,
+                                    id,
+                                    contributionId = contribution,
+                                    variant = variant,
+                                    prices = cached,
+                                    wishlistFound = hit.wishlistFound,
+                                ),
+                            )
+                        }
+                        markIntroSeen()
+                        // A card nobody owned before has no cached price yet: ask the price service once, then
+                        // show it on the hit and in the total. Offline it simply stays without a price.
+                        if (cached.isEmpty()) fetchPrice(card, id)
                     }
                     .onFailure {
                         Log.e(TAG, "adding ${card.key} failed", it)
@@ -305,7 +334,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     runCatching {
                         reviewQueue.enqueue(jpeg(result.crop), result.reranked, result.reading, reason, checkVariant)
                     }
-                        .onSuccess { itemId -> _tray.update { it.record(LastScan.Queued(card, reason, itemId)) } }
+                        .onSuccess { itemId ->
+                            _tray.update { it.record(LastScan.Queued(card, reason, itemId)) }
+                            markIntroSeen()
+                        }
                         .onFailure {
                             Log.e(TAG, "queueing ${card.key} failed", it)
                             onSaveFailed(card)
@@ -313,6 +345,20 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+    }
+
+    /** The first decision ever ends the tray's first-run explanation (#162); later ones don't write again. */
+    private fun markIntroSeen() {
+        if (!settings.scanIntroSeen) settings.scanIntroSeen = true
+    }
+
+    /** Fetches the prices of [card] and puts them on copy [copyId]'s tray entry; failures leave it unpriced. */
+    private suspend fun fetchPrice(card: RefCard, copyId: Long) {
+        runCatching {
+            prices.refresh(listOf(card.cardId))
+            val fetched = prices.cached(card.cardId)
+            if (fetched.isNotEmpty()) _tray.update { it.withPrices(copyId, fetched) }
+        }.onFailure { Log.w(TAG, "fetching the price of ${card.key} failed", it) }
     }
 
     /**

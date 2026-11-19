@@ -99,6 +99,20 @@ data class CollectionValue(
 ) {
     val currency: String get() = source.currency
     val totalCopies: Int get() = pricedCopies + unpricedCopies
+
+    /** Both values together; only of the same market, so EUR and USD never mix. */
+    operator fun plus(other: CollectionValue): CollectionValue {
+        require(other.source == source) { "can't add $source and ${other.source} values" }
+        return copy(
+            amountMinor = amountMinor + other.amountMinor,
+            unpricedCopies = unpricedCopies + other.unpricedCopies,
+            pricedCopies = pricedCopies + other.pricedCopies,
+        )
+    }
+
+    companion object {
+        fun empty(source: PriceSource) = CollectionValue(0, source, 0, 0)
+    }
 }
 
 val PriceSource.currency: String get() = if (this == PriceSource.CARDMARKET) "EUR" else "USD"

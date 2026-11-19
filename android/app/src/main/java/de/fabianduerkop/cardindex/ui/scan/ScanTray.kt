@@ -1,10 +1,17 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
+import de.fabianduerkop.cardindex.data.prices.CollectionValue
+import de.fabianduerkop.cardindex.data.prices.PriceQuote
+import de.fabianduerkop.cardindex.data.prices.PriceSelection
+import de.fabianduerkop.cardindex.data.prices.forLanguage
+import de.fabianduerkop.cardindex.data.prices.prices
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.RefCard
 
@@ -31,13 +38,32 @@ data class CopyVariant(
 sealed interface LastScan {
     val card: RefCard
 
-    /** Added to All Cards as copy [copyId]; [contributionId]: the crop queued for the open dataset, if any. */
+    /**
+     * Added to All Cards as copy [copyId]; [contributionId]: the crop queued for the open dataset, if any.
+     * [prices] are the card's cached prices (empty until known), [wishlistFound] says the copy is the first of a
+     * wanted print (#162).
+     */
     data class Added(
         override val card: RefCard,
         val copyId: Long,
         val contributionId: Long? = null,
         val variant: CopyVariant = CopyVariant(),
-    ) : LastScan
+        val prices: List<CachedPriceEntity> = emptyList(),
+        val wishlistFound: Boolean = false,
+    ) : LastScan {
+        /** Its price in [source]'s own market for its finish and edition; null when that market doesn't price it. */
+        fun marketQuote(source: PriceSource): PriceQuote? =
+            if (source.prices(card.lang)) PriceSelection.quote(prices, source, variant.finish, variant.edition) else null
+
+        /** Its own price, as card screens show it: [primary], or Cardmarket for a language TCGplayer doesn't price. */
+        fun ownQuote(primary: PriceSource): PriceQuote? = marketQuote(primary.forLanguage(card.lang))
+
+        /** This copy as a one-copy value in [source], priced or not: what the session total adds up. */
+        fun value(source: PriceSource): CollectionValue {
+            val quote = marketQuote(source) ?: return CollectionValue(0, source, unpricedCopies = 1, pricedCopies = 0)
+            return CollectionValue(quote.amountMinor, source, unpricedCopies = 0, pricedCopies = 1)
+        }
+    }
 
     /** Saved to the review queue as item [itemId]. */
     data class Queued(override val card: RefCard, val reason: ReviewReason, val itemId: Long) : LastScan
@@ -60,6 +86,11 @@ data class ScanTray(
     val failed: RefCard? = null,
     /** Counts new decisions only (Undo leaves it), so the screen can confirm each one with a haptic. */
     val decisions: Long = 0,
+    /**
+     * Added cards that left [history] (past [MAX_UNDO]) and can't be undone or changed any more, valued once per
+     * market, so the session total still counts them (#162).
+     */
+    val settled: Map<PriceSource, CollectionValue> = emptyMap(),
 ) {
     val latest: LastScan? get() = history.lastOrNull()
 
@@ -67,8 +98,20 @@ data class ScanTray(
     val scanned: Int get() = added + queued
     val canUndo: Boolean get() = history.isNotEmpty()
 
+    /**
+     * The session's added cards in [source]'s market (#162): the sum of the priced ones, and how many have no price
+     * there. Queued cards aren't in it, and Undo takes a card out again.
+     */
+    fun value(source: PriceSource): CollectionValue =
+        history.filterIsInstance<LastScan.Added>().fold(settled[source] ?: CollectionValue.empty(source)) { sum, scan ->
+            sum + scan.value(source)
+        }
+
     fun record(scan: LastScan): ScanTray = copy(
         history = (history + scan).takeLast(MAX_UNDO),
+        settled = (history + scan).dropLast(MAX_UNDO).filterIsInstance<LastScan.Added>().fold(settled) { values, gone ->
+            PriceSource.entries.associateWith { source -> (values[source] ?: CollectionValue.empty(source)) + gone.value(source) }
+        },
         added = added + if (scan is LastScan.Added) 1 else 0,
         queued = queued + if (scan is LastScan.Queued) 1 else 0,
         removed = null,
@@ -94,6 +137,11 @@ data class ScanTray(
     /** The user's [variant] for copy [copyId], if that copy is still in the history. */
     fun withVariant(copyId: Long, variant: CopyVariant): ScanTray = copy(
         history = history.map { if (it is LastScan.Added && it.copyId == copyId) it.copy(variant = variant) else it },
+    )
+
+    /** The card's [prices] for copy [copyId], once they arrived after the scan (fetched for a card not cached yet). */
+    fun withPrices(copyId: Long, prices: List<CachedPriceEntity>): ScanTray = copy(
+        history = history.map { if (it is LastScan.Added && it.copyId == copyId) it.copy(prices = prices) else it },
     )
 
     companion object {
