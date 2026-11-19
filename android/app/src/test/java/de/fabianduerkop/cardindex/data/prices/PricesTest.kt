@@ -14,6 +14,7 @@ import de.fabianduerkop.cardindex.testing.inMemoryDatabase
 import java.io.IOException
 import java.time.Duration
 import java.time.Instant
+import java.time.LocalDate
 import java.util.Locale
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
@@ -73,6 +74,35 @@ class PricesTest {
         assertEquals(90L, tcgNormal.avg) // mid
         assertEquals("USD", tcgNormal.currency)
         assertEquals(5550L, rows.getValue(PriceSource.TCGPLAYER to PriceVariant.FIRST_EDITION_HOLO).trend)
+    }
+
+    @Test
+    fun parse_readsTheWeekAgoPricesPerPrinting() {
+        // #186: the free files' `weekAgo`, keyed like the history files. Printings without one keep null.
+        val card = JSONObject(example)
+        card.getJSONObject("cardmarket").put("weekAgo", JSONObject("""{"date":"2026-11-09","prices":{"normal":1.0,"holo":0}}"""))
+        card.getJSONObject("tcgplayer")
+            .put("weekAgo", JSONObject("""{"date":"2026-11-09","prices":{"Normal":0.75,"1st Edition Holofoil":60}}"""))
+        val rows = PriceJson.parseCard("sv03.5-025", card, fetchedAt).associateBy { it.source to it.variant }
+
+        val cmNormal = rows.getValue(PriceSource.CARDMARKET to PriceVariant.NORMAL)
+        assertEquals(100L, cmNormal.weekAgoMinor)
+        assertEquals(LocalDate.parse("2026-11-09"), cmNormal.weekAgoDate)
+        // A 0 is no price, as for the current prices.
+        assertNull(rows.getValue(PriceSource.CARDMARKET to PriceVariant.REVERSE_HOLO).weekAgoMinor)
+        assertNull(rows.getValue(PriceSource.CARDMARKET to PriceVariant.REVERSE_HOLO).weekAgoDate)
+        assertEquals(75L, rows.getValue(PriceSource.TCGPLAYER to PriceVariant.NORMAL).weekAgoMinor)
+        assertEquals(6000L, rows.getValue(PriceSource.TCGPLAYER to PriceVariant.FIRST_EDITION_HOLO).weekAgoMinor)
+    }
+
+    @Test
+    fun parse_filesWithoutWeekAgoStillParse() {
+        // Files from before #186, and a broken `weekAgo`, give the same rows without a week-ago price.
+        val old = rows()
+        assertTrue(old.all { it.weekAgoMinor == null && it.weekAgoDate == null })
+        val card = JSONObject(example)
+        card.getJSONObject("cardmarket").put("weekAgo", JSONObject("""{"date":"soon","prices":{"normal":1.0}}"""))
+        assertEquals(old, PriceJson.parseCard("sv03.5-025", card, fetchedAt))
     }
 
     @Test

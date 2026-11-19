@@ -52,7 +52,7 @@ import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.WantedWithCard
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
-import de.fabianduerkop.cardindex.data.prices.WeeklyChange
+import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
 import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
@@ -242,7 +242,7 @@ private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView)
 /** Sets view: the count, language chips, the featured set on the foil cover and a row for every other set. */
 private fun LazyListScope.setItems(
     state: CollectionsUiState,
-    weekly: Map<String, WeeklyChange>,
+    weekly: Map<String, WeeklyTrend>,
     onToggleLanguage: (String?) -> Unit,
     onOpenSet: (String) -> Unit,
 ) {
@@ -327,7 +327,7 @@ private fun LazyListScope.wishlistItems(
 /**
  * The value summary (ADR 0010, Pearl layout): every copy in the main market, labelled with its source, the newest
  * market date, and a link to All cards. With Pro the portfolio chart follows (#17); it also shows the change over the
- * chosen range. Without Pro the app has no price history, so no weekly change is shown rather than an invented one.
+ * chosen range. Without Pro the header shows no change: the free weekly direction (#186) is on the set rows.
  */
 @Composable
 private fun ValueHeader(
@@ -364,7 +364,7 @@ private fun ValueHeader(
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
-private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyChange? = null): String {
+private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyTrend? = null): String {
     val set = row.completion
     val progress = row.progress
     val parts = listOfNotNull(
@@ -388,7 +388,7 @@ private fun FeaturedSet(
     pinned: Boolean,
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
-    change: WeeklyChange? = null,
+    change: WeeklyTrend? = null,
 ) {
     val set = row.completion
     val description = setDescription(row, pinned, change)
@@ -483,11 +483,11 @@ private val FanCardWidth = 84.dp
 private val FanHeight = 132.dp
 
 /**
- * A compact set row: name, cards and value, the weekly price change with Pro (#173), and the count with a thin
- * completion bar under it.
+ * A compact set row: name, cards and value, the weekly price change (#173; direction only without Pro, #186), and the
+ * count with a thin completion bar under it.
  */
 @Composable
-private fun SetRow(row: SetRowUi, change: WeeklyChange?, onClick: () -> Unit) {
+private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val set = row.completion
     val description = setDescription(row, change = change)
     val subtitle = listOfNotNull(

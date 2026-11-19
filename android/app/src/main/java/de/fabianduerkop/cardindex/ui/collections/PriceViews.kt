@@ -26,7 +26,7 @@ import de.fabianduerkop.cardindex.data.prices.PriceFreshness
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
-import de.fabianduerkop.cardindex.data.prices.WeeklyChange
+import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
@@ -69,7 +69,8 @@ private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
  * Price of a copy at the end of a list row, with a second line under it (the card language). With [totalCurrency], a
  * price in another currency says that it is not in the list's total: TCGplayer has no price for a German copy, so a
  * dollar total leaves out its euro price instead of converting it. [stacked] lays it out start-aligned for a row that
- * puts it under the details. With Pro, [change] adds the weekly change of that price under it (#173).
+ * puts it under the details. [change] adds the weekly change of that price under it: amounts with Pro (#173), the
+ * direction only without (#186).
  */
 @Composable
 internal fun QuoteColumn(
@@ -77,7 +78,7 @@ internal fun QuoteColumn(
     secondLine: String,
     totalCurrency: String? = null,
     stacked: Boolean = false,
-    change: WeeklyChange? = null,
+    change: WeeklyTrend? = null,
 ) {
     val outside = quote != null && totalCurrency != null && quote.currency != totalCurrency
     val price = quote?.let { Money.format(it.amountMinor, it.currency) } ?: "–"

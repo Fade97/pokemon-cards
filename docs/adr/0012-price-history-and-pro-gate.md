@@ -1,6 +1,6 @@
 # 0012. Price history from the snapshots, Pro gated by test tokens until billing
 
-Status: accepted (2026-11-18), for #17
+Status: accepted (2026-11-18), for #17; amended 2026-11-19 for #186 (free week-ago price)
 
 ## Context
 
@@ -19,6 +19,13 @@ device (ADR 0006), so the server can't compute a user's portfolio. Sign-in and b
   SHA-256 is in the `PRO_TEST_TOKENS` secret (none = nobody is Pro), and only debug builds can switch Pro on. #16
   replaces both implementations.
 - Price alerts are a separate issue (#76): checked on the device they'd only be a soft gate, which needs a decision.
+- **Free week-ago price (2026-11-19, #186):** the free price files (`current/<set>.json`) also carry each printing's
+  price of 7 days ago (`weekAgo`, carried over from at most 3 days earlier), read from the same snapshots. It is a single
+  price per printing, not a series, so free users get the weekly *direction* (ADR 0010, amendment) while the daily
+  amounts, the weekly change in money and every chart stay behind the history API and `Entitlements`. The field is
+  optional, so older apps and files without it keep working. One week-old price per printing is public in the free
+  API, so hiding the weekly amount from free users is a display choice in the app, not a server gate; the gated value
+  is the series.
 
 ## Alternatives considered
 

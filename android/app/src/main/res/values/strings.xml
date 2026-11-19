@@ -213,6 +213,11 @@
         <item quantity="one">for %1$d of %2$d copy</item>
         <item quantity="other">for %1$d of %2$d copies</item>
     </plurals>
+    <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
+    <string name="weekly_direction_up">Up in 7 days</string>
+    <string name="weekly_direction_down">Down in 7 days</string>
+    <string name="weekly_direction_up_description">Up over the last 7 days</string>
+    <string name="weekly_direction_down_description">Down over the last 7 days</string>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>

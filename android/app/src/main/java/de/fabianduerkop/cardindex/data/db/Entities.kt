@@ -185,4 +185,10 @@ data class CachedPriceEntity(
     val fetchedAt: Instant,
     /** The market's product id (Cardmarket `idProduct`, TCGplayer `productId`), for the deep link to its offers. */
     val productId: Long? = null,
+    /**
+     * This printing's headline price on [weekAgoDate], a week before the price file was written (#186): what the free
+     * weekly direction compares [trend] with. Null in files from before #186 and when the market had no price then.
+     */
+    val weekAgoMinor: Long? = null,
+    val weekAgoDate: LocalDate? = null,
 )

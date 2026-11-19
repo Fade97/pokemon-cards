@@ -33,8 +33,8 @@ import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /**
- * A custom collection or All cards: the copies in it, sortable, each with its price and, with Pro, that price's
- * weekly change (#173). Tapping a copy opens its card.
+ * A custom collection or All cards: the copies in it, sortable, each with its price and that price's
+ * weekly change (#173; direction only without Pro, #186). Tapping a copy opens its card.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable

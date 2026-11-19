@@ -16,6 +16,7 @@ import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.model.Printing
 import de.fabianduerkop.cardindex.model.Printings
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
@@ -277,6 +278,36 @@ class SchemaMigrationTest {
                 assertEquals(listOf("u-1"), db.scanSessionDao().observeSession("s").first().map { it.copy.uuid })
                 db.copyDao().deleteById(7)
                 assertEquals(emptyList<Any>(), db.scanSessionDao().observeSession("s").first())
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    /** v7 → v8 (#186): cached prices stay and have no week-ago price until their next refresh writes one. */
+    @Test
+    fun migration7To8_keepsCachedPrices_withoutAWeekAgoPrice() {
+        val name = databasePath("migration-7-8.db")
+        helper.createDatabase(name, 7).apply {
+            execSQL(
+                "INSERT INTO cached_prices (cardId, source, variant, currency, trendMinor, lowMinor, avgMinor, priceDate, fetchedAt, productId) " +
+                    "VALUES ('sv03.5-025', 'CARDMARKET', 'NORMAL', 'EUR', 120, NULL, NULL, NULL, 0, 712345)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 8, true, CardIndexDatabase.MIGRATION_7_8).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val row = db.catalogDao().prices("sv03.5-025").single()
+                assertEquals(Triple(120L, null, null), Triple(row.trend, row.weekAgoMinor, row.weekAgoDate))
+                db.catalogDao().replacePrices(listOf(row.cardId), listOf(row.copy(weekAgoMinor = 100, weekAgoDate = LocalDate.parse("2026-11-12"))))
+                val refreshed = db.catalogDao().prices("sv03.5-025").single()
+                assertEquals(100L to LocalDate.parse("2026-11-12"), refreshed.weekAgoMinor to refreshed.weekAgoDate)
             }
         } finally {
             db.close()
