@@ -114,6 +114,24 @@ class AppSettings(context: Context) {
         get() = prefs.getString(KEY_COLLECTIONS_VIEW, null)
         set(value) = prefs.edit { if (value == null) remove(KEY_COLLECTIONS_VIEW) else putString(KEY_COLLECTIONS_VIEW, value) }
 
+    /**
+     * Set milestones already celebrated (#169), as "setId|language|level". A milestone fires once per set and language:
+     * Undo takes the progress back, but redoing the card does not celebrate again.
+     */
+    var celebratedMilestones: Set<String>
+        get() = prefs.getStringSet(KEY_CELEBRATED_MILESTONES, null)?.toSet().orEmpty()
+        set(value) = prefs.edit { putStringSet(KEY_CELEBRATED_MILESTONES, value) }
+
+    /** Milestones reached before #169 shipped were marked celebrated once, so an update celebrates nothing old. */
+    var milestonesSeeded: Boolean
+        get() = prefs.getBoolean(KEY_MILESTONES_SEEDED, false)
+        set(value) = prefs.edit { putBoolean(KEY_MILESTONES_SEEDED, value) }
+
+    /** When the set detail screen of [setId] was last opened (#169), to pulse the slots filled since; null never. */
+    fun setVisitedAt(setId: String): Long? = prefs.getLong(KEY_SET_VISIT_PREFIX + setId, -1L).takeIf { it >= 0 }
+
+    fun markSetVisited(setId: String, atMillis: Long) = prefs.edit { putLong(KEY_SET_VISIT_PREFIX + setId, atMillis) }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -139,6 +157,9 @@ class AppSettings(context: Context) {
         const val KEY_FEATURED_SET = "featured_set"
         const val KEY_SCAN_INTRO_SEEN = "scan_intro_seen"
         const val KEY_FIRST_GOAL_DONE = "first_goal_done"
+        const val KEY_CELEBRATED_MILESTONES = "celebrated_milestones"
+        const val KEY_MILESTONES_SEEDED = "milestones_seeded"
+        const val KEY_SET_VISIT_PREFIX = "set_visit_"
         const val KEY_SET_LEGEND_VISITS = "set_legend_visits"
         const val KEY_COLLECTIONS_VIEW = "collections_view"
     }

@@ -66,4 +66,20 @@ class SetShareTest {
         assertEquals(2, SetShare.gridColumns(4, 312f, 460f))
         assertEquals(1, SetShare.gridColumns(0, 312f, 460f))
     }
+
+    @Test
+    fun aCompleteSetIsDatedByItsLastFirstFilledBaseNumber() {
+        fun at(day: Int, localId: String) = CopyWithCard(
+            OwnedCopyEntity(cardId = "s-$localId", cardLanguage = "en", createdAt = Instant.parse("2026-11-%02dT10:00:00Z".format(day))),
+            card("s-$localId", "s", localId, "en"),
+            set,
+        )
+        // 002 was owned on the 3rd and again on the 9th: it counts from the 3rd. 005 came last, on the 7th.
+        // The secret rare 006 on the 12th doesn't move the date.
+        val owned = listOf(at(1, "001"), at(3, "002"), at(9, "002"), at(2, "003"), at(4, "004"), at(7, "005"), at(12, "006"))
+        val complete = SetDetail(set, listOf("en"), buildSetSlots(5, catalog, owned, null), owned)
+
+        assertEquals(java.time.LocalDate.of(2026, 11, 7), SetShare.build(complete, "EN", emptySet(), java.time.ZoneOffset.UTC).completedOn)
+        assertEquals(null, SetShare.build(detail, "EN", emptySet()).completedOn)
+    }
 }

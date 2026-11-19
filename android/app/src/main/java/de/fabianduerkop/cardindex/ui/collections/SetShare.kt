@@ -6,6 +6,8 @@ import de.fabianduerkop.cardindex.data.collections.SetMissing
 import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.collections.numberKey
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
+import java.time.LocalDate
+import java.time.ZoneId
 import kotlin.math.ceil
 import kotlin.math.min
 
@@ -24,6 +26,11 @@ data class SetShareData(
     val missing: SetMissing,
     val slots: List<ShareSlot>,
     val missingLines: List<MissingLine>,
+    /**
+     * When the base set was completed (#169): the day its last base number was first owned. Null while numbers are
+     * missing; then the slot map is a progress picture, complete it is the certificate.
+     */
+    val completedOn: LocalDate? = null,
 ) {
     val anyWanted: Boolean get() = missingLines.any { it.wanted }
 }
@@ -34,7 +41,7 @@ object SetShare {
      * secret rares included. [wantedKeys] are the [numberKey]s of this set's still-wanted wishlist prints; a missing
      * slot among them is marked, so friends see what matters most.
      */
-    fun build(detail: SetDetail, languages: String?, wantedKeys: Set<String>): SetShareData {
+    fun build(detail: SetDetail, languages: String?, wantedKeys: Set<String>, zone: ZoneId = ZoneId.systemDefault()): SetShareData {
         val total = detail.set.printedTotal
         val slots = detail.slots.map { slot ->
             val key = numberKey(slot.localId)
@@ -47,7 +54,15 @@ object SetShare {
                 wanted = numberKey(slot.localId) in wantedKeys,
             )
         }
-        return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing)
+        val completedOn = if (total > 0 && detail.progress.base >= total) {
+            detail.copies.filterNot { isSecret(numberKey(it.card.localId), total) }
+                .groupBy { numberKey(it.card.localId) }
+                .values.maxOfOrNull { copies -> copies.minOf { it.copy.createdAt } }
+                ?.atZone(zone)?.toLocalDate()
+        } else {
+            null
+        }
+        return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing, completedOn)
     }
 
     /** "003/165 Venusaur ★" per missing card, for the text checklist; wanted ones carry the star. */

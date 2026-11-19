@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.collections.CollectionsRoutes
 import de.fabianduerkop.cardindex.ui.review.ReviewViewModel
 import de.fabianduerkop.cardindex.ui.search.SearchScreen
 import kotlinx.coroutines.flow.filterNotNull
@@ -78,6 +79,10 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                         onOpenLab = { navController.navigate(LAB_ROUTE) },
                         onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
                         onOpenCollections = { navController.navigateTopLevel(TopLevelDestination.COLLECTIONS) },
+                        onOpenSet = { setId ->
+                            navController.navigateTopLevel(TopLevelDestination.COLLECTIONS)
+                            navController.navigate(CollectionsRoutes.set(setId))
+                        },
                     )
                 }
                 composable(LAB_ROUTE) { LabScreen() }
