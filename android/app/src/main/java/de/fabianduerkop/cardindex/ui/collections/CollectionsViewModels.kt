@@ -10,6 +10,7 @@ import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetProgress
+import de.fabianduerkop.cardindex.data.collections.SetSlot
 import de.fabianduerkop.cardindex.data.collections.setProgress
 import de.fabianduerkop.cardindex.data.collections.numberKey
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
@@ -279,6 +280,30 @@ enum class SetViewMode { COMPACT, CARDS }
 
 enum class SlotFilter { ALL, OWNED, MISSING }
 
+/** The slots the grid shows for [filter]; secret rares count like any other slot (#132). */
+internal fun List<SetSlot>.filteredBy(filter: SlotFilter): List<SetSlot> = when (filter) {
+    SlotFilter.ALL -> this
+    SlotFilter.OWNED -> filter { it.owned }
+    SlotFilter.MISSING -> filterNot { it.owned }
+}
+
+/**
+ * When the set detail screen explains its slots on its own (#165): on the first [FIRST_VISITS] visits of any set, so
+ * the shapes are learned once and the grid then starts higher. Later the info button shows the legend.
+ */
+/**
+ * Label of the language chip on the set detail filter row (#165): the chosen codes in the set's order, e.g. "DE, EN",
+ * or null for no choice, which the screen shows as "All languages".
+ */
+internal fun languageChipLabel(languages: List<String>, selected: Set<String>): String? =
+    languages.filter { it in selected }.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.uppercase() }
+
+internal object SetLegend {
+    const val FIRST_VISITS = 3
+
+    fun showsOnVisit(pastVisits: Int): Boolean = pastVisits < FIRST_VISITS
+}
+
 data class SetDetailUiState(
     val loading: Boolean = true,
     val detail: SetDetail? = null,
@@ -290,6 +315,8 @@ data class SetDetailUiState(
     val value: CollectionValue? = null,
     /** Whether the user pinned this set to the Collections foil cover (#156). */
     val pinned: Boolean = false,
+    /** Whether the slot legend shows under the filter row: on the first visits, then by the info button (#165). */
+    val legendShown: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -301,11 +328,20 @@ class SetDetailViewModel(
     savedState: SavedStateHandle,
     pinnedSet: Flow<String?> = flowOf(null),
     private val pinSet: (String?) -> Unit = {},
+    pastLegendVisits: Int = SetLegend.FIRST_VISITS,
+    recordLegendVisit: () -> Unit = {},
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
     private val selected = MutableStateFlow(emptySet<String>())
     private val mode = MutableStateFlow(SetViewMode.COMPACT)
     private val filter = MutableStateFlow(SlotFilter.ALL)
+
+    // One visit per screen, not per rotation: the view model outlives configuration changes (#165).
+    private val legend = MutableStateFlow(SetLegend.showsOnVisit(pastLegendVisits))
+
+    init {
+        if (legend.value) recordLegendVisit()
+    }
 
     private val view = combine(selected, mode, filter, photos, pinnedSet) { chosen, mode, filter, photos, pinnedId ->
         SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
@@ -316,11 +352,17 @@ class SetDetailViewModel(
         view,
         prices.observeAll(),
         primarySource,
-    ) { detail, view, priceMap, source ->
+        legend,
+    ) { detail, view, priceMap, source, legendShown ->
         val owned = detail?.copies.orEmpty()
             .filter { view.selectedLanguages.isEmpty() || it.card.language in view.selectedLanguages }
             .map { it.copy }
-        view.copy(loading = false, detail = detail, value = PriceSelection.total(owned, priceMap, source))
+        view.copy(
+            loading = false,
+            detail = detail,
+            value = PriceSelection.total(owned, priceMap, source),
+            legendShown = legendShown,
+        )
     }.stateIn(this, SetDetailUiState())
 
     fun toggleLanguage(language: String?) {
@@ -333,6 +375,7 @@ class SetDetailViewModel(
 
     fun setMode(value: SetViewMode) { mode.value = value }
     fun setFilter(value: SlotFilter) { filter.value = value }
+    fun toggleLegend() { legend.value = !legend.value }
 
     /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
     fun togglePinned() = pinSet(if (state.value.pinned) null else setId)

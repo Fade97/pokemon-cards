@@ -6,11 +6,10 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
@@ -24,17 +23,19 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconToggleButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.buildAnnotatedString
@@ -94,6 +96,8 @@ fun SetDetailScreen(
                 saved,
                 pinnedSet = container.settings.featuredSetFlow,
                 pinSet = { container.settings.featuredSet = it },
+                pastLegendVisits = container.settings.setLegendVisits,
+                recordLegendVisit = { container.settings.setLegendVisits += 1 },
             )
         },
     ),
@@ -144,6 +148,7 @@ fun SetDetailScreen(
                 onToggleLanguage = viewModel::toggleLanguage,
                 onMode = viewModel::setMode,
                 onFilter = viewModel::setFilter,
+                onToggleLegend = viewModel::toggleLegend,
                 onSlot = { slot ->
                     val card = slot.card
                     if (slot.owned && card != null) {
@@ -158,7 +163,6 @@ fun SetDetailScreen(
     }
 }
 
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SetGrid(
     state: SetDetailUiState,
@@ -168,18 +172,16 @@ private fun SetGrid(
     onToggleLanguage: (String?) -> Unit,
     onMode: (SetViewMode) -> Unit,
     onFilter: (SlotFilter) -> Unit,
+    onToggleLegend: () -> Unit,
     onSlot: (SetSlot) -> Unit,
 ) {
     // Filters and grid list every slot (buildSetSlots), secret rares included; the header counts the base set (#132).
-    // The Missing chip splits the same way, so "Missing 158 · +42 secret" adds up with a 7/165 header (#161).
-    val owned = detail.ownedNumbers
-    val missing = detail.missing
-    val shown = when (state.filter) {
-        SlotFilter.ALL -> detail.slots
-        SlotFilter.OWNED -> detail.slots.filter { it.owned }
-        SlotFilter.MISSING -> detail.slots.filterNot { it.owned }
-    }
+    val shown = detail.slots.filteredBy(state.filter)
     val compact = state.mode == SetViewMode.COMPACT
+    var languageSheet by rememberSaveable { mutableStateOf(false) }
+    if (languageSheet) {
+        LanguageSheet(detail.languages, state.selectedLanguages, onToggleLanguage, onDismiss = { languageSheet = false })
+    }
     LazyVerticalGrid(
         columns = if (compact) GridCells.Adaptive(CompactSlotMin) else GridCells.Adaptive(CardSlotMin),
         modifier = Modifier.fillMaxSize(),
@@ -196,40 +198,22 @@ private fun SetGrid(
             SetHeader(detail, state.selectedLanguages, state.value)
         }
         header {
-            LanguageChips(
-                languages = detail.languages,
-                selected = state.selectedLanguages,
-                onToggle = onToggleLanguage,
-                horizontalPadding = 0.dp,
+            FilterRow(
+                state = state,
+                detail = detail,
+                onFilter = onFilter,
+                onLanguages = { languageSheet = true },
+                onMode = onMode,
+                onToggleLegend = onToggleLegend,
             )
         }
-        header {
-            ModeSwitch(state.mode, onMode)
-        }
-        header {
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
-                ChoiceChip(
-                    state.filter == SlotFilter.OWNED,
-                    { onFilter(SlotFilter.OWNED) },
-                    stringResource(R.string.collections_filter_owned, owned),
-                )
-                ChoiceChip(
-                    state.filter == SlotFilter.MISSING,
-                    { onFilter(SlotFilter.MISSING) },
-                    if (missing.secret > 0 && detail.set.printedTotal > 0) {
-                        stringResource(R.string.collections_filter_missing_secret, missing.base, missing.secret)
-                    } else {
-                        stringResource(R.string.collections_filter_missing, missing.total)
-                    },
+        if (state.legendShown) {
+            header {
+                ChecklistLegend(
+                    stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
+                    Modifier.padding(bottom = Spacing.sm),
                 )
             }
-        }
-        header {
-            ChecklistLegend(
-                stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
-                Modifier.padding(top = Spacing.xs, bottom = Spacing.sm),
-            )
         }
         items(shown, key = { it.localId }) { slot ->
             if (compact) {
@@ -303,37 +287,100 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
 }
 
 /**
- * Compact or Cards. Pearl selection (ADR 0014): the chosen side is the pale selection tint with sea-glass text and
- * outline, the other a quiet outline. No ink fill, no check mark.
+ * The one control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
+ * languages, and at the end the view toggle and the legend's info button. The chips scroll sideways instead of
+ * wrapping, so the row stays one line at 2x font size and the grid starts in the first screen height. The Missing
+ * chip splits like the header, so "Missing 158 · +42 secret" adds up with a 7/165 header (#161).
  */
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun ModeSwitch(mode: SetViewMode, onMode: (SetViewMode) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    SingleChoiceSegmentedButtonRow(Modifier.fillMaxWidth().padding(vertical = Spacing.sm)) {
-        SetViewMode.entries.forEachIndexed { index, value ->
-            val shape = SegmentedButtonDefaults.itemShape(index, SetViewMode.entries.size, MaterialTheme.shapes.medium)
-            SegmentedButton(
-                selected = mode == value,
-                onClick = { onMode(value) },
-                shape = shape,
-                modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget),
-                icon = {},
-                colors = SegmentedButtonDefaults.colors(
-                    activeContainerColor = colors.secondaryContainer,
-                    activeContentColor = colors.primary,
-                    activeBorderColor = colors.primary,
-                    inactiveContainerColor = colors.background,
-                    inactiveContentColor = colors.onSurface,
-                    inactiveBorderColor = colors.outlineVariant,
-                ),
-            ) {
-                Text(
-                    stringResource(
-                        if (value == SetViewMode.COMPACT) R.string.collections_mode_compact else R.string.collections_mode_cards,
-                    ),
+private fun FilterRow(
+    state: SetDetailUiState,
+    detail: SetDetail,
+    onFilter: (SlotFilter) -> Unit,
+    onLanguages: () -> Unit,
+    onMode: (SetViewMode) -> Unit,
+    onToggleLegend: () -> Unit,
+) {
+    val missing = detail.missing
+    val compact = state.mode == SetViewMode.COMPACT
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
+            ChoiceChip(
+                state.filter == SlotFilter.OWNED,
+                { onFilter(SlotFilter.OWNED) },
+                stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
+            )
+            ChoiceChip(
+                state.filter == SlotFilter.MISSING,
+                { onFilter(SlotFilter.MISSING) },
+                if (missing.secret > 0 && detail.set.printedTotal > 0) {
+                    stringResource(R.string.collections_filter_missing_secret, missing.base, missing.secret)
+                } else {
+                    stringResource(R.string.collections_filter_missing, missing.total)
+                },
+            )
+            if (detail.languages.size >= 2) {
+                val label = languageChipLabel(detail.languages, state.selectedLanguages)
+                    ?: stringResource(R.string.collections_all_languages)
+                val description = stringResource(R.string.collections_languages_chip_description, label)
+                // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
+                ChoiceChip(
+                    selected = state.selectedLanguages.isNotEmpty(),
+                    onClick = onLanguages,
+                    label = label,
+                    trailingIcon = R.drawable.ic_expand_more,
+                    modifier = Modifier.semantics { contentDescription = description },
                 )
             }
+        }
+        IconButton(
+            onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
+            modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),
+        ) {
+            Icon(
+                painterResource(if (compact) R.drawable.ic_view_cards else R.drawable.ic_view_compact),
+                contentDescription = stringResource(
+                    if (compact) R.string.collections_view_show_cards else R.string.collections_view_show_compact,
+                ),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        IconToggleButton(
+            checked = state.legendShown,
+            onCheckedChange = { onToggleLegend() },
+            modifier = Modifier.focusRing(CircleShape),
+        ) {
+            Icon(
+                painterResource(R.drawable.ic_info),
+                contentDescription = stringResource(R.string.collections_legend_toggle),
+                tint = if (state.legendShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+/** The set's languages behind the language chip (#165); a choice applies at once, as the chips did in the row. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun LanguageSheet(languages: List<String>, selected: Set<String>, onToggle: (String?) -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp)),
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+    ) {
+        Column(Modifier.navigationBarsPadding().padding(bottom = Spacing.xl)) {
+            Text(
+                stringResource(R.string.collections_languages_title),
+                style = MaterialTheme.typography.headlineSmall,
+                modifier = Modifier.padding(horizontal = ScreenPadding).semantics { heading() },
+            )
+            LanguageChips(languages, selected, onToggle, Modifier.padding(top = Spacing.md))
         }
     }
 }

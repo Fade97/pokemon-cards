@@ -90,6 +90,14 @@ class AppSettings(context: Context) {
 
     val scanIntroSeenFlow: Flow<Boolean> = observe { scanIntroSeen }
 
+    /**
+     * How many times the set detail screen showed its slot legend on its own (#165). After SetLegend.FIRST_VISITS the
+     * legend waits behind the info button.
+     */
+    var setLegendVisits: Int
+        get() = prefs.getInt(KEY_SET_LEGEND_VISITS, 0)
+        set(value) = prefs.edit { putInt(KEY_SET_LEGEND_VISITS, value) }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -114,5 +122,6 @@ class AppSettings(context: Context) {
         const val KEY_SCAN_TARGET = "scan_target_collection"
         const val KEY_FEATURED_SET = "featured_set"
         const val KEY_SCAN_INTRO_SEEN = "scan_intro_seen"
+        const val KEY_SET_LEGEND_VISITS = "set_legend_visits"
     }
 }
