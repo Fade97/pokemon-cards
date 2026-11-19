@@ -344,16 +344,16 @@ internal fun List<SetSlot>.filteredBy(filter: SlotFilter): List<SetSlot> = when 
 }
 
 /**
- * When the set detail screen explains its slots on its own (#165): on the first [FIRST_VISITS] visits of any set, so
- * the shapes are learned once and the grid then starts higher. Later the info button shows the legend.
- */
-/**
  * Label of the language chip on the set detail filter row (#165): the chosen codes in the set's order, e.g. "DE, EN",
  * or null for no choice, which the screen shows as "All languages".
  */
 internal fun languageChipLabel(languages: List<String>, selected: Set<String>): String? =
     languages.filter { it in selected }.takeIf { it.isNotEmpty() }?.joinToString(", ") { it.uppercase() }
 
+/**
+ * When the set detail screen explains its slots on its own (#165): on the first [FIRST_VISITS] visits of any set, so
+ * the shapes are learned once and the grid then starts higher. Later the info button shows the legend.
+ */
 internal object SetLegend {
     const val FIRST_VISITS = 3
 

@@ -39,7 +39,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
-import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -140,82 +139,87 @@ fun CardDetailScreen(
                 stringResource(R.string.collections_card_unknown),
                 Modifier.padding(padding).padding(ScreenPadding),
             )
-            else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
-                item {
-                    CardHeader(
-                        detail = detail,
-                        photos = state.photos,
-                        heroDescription = pages?.getOrNull(images?.heroIndex ?: 0)?.description,
-                        onView = { viewing = images?.heroIndex ?: 0 },
-                        wanted = wanted,
-                        onWanted = { viewModel.setWanted(detail.card, it) },
-                    )
-                }
-                item {
-                    // Price the printing the user owns in this language, or the plain print if they own none.
-                    val owned = detail.pricedCopy()
-                    SectionHeader(stringResource(R.string.price_title), Modifier.padding(horizontal = ScreenPadding))
-                    PriceBox(
-                        prices = state.prices,
-                        primary = state.source,
-                        finish = owned?.finish ?: Finish.NORMAL,
-                        edition = owned?.edition ?: Edition.UNLIMITED,
-                        cardLanguage = detail.card.language,
-                        modifier = Modifier.padding(horizontal = ScreenPadding),
-                        load = state.priceLoad,
-                        onRetry = viewModel::retryPrices,
-                    )
-                }
-                history?.let { chart ->
+            else -> BoxWithConstraints(Modifier.fillMaxSize()) {
+                // What the list shows between the top bar and the Add a copy and navigation bars: the hero fits in it.
+                val viewport = maxHeight - padding.calculateTopPadding() - padding.calculateBottomPadding()
+                LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
                     item {
-                        SectionHeader(stringResource(R.string.history_title), Modifier.padding(horizontal = ScreenPadding))
-                        PriceHistoryBlock(
-                            chart,
-                            onRange = viewModel::setHistoryRange,
-                            modifier = Modifier.padding(horizontal = ScreenPadding),
+                        CardHeader(
+                            viewport = viewport,
+                            detail = detail,
+                            photos = state.photos,
+                            heroDescription = pages?.getOrNull(images?.heroIndex ?: 0)?.description,
+                            onView = { viewing = images?.heroIndex ?: 0 },
+                            wanted = wanted,
+                            onWanted = { viewModel.setWanted(detail.card, it) },
                         )
                     }
-                }
-                alerts?.let { list ->
                     item {
+                        // Price the printing the user owns in this language, or the plain print if they own none.
                         val owned = detail.pricedCopy()
-                        val (main, secondary) = PriceSelection.pair(
-                            state.prices,
-                            state.source,
-                            owned?.finish ?: Finish.NORMAL,
-                            owned?.edition ?: Edition.UNLIMITED,
-                            detail.card.language,
-                        )
-                        SectionHeader(stringResource(R.string.alerts_title), Modifier.padding(horizontal = ScreenPadding))
-                        PriceAlertsBlock(
-                            alerts = list,
-                            quotes = listOfNotNull(main, secondary),
-                            onCreate = { quote, direction, threshold ->
-                                viewModel.createAlert(quote, direction, threshold, onFirst = askNotifications)
-                            },
-                            onDelete = viewModel::deleteAlert,
+                        SectionHeader(stringResource(R.string.price_title), Modifier.padding(horizontal = ScreenPadding))
+                        PriceBox(
+                            prices = state.prices,
+                            primary = state.source,
+                            finish = owned?.finish ?: Finish.NORMAL,
+                            edition = owned?.edition ?: Edition.UNLIMITED,
+                            cardLanguage = detail.card.language,
                             modifier = Modifier.padding(horizontal = ScreenPadding),
+                            load = state.priceLoad,
+                            onRetry = viewModel::retryPrices,
                         )
                     }
-                }
-                item {
-                    SectionHeader(
-                        stringResource(R.string.collections_your_copies, detail.copies.sumOf { it.copy.quantity }),
-                        Modifier.padding(horizontal = ScreenPadding),
-                    )
-                    if (detail.copies.isNotEmpty()) {
-                        HorizontalDivider(Modifier.padding(horizontal = ScreenPadding), color = MaterialTheme.colorScheme.outlineVariant)
+                    history?.let { chart ->
+                        item {
+                            SectionHeader(stringResource(R.string.history_title), Modifier.padding(horizontal = ScreenPadding))
+                            PriceHistoryBlock(
+                                chart,
+                                onRange = viewModel::setHistoryRange,
+                                modifier = Modifier.padding(horizontal = ScreenPadding),
+                            )
+                        }
                     }
+                    alerts?.let { list ->
+                        item {
+                            val owned = detail.pricedCopy()
+                            val (main, secondary) = PriceSelection.pair(
+                                state.prices,
+                                state.source,
+                                owned?.finish ?: Finish.NORMAL,
+                                owned?.edition ?: Edition.UNLIMITED,
+                                detail.card.language,
+                            )
+                            SectionHeader(stringResource(R.string.alerts_title), Modifier.padding(horizontal = ScreenPadding))
+                            PriceAlertsBlock(
+                                alerts = list,
+                                quotes = listOfNotNull(main, secondary),
+                                onCreate = { quote, direction, threshold ->
+                                    viewModel.createAlert(quote, direction, threshold, onFirst = askNotifications)
+                                },
+                                onDelete = viewModel::deleteAlert,
+                                modifier = Modifier.padding(horizontal = ScreenPadding),
+                            )
+                        }
+                    }
+                    item {
+                        SectionHeader(
+                            stringResource(R.string.collections_your_copies, detail.copies.sumOf { it.copy.quantity }),
+                            Modifier.padding(horizontal = ScreenPadding),
+                        )
+                        if (detail.copies.isNotEmpty()) {
+                            HorizontalDivider(Modifier.padding(horizontal = ScreenPadding), color = MaterialTheme.colorScheme.outlineVariant)
+                        }
+                    }
+                    items(detail.copies, key = { it.copy.id }) { item ->
+                        CopyRow(
+                            item = item,
+                            memberships = state.memberships[item.copy.id].orEmpty(),
+                            showCard = false,
+                            onClick = { editing = item.copy },
+                        )
+                    }
+                    item { Spacer(Modifier.height(Spacing.lg)) }
                 }
-                items(detail.copies, key = { it.copy.id }) { item ->
-                    CopyRow(
-                        item = item,
-                        memberships = state.memberships[item.copy.id].orEmpty(),
-                        showCard = false,
-                        onClick = { editing = item.copy },
-                    )
-                }
-                item { Spacer(Modifier.height(Spacing.lg)) }
             }
         }
     }
@@ -348,6 +352,7 @@ private fun cardTitle(detail: CardDetail): String {
  */
 @Composable
 private fun CardHeader(
+    viewport: Dp,
     detail: CardDetail,
     photos: OwnPhotos,
     heroDescription: String?,
@@ -355,8 +360,10 @@ private fun CardHeader(
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
-    val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
-    val artWidth = min(HeroMaxWidth, windowHeight * HeroMaxHeightFraction * CARD_ASPECT)
+    // The collector number has to show under the art without scrolling, at any font and display size and in landscape.
+    val numberHeight = with(LocalDensity.current) { MaterialTheme.typography.displayLarge.lineHeight.toDp() }
+    val artHeight = (viewport - numberHeight - HeroNumberGap).coerceAtLeast(HeroMinHeight)
+    val artWidth = min(HeroMaxWidth, artHeight * CARD_ASPECT)
     val shape = MaterialTheme.shapes.small
     val openLabel = stringResource(R.string.viewer_open)
     Column {
@@ -417,8 +424,11 @@ private fun CardHeader(
 /** The hero never gets wider than this (tablets, foldables) … */
 private val HeroMaxWidth = 400.dp
 
-/** … nor taller than this share of the window, so the collector number shows under it without scrolling. */
-private const val HeroMaxHeightFraction = 0.6f
+/** … nor taller than the list's visible height minus the collector number and these gaps above and below it … */
+private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.md
+
+/** … but never smaller than this, on a very short window. */
+private val HeroMinHeight = 160.dp
 
 /** The own-photo row of the copy sheet: thumbnail (tap to view it full screen, #166), pick or replace, remove. */
 @Composable

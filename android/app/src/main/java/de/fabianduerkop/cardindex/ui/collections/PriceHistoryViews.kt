@@ -131,10 +131,14 @@ private fun ChangeLine(first: PricePoint, last: PricePoint, currency: String) {
     )
 }
 
-/** The relative change without sign, e.g. `12 %` in the user's locale; null from a start of zero. */
+/**
+ * The relative change without sign, e.g. `12 %` in the user's locale; null from a start of zero, and for a change
+ * that would round to `0 %`, which would contradict the arrow and the amount next to it (#173).
+ */
 internal fun percentChange(from: Long, to: Long): String? {
     if (from <= 0) return null
     val ratio = BigDecimal.valueOf(kotlin.math.abs(to - from)).divide(BigDecimal.valueOf(from), 3, RoundingMode.HALF_UP)
+    if (ratio.signum() == 0) return null
     val format = NumberFormat.getPercentInstance().apply { maximumFractionDigits = if (ratio < BigDecimal("0.1")) 1 else 0 }
     return format.format(ratio)
 }

@@ -117,6 +117,13 @@ fun CollectionsScreen(
     var creating by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    // Scrolled into a view (or partly past the switch), the new view starts right under the switch, without animation.
+    val show: (CollectionsView) -> Unit = { chosen ->
+        viewModel.showView(chosen)
+        val pastSwitch = listState.firstVisibleItemIndex > SWITCH_INDEX ||
+            (listState.firstVisibleItemIndex == SWITCH_INDEX && listState.firstVisibleItemScrollOffset > 0)
+        if (pastSwitch) scope.launch { listState.scrollToItem(SWITCH_INDEX) }
+    }
 
     TopLevelScaffold(
         title = stringResource(R.string.nav_collections),
@@ -163,16 +170,7 @@ fun CollectionsScreen(
                     )
                 }
                 stickyHeader(key = "view-switch") {
-                    CollectionsSwitch(
-                        view,
-                        onSelect = { chosen ->
-                            viewModel.showView(chosen)
-                            // Scrolled into the sets, the new view starts right under the switch, without animation.
-                            if (listState.firstVisibleItemIndex > SWITCH_INDEX) {
-                                scope.launch { listState.scrollToItem(SWITCH_INDEX) }
-                            }
-                        },
-                    )
+                    CollectionsSwitch(view, onSelect = show)
                 }
                 when (view) {
                     CollectionsView.SETS -> setItems(
@@ -200,6 +198,8 @@ fun CollectionsScreen(
             onSave = { name, description ->
                 viewModel.createCollection(name, description)
                 creating = false
+                // A new collection lives under Binders: show it there, not behind another view (#164).
+                show(CollectionsView.BINDERS)
             },
         )
     }

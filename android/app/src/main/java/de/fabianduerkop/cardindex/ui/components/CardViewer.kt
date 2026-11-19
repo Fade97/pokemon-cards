@@ -138,6 +138,8 @@ fun CardViewer(
         val pager = rememberPagerState(initialPage.coerceIn(images.indices)) { images.size }
         var zoomedPage by remember { mutableStateOf<Int?>(null) }
         var dragY by remember { mutableFloatStateOf(0f) }
+        // The running spring-back or slide-away; a new drag takes the card from it instead of fighting it.
+        var dismissAnimation by remember { mutableStateOf<Job?>(null) }
         val title = stringResource(R.string.viewer_title)
         BoxWithConstraints(Modifier.fillMaxSize().semantics { paneTitle = title }) {
             val height = constraints.maxHeight.toFloat()
@@ -161,17 +163,22 @@ fun CardViewer(
                     onZoomedChange = { zoomed ->
                         zoomedPage = if (zoomed) page else zoomedPage.takeUnless { it == page }
                     },
-                    onDismissDrag = { delta -> dragY = (dragY + delta).coerceAtLeast(0f) },
+                    onDismissDrag = { delta ->
+                        dismissAnimation?.cancel()
+                        dragY = (dragY + delta).coerceAtLeast(0f)
+                    },
                     onDismissEnd = { velocity ->
-                        val close = ViewerZoom.shouldDismiss(dragY, velocity, height, flingVelocity)
+                        // A cancelled swipe (null) always puts the card back, however far it went.
+                        val close = velocity != null && ViewerZoom.shouldDismiss(dragY, velocity, height, flingVelocity)
+                        dismissAnimation?.cancel()
                         when {
                             close && reducedMotion -> onDismiss()
-                            close -> scope.launch {
+                            close -> dismissAnimation = scope.launch {
                                 animate(dragY, height, animationSpec = tween(SlideAwayMillis)) { value, _ -> dragY = value }
                                 onDismiss()
                             }
                             reducedMotion -> dragY = 0f
-                            else -> scope.launch {
+                            else -> dismissAnimation = scope.launch {
                                 animate(dragY, 0f, animationSpec = spring()) { value, _ -> dragY = value }
                             }
                         }
@@ -243,7 +250,7 @@ private fun ZoomablePage(
     dragY: () -> Float,
     onZoomedChange: (Boolean) -> Unit,
     onDismissDrag: (Float) -> Unit,
-    onDismissEnd: (velocityY: Float) -> Unit,
+    onDismissEnd: (velocityY: Float?) -> Unit,
     overlay: @Composable BoxScope.(image: CardViewerImage) -> Unit,
 ) {
     var scale by remember { mutableFloatStateOf(ViewerZoom.MIN_SCALE) }
@@ -395,7 +402,7 @@ private suspend fun PointerInputScope.detectViewerGestures(
     isZoomed: () -> Boolean,
     onTransform: (focus: Offset, pan: Offset, zoom: Float) -> Unit,
     onDismissDrag: (Float) -> Unit,
-    onDismissEnd: (velocityY: Float) -> Unit,
+    onDismissEnd: (velocityY: Float?) -> Unit,
 ) = awaitEachGesture {
     val first = awaitFirstDown(requireUnconsumed = false)
     val tracker = VelocityTracker().apply { addPointerInputChange(first) }
@@ -421,8 +428,8 @@ private suspend fun PointerInputScope.detectViewerGestures(
                 else -> return@awaitEachGesture
             }
         } else if (mode == GestureMode.DISMISS && pressed > 1) {
-            // A second finger during the swipe: put the card back and pinch instead.
-            onDismissEnd(0f)
+            // A second finger during the swipe: put the card back (never close) and pinch instead.
+            onDismissEnd(null)
             mode = GestureMode.TRANSFORM
         }
         when (mode) {

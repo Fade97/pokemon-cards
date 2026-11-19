@@ -147,6 +147,25 @@ class WeeklyPriceChangeTest {
     }
 
     @Test
+    fun copies_nothingWhenTheCoveredCopiesHoldLessThanHalfTheValue() {
+        // Thirty bulk copies have a week of history; the chase card, worth more than all of them, has none.
+        val prices = mapOf(
+            "bulk" to listOf(current("bulk", cm, PriceVariant.NORMAL, 10)),
+            "chase" to listOf(current("chase", cm, PriceVariant.NORMAL, 5000)),
+        )
+        val history = mapOf(
+            "bulk" to history("bulk", cm, PriceVariant.NORMAL, "2026-11-12" to 8, "2026-11-19" to 10),
+            "chase" to history("chase", cm, PriceVariant.NORMAL, "2026-11-18" to 5000, "2026-11-19" to 5000),
+        )
+        val copies = listOf(copy("bulk", quantity = 30), copy("chase"))
+
+        assertNull(WeeklyPriceChange.ofCopies(copies, prices, history, cm, today))
+        // With the chase card's week known, the whole set has a change again.
+        val full = history + ("chase" to history("chase", cm, PriceVariant.NORMAL, "2026-11-12" to 4000, "2026-11-19" to 5000))
+        assertEquals(31, WeeklyPriceChange.ofCopies(copies, prices, full, cm, today)!!.coveredCopies)
+    }
+
+    @Test
     fun copies_followTheirCurrentPriceSPrinting() {
         // A holo copy is priced by the reverse-holo price today, so its change must not come from the normal series.
         val prices = mapOf(

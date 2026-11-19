@@ -97,6 +97,8 @@ data class Viewfinder(
     val outline: Quad? = null,
     val hint: ScanHint = ScanHint.LOOKING,
     val card: RefCard? = null,
+    /** The decision the hint belongs to; the screen shows a tray hit only when the hit carries the same one. */
+    val decision: Long = 0,
 )
 
 
@@ -132,6 +134,10 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
 
     /** Cards the decider handled by queueing them for review; worker thread only, cleared with the decider. */
     private val queuedKeys = HashSet<String>()
+
+    /** Per card key, the number of its latest decision: a second copy of a print must not show the first one's hit. */
+    private val decisions = HashMap<String, Long>()
+    private var lastDecision = 0L
     private var previousDetection: Detection? = null
     private var lastFrameAt = 0L
 
@@ -217,6 +223,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                     minOutlineScore = if (e.hasLearnedDetector) CornerDetector.DEFAULT_MIN_SCORE else DEFAULT_MIN_OUTLINE_SCORE
                     decider.reset()
                     queuedKeys.clear()
+                    decisions.clear()
                     previousDetection = null
                     // Without the GPU every frame costs several times more; fewer frames keep the phone cool
                     // and the preview smooth, at the price of a slightly slower decision.
@@ -234,7 +241,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     fun setPaused(value: Boolean) {
         _paused.value = value
         // After a pause the card in view is a new situation; don't let an old track decide it.
-        if (!value) worker.execute { decider.reset(); queuedKeys.clear(); previousDetection = null }
+        if (!value) worker.execute { decider.reset(); queuedKeys.clear(); decisions.clear(); previousDetection = null }
     }
 
     /** CameraX analyzer, called on [worker] with the latest frame only. */
@@ -284,6 +291,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             val event = decider.onFrame(now, signal)
             val key = (signal as? FrameSignal.Identified)?.key
             if (event != null && goesToReview(event)) queuedKeys += event.payload.best.card.key
+            val decision = event?.let { ++lastDecision }
+            if (event != null && decision != null) decisions[event.payload.best.card.key] = decision
             val handledKey = event?.payload?.best?.card?.key ?: key?.takeIf { decider.isHandled(it) }
             val hint = when {
                 handledKey != null -> if (handledKey in queuedKeys) ScanHint.QUEUED else ScanHint.DONE
@@ -295,8 +304,8 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
             // Only an outline that passed the score and shape checks is a card; a rejected one (an empty room,
             // a twisted quad) must not be drawn while the hint says there is no card (#55).
             val outline = detection?.quad?.takeIf { gate == GateResult.Accepted || gate == GateResult.Moving }
-            _viewfinder.value = Viewfinder(w, h, outline, hint, card)
-            event?.let(::onDecision)
+            _viewfinder.value = Viewfinder(w, h, outline, hint, card, handledKey?.let { decisions[it] } ?: 0)
+            if (event != null && decision != null) onDecision(event, decision)
         } finally {
             bgr.release()
         }
@@ -316,7 +325,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private fun goesToReview(event: ScanEvent<RecognitionResult>): Boolean =
         event !is ScanEvent.Add || event.payload.best.card.let { needsVariantCheck(it.setId, it.printings) }
 
-    private fun onDecision(event: ScanEvent<RecognitionResult>) {
+    private fun onDecision(event: ScanEvent<RecognitionResult>, decision: Long) {
         val result = event.payload
         val card = result.best.card
         val checkVariant = needsVariantCheck(card.setId, card.printings)
@@ -341,6 +350,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                                     variant = variant,
                                     prices = cached,
                                     wishlistFound = hit.wishlistFound,
+                                    decision = decision,
                                 ),
                             )
                         }

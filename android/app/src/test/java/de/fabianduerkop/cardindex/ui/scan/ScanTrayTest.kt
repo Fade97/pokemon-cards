@@ -160,4 +160,14 @@ class ScanTrayTest {
         assertNull(failed.record(LastScan.Added(ref("002"), copyId = 12)).failed)
         assertNull(failed.undo()!!.second.failed)
     }
+
+    @Test
+    fun hit_belongsToItsDecision_soASecondCopyDoesNotShowTheFirstOnesHit() {
+        val first = LastScan.Added(ref("001"), copyId = 1, wishlistFound = true, decision = 7)
+        assertEquals(first, hitFor(first, decision = 7))
+        // The camera decided a second copy of the same print; its copy is still being saved.
+        assertNull(hitFor(first, decision = 8))
+        assertNull(hitFor(LastScan.Added(ref("001"), copyId = 2), decision = 0))
+        assertNull(hitFor(LastScan.Queued(ref("001"), ReviewReason.NUMBER_NOT_READ, itemId = 3), decision = 7))
+    }
 }

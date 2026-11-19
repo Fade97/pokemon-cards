@@ -74,8 +74,8 @@ internal fun weeklyChangeDescription(change: WeeklyChange): String {
 
 /**
  * The weekly price change (#173) as one quiet line: an arrow, the signed amount and percentage, and "in 7 days".
- * Muted like the other secondary text, never red or green (ADR 0014: calm, no casino colours); the arrow, the sign and
- * the words carry the direction, and TalkBack hears [weeklyChangeDescription] instead of "minus" and symbols.
+ * Muted like the other secondary text, never red or green: a quiet line on every row, not a ticker. The arrow, the
+ * sign and the words carry the direction, and TalkBack hears [weeklyChangeDescription] instead of "minus" and symbols.
  */
 @Composable
 internal fun WeeklyChangeLine(change: WeeklyChange, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
