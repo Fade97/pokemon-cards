@@ -52,6 +52,7 @@ import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.WantedWithCard
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
+import de.fabianduerkop.cardindex.data.prices.WeeklyChange
 import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
@@ -109,6 +110,7 @@ fun CollectionsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val portfolio by viewModel.portfolio.collectAsStateWithLifecycle()
+    val weekly by viewModel.weeklyChanges.collectAsStateWithLifecycle()
     val wanted by viewModel.wishlistCount.collectAsStateWithLifecycle()
     val view by viewModel.view.collectAsStateWithLifecycle()
     val wantedEntries by wishlist.entries.collectAsStateWithLifecycle()
@@ -175,6 +177,7 @@ fun CollectionsScreen(
                 when (view) {
                     CollectionsView.SETS -> setItems(
                         state,
+                        weekly = weekly,
                         onToggleLanguage = viewModel::toggleLanguage,
                         onOpenSet = onOpenSet,
                     )
@@ -239,6 +242,7 @@ private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView)
 /** Sets view: the count, language chips, the featured set on the foil cover and a row for every other set. */
 private fun LazyListScope.setItems(
     state: CollectionsUiState,
+    weekly: Map<String, WeeklyChange>,
     onToggleLanguage: (String?) -> Unit,
     onOpenSet: (String) -> Unit,
 ) {
@@ -270,13 +274,14 @@ private fun LazyListScope.setItems(
             FeaturedSet(
                 featured,
                 pinned = state.featuredPinned,
+                change = weekly[featured.completion.setId],
                 onClick = { onOpenSet(featured.completion.setId) },
                 modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.xs),
             )
         }
     }
     items(state.otherSets, key = { "set-" + it.completion.setId }) { row ->
-        SetRow(row, onClick = { onOpenSet(row.completion.setId) })
+        SetRow(row, weekly[row.completion.setId], onClick = { onOpenSet(row.completion.setId) })
     }
 }
 
@@ -359,7 +364,7 @@ private fun ValueHeader(
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
-private fun setDescription(row: SetRowUi, pinned: Boolean = false): String {
+private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyChange? = null): String {
     val set = row.completion
     val progress = row.progress
     val parts = listOfNotNull(
@@ -367,6 +372,7 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false): String {
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
     return parts.joinToString(", ")
@@ -377,9 +383,15 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false): String {
  * or the numbered placeholder when there is none or the phone is offline), the count, value and completion bar.
  */
 @Composable
-private fun FeaturedSet(row: SetRowUi, pinned: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun FeaturedSet(
+    row: SetRowUi,
+    pinned: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    change: WeeklyChange? = null,
+) {
     val set = row.completion
-    val description = setDescription(row, pinned)
+    val description = setDescription(row, pinned, change)
     FoilCover(onClick = onClick, modifier = modifier, onClickLabel = stringResource(R.string.collections_open_set)) {
         Column(Modifier.clearAndSetSemantics { contentDescription = description }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -433,6 +445,7 @@ private fun FeaturedSet(row: SetRowUi, pinned: Boolean, onClick: () -> Unit, mod
                     )
                 }
             }
+            change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
             CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
         }
     }
@@ -469,11 +482,14 @@ private fun CardFan(cards: List<CardEntity>, printedTotal: Int, modifier: Modifi
 private val FanCardWidth = 84.dp
 private val FanHeight = 132.dp
 
-/** A compact set row: name, cards and value, and the count with a thin completion bar under it. */
+/**
+ * A compact set row: name, cards and value, the weekly price change with Pro (#173), and the count with a thin
+ * completion bar under it.
+ */
 @Composable
-private fun SetRow(row: SetRowUi, onClick: () -> Unit) {
+private fun SetRow(row: SetRowUi, change: WeeklyChange?, onClick: () -> Unit) {
     val set = row.completion
-    val description = setDescription(row)
+    val description = setDescription(row, change = change)
     val subtitle = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
@@ -486,6 +502,7 @@ private fun SetRow(row: SetRowUi, onClick: () -> Unit) {
         onClick = onClick,
         onClickLabel = stringResource(R.string.collections_open_set),
         contentDescription = description,
+        below = change?.let { { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xxs)) } },
         trailing = {
             Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End) {
                 Text(

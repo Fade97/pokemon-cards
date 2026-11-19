@@ -32,7 +32,10 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
-/** A custom collection or All cards: the copies in it, sortable. Tapping a copy opens its card. */
+/**
+ * A custom collection or All cards: the copies in it, sortable, each with its price and, with Pro, that price's
+ * weekly change (#173). Tapping a copy opens its card.
+ */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun CollectionDetailScreen(
@@ -40,11 +43,19 @@ fun CollectionDetailScreen(
     onOpenCard: (cardId: String, language: String) -> Unit,
     viewModel: CollectionDetailViewModel = viewModel(
         factory = containerViewModelFactory { container, saved ->
-            CollectionDetailViewModel(container.collections, container.prices, container.primaryPriceSource, saved)
+            CollectionDetailViewModel(
+                container.collections,
+                container.prices,
+                container.primaryPriceSource,
+                saved,
+                container.priceHistory,
+                container.entitlements.isPro,
+            )
         },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
+    val weekly by viewModel.weeklyChanges.collectAsStateWithLifecycle()
     var editing by rememberSaveable { mutableStateOf(false) }
     val collection = state.collection
 
@@ -118,7 +129,13 @@ fun CollectionDetailScreen(
                         showCard = true,
                         onClick = { onOpenCard(item.card.id, item.card.language) },
                         trailing = { stacked ->
-                            QuoteColumn(state.quotes[item.copy.id], languageName(item.card.language), state.value?.currency, stacked)
+                            QuoteColumn(
+                                state.quotes[item.copy.id],
+                                languageName(item.card.language),
+                                state.value?.currency,
+                                stacked,
+                                change = weekly[item.copy.id],
+                            )
                         },
                     )
                 }

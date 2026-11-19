@@ -223,7 +223,8 @@ internal fun secretDescription(progress: SetProgress): String? =
 
 /**
  * One row of a Pearl list (collections, binders): optional leading icon, a title that may wrap to two lines, a
- * muted second line, an optional [trailing] block and a chevron. The whole row is one button of at least 56 dp.
+ * muted second line, an optional [below] line under it (e.g. the weekly price change, #173), an optional [trailing]
+ * block and a chevron. The whole row is one button of at least 56 dp.
  * [contentDescription] replaces what TalkBack would read from the texts, e.g. "87 of 165" instead of "87 slash 165".
  */
 @Composable
@@ -235,6 +236,7 @@ internal fun ListRow(
     @DrawableRes icon: Int? = null,
     onClickLabel: String? = null,
     contentDescription: String? = null,
+    below: (@Composable () -> Unit)? = null,
     trailing: @Composable () -> Unit = {},
 ) {
     Column(
@@ -273,6 +275,7 @@ internal fun ListRow(
                         modifier = Modifier.padding(top = Spacing.xxs),
                     )
                 }
+                below?.invoke()
             }
             Spacer(Modifier.width(Spacing.md))
             trailing()
