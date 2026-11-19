@@ -75,7 +75,9 @@ an app release. Format, deltas and the app's checksum checks: [packs.md](packs.m
 - **Set collections** are created automatically for each set the user owns a card from. They show completion
   (e.g. 87/165) and have a language filter. EN/DE/FR/… prints of an international set share one collection; JP
   sets such as SV2a are their own set collections.
-- **Custom collections** are made by the user: binders, a trade pile, a wishlist.
+- **Custom collections** are made by the user: binders, a trade pile.
+- The **wishlist** holds wanted prints, not copies, so they count nowhere: not as owned, not in set completion, not
+  in the value. A wanted print the user then adds a copy of shows as found until it is removed.
 - **Per copy**: quantity, finish (normal/holo/reverse holo) and edition (unlimited/1st edition/shadowless) as two
   separate fields, so a 1st-edition holo fits; condition (NM…Poor) or grade (PSA/CGC…), purchase price and date,
   and optionally the user's scan photo. Each copy has a stable uuid and an `updatedAt` for export/import and sync.

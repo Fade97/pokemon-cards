@@ -193,6 +193,36 @@ class SchemaMigrationTest {
         }
     }
 
+    /** v4 → v5 (#134) only adds the wishlist table; copies stay, and a wanted card adds none. */
+    @Test
+    fun migration4To5_keepsCopies_andStoresWantedCards() {
+        val name = databasePath("migration-4-5.db")
+        helper.createDatabase(name, 4).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('sv03.5', '151', 'SV', 'en', 165, 'INTERNATIONAL', 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired, numberKey) VALUES ('sv03.5-025', 'sv03.5', '025', 'Pikachu', 'en', NULL, NULL, NULL, 0, '25')")
+            execSQL(
+                "INSERT INTO owned_copies (uuid, cardId, cardLanguage, quantity, finish, edition, condition, createdAt, updatedAt) " +
+                    "VALUES ('u-1', 'sv03.5-025', 'en', 2, 'NORMAL', 'UNLIMITED', 'NEAR_MINT', 0, 0)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 5, true, CardIndexDatabase.MIGRATION_4_5).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                db.wishlistDao().insert(WantedCardEntity(cardId = "sv03.5-025", cardLanguage = "en", createdAt = Instant.EPOCH))
+                assertEquals(listOf("u-1" to 2), db.copyDao().observeAllCopies().first().map { it.copy.uuid to it.copy.quantity })
+                assertEquals(listOf(2), db.wishlistDao().observeWishlist().first().map { it.owned })
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     /** Absolute: with a bare name, Room's driver check fails on Windows hosts (backslash paths). */
     private fun databasePath(name: String): String =
         ApplicationProvider.getApplicationContext<Context>().getDatabasePath(name).absolutePath

@@ -123,12 +123,16 @@ interface CatalogDao {
     @Query("SELECT EXISTS(SELECT 1 FROM cards WHERE id = :cardId AND language = :language)")
     suspend fun hasCard(cardId: String, language: String): Boolean
 
-    /** The catalog rows a backup must carry: every card the user owns a copy of or has a price alert on. */
+    /**
+     * The catalog rows a backup must carry: every card the user owns a copy of, has a price alert on or wants
+     * (#134).
+     */
     @Query(
         """
         SELECT c.* FROM cards c
         WHERE EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language)
            OR EXISTS (SELECT 1 FROM price_alerts a WHERE a.cardId = c.id AND a.cardLanguage = c.language)
+           OR EXISTS (SELECT 1 FROM wanted_cards w WHERE w.cardId = c.id AND w.cardLanguage = c.language)
         ORDER BY c.setId, c.localId, c.language
         """,
     )
@@ -142,6 +146,7 @@ interface CatalogDao {
             SELECT c.setId FROM cards c
             WHERE EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language)
                OR EXISTS (SELECT 1 FROM price_alerts a WHERE a.cardId = c.id AND a.cardLanguage = c.language)
+               OR EXISTS (SELECT 1 FROM wanted_cards w WHERE w.cardId = c.id AND w.cardLanguage = c.language)
         )
         ORDER BY s.id
         """,

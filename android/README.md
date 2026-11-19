@@ -331,7 +331,7 @@ Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14
 
 ## Backup (JSON and CSV)
 
-**Settings → Backup** exports all copies, custom collections and price alerts (JSON only) through the Storage
+**Settings → Backup** exports all copies, custom collections, price alerts and the wishlist (both JSON only) through the Storage
 Access Framework and imports them back. Both formats are matched **by copy and collection uuid**, never by the local row id, so importing the
 same file twice changes nothing, and a backup can be merged into a phone whose collection changed since:
 
@@ -346,16 +346,19 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
   alert doesn't notify again after a restore; an alert the phone already has stays as it is (the app can't edit
   an alert, only the check changes its state). Like copies, an alert on a card neither the file nor the phone
   knows is skipped and counted. An import that adds alerts schedules the daily check.
+- Wishlist entries (`wanted`, #134) are matched by uuid too and added when new, unless that print is already on the
+  wishlist. An entry on a card neither the file nor the phone knows is skipped and counted. The file carries the
+  catalog rows of wanted cards as well.
 - Own photos (`filesDir/scans/`) are in neither the JSON/CSV export nor the Android backup or device transfer
   (`backup_rules.xml`, `data_extraction_rules.xml`: database and settings only, which keeps the app far below
   Auto Backup's 25 MB quota). Copying a phone's collection keeps the copies; their photos stay on the old phone.
 
-### JSON format, version 2
+### JSON format, version 3
 
 ```json
 {
   "format": "cardindex-backup",
-  "version": 2,
+  "version": 3,
   "exportedAt": "2026-11-17T10:00:00Z",
   "sets": [{ "id": "sv03.5", "name": "151", "series": "Scarlet & Violet", "language": "en",
              "printedTotal": 165, "region": "INTERNATIONAL" }],
@@ -369,7 +372,9 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
                     "updatedAt": "2026-03-12T09:30:00Z", "copies": ["6f1c3c2e-…"] }],
   "alerts": [{ "uuid": "8a6b3a52-…", "cardId": "sv03.5-006", "cardLanguage": "de", "source": "CARDMARKET",
                "variant": "HOLO", "direction": "ABOVE", "thresholdMinor": 5000, "currency": "EUR",
-               "createdAt": "2026-11-01T08:00:00Z", "triggeredAt": null, "armed": true }]
+               "createdAt": "2026-11-01T08:00:00Z", "triggeredAt": null, "armed": true }],
+  "wanted": [{ "uuid": "c41d…", "cardId": "sv03.5-025", "cardLanguage": "de",
+               "createdAt": "2026-11-18T08:00:00Z", "updatedAt": "2026-11-18T08:00:00Z" }]
 }
 ```
 
@@ -385,10 +390,11 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
 - `version` is bumped when an older app would misread the file or silently drop part of it; other new optional
   fields don't bump it. The app refuses files with a higher version than it knows, and still reads every older
   one. Version 2 added `alerts`: a version-1 app would restore such a file without its alerts and not say so.
+  Version 3 added `wanted` (the wishlist) for the same reason.
 
 ### CSV format
 
-The CSV is a spreadsheet view of the copies, not a full backup: it has no price alerts. One row per copy, UTF-8 with a byte order mark (so Excel shows Japanese names), comma separated, RFC 4180 quoting:
+The CSV is a spreadsheet view of the copies, not a full backup: it has no price alerts and no wishlist. One row per copy, UTF-8 with a byte order mark (so Excel shows Japanese names), comma separated, RFC 4180 quoting:
 
 `uuid, card_id, language, set_id, set_name, set_total, set_region, number, name, quantity, finish, edition,
 condition, grader, grade, purchase_price, purchase_currency, purchase_date, collections, created_at, updated_at`

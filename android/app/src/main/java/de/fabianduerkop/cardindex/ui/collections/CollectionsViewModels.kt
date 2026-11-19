@@ -223,6 +223,9 @@ class CollectionsViewModel(
 
     fun setPortfolioRange(range: HistoryRange) { portfolioChart.range.value = range }
 
+    /** Wishlist entries (#134) the user has no copy of yet, for the wishlist row. */
+    val wishlistCount: StateFlow<Int> = repository.observeWishlistCount().stateIn(this, 0)
+
     init {
         // Keep the cached prices of owned cards fresh; PriceRepository skips cards fetched in the last 12 hours.
         viewModelScope.launch {
@@ -361,6 +364,21 @@ class CardDetailViewModel(
     }.stateIn(this, null)
 
     fun setHistoryRange(range: HistoryRange) { chart.range.value = range }
+
+    /** Whether the shown print is on the wishlist (#134). */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val wanted: StateFlow<Boolean> = state
+        .map { s -> s.detail?.card?.let { it.id to it.language } }
+        .distinctUntilChanged()
+        .flatMapLatest { key -> key?.let { repository.observeWanted(it.first, it.second) } ?: flowOf(false) }
+        .stateIn(this, false)
+
+    /** Puts the shown print on the wishlist or takes it off; no copy is added or removed. */
+    fun setWanted(card: CardEntity, want: Boolean) {
+        viewModelScope.launch {
+            if (want) repository.addToWishlist(card.id, card.language) else repository.removeFromWishlist(card.id, card.language)
+        }
+    }
 
     /** Pro (#76): this card's price alerts. Null without Pro. */
     @OptIn(ExperimentalCoroutinesApi::class)

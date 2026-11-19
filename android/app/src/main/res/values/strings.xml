@@ -113,6 +113,20 @@
     <string name="collections_print">%1$s, %2$s print</string>
     <string name="collections_your_copies">Your copies (%1$d)</string>
     <string name="collections_add_copy">Add a copy</string>
+    <!-- Wishlist (#134): wanted cards, not copies. -->
+    <string name="wishlist_title">Wishlist</string>
+    <plurals name="wishlist_wanted_count">
+        <item quantity="one">%1$d wanted</item>
+        <item quantity="other">%1$d wanted</item>
+    </plurals>
+    <string name="wishlist_add">Add to wishlist</string>
+    <string name="wishlist_remove">Remove from wishlist</string>
+    <string name="wishlist_on">On your wishlist</string>
+    <string name="wishlist_hint">Wanted cards don\'t count as owned, in set completion or in the value.</string>
+    <string name="wishlist_empty">Nothing on your wishlist yet. Open a card and tap Add to wishlist.</string>
+    <string name="wishlist_found">You own it now</string>
+    <string name="wishlist_remove_short">Remove</string>
+    <string name="wishlist_remove_description">Remove %1$s from the wishlist</string>
     <string name="collections_open_card">Open card</string>
     <string name="collections_copy_line">%1$d× %2$s</string>
     <string name="collections_only_all_cards">All cards only</string>

@@ -62,6 +62,7 @@ import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
@@ -96,6 +97,7 @@ fun CardDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val history by viewModel.history.collectAsStateWithLifecycle()
     val alerts by viewModel.alerts.collectAsStateWithLifecycle()
+    val wanted by viewModel.wanted.collectAsStateWithLifecycle()
     val askNotifications = rememberNotificationPermissionRequest()
     val detail = state.detail
     var editing by remember { mutableStateOf<OwnedCopyEntity?>(null) }
@@ -189,9 +191,10 @@ fun CardDetailScreen(
                         stringResource(R.string.collections_add_copy),
                         onClick = { editing = newCopyOf(detail.card) },
                         icon = R.drawable.ic_add,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = Spacing.lg),
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.lg),
                     )
                 }
+                item { WishlistToggle(wanted, onChange = { viewModel.setWanted(detail.card, it) }) }
             }
         }
     }
@@ -229,6 +232,30 @@ fun CardDetailScreen(
                     )
                 }
             },
+        )
+    }
+}
+
+/**
+ * Wishlist (#134) for the shown print, under "Add a copy": a quieter button, since wanting a card adds no copy. When
+ * it is on the wishlist, a line says so above the button that takes it off.
+ */
+@Composable
+private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.sm, bottom = Spacing.lg)) {
+        if (wanted) {
+            Text(
+                stringResource(R.string.wishlist_on),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.xs),
+            )
+        }
+        SecondaryButton(
+            stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add),
+            onClick = { onChange(!wanted) },
+            icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
+            modifier = Modifier.fillMaxWidth(),
         )
     }
 }

@@ -12,6 +12,8 @@ import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.CopyWithCard
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.data.db.SetCompletion
+import de.fabianduerkop.cardindex.data.db.WantedCardEntity
+import de.fabianduerkop.cardindex.data.db.WantedWithCard
 import de.fabianduerkop.cardindex.data.images.ScanImageStore
 import de.fabianduerkop.cardindex.model.CollectionKind
 import java.time.Clock
@@ -47,8 +49,8 @@ data class CardDetail(
 )
 
 /**
- * Collections over Room (ADR 0006): All Cards, automatic set collections, custom collections, and the copies in
- * them. Every write to a user row sets its `updatedAt`, which export/import (#13) and sync (#16) rely on.
+ * Collections over Room (ADR 0006): All Cards, automatic set collections, custom collections, the copies in
+ * them, and the wishlist (#134), which holds wanted prints instead of copies. Every write to a user row sets its `updatedAt`, which export/import (#13) and sync (#16) rely on.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class CollectionRepository(
@@ -60,6 +62,7 @@ class CollectionRepository(
 ) {
     private val copyDao = db.copyDao()
     private val collectionDao = db.collectionDao()
+    private val wishlistDao = db.wishlistDao()
 
     fun observeAllCopies(): Flow<List<CopyWithCard>> = copyDao.observeAllCopies()
 
@@ -155,6 +158,23 @@ class CollectionRepository(
         collectionDao.removeCopyFromAll(id)
         collectionIds.forEach { collectionDao.addCopy(CollectionCopyCrossRef(it, id)) }
         id
+    }
+
+    /** The wishlist (#134): wanted prints, still wanted ones first. */
+    fun observeWishlist(): Flow<List<WantedWithCard>> = wishlistDao.observeWishlist()
+
+    /** Wishlist entries the user has no copy of yet. */
+    fun observeWishlistCount(): Flow<Int> = wishlistDao.observeOpenCount()
+
+    fun observeWanted(cardId: String, language: String): Flow<Boolean> = wishlistDao.observeIsWanted(cardId, language)
+
+    /** Puts a print on the wishlist; nothing changes when it is there already. No copy is made. */
+    suspend fun addToWishlist(cardId: String, language: String) {
+        wishlistDao.insert(WantedCardEntity(cardId = cardId, cardLanguage = language, createdAt = now()))
+    }
+
+    suspend fun removeFromWishlist(cardId: String, language: String) {
+        wishlistDao.delete(cardId, language)
     }
 
     suspend fun deleteCopy(copyId: Long) {

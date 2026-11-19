@@ -7,6 +7,7 @@ import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.alerts.AlertDirection
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.data.db.PriceAlertEntity
+import de.fabianduerkop.cardindex.data.db.WantedCardEntity
 import de.fabianduerkop.cardindex.model.CollectionKind
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
@@ -38,6 +39,8 @@ data class BackupData(
     val memberships: Map<String, List<String>>,
     /** Price alerts (#76), since format version 2. Only the JSON carries them; the CSV is one row per copy. */
     val alerts: List<PriceAlertEntity> = emptyList(),
+    /** The wishlist (#134), since format version 3. JSON only, like alerts. */
+    val wanted: List<WantedCardEntity> = emptyList(),
 )
 
 class BackupFormatException(message: String, cause: Throwable? = null) : Exception(message, cause)
@@ -52,8 +55,9 @@ object BackupJson {
     /**
      * Bump when a reader of the old version would misread the new one or silently drop part of it; other new fields
      * need no bump. 2 added `alerts` (#94): a version-1 app would restore such a file without its alerts and not say so.
+     * 3 added `wanted` (#134), the wishlist, for the same reason.
      */
-    const val VERSION = 2
+    const val VERSION = 3
 
     fun write(data: BackupData, exportedAt: Instant): String = JSONObject()
         .put("format", FORMAT)
@@ -76,6 +80,7 @@ object BackupJson {
             ),
         )
         .put("alerts", JSONArray(data.alerts.map { it.toJson() }))
+        .put("wanted", JSONArray(data.wanted.map { it.toJson() }))
         .toString(2)
 
     fun read(text: String): BackupData {
@@ -106,6 +111,8 @@ object BackupJson {
                 memberships = collections.associate { it.getString("uuid") to it.optJSONArray("copies").strings() },
                 // Missing in version 1 files: those restore without alerts.
                 alerts = root.optJSONArray("alerts").objects().map(::alertFromJson),
+                // Missing before version 3: those restore without a wishlist.
+                wanted = root.optJSONArray("wanted").objects().map(::wantedFromJson),
             )
         } catch (e: org.json.JSONException) {
             throw BackupFormatException("Backup is damaged: ${e.message}", e)
@@ -175,6 +182,24 @@ object BackupJson {
             purchasePriceCents = if (o.isNull("purchasePriceMinor")) null else o.getLong("purchasePriceMinor"),
             purchaseCurrency = o.optStringOrNull("purchaseCurrency"),
             purchaseDate = o.optStringOrNull("purchaseDate")?.let(LocalDate::parse),
+            createdAt = createdAt,
+            updatedAt = o.optStringOrNull("updatedAt")?.let(Instant::parse) ?: createdAt,
+        )
+    }
+
+    private fun WantedCardEntity.toJson() = JSONObject()
+        .put("uuid", uuid)
+        .put("cardId", cardId)
+        .put("cardLanguage", cardLanguage)
+        .put("createdAt", createdAt.toString())
+        .put("updatedAt", updatedAt.toString())
+
+    private fun wantedFromJson(o: JSONObject): WantedCardEntity {
+        val createdAt = Instant.parse(o.getString("createdAt"))
+        return WantedCardEntity(
+            uuid = UUID.fromString(o.getString("uuid")).toString(),
+            cardId = o.getString("cardId"),
+            cardLanguage = o.getString("cardLanguage"),
             createdAt = createdAt,
             updatedAt = o.optStringOrNull("updatedAt")?.let(Instant::parse) ?: createdAt,
         )
