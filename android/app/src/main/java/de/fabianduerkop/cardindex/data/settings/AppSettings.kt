@@ -70,6 +70,16 @@ class AppSettings(context: Context) {
         if (scanTargetCollection == uuid) scanTargetCollection = null
     }
 
+    /**
+     * Set id the user pinned to the Collections foil cover (#156), or null for the default: the most valuable set.
+     * Kept when the set leaves the list, so it returns to the cover once the user owns its cards again.
+     */
+    var featuredSet: String?
+        get() = prefs.getString(KEY_FEATURED_SET, null)
+        set(value) = prefs.edit { if (value == null) remove(KEY_FEATURED_SET) else putString(KEY_FEATURED_SET, value) }
+
+    val featuredSetFlow: Flow<String?> = observe { featuredSet }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -92,5 +102,6 @@ class AppSettings(context: Context) {
         const val KEY_DEBUG_PRO = "debug_pro"
         const val KEY_PACKS_ON_MOBILE_DATA = "packs_on_mobile_data"
         const val KEY_SCAN_TARGET = "scan_target_collection"
+        const val KEY_FEATURED_SET = "featured_set"
     }
 }
