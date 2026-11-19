@@ -5,23 +5,27 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -35,14 +39,18 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -58,6 +66,8 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CARD_ASPECT
 import de.fabianduerkop.cardindex.ui.components.CardImage
+import de.fabianduerkop.cardindex.ui.components.CardViewer
+import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
@@ -72,8 +82,10 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.io.File
 
 /**
- * Card detail (Pearl study "Card details", #99): the art, the collector number first, then the price, Pro history and
- * alerts, and the user's copies with "Add a copy" as the one solid button. Opened from Collections and from Search.
+ * Card detail (Pearl study "Card details", #99): the art as the hero, the collector number first under it with the
+ * Wishlist after the name, then the price, Pro history and alerts, and the user's copies. "Add a copy", the one solid
+ * button, sits in a bottom bar that stays in thumb reach however far the page scrolls (#166). Tapping the art, or a
+ * copy's photo in the copy sheet, opens the full-screen [CardViewer]. Opened from Collections and from Search.
  */
 @Composable
 fun CardDetailScreen(
@@ -103,6 +115,10 @@ fun CardDetailScreen(
     var editing by remember { mutableStateOf<OwnedCopyEntity?>(null) }
     val context = LocalContext.current
     var pickingFor by rememberSaveable { mutableStateOf<String?>(null) }
+    // The viewer's page while it is open (#166); kept across rotation.
+    var viewing by rememberSaveable { mutableStateOf<Int?>(null) }
+    val images = remember(detail, state.photos) { detail?.let { detailImages(it, state.photos) } }
+    val pages = if (detail != null && images != null) viewerImages(detail, images) else null
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         val uuid = pickingFor
         if (uri != null && uuid != null) {
@@ -113,7 +129,11 @@ fun CardDetailScreen(
         pickingFor = null
     }
 
-    DetailScaffold(title = detail?.set?.name ?: detail?.card?.name.orEmpty(), onBack = onBack) { padding ->
+    DetailScaffold(
+        title = detail?.set?.name ?: detail?.card?.name.orEmpty(),
+        onBack = onBack,
+        bottomBar = { if (detail != null) AddCopyBar(onAdd = { editing = newCopyOf(detail.card) }) },
+    ) { padding ->
         when {
             state.loading -> Unit
             detail == null -> PlaceholderText(
@@ -121,7 +141,16 @@ fun CardDetailScreen(
                 Modifier.padding(padding).padding(ScreenPadding),
             )
             else -> LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
-                item { CardHeader(detail, state.photos) }
+                item {
+                    CardHeader(
+                        detail = detail,
+                        photos = state.photos,
+                        heroDescription = pages?.getOrNull(images?.heroIndex ?: 0)?.description,
+                        onView = { viewing = images?.heroIndex ?: 0 },
+                        wanted = wanted,
+                        onWanted = { viewModel.setWanted(detail.card, it) },
+                    )
+                }
                 item {
                     // Price the printing the user owns in this language, or the plain print if they own none.
                     val owned = detail.pricedCopy()
@@ -186,15 +215,7 @@ fun CardDetailScreen(
                         onClick = { editing = item.copy },
                     )
                 }
-                item {
-                    PrimaryButton(
-                        stringResource(R.string.collections_add_copy),
-                        onClick = { editing = newCopyOf(detail.card) },
-                        icon = R.drawable.ic_add,
-                        modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.lg),
-                    )
-                }
-                item { WishlistToggle(wanted, onChange = { viewModel.setWanted(detail.card, it) }) }
+                item { Spacer(Modifier.height(Spacing.lg)) }
             }
         }
     }
@@ -224,6 +245,7 @@ fun CardDetailScreen(
                 if (draft.id != 0L) {
                     OwnPhotoField(
                         photo = state.photos.of(draft.uuid),
+                        onView = { images?.indexOfPhoto(draft.uuid)?.let { viewing = it } },
                         onPick = {
                             pickingFor = draft.uuid
                             pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
@@ -234,15 +256,66 @@ fun CardDetailScreen(
             },
         )
     }
+
+    val page = viewing
+    if (page != null && !pages.isNullOrEmpty()) {
+        CardViewer(images = pages, initialPage = page.coerceIn(pages.indices), onDismiss = { viewing = null })
+    }
+}
+
+/** The viewer's pages with their names and what TalkBack says for each (#166). */
+@Composable
+private fun viewerImages(detail: CardDetail, images: DetailImages): List<CardViewerImage> {
+    val title = cardTitle(detail)
+    return images.images.map { image ->
+        when (image) {
+            is DetailImage.Official -> CardViewerImage(
+                model = image.model,
+                label = stringResource(R.string.viewer_official),
+                description = stringResource(R.string.viewer_official_description, title),
+            )
+            is DetailImage.OwnPhoto -> {
+                val copy = listOf(
+                    stringResource(R.string.collections_copy_line, image.copy.copy.quantity, copyDescription(image.copy.copy)),
+                    languageName(image.copy.card.language),
+                ).joinToString(", ")
+                CardViewerImage(
+                    model = image.model,
+                    label = stringResource(R.string.viewer_own_photo, copy),
+                    description = stringResource(R.string.viewer_own_photo_description, title, copy),
+                    key = "photo:" + image.copy.copy.uuid,
+                )
+            }
+        }
+    }
 }
 
 /**
- * Wishlist (#134) for the shown print, under "Add a copy": a quieter button, since wanting a card adds no copy. When
- * it is on the wishlist, a line says so above the button that takes it off.
+ * "Add a copy" in a bar under the list (#166), so it is in thumb reach on a tall phone without scrolling past the
+ * prices and copies. It stays the page's one solid button (ADR 0014).
  */
 @Composable
-private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit) {
-    Column(Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.sm, bottom = Spacing.lg)) {
+private fun AddCopyBar(onAdd: () -> Unit) {
+    Surface(color = MaterialTheme.colorScheme.surfaceContainerLow) {
+        Column(Modifier.navigationBarsPadding()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            PrimaryButton(
+                stringResource(R.string.collections_add_copy),
+                onClick = onAdd,
+                icon = R.drawable.ic_add,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = ScreenPadding, vertical = Spacing.sm),
+            )
+        }
+    }
+}
+
+/**
+ * Wishlist (#134) for the shown print, in the identity block under the name (#166): a quieter button, since wanting a
+ * card adds no copy. When it is on the wishlist, a line says so above the button that takes it off.
+ */
+@Composable
+private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+    Column(modifier) {
         if (wanted) {
             Text(
                 stringResource(R.string.wishlist_on),
@@ -255,7 +328,6 @@ private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit) {
             stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add),
             onClick = { onChange(!wanted) },
             icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
-            modifier = Modifier.fillMaxWidth(),
         )
     }
 }
@@ -268,27 +340,50 @@ private fun cardTitle(detail: CardDetail): String {
 }
 
 /**
- * Art on a raised panel, then the collector number as the strongest type (ADR 0010/0014), the name, and set and
- * language. Without art the numbered placeholder stands in, at the same size.
+ * The art as the hero (#166): full width inside the screen gutter, on the page itself rather than a grey band, and
+ * capped so the collector number still shows under it on a phone and the card stays in view in landscape. When there
+ * is an image to show ([heroDescription], what TalkBack says for it), tapping it opens the viewer. Then the collector
+ * number as the strongest type (ADR 0010/0014), the name, set and language, and the Wishlist. Without art the
+ * numbered placeholder stands in.
  */
 @Composable
-private fun CardHeader(detail: CardDetail, photos: OwnPhotos) {
-    // The newest photo of a copy in the shown language, else of any copy of the card.
-    val copies = detail.copies.sortedByDescending { it.card.language == detail.card.language }.map { it.copy.uuid }
+private fun CardHeader(
+    detail: CardDetail,
+    photos: OwnPhotos,
+    heroDescription: String?,
+    onView: () -> Unit,
+    wanted: Boolean,
+    onWanted: (Boolean) -> Unit,
+) {
+    val windowHeight = with(LocalDensity.current) { LocalWindowInfo.current.containerSize.height.toDp() }
+    val artWidth = min(HeroMaxWidth, windowHeight * HeroMaxHeightFraction * CARD_ASPECT)
+    val shape = MaterialTheme.shapes.small
+    val openLabel = stringResource(R.string.viewer_open)
     Column {
         Box(
-            Modifier
-                .fillMaxWidth()
-                .background(MaterialTheme.colorScheme.surfaceContainer)
-                .padding(vertical = Spacing.xl),
+            Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.sm),
             contentAlignment = Alignment.Center,
         ) {
             CardImage(
                 card = detail.card,
                 localId = detail.card.localId,
                 printedTotal = detail.set?.printedTotal,
-                modifier = Modifier.width(176.dp),
-                ownPhoto = photos.firstOf(copies),
+                modifier = Modifier
+                    .widthIn(max = artWidth)
+                    .fillMaxWidth()
+                    .then(
+                        if (heroDescription != null) {
+                            Modifier
+                                .focusRing(shape)
+                                .clip(shape)
+                                .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
+                                .clearAndSetSemantics { contentDescription = heroDescription }
+                        } else {
+                            Modifier
+                        },
+                    ),
+                // The newest photo of a copy in the shown language, else of any copy of the card.
+                ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
                 preferOwnPhoto = photos.preferOwn,
                 quality = ImageQuality.HIGH,
             )
@@ -314,13 +409,20 @@ private fun CardHeader(detail: CardDetail, photos: OwnPhotos) {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
             )
+            WishlistToggle(wanted, onChange = onWanted, modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm))
         }
     }
 }
 
-/** The own-photo row of the copy sheet: thumbnail, pick or replace, remove. */
+/** The hero never gets wider than this (tablets, foldables) … */
+private val HeroMaxWidth = 400.dp
+
+/** … nor taller than this share of the window, so the collector number shows under it without scrolling. */
+private const val HeroMaxHeightFraction = 0.6f
+
+/** The own-photo row of the copy sheet: thumbnail (tap to view it full screen, #166), pick or replace, remove. */
 @Composable
-private fun OwnPhotoField(photo: File?, onPick: () -> Unit, onRemove: () -> Unit) {
+private fun OwnPhotoField(photo: File?, onView: () -> Unit, onPick: () -> Unit, onRemove: () -> Unit) {
     Text(stringResource(R.string.copy_photo), style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = Spacing.sm))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         if (photo != null) {
@@ -328,7 +430,12 @@ private fun OwnPhotoField(photo: File?, onPick: () -> Unit, onRemove: () -> Unit
                 model = photo,
                 contentDescription = stringResource(R.string.copy_photo),
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.width(56.dp).aspectRatio(CARD_ASPECT).clip(MaterialTheme.shapes.small),
+                modifier = Modifier
+                    .width(56.dp)
+                    .aspectRatio(CARD_ASPECT)
+                    .focusRing(MaterialTheme.shapes.small)
+                    .clip(MaterialTheme.shapes.small)
+                    .clickable(onClickLabel = stringResource(R.string.viewer_open), role = Role.Button, onClick = onView),
             )
         }
         TextAction(stringResource(if (photo == null) R.string.copy_photo_add else R.string.copy_photo_replace), onClick = onPick)

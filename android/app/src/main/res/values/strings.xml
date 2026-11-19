@@ -256,6 +256,23 @@
     <string name="copy_photo_hint">Shown when the card has no image, or always if you prefer your own photos in Settings. Stays on this device.</string>
     <string name="copy_photo_failed">That file could not be read as an image.</string>
 
+    <!-- Full-screen card viewer (#166). -->
+    <string name="viewer_title">Card viewer</string>
+    <!-- Click label TalkBack reads as "double-tap to view full screen", for the card art and a copy's photo. -->
+    <string name="viewer_open">view full screen</string>
+    <string name="viewer_official">Card image</string>
+    <!-- %1$s: the card, e.g. "025/165 Pikachu, Surging Sparks". -->
+    <string name="viewer_official_description">Card image of %1$s</string>
+    <!-- %1$s: the copy, e.g. "1× Holo, NM, English". -->
+    <string name="viewer_own_photo">Your photo, %1$s</string>
+    <!-- %1$s: the card; %2$s: the copy. -->
+    <string name="viewer_own_photo_description">Your photo of %1$s, %2$s</string>
+    <!-- %1$d: the shown image; %2$d: how many there are. -->
+    <string name="viewer_position">%1$d of %2$d</string>
+    <string name="viewer_zoom_in">Zoom in</string>
+    <string name="viewer_zoom_reset">Reset zoom</string>
+    <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
+
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
     <string name="finish_reverse_holo">Reverse holo</string>
