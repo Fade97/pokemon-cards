@@ -68,7 +68,7 @@
     <string name="collections_view_sets">Sets</string>
     <string name="collections_view_binders">Binders</string>
     <string name="collections_view_wishlist">Wishlist</string>
-    <string name="collections_binders_empty">No binders of your own yet. Tap New to start one, for example a trade binder.</string>
+    <string name="collections_binders_empty">No collections of your own yet. Tap New to start one, for example a trade binder.</string>
     <string name="collections_all_cards">All cards</string>
     <plurals name="collections_cards_count">
         <item quantity="one">%1$d card</item>
@@ -200,6 +200,9 @@
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
     <string name="weekly_change">%1$s in 7 days</string>
     <string name="weekly_change_flat">No change in 7 days</string>
+    <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
+    <string name="weekly_change_short">%1$s · 7 days</string>
+    <string name="weekly_change_short_flat">No change · 7 days</string>
     <!-- Which copies the change covers, when some have no week of price history -->
     <plurals name="weekly_change_covered">
         <item quantity="one">%1$d of %2$d copy</item>
@@ -272,6 +275,7 @@
     <string name="viewer_zoom_in">Zoom in</string>
     <string name="viewer_zoom_reset">Reset zoom</string>
     <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
+    <string name="viewer_photo_failed">This photo could not be loaded. It may have been moved or deleted.</string>
 
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
@@ -453,7 +457,7 @@
     <string name="scan_removed">Took back %1$s.</string>
     <string name="scan_save_failed">Couldn’t save %1$s. Keep it in view to try again.</string>
     <!-- Empty tray once the user has scanned before (#162); scan_tray_empty is the first-run explanation. -->
-    <string name="scan_tray_ready">Hold a card in the frame to add it.</string>
+    <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>

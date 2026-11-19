@@ -289,13 +289,15 @@ class CollectionsViewModel(
         if (!pro) {
             flowOf(emptyMap())
         } else {
-            val today = history.today()
+            // The history window is fixed when Pro turns on; "today" is read on every update, so a screen left open
+            // past midnight (UTC) still judges staleness by the real date.
             combine(
                 base,
                 prices.observeAll(),
-                history.observeAll(WeeklyPriceChange.from(today)),
+                history.observeAll(WeeklyPriceChange.from(history.today())),
                 primarySource,
             ) { b, priceMap, rows, source ->
+                val today = history.today()
                 b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
                     .groupBy { it.set.id }
                     .mapNotNull { (setId, copies) ->
@@ -358,6 +360,9 @@ internal object SetLegend {
     const val FIRST_VISITS = 3
 
     fun showsOnVisit(pastVisits: Int): Boolean = pastVisits < FIRST_VISITS
+
+    /** One visit after [pastVisits] earlier ones: whether the legend shows, and [record] counted only when it does. */
+    fun visit(pastVisits: Int, record: () -> Unit): Boolean = showsOnVisit(pastVisits).also { if (it) record() }
 }
 
 data class SetDetailUiState(
@@ -393,11 +398,7 @@ class SetDetailViewModel(
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
     // One visit per screen, not per rotation: the view model outlives configuration changes (#165).
-    private val legend = MutableStateFlow(SetLegend.showsOnVisit(pastLegendVisits))
-
-    init {
-        if (legend.value) recordLegendVisit()
-    }
+    private val legend = MutableStateFlow(SetLegend.visit(pastLegendVisits, recordLegendVisit))
 
     private val view = combine(selected, mode, filter, photos, pinnedSet) { chosen, mode, filter, photos, pinnedId ->
         SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
@@ -645,8 +646,8 @@ class CollectionDetailViewModel(
                 if (!pro) {
                     flowOf(emptyMap())
                 } else {
-                    val today = history.today()
-                    combine(state, history.observeAll(WeeklyPriceChange.from(today))) { s, rows ->
+                    combine(state, history.observeAll(WeeklyPriceChange.from(history.today()))) { s, rows ->
+                        val today = history.today()
                         s.copies.mapNotNull { item ->
                             val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
                             WeeklyPriceChange.ofQuote(rows[item.card.id].orEmpty(), quote, today)?.let { item.copy.id to it }

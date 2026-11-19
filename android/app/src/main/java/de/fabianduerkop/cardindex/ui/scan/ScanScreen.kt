@@ -639,15 +639,17 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
 
 /**
  * "€48.20" for the session's added cards in the main market (#162), with "· 2 without a EUR price" when some have
- * none there; null until any added card has a price, so the line never says €0.00.
+ * none there. With no price at all it says only "3 without a EUR price", never €0.00; null before anything was added.
  */
 @Composable
 private fun sessionValue(value: CollectionValue): String? {
-    if (value.pricedCopies == 0) return null
+    val unpriced = value.unpricedCopies.takeIf { it > 0 }?.let {
+        pluralStringResource(R.plurals.scan_session_unpriced, it, it, value.currency)
+    }
+    // Nothing priced yet (offline, or only cards this market doesn't price): still say how many have no price.
+    if (value.pricedCopies == 0) return unpriced
     val amount = Money.format(value.amountMinor, value.currency)
-    if (value.unpricedCopies == 0) return amount
-    return amount + " · " +
-        pluralStringResource(R.plurals.scan_session_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency)
+    return if (unpriced == null) amount else "$amount · $unpriced"
 }
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */
