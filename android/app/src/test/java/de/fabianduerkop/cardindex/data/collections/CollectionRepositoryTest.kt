@@ -164,4 +164,31 @@ class CollectionRepositoryTest {
         repository.deleteCopy(id)
         assertTrue(repository.observeAllCopies().first().isEmpty())
     }
+
+    /** #134: a wanted card is no copy, so it counts nowhere; a copy of that print later marks it found. */
+    @Test
+    fun wishlist_addsNoCopies_countsOnlyStillWantedPrints_andFindsAnAddedCopy() = runTest {
+        db.seedCatalog()
+        repository.addToWishlist("sv03.5-025", "de")
+        repository.addToWishlist("sv03.5-025", "de") // once per print
+        repository.addToWishlist("sv03.5-006", "en")
+
+        assertTrue(repository.observeAllCopies().first().isEmpty())
+        assertTrue(repository.observeSetCompletion(null).first().isEmpty())
+        assertTrue(repository.observeSetCompletion(setOf("de", "en")).first().isEmpty())
+        assertTrue(repository.observeWanted("sv03.5-025", "de").first())
+        assertEquals(false, repository.observeWanted("sv03.5-025", "en").first())
+        assertEquals(2, repository.observeWishlistCount().first())
+
+        repository.saveCopy(copy("sv03.5-006", "en"), emptySet())
+        val list = repository.observeWishlist().first()
+        assertEquals(listOf("sv03.5-025" to 0, "sv03.5-006" to 1), list.map { it.card.id to it.owned })
+        assertEquals(1, repository.observeWishlistCount().first())
+        // The completion counts the copy, not the wanted 025.
+        assertEquals(1, repository.observeSetCompletion(null).first().single().ownedNumbers)
+
+        repository.removeFromWishlist("sv03.5-025", "de")
+        assertEquals(listOf("sv03.5-006"), repository.observeWishlist().first().map { it.card.id })
+        assertEquals(0, repository.observeWishlistCount().first())
+    }
 }

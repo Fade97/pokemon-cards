@@ -24,6 +24,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PriceHistoryEntity::class,
         PriceHistoryFetchEntity::class,
         PriceAlertEntity::class,
+        WantedCardEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -37,10 +38,11 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun contributionDao(): ContributionDao
     abstract fun priceHistoryDao(): PriceHistoryDao
     abstract fun priceAlertDao(): PriceAlertDao
+    abstract fun wishlistDao(): WishlistDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 4
+        const val VERSION = 5
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -86,8 +88,26 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /** v5 (#134): the wishlist, wanted prints without a copy. A new table only. */
+        val MIGRATION_4_5 = object : Migration(4, 5) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `wanted_cards` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, " +
+                        "`uuid` TEXT NOT NULL, `cardId` TEXT NOT NULL, `cardLanguage` TEXT NOT NULL, " +
+                        "`createdAt` INTEGER NOT NULL, `updatedAt` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`cardId`, `cardLanguage`) REFERENCES `cards`(`id`, `language`) " +
+                        "ON UPDATE NO ACTION ON DELETE NO ACTION )",
+                )
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS `index_wanted_cards_uuid` ON `wanted_cards` (`uuid`)")
+                db.execSQL(
+                    "CREATE UNIQUE INDEX IF NOT EXISTS `index_wanted_cards_cardId_cardLanguage` " +
+                        "ON `wanted_cards` (`cardId`, `cardLanguage`)",
+                )
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5)
 
         private const val NAME = "cardindex.db"
 

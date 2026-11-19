@@ -24,6 +24,7 @@ object CollectionsRoutes {
     const val SET = "collections/set/{$ARG_SET_ID}"
     const val CARD = "collections/card/{$ARG_CARD_ID}/{$ARG_LANGUAGE}"
     const val COLLECTION = "collections/collection/{$ARG_COLLECTION_ID}"
+    const val WISHLIST = "collections/wishlist"
 
     fun set(setId: String) = "collections/set/${Uri.encode(setId)}"
     fun card(cardId: String, language: String) = "collections/card/${Uri.encode(cardId)}/${Uri.encode(language)}"
@@ -38,6 +39,13 @@ fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: (
                 onOpenSet = { navController.navigate(CollectionsRoutes.set(it)) },
                 onOpenCollection = { navController.navigate(CollectionsRoutes.collection(it)) },
                 onOpenScan = onOpenScan,
+                onOpenWishlist = { navController.navigate(CollectionsRoutes.WISHLIST) },
+            )
+        }
+        composable(CollectionsRoutes.WISHLIST) {
+            WishlistScreen(
+                onBack = { navController.popBackStack() },
+                onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
             )
         }
         composable(CollectionsRoutes.SET) {

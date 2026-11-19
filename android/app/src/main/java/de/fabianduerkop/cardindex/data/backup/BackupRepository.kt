@@ -30,6 +30,10 @@ data class ImportResult(
     val alertsUnchanged: Int = 0,
     /** Alerts on cards neither the backup nor this phone's catalog has; left out like such copies. */
     val alertsSkipped: Int = 0,
+    /** Wishlist entries (#134) added; a print that is already on the wishlist is left as it is. */
+    val wantedAdded: Int = 0,
+    /** Wishlist entries on cards neither the backup nor this phone's catalog has; left out like such copies. */
+    val wantedSkipped: Int = 0,
 ) {
     val hasAlerts: Boolean get() = alertsAdded + alertsUnchanged + alertsSkipped > 0
 }
@@ -41,6 +45,8 @@ enum class BackupFileType { JSON, CSV }
  * idempotent and can merge a backup into a collection that changed since. A copy or collection in the file replaces
  * the local one when the file's `updatedAt` is not older and the content differs; otherwise the local one stays.
  * Memberships are merged as a union: an import adds copies to collections but never takes them out.
+ *
+ * Wishlist entries (JSON only, #134) are added like alerts: by new uuid, and only for a print not wanted yet.
  *
  * Price alerts (JSON only) are added when their uuid is new and left alone when it exists: the app can't edit an
  * alert, only its armed/notified state changes, and the phone's own state is the one its checks rely on.
@@ -55,6 +61,7 @@ class BackupRepository(
     private val copies = db.copyDao()
     private val collections = db.collectionDao()
     private val alerts = db.priceAlertDao()
+    private val wishlist = db.wishlistDao()
 
     suspend fun snapshot(): BackupData = db.withTransaction {
         val custom = collections.allCustom()
@@ -65,6 +72,7 @@ class BackupRepository(
             collections = custom,
             memberships = collections.membershipUuids().groupBy({ it.collectionUuid }, { it.copyUuid }),
             alerts = alerts.all(),
+            wanted = wishlist.all(),
         )
     }
 
@@ -185,6 +193,16 @@ class BackupRepository(
                         result.copy(alertsAdded = result.alertsAdded + 1)
                     }
                     else -> result.copy(alertsUnchanged = result.alertsUnchanged + 1)
+                }
+            }
+
+            // Wishlist entries are added by uuid; the same print already wanted (another uuid) stays as it is.
+            for (wanted in data.wanted) {
+                result = when {
+                    !catalog.hasCard(wanted.cardId, wanted.cardLanguage) -> result.copy(wantedSkipped = result.wantedSkipped + 1)
+                    wishlist.byUuid(wanted.uuid) == null && wishlist.insert(wanted.copy(id = 0)) != -1L ->
+                        result.copy(wantedAdded = result.wantedAdded + 1)
+                    else -> result
                 }
             }
             result

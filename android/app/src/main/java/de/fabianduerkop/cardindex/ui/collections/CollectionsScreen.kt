@@ -73,6 +73,7 @@ fun CollectionsScreen(
     onOpenCollection: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOpenScan: () -> Unit = {},
+    onOpenWishlist: () -> Unit = {},
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
             CollectionsViewModel(
@@ -87,6 +88,7 @@ fun CollectionsScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val portfolio by viewModel.portfolio.collectAsStateWithLifecycle()
+    val wanted by viewModel.wishlistCount.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
 
     TopLevelScaffold(
@@ -105,9 +107,11 @@ fun CollectionsScreen(
         LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding) {
             if (!state.loading && state.totalCopies == 0) {
                 item { EmptyCollections(onOpenScan) }
-                // Collections made before the first card stay reachable, so they can be renamed or deleted.
-                if (state.collections.isNotEmpty()) {
-                    item { YoursHeader(state.collections.size) }
+                // Collections made before the first card stay reachable, so they can be renamed or deleted; so does
+                // a wishlist (#134), which needs no owned card.
+                if (state.collections.isNotEmpty() || wanted > 0) {
+                    item { YoursHeader(state.collections.size + if (wanted > 0) 1 else 0) }
+                    if (wanted > 0) item { WishlistRow(wanted, onOpenWishlist) }
                     items(state.collections, key = { "col-" + it.id }) { collection ->
                         CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
                     }
@@ -156,7 +160,7 @@ fun CollectionsScreen(
                 items(state.sets.drop(1), key = { "set-" + it.completion.setId }) { row ->
                     SetRow(row, onClick = { onOpenSet(row.completion.setId) })
                 }
-                item { YoursHeader(state.collections.size + 1) }
+                item { YoursHeader(state.collections.size + 2) }
                 item {
                     CollectionRow(
                         name = stringResource(R.string.collections_all_cards),
@@ -164,6 +168,7 @@ fun CollectionsScreen(
                         onClick = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
                     )
                 }
+                item { WishlistRow(wanted, onOpenWishlist) }
                 items(state.collections, key = { "col-" + it.id }) { collection ->
                     CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
                 }
@@ -377,6 +382,18 @@ private fun CollectionRow(name: String, cards: Int, onClick: () -> Unit) {
     ListRow(
         title = name,
         subtitle = pluralStringResource(R.plurals.collections_cards_count, cards, cards),
+        onClick = onClick,
+        icon = R.drawable.ic_nav_collections,
+        onClickLabel = stringResource(R.string.collections_open_collection),
+    )
+}
+
+/** The wishlist (#134): its count is the cards still wanted, which are not part of any card count above. */
+@Composable
+private fun WishlistRow(wanted: Int, onClick: () -> Unit) {
+    ListRow(
+        title = stringResource(R.string.wishlist_title),
+        subtitle = pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted),
         onClick = onClick,
         icon = R.drawable.ic_nav_collections,
         onClickLabel = stringResource(R.string.collections_open_collection),

@@ -189,7 +189,7 @@ class BackupTest {
     @Test
     fun json_rejectsForeignAndNewerFiles() = runTest {
         assertThrows(BackupFormatException::class.java) { BackupJson.read("""{"hello":1}""") }
-        assertThrows(BackupFormatException::class.java) { BackupJson.read("""{"format":"cardindex-backup","version":3}""") }
+        assertThrows(BackupFormatException::class.java) { BackupJson.read("""{"format":"cardindex-backup","version":4}""") }
         assertThrows(BackupFormatException::class.java) { BackupJson.read("not json") }
     }
 
@@ -313,7 +313,7 @@ class BackupTest {
         seedSource()
         seedAlerts()
         val json = export(source, BackupFileType.JSON)
-        assertTrue(json.contains("\"version\": 2"))
+        assertTrue(json.contains("\"version\": ${BackupJson.VERSION}"))
 
         val result = import(target, json)
 
@@ -384,5 +384,43 @@ class BackupTest {
 
         assertEquals(1 + 2, lines.size) // header + the two copies, nothing for the alerts
         assertFalse(lines.any { "sv03.5-025" in it })
+    }
+
+    /** #134: the wishlist travels in the JSON with its cards, adds no copies, and a second import changes nothing. */
+    @Test
+    fun json_roundTripsTheWishlist_withItsCards_andNoCopies() = runTest {
+        seedSource()
+        val repo = collections(source)
+        repo.addToWishlist("sv03.5-025", "de") // not owned
+        repo.addToWishlist("sv03.5-006", "de") // owned: shows as found
+
+        val json = export(source, BackupFileType.JSON)
+        val first = import(target, json)
+
+        assertEquals(2, first.wantedAdded)
+        assertEquals(source.wishlistDao().all().map { it.copy(id = 0) }, target.wishlistDao().all().map { it.copy(id = 0) })
+        assertEquals(copiesOf(source), copiesOf(target)) // the wanted card made no copy
+        val list = collections(target).observeWishlist().first()
+        assertEquals(listOf("sv03.5-025" to false, "sv03.5-006" to true), list.map { it.card.id to it.found })
+        assertEquals(1, collections(target).observeWishlistCount().first())
+
+        assertEquals(0, import(target, json).wantedAdded)
+        assertEquals(2, target.wishlistDao().all().size)
+    }
+
+    @Test
+    fun import_skipsWantedCardsNobodyKnows_andKeepsAPrintThatIsWantedAlready() = runTest {
+        target.seedCatalog()
+        collections(target).addToWishlist("sv03.5-025", "de")
+        val json = """
+            {"format":"cardindex-backup","version":3,"sets":[],"cards":[],"copies":[],"collections":[],
+             "wanted":[{"uuid":"c41d0f1e-2a3b-4c5d-8e9f-0a1b2c3d4e5f","cardId":"x-1","cardLanguage":"en",
+                        "createdAt":"2026-11-18T08:00:00Z"},
+                       {"uuid":"d52e1f2a-3b4c-4d5e-9f0a-1b2c3d4e5f60","cardId":"sv03.5-025","cardLanguage":"de",
+                        "createdAt":"2026-11-18T08:00:00Z"}]}
+        """.trimIndent()
+
+        assertEquals(ImportResult(wantedSkipped = 1), import(target, json))
+        assertEquals(1, target.wishlistDao().all().size)
     }
 }
