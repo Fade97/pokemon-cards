@@ -2,6 +2,6 @@
 <resources>
     <!-- Window background before Compose draws: Pearl paper (ADR 0014). -->
     <color name="surface">#FFFAFBFC</color>
-    <!-- Launcher icon background; the launcher icon is unchanged by #96. -->
-    <color name="ink">#FF14233D</color>
+    <!-- Launcher icon background: Pearl sea-glass behind the porcelain card mark (design/logo). -->
+    <color name="launcher_background">#FF356C6C</color>
 </resources>

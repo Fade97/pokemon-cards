@@ -25,7 +25,7 @@ internal object PearlLight {
     val SeaGlass = Color(0xFF356C6C) // --accent: actions, owned slots
     val Selection = Color(0xFFDFEDEB) // --selection: nav indicator, selected chips
     val OnSelection = Color(0xFF173F3E)
-    val Mark = Color(0xFF4D7779) // the faceted mark's stroke
+    val Mark = Color(0xFF4D7779) // secondary role (the mark itself is sea-glass, see LightExtraColors)
     val Amber = Color(0xFF8A5A12) // needs attention, e.g. scans to review
     val AmberContainer = Color(0xFFF8EBD5)
     val OnAmberContainer = Color(0xFF5A3A06)

@@ -23,11 +23,14 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.WordmarkStyle
 
-/** The faceted mark on its own, e.g. on an empty state. Decorative: it has no content description. */
+/**
+ * The Foilark mark on its own (a card with a curved foil sweep, design/logo), e.g. on an empty state. Decorative: it
+ * has no content description.
+ */
 @Composable
 fun LumifoilMark(modifier: Modifier = Modifier, size: Dp = 26.dp) {
     Icon(
-        painterResource(R.drawable.ic_lumifoil_mark),
+        painterResource(R.drawable.ic_foilark_mark),
         contentDescription = null,
         modifier = modifier.size(size),
         tint = LumifoilTheme.colors.mark,
@@ -35,7 +38,7 @@ fun LumifoilMark(modifier: Modifier = Modifier, size: Dp = 26.dp) {
 }
 
 /**
- * The app wordmark: the faceted mark and the lower-case app name ("foilark") in Schibsted (ADR 0014). It scales with the font
+ * The app wordmark: the Foilark mark and the lower-case app name ("foilark") in Schibsted (ADR 0014). It scales with the font
  * size. Screen readers hear the app name once, as a heading.
  */
 @Composable
