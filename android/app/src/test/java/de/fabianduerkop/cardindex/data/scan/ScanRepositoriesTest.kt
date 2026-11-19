@@ -62,6 +62,20 @@ class ScanRepositoriesTest {
     fun tearDown() = db.close()
 
     @Test
+    fun theSessionLedgerKeepsEveryHit_andLosesUndoneAndDeletedCopies() = runTest {
+        val first = scans.addHit(ref("006"), sessionId = "s1").copyId
+        val second = scans.addHit(ref("007"), sessionId = "s1").copyId
+        val third = scans.addHit(ref("008"), sessionId = "s1").copyId
+        scans.addHit(ref("009"), sessionId = "s2")
+        scans.addFromScan(ref("010"))
+
+        assertEquals(setOf(first, second, third), db.scanSessionDao().observeSession("s1").first().map { it.copy.id }.toSet())
+        assertTrue(scans.undo(third))
+        db.copyDao().deleteById(first)
+        assertEquals(listOf(second), db.scanSessionDao().observeSession("s1").first().map { it.copy.id })
+    }
+
+    @Test
     fun aScanFindsAWishlistEntryOnlyWithTheFirstCopyOfThatPrint() = runTest {
         // A wishlist entry points at a catalog print, so the card has to be known first.
         ScanCatalog.ensure(db.catalogDao(), listOf(ref("006")))

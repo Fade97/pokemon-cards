@@ -94,7 +94,6 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
-import coil3.compose.AsyncImage
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
@@ -121,10 +120,12 @@ import de.fabianduerkop.cardindex.ui.review.finishLabel
 import de.fabianduerkop.cardindex.ui.theme.CameraColors
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import coil3.compose.AsyncImage
+import kotlin.coroutines.resume
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
+import java.time.LocalDate
 import java.util.Locale
-import kotlin.coroutines.resume
 
 /**
  * Live scan (DESIGN.md, Recognition; Pearl scanner in `design/mockups/lumifoil`, #98): no shutter. A card held in
@@ -557,6 +558,7 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
     var editing by remember { mutableStateOf<LastScan.Added?>(null) }
     val target by viewModel.target.collectAsStateWithLifecycle()
     var choosingTarget by remember { mutableStateOf(false) }
+    var showingReceipt by remember { mutableStateOf(false) }
 
     val sheetShape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
     Surface(modifier, color = MaterialTheme.colorScheme.surface, shape = sheetShape) {
@@ -583,6 +585,25 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
                 ReviewQueueButton(toReview, onOpenReview)
             }
             ScanTargetChip(target?.name, onClick = { choosingTarget = true })
+            // The session receipt (#163), once something was added.
+            if (tray.added > 0) TextAction(stringResource(R.string.scan_receipt_open), onClick = { showingReceipt = true })
+        }
+    }
+
+    if (showingReceipt) {
+        val sheet = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ModalBottomSheet(onDismissRequest = { showingReceipt = false }, sheetState = sheet) {
+            val receipt by viewModel.receipt.collectAsStateWithLifecycle()
+            val current = receipt
+            when {
+                current == null -> Unit
+                current.isEmpty -> Text(
+                    stringResource(R.string.receipt_empty),
+                    Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.xl),
+                    style = MaterialTheme.typography.bodyMedium,
+                )
+                else -> SessionReceiptSheet(current, today = LocalDate.now(), onDone = { showingReceipt = false })
+            }
         }
     }
 

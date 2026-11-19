@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.data.scan
 import androidx.room.withTransaction
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.db.ScanSessionCopyEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
@@ -61,10 +62,13 @@ class ScanRepository(private val db: CardIndexDatabase, private val clock: () ->
 
     /**
      * [addFromScan], and whether the copy found a wishlist entry (#162): the print was wanted and not owned before.
+     * With a [sessionId] the copy goes into that session's ledger, for its receipt (#163).
      */
-    suspend fun addHit(card: RefCard, targetUuid: String? = null): ScanHit = db.withTransaction {
+    suspend fun addHit(card: RefCard, targetUuid: String? = null, sessionId: String? = null): ScanHit = db.withTransaction {
         val found = db.wishlistDao().isOpenWish(card.cardId, card.lang)
-        ScanHit(copyId = addFromScan(card, targetUuid), wishlistFound = found)
+        val id = addFromScan(card, targetUuid)
+        if (sessionId != null) db.scanSessionDao().insert(ScanSessionCopyEntity(copyId = id, sessionId = sessionId, addedAt = clock()))
+        ScanHit(copyId = id, wishlistFound = found)
     }
 
     /**

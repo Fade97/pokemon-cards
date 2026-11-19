@@ -252,6 +252,37 @@ class SchemaMigrationTest {
         }
     }
 
+    /** v6 → v7 (#163) only adds the scan session ledger; copies stay, and deleting one clears its ledger row. */
+    @Test
+    fun migration6To7_keepsCopies_andTheLedgerFollowsThem() {
+        val name = databasePath("migration-6-7.db")
+        helper.createDatabase(name, 6).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('sv03.5', '151', 'SV', 'en', 165, 'INTERNATIONAL', 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired, numberKey, printings) VALUES ('sv03.5-025', 'sv03.5', '025', 'Pikachu', 'en', NULL, NULL, NULL, 0, '25', NULL)")
+            execSQL(
+                "INSERT INTO owned_copies (id, uuid, cardId, cardLanguage, quantity, finish, edition, condition, createdAt, updatedAt) " +
+                    "VALUES (7, 'u-1', 'sv03.5-025', 'en', 1, 'NORMAL', 'UNLIMITED', 'NEAR_MINT', 0, 0)",
+            )
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 7, true, CardIndexDatabase.MIGRATION_6_7).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                db.scanSessionDao().insert(ScanSessionCopyEntity(copyId = 7, sessionId = "s", addedAt = Instant.EPOCH))
+                assertEquals(listOf("u-1"), db.scanSessionDao().observeSession("s").first().map { it.copy.uuid })
+                db.copyDao().deleteById(7)
+                assertEquals(emptyList<Any>(), db.scanSessionDao().observeSession("s").first())
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     /** Absolute: with a bare name, Room's driver check fails on Windows hosts (backslash paths). */
     private fun databasePath(name: String): String =
         ApplicationProvider.getApplicationContext<Context>().getDatabasePath(name).absolutePath
