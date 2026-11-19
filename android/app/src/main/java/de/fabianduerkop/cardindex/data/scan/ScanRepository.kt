@@ -7,6 +7,7 @@ import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.recognition.RefCard
 import java.time.Instant
 
@@ -19,12 +20,20 @@ object CopyDefaults {
     val finish: Finish = Finish.NORMAL
     val edition: Edition = Edition.UNLIMITED
     val condition: Condition = Condition.NEAR_MINT
+
+    /**
+     * The finish a copy of a card with these [printings] starts with: the only finish the card was printed in (a
+     * holo-only rare, an ex, a full art), else [finish]. Unknown printings (null) and cards printed in several
+     * finishes keep [finish]; the user can change it either way (#143).
+     */
+    fun finishFor(printings: Printings?): Finish = printings?.onlyFinish ?: finish
 }
 
 /**
- * Writes confident live-scan hits into All Cards, and into the scan target collection if the user chose one (#139). Each hit is its own copy with the [CopyDefaults] (DESIGN.md,
- * Recognition): finish and edition can't be told reliably from a photo, and merging into an existing copy would make
- * Undo and later edits touch copies the user added by hand.
+ * Writes confident live-scan hits into All Cards, and into the scan target collection if the user chose one (#139).
+ * Each hit is its own copy with the [CopyDefaults] (DESIGN.md, Recognition): finish and edition can't be told
+ * reliably from a photo, and merging into an existing copy would make Undo and later edits touch copies the user
+ * added by hand. A card printed in a single finish gets that finish ([CopyDefaults.finishFor]).
  */
 class ScanRepository(private val db: CardIndexDatabase, private val clock: () -> Instant = Instant::now) {
     /**
@@ -37,7 +46,7 @@ class ScanRepository(private val db: CardIndexDatabase, private val clock: () ->
             OwnedCopyEntity(
                 cardId = card.cardId,
                 cardLanguage = card.lang,
-                finish = CopyDefaults.finish,
+                finish = CopyDefaults.finishFor(card.printings),
                 edition = CopyDefaults.edition,
                 condition = CopyDefaults.condition,
                 createdAt = clock(),

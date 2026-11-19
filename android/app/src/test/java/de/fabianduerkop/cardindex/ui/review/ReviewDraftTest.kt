@@ -5,6 +5,7 @@ import de.fabianduerkop.cardindex.data.db.ReviewItemEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.model.ReviewReason
 import java.time.Instant
 import org.junit.Assert.assertEquals
@@ -19,6 +20,23 @@ class ReviewDraftTest {
         assertEquals(Finish.NORMAL, d.finish)
         assertEquals(Edition.UNLIMITED, d.edition)
         assertTrue(d.canConfirm)
+    }
+
+    @Test
+    fun theFinishFollowsTheChosenCardUntilTheUserPicksOne() {
+        val holoOnly = Printings.ofKeys(listOf("holo"))
+        val several = Printings.ofKeys(listOf("normal", "reverse"))
+        val d = ReviewDraft.forItem(checkVariant = false)
+        assertEquals(Finish.HOLO, d.forCard(holoOnly).finish)
+        assertFalse(d.forCard(holoOnly).finishChosen)
+        // Switching to a card with several printings, or unknown ones, goes back to the default.
+        assertEquals(Finish.NORMAL, d.forCard(holoOnly).forCard(several).finish)
+        assertEquals(Finish.NORMAL, d.forCard(holoOnly).forCard(null).finish)
+        // The user's pick stays, and so does the open finish of an item that asks to check the variant.
+        assertEquals(Finish.REVERSE_HOLO, d.withFinish(Finish.REVERSE_HOLO).forCard(holoOnly).finish)
+        assertEquals(null, ReviewDraft.forItem(checkVariant = true).forCard(holoOnly).finish)
+        // Only a picked finish is stored, so the card's finish is not taken for the user's.
+        assertEquals(null, d.forCard(holoOnly).stored().finish)
     }
 
     @Test

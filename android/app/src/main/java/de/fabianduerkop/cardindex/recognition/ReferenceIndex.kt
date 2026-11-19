@@ -3,6 +3,7 @@ package de.fabianduerkop.cardindex.recognition
 
 import de.fabianduerkop.cardindex.data.images.ImageQuality
 import de.fabianduerkop.cardindex.data.images.cardImageUrl
+import de.fabianduerkop.cardindex.model.Printings
 import org.json.JSONArray
 import java.io.File
 import java.io.FileInputStream
@@ -24,6 +25,8 @@ data class RefCard(
     val imageUrl: String,
     /** True for sets the model never saw in training (only added to the index). */
     val unseen: Boolean,
+    /** How the card was printed, from its pack (#143); null when unknown. */
+    val printings: Printings? = null,
 ) {
     /**
      * Small card image from the TCGdex CDN; null when the card has none (`imageUrl` is empty, e.g. set mee, whose

@@ -27,11 +27,17 @@ data class PackMeta(
     val keysSha256: String,
     val metadataCards: Int,
     val sets: Int,
+    /**
+     * The card file was written by an app that keeps each card's printings (#143). An older app dropped them when it
+     * stored a pack after a delta, and nothing in the catalog's checks covers them, so such a pack is downloaded in
+     * full once ([PackPlanner.pick]). Missing in `pack.json` means false.
+     */
+    val printingsKept: Boolean = true,
 ) {
     fun toJson(): JSONObject = JSONObject()
         .put("lang", lang).put("version", version).put("model", model).put("dim", dim).put("cards", cards)
         .put("modelSha256", modelSha256).put("indexSha256", indexSha256).put("keysSha256", keysSha256)
-        .put("metadataCards", metadataCards).put("sets", sets)
+        .put("metadataCards", metadataCards).put("sets", sets).put("printingsKept", printingsKept)
 
     companion object {
         fun fromJson(o: JSONObject) = PackMeta(
@@ -45,6 +51,7 @@ data class PackMeta(
             keysSha256 = o.getString("keysSha256"),
             metadataCards = o.getInt("metadataCards"),
             sets = o.getInt("sets"),
+            printingsKept = o.optBoolean("printingsKept", false),
         )
 
         /** The entry for an installed [content] that was checked against [entry] (or a delta result leading to it). */

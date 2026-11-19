@@ -32,6 +32,7 @@ object ScanCatalog {
         rarity = null,
         energyType = null,
         imageUrl = card.imageUrl,
+        printings = card.printings,
     )
 
     suspend fun ensure(dao: CatalogDao, cards: Collection<RefCard>) {

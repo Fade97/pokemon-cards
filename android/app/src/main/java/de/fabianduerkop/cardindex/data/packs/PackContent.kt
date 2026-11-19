@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.data.packs
 
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.recognition.PackIntegrityException
 import de.fabianduerkop.cardindex.recognition.sha256Hex
 import org.json.JSONArray
@@ -28,8 +29,18 @@ data class PackSet(
     val symbol: String?,
 )
 
-/** A card entry. [image] is TCGdex's base URL (append `/low.webp`), null when TCGdex has none. */
-data class PackCard(val id: String, val setId: String, val localId: String, val name: String, val image: String?)
+/**
+ * A card entry. [image] is TCGdex's base URL (append `/low.webp`), null when TCGdex has none. [printings] is null
+ * when unknown: TCGdex had no answer, or the pack is older than the field (#143).
+ */
+data class PackCard(
+    val id: String,
+    val setId: String,
+    val localId: String,
+    val name: String,
+    val image: String?,
+    val printings: Printings? = null,
+)
 
 /**
  * A pack's card file: [sets] and [cards] in canonical order (cards by id, code unit by code unit) and which cards
@@ -341,6 +352,7 @@ class PackContent(
             localId = o.getString("localId"),
             name = o.optStringOrNull("name").orEmpty(),
             image = o.optStringOrNull("image"),
+            printings = o.optJSONArray("printings")?.strings()?.let(Printings::ofKeys),
         )
 
         internal fun setJson(s: PackSet) = JSONObject()
@@ -354,6 +366,7 @@ class PackContent(
         internal fun cardJson(c: PackCard) = JSONObject()
             .put("id", c.id).put("setId", c.setId).put("localId", c.localId).put("name", c.name)
             .put("image", c.image ?: JSONObject.NULL)
+            .put("printings", c.printings?.let { JSONArray(it.keys()) } ?: JSONObject.NULL)
 
         private fun JSONObject.optIntOrNull(key: String): Int? = if (isNull(key) || !has(key)) null else getInt(key)
 

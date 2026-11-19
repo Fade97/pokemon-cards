@@ -41,6 +41,15 @@ class PackPlannerTest {
     }
 
     @Test
+    fun aPackAnOlderAppStoredWithoutPrintingsIsDownloadedInFullOnce() {
+        val e = entry(version = 5, deltas = listOf(delta(4, 5, 10)))
+        val old = installed(5).copy(printingsKept = false)
+        assertEquals(PackDownload.Full(e), PackPlanner.pick(old, e))
+        assertEquals(PackDownload.Full(e), PackPlanner.pick(installed(4).copy(printingsKept = false), e))
+        // pack.json without the key: PackSyncTest.aPackAnOlderAppStoredIsDownloadedAgainInFull_…
+    }
+
+    @Test
     fun currentVersionNeedsNothing() {
         assertNull(PackPlanner.pick(installed(5), entry(version = 5)))
     }

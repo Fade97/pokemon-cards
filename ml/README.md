@@ -181,7 +181,8 @@ between machines:
 # 1. TCGdex metadata, any machine, standard library only (cached; set answers refetched after 7 days or when the
 #    card count changes)
 python build_packs.py fetch --work packs-work                       # all 9 languages; --langs en,de --sets sv03.5
-#    (also probes the CDN for images the API leaves out, docs/packs.md; --no-cdn-gap skips that)
+#    (also probes the CDN for images the API leaves out, docs/packs.md; --no-cdn-gap skips that; and reads every
+#    card's printings in one GraphQL request per language, cached like the set answers)
 # 2. Embeddings with the app's .tflite model, on the machine with CARDINDEX_DATA (numpy, OpenCV, ai-edge-litert).
 #    Rows are cached per model and image hash in <data>/packs-embcache, so unchanged cards stay byte-identical.
 python build_packs.py embed --work packs-work --download-images

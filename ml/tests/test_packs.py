@@ -63,7 +63,48 @@ def test_records_from_tcgdex_answer():
                  "releaseDate": "2026-01-01", "official": 3, "total": 3, "abbreviation": "A",
                  "logo": "https://assets.tcgdex.net/en/sv/a/logo", "symbol": None}
     cards = packs.card_records(A)
-    assert cards[2] == {"id": "a-003", "setId": "a", "localId": "003", "name": "Venusaur", "image": None}
+    assert cards[2] == {"id": "a-003", "setId": "a", "localId": "003", "name": "Venusaur", "image": None,
+                        "printings": None}
+
+
+def test_printings_from_tcgdex_variants():
+    assert packs.printings({"normal": False, "reverse": False, "holo": True, "firstEdition": True,
+                            "wPromo": False}) == ["holo", "firstEdition"]
+    # TCGdex order does not matter; the pack keeps PRINTINGS order.
+    assert packs.printings({"holo": True, "reverse": True, "normal": True}) == ["normal", "reverse", "holo"]
+    # No answer, or no flag set, is unknown, never "normal only".
+    assert packs.printings(None) is None
+    assert packs.printings({}) is None
+    assert packs.printings({"normal": False, "holo": False}) is None
+    # Flags the pack does not know are left out; only `true` counts.
+    assert packs.printings({"normal": True, "galaxy": True, "holo": "yes"}) == ["normal"]
+
+
+def test_fill_printings_leaves_cards_without_answer_unknown():
+    cards = packs.fill_printings(packs.card_records(A), {"a-001": {"normal": True, "reverse": True},
+                                                         "a-002": None})
+    assert {c["id"]: c["printings"] for c in cards} == {"a-001": ["normal", "reverse"], "a-002": None, "a-003": None}
+
+
+def test_printings_travel_in_pack_files_and_deltas():
+    def with_printings(p):
+        return packs.make_pack("en", p.sets, packs.fill_printings(p.cards, {"a-001": {"holo": True}}), p.rows, DIM)
+
+    # A pack built before printings existed: its cards have no such key.
+    current = pack_of(A, rows=ROWS_A)
+    old = packs.make_pack("en", current.sets, [{k: v for k, v in c.items() if k != "printings"} for c in current.cards],
+                          current.rows, DIM)
+    new = with_printings(current)
+    catalog, files = packs.publish_pack(packs.empty_catalog(), old, None, model=model()[0], built_at=BUILT)
+    catalog, files = packs.publish_pack(catalog, new, old, model=model()[0], built_at=BUILT)
+    by_key = {f.key: f.data for f in files}
+    doc = json.loads(gzip.decompress(by_key["en/cards-2.json.gz"]))
+    assert {c["id"]: c["printings"] for c in doc["cards"]} == {"a-001": ["holo"], "a-002": None, "a-003": None}
+    # Every card of the old pack lacks the key, so each one is upserted once; the self-check in publish_pack applies
+    # the delta and compares it with the full pack.
+    delta = json.loads(gzip.decompress(by_key["en/delta-1-2.json.gz"]))
+    assert len(delta["upsert"]) == 3
+    assert packs.pack_from_files("en", by_key["en/cards-2.json.gz"], by_key["en/index-2.bin"], DIM).cards == new.cards
 
 
 def test_make_pack_orders_cards_and_rows():
@@ -104,7 +145,7 @@ def test_delta_new_set_only_carries_the_new_cards():
     d = packs.compute_delta(old, new)
     assert [s["id"] for s in d["upsertSets"]] == ["b"]
     assert d["upsert"] == [{"id": "b-001", "setId": "b", "localId": "001", "name": "Pikachu",
-                            "image": "https://assets.tcgdex.net/en/sv/b/001", "indexed": True}]
+                            "image": "https://assets.tcgdex.net/en/sv/b/001", "printings": None, "indexed": True}]
     assert d["remove"] == [] and d["removeSets"] == []
     assert d["rows"] == ROWS_B["b-001"]
 
@@ -595,3 +636,30 @@ def test_embed_rows_drops_the_chunk_when_embedding_fails(tmp_path):
 def test_drop_images_needs_download_images():
     with pytest.raises(SystemExit, match="--download-images"):
         build_packs.main(["embed", "--drop-images"])
+
+
+def test_fetch_variants_asks_graphql_once_and_caches(tmp_path, monkeypatch):
+    calls = []
+
+    def fake_post(url, body):
+        calls.append((url, body["query"]))
+        return {"data": {"cards": [{"id": "a-001", "variants": {"holo": True}}, {"id": "a-002", "variants": None}]}}
+
+    monkeypatch.setattr(build_packs, "post_json", fake_post)
+    cache = tmp_path / "ja.variants.json"
+    got = build_packs.fetch_variants("ja", cache, max_age_days=7)
+    assert got == {"a-001": {"holo": True}, "a-002": None}
+    assert calls[0][0] == "https://api.tcgdex.net/v2/graphql"
+    assert '@locale(lang: "ja")' in calls[0][1] and "firstEdition" in calls[0][1]
+    assert build_packs.fetch_variants("ja", cache, max_age_days=7) == got
+    assert len(calls) == 1
+    build_packs.fetch_variants("ja", cache, max_age_days=0)
+    assert len(calls) == 2
+
+
+def test_fetch_variants_refuses_an_answer_with_errors(tmp_path, monkeypatch):
+    monkeypatch.setattr(build_packs, "post_json",
+                        lambda url, body: {"errors": [{"message": "boom"}], "data": {"cards": None}})
+    with pytest.raises(SystemExit, match="boom"):
+        build_packs.fetch_variants("en", tmp_path / "en.variants.json", max_age_days=7)
+    assert not (tmp_path / "en.variants.json").exists()

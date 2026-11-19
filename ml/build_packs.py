@@ -5,6 +5,7 @@ Three steps, so each runs where its inputs are. A "work" directory carries the r
 can be copied between machines:
 
   fetch   TCGdex card metadata -> <work>/<lang>/metadata.json             anywhere, standard library only
+          (sets, cards and their printings)
   embed   reference images + model -> <work>/<lang>/embeddings.{bin,json}  where CARDINDEX_DATA is (numpy, OpenCV,
           and <work>/model/                                                 ai-edge-litert, like app_assets.py)
   build   work + the published catalog -> <out>/ (packs, deltas,           anywhere, standard library only
@@ -63,6 +64,25 @@ def http_get(url: str, *, timeout: int = 60, tries: int = 4) -> bytes:
 
 def get_json(url: str):
     return json.loads(http_get(url))
+
+
+def post_json(url: str, body: dict, *, timeout: int = 120, tries: int = 4):
+    """POST a JSON body and parse the JSON answer, with the same retries as http_get."""
+    data = json.dumps(body).encode("utf-8")
+    for attempt in range(tries):
+        try:
+            req = urllib.request.Request(url, data=data, method="POST",
+                                         headers={"User-Agent": UA, "Content-Type": "application/json"})
+            with urllib.request.urlopen(req, timeout=timeout) as r:
+                return json.loads(r.read())
+        except urllib.error.HTTPError as e:
+            if e.code < 500 and e.code != 429 or attempt == tries - 1:
+                raise
+        except urllib.error.URLError:
+            if attempt == tries - 1:
+                raise
+        time.sleep(2 ** attempt)
+    raise AssertionError("unreachable")
 
 
 # ---------------------------------------------------------------------------------------------------------------
@@ -126,6 +146,30 @@ def probe_cdn_gap(lang: str, sets: list[dict], cards: list[dict], cache: Path, *
     return found
 
 
+GRAPHQL = f"{API}/graphql"
+# Every card of a language with its printings in one answer (~2 MB for EN). The REST set answer has no `variants`
+# and the card answer has them for one card only (~24k requests for EN); GraphQL's `cards` without filters returns
+# them all. `@locale` picks the language (the endpoint ignores `?lang=`); `pagination` fails without a filter.
+VARIANTS_QUERY = "{ cards @locale(lang: %s) { id variants { %s } } }"
+
+
+def fetch_variants(lang: str, cache: Path, *, max_age_days: float) -> dict[str, dict | None]:
+    """Card id -> TCGdex `variants` of every card of `lang`, cached in `cache` for `max_age_days`. Raises when
+    TCGdex answers with errors: a silent gap would publish every card as "unknown" and take the finishes away."""
+    if cache.exists() and time.time() - cache.stat().st_mtime < max_age_days * 86400:
+        try:
+            return json.loads(cache.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, UnicodeDecodeError):
+            pass  # a broken cache only costs one request
+    answer = post_json(GRAPHQL, {"query": VARIANTS_QUERY % (json.dumps(lang), " ".join(packs.PRINTINGS))})
+    cards = (answer.get("data") or {}).get("cards")
+    if answer.get("errors") or not isinstance(cards, list) or not cards:
+        raise SystemExit(f"{lang}: TCGdex GraphQL gave no printings: {str(answer.get('errors'))[:300]}")
+    variants = {c["id"]: c.get("variants") for c in cards}
+    cache.write_text(json.dumps(variants, sort_keys=True, indent=0), encoding="utf-8")
+    return variants
+
+
 def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_days: float, workers: int,
                cdn_gap: bool = True) -> dict:
     """Card metadata of one language. Set answers are cached in <work>/tcgdex/<lang>/ and fetched again when the
@@ -156,6 +200,10 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
         found = probe_cdn_gap(lang, sets, cards, cache.parent / f"{lang}.cdn-gap.json",
                               max_age_days=max_age_days, workers=workers)
         cards = packs.fill_cdn_gap(cards, found)
+    cards = packs.fill_printings(cards, fetch_variants(lang, cache.parent / f"{lang}.variants.json",
+                                                       max_age_days=max_age_days))
+    known = sum(1 for c in cards if c["printings"])
+    print(f"{lang}: printings known for {known} of {len(cards)} cards")
     meta = {"lang": lang, "fetchedAt": now_iso(), "sets": packs.sort_sets(sets), "cards": packs.sort_cards(cards)}
     out = work / lang / "metadata.json"
     out.parent.mkdir(parents=True, exist_ok=True)

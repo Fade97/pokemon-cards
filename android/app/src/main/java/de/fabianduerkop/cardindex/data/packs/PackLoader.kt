@@ -97,6 +97,7 @@ object PackLoader {
                         name = c.name,
                         imageUrl = c.image.orEmpty(),
                         unseen = false,
+                        printings = c.printings,
                     )
                 }
                 vectors += rows
