@@ -1,7 +1,0 @@
-<?xml version="1.0" encoding="utf-8"?>
-<!-- Lumifoil's faceted mark (ADR 0014): a neutral cut prism in one line weight, from the Pearl study. No Poké Ball,
-     no card back. Shown next to the wordmark; tinted with LumifoilTheme.colors.mark. -->
-<vector xmlns:android="http://schemas.android.com/apk/res/android" android:width="24dp" android:height="24dp" android:viewportWidth="24" android:viewportHeight="24">
-    <path android:pathData="M12,2L21,8L17,20H7L3,8Z" android:strokeColor="#FF000000" android:strokeWidth="1.45" android:strokeLineCap="round" android:strokeLineJoin="round" />
-    <path android:pathData="M3,8l9,4 9,-4M12,2v10L7,20M12,12l5,8" android:strokeColor="#FF000000" android:strokeWidth="1.45" android:strokeLineCap="round" android:strokeLineJoin="round" />
-</vector>

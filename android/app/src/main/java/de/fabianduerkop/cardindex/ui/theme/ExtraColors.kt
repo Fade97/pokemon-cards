@@ -12,7 +12,7 @@ import androidx.compose.ui.graphics.Color
 data class LumifoilColors(
     /** A price that went up. */
     val positive: Color,
-    /** Stroke of the faceted mark next to the wordmark. */
+    /** Fill of the Foilark mark next to the wordmark: sea-glass, as in the logo masters (design/logo). */
     val mark: Color,
     /** The keyboard and D-pad focus ring around controls. Kept apart from sea-glass so focus never looks selected. */
     val focusRing: Color,
@@ -54,7 +54,7 @@ data class CameraColors(
 
 internal val LightExtraColors = LumifoilColors(
     positive = PearlLight.Good,
-    mark = PearlLight.Mark,
+    mark = PearlLight.SeaGlass,
     focusRing = Color(0xFF3D63C4),
     foil = listOf(Color(0xFF94CCC0), Color(0xFFBDD7E1), Color(0xFFC7B5D8), Color(0xFFE7C7B5)),
     ownedSlot = PearlLight.SeaGlass,
@@ -67,7 +67,7 @@ internal val LightExtraColors = LumifoilColors(
 /** At night the foil is dimmed, so the edge reads as material and not as a light source. */
 internal val DarkExtraColors = LumifoilColors(
     positive = PearlDark.Good,
-    mark = PearlDark.Mark,
+    mark = PearlDark.SeaGlass,
     focusRing = Color(0xFFA9BFF5),
     foil = listOf(Color(0xFF6FA99E), Color(0xFF8DAAB6), Color(0xFF9F8DB3), Color(0xFFBC9A88)),
     ownedSlot = PearlDark.SeaGlass,

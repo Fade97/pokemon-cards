@@ -199,7 +199,7 @@ private fun Icons() {
         R.drawable.ic_nav_scan, R.drawable.ic_nav_collections, R.drawable.ic_nav_search, R.drawable.ic_nav_settings,
         R.drawable.ic_add, R.drawable.ic_remove, R.drawable.ic_close, R.drawable.ic_arrow_back,
         R.drawable.ic_chevron_right, R.drawable.ic_check, R.drawable.ic_undo, R.drawable.ic_pause,
-        R.drawable.ic_play, R.drawable.ic_on_device, R.drawable.ic_lumifoil_mark,
+        R.drawable.ic_play, R.drawable.ic_on_device, R.drawable.ic_foilark_mark,
     )
     FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
         icons.forEach { Icon(painterResource(it), contentDescription = null, tint = MaterialTheme.colorScheme.onSurface) }
