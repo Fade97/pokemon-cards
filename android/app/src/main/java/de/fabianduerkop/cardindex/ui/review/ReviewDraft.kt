@@ -6,6 +6,7 @@ import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.Printings
 
 /**
  * The user's choices for one review item. Finish, edition and condition start at [CopyDefaults], the same values a
@@ -32,6 +33,14 @@ data class ReviewDraft(
     fun withFinish(value: Finish): ReviewDraft = copy(finish = value, finishChosen = true)
     fun withEdition(value: Edition): ReviewDraft = copy(edition = value, editionChosen = true)
     fun withCondition(value: Condition): ReviewDraft = copy(condition = value, conditionChosen = true)
+
+    /**
+     * The draft for the chosen card's [printings] (#143): until the user picks a finish, it is the card's only finish
+     * if it has one, else the default ([CopyDefaults.finishFor]). A finish the user picked, or the open finish of an
+     * item that asks to check the variant, stays.
+     */
+    fun forCard(printings: Printings?): ReviewDraft =
+        if (finishChosen || finish == null) this else copy(finish = CopyDefaults.finishFor(printings))
 
     companion object {
         const val MAX_QUANTITY = 999

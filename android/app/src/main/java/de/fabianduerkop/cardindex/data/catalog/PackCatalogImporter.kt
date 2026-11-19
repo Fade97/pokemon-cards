@@ -50,6 +50,7 @@ class PackCatalogImporter(
                         energyType = old?.energyType,
                         imageUrl = c.image,
                         retired = false,
+                        printings = c.printings,
                     )
                 },
             )

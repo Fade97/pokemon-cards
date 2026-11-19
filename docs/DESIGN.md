@@ -53,9 +53,10 @@ Offline: training on the RTX 3080 (detector, embeddings, later the OCR model)
 3. **Match** the embedding against the reference index from the installed language packs (kNN).
 4. **Disambiguate** by reading the collector number (e.g. `025/165`) with ML Kit text recognition and using it
    to filter or rerank the candidates. Later an own small OCR model replaces ML Kit (needed for F-Droid).
-5. **Decide**: confident hits are added with the default variant and condition. Unsure hits go to a **review
-   queue** with a top-3 picker and variant chips. Normal and reverse holo can't be told apart reliably from a
-   photo, so the variant is always editable.
+5. **Decide**: confident hits are added with the default variant and condition; a card printed in a single finish
+   (holo-only rares, ex/V/full arts, from the pack's `printings`, #143) gets that finish instead. Unsure hits go to
+   a **review queue** with a top-3 picker and variant chips. Normal and reverse holo can't be told apart reliably
+   from a photo, so the variant is always editable.
    Scans land in All Cards; a "Scanning into" chip on the Scan screen adds them to one custom collection as well
    (kept until changed; a deleted collection falls back to All Cards only).
 

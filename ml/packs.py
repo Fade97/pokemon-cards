@@ -75,12 +75,34 @@ def set_record(s: dict) -> dict:
 
 def card_records(s: dict) -> list[dict]:
     """The pack's card entries of one TCGdex set answer. `image` is TCGdex's base URL without quality/extension
-    (append `/high.webp` or `/low.webp`), `null` when TCGdex has no image."""
+    (append `/high.webp` or `/low.webp`), `null` when TCGdex has no image. `printings` is unknown (`null`) until
+    `fill_printings` sets it: the set answer does not carry the cards' `variants`."""
     return [
         {"id": c["id"], "setId": s["id"], "localId": c["localId"], "name": c.get("name") or "",
-         "image": c.get("image")}
+         "image": c.get("image"), "printings": None}
         for c in s.get("cards") or []
     ]
+
+
+# TCGdex `variants` flags the pack carries as `printings` (issue #143), in this order. normal, reverse and holo are
+# finishes; firstEdition is a print run of one of them; wPromo is the "W" stamped promo.
+PRINTINGS = ("normal", "reverse", "holo", "firstEdition", "wPromo")
+
+
+def printings(variants) -> list[str] | None:
+    """A card's `printings` from its TCGdex `variants` object: the flags that are true, in `PRINTINGS` order.
+
+    None when TCGdex gives no object or no flag is true. That means "unknown", never "normal only": the app then
+    keeps its default finish instead of trusting a gap in the data.
+    """
+    if not isinstance(variants, dict):
+        return None
+    return [k for k in PRINTINGS if variants.get(k) is True] or None
+
+
+def fill_printings(cards: list[dict], variants: dict[str, dict | None]) -> list[dict]:
+    """The cards with `printings` from `variants` (card id -> TCGdex `variants`); cards not in it stay unknown."""
+    return [{**c, "printings": printings(variants.get(c["id"]))} for c in cards]
 
 
 CDN = "https://assets.tcgdex.net"

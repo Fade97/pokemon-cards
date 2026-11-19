@@ -124,7 +124,7 @@ Gzip (deterministic: mtime 0) of compact, key-sorted UTF-8 JSON:
   ],
   "cards": [
     { "id": "sv03.5-001", "setId": "sv03.5", "localId": "001", "name": "Bisasam",
-      "image": "https://assets.tcgdex.net/de/sv/sv03.5/001", "indexed": true }
+      "image": "https://assets.tcgdex.net/de/sv/sv03.5/001", "printings": ["normal", "reverse"], "indexed": true }
   ]
 }
 ```
@@ -135,6 +135,22 @@ Gzip (deterministic: mtime 0) of compact, key-sorted UTF-8 JSON:
 - `id` is the TCGdex card id, the key prices and collections use. `localId` is the collector number as printed.
 - `image` is TCGdex's base URL; append `/high.webp` or `/low.webp`. `null` when TCGdex has no image. Images are
   loaded from the CDN and never stored in a pack (ADR 0009).
+- `printings` (#143) lists how the card was printed, from TCGdex `variants`: the flags that are true, in the order
+  `normal`, `reverse`, `holo`, `firstEdition`, `wPromo`. The first three are finishes, `firstEdition` is a print
+  run of one of them (Base Set Charizard: `["holo", "firstEdition"]`), `wPromo` the "W" stamped promo. `null` means
+  **unknown** (no answer from TCGdex, or no flag set), never "normal only". Packs built before this field have no
+  key; readers treat a missing key as `null`. An app ignores keys it does not know, inside the list too.
+  `fetch` reads them for a whole language in one request from TCGdex's GraphQL endpoint (`cards @locale(lang:)
+  { id variants }`; the REST set answer has none) and caches the answer in `<work>/tcgdex/<lang>.variants.json`
+  for `--max-age-days`.
+  - What the app does with them: a scanned card with exactly one finish gets that finish instead of `normal`
+    (`CopyDefaults.finishFor`); several or unknown keep the default. The finish stays editable.
+  - Quality (checked 2026-11-19): TCGdex answers for every card of the seven published languages, and the flags of
+    a card id are the same in every language. Many sets carry only TCGdex's set default: XY, Sun & Moon, BW8/BW9 and
+    the promos list every card as `["normal"]`, also ex/GX and reverse holos. That is harmless here (normal is the
+    default anyway) but means "normal only" is not to be trusted. Holo-only is reliable where checked (ex/V/VMAX,
+    WotC holo rares, Shiny Vault, Trainer/Galarian Gallery). Stamped reverse holos from battle decks are not listed
+    as printings (#108, tcgdex/cards-database#2602).
 - `indexed` is true when the card has a row in `index.bin`.
 
 ### `index-<v>.bin`
@@ -184,6 +200,10 @@ reproduce the full pack exactly.
   `deltas`: download the chain if its summed `size` is smaller than the full pack, else the full pack.
 - Different `modelSha256`: download the new model and the full pack of **every** installed language (the old
   index does not fit the new model). Switch atomically: keep the old model and packs until all new files are verified.
+- An installed pack whose `pack.json` lacks `"printingsKept": true` was stored by an app from before `printings`
+  (#143). Such an app rewrites the card file after a delta and drops the key, and no catalog check covers it, so
+  the pack is downloaded in full once, even at the catalog's version. Deltas alone would never bring back the
+  printings of cards that did not change.
 
 ### Checks
 

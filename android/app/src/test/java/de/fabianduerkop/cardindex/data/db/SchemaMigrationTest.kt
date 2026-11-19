@@ -13,6 +13,8 @@ import de.fabianduerkop.cardindex.data.search.SearchTerms
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
+import de.fabianduerkop.cardindex.model.Printing
+import de.fabianduerkop.cardindex.model.Printings
 import java.time.Instant
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -217,6 +219,33 @@ class SchemaMigrationTest {
                 db.wishlistDao().insert(WantedCardEntity(cardId = "sv03.5-025", cardLanguage = "en", createdAt = Instant.EPOCH))
                 assertEquals(listOf("u-1" to 2), db.copyDao().observeAllCopies().first().map { it.copy.uuid to it.copy.quantity })
                 assertEquals(listOf(2), db.wishlistDao().observeWishlist().first().map { it.owned })
+            }
+        } finally {
+            db.close()
+        }
+    }
+
+    /** v5 → v6 (#143) adds the cards' printings: unknown (null) until the next pack import, then stored. */
+    @Test
+    fun migration5To6_keepsCards_withUnknownPrintings() {
+        val name = databasePath("migration-5-6.db")
+        helper.createDatabase(name, 5).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('sv03.5', '151', 'SV', 'en', 165, 'INTERNATIONAL', 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired, numberKey) VALUES ('sv03.5-006', 'sv03.5', '006', 'Charizard ex', 'en', NULL, NULL, NULL, 0, '6')")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 6, true, CardIndexDatabase.MIGRATION_5_6).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val card = db.catalogDao().cardsInLanguage("en").single()
+                assertEquals("Charizard ex" to null, card.name to card.printings)
+                db.catalogDao().upsertCards(listOf(card.copy(printings = Printings.of(listOf(Printing.HOLO)))))
+                assertEquals(Finish.HOLO, db.catalogDao().cardsInLanguage("en").single().printings?.onlyFinish)
             }
         } finally {
             db.close()

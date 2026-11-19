@@ -14,6 +14,7 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Grader
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.model.Region
 import java.time.Instant
 import java.time.LocalDate
@@ -75,6 +76,12 @@ data class CardEntity(
      * value when a `copy()` changes [localId].
      */
     @ColumnInfo(defaultValue = "") val numberKey: String = numberKey(localId),
+    /**
+     * How the card was printed, from its language pack (#143); null is unknown (no pack yet, or TCGdex had no
+     * answer). A scan of a card with a single finish starts with that finish
+     * ([de.fabianduerkop.cardindex.data.scan.CopyDefaults.finishFor]).
+     */
+    val printings: Printings? = null,
 ) {
     companion object {
         /** The search key of a collector number; [de.fabianduerkop.cardindex.data.search.SearchTerms] uses it too. */

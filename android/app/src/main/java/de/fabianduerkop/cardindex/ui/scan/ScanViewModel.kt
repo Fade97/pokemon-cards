@@ -14,6 +14,7 @@ import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.packs.PackLoader
+import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
 import de.fabianduerkop.cardindex.model.ReviewReason
@@ -289,7 +290,9 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                         val contribution = runCatching { contributions.contribute(card.cardId, card.lang, jpeg(result.crop)) }
                             .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
                             .getOrNull()
-                        _tray.update { it.record(LastScan.Added(card, id, contributionId = contribution)) }
+                        // The tray shows the finish the copy got: a single-printing card's own one (#143).
+                        val variant = CopyVariant(finish = CopyDefaults.finishFor(card.printings))
+                        _tray.update { it.record(LastScan.Added(card, id, contributionId = contribution, variant = variant)) }
                     }
                     .onFailure {
                         Log.e(TAG, "adding ${card.key} failed", it)

@@ -40,9 +40,14 @@ data class SyncPlan(
 
 /** docs/packs.md, "Picking what to download". Pure, so every rule is unit-tested. */
 object PackPlanner {
-    /** Full pack, delta chain, or null when [installed] is current. */
+    /**
+     * Full pack, delta chain, or null when [installed] is current. A pack an older app stored without the cards'
+     * printings ([PackMeta.printingsKept]) is downloaded in full, even at the same version: deltas only carry the
+     * cards that changed, so the others would never get theirs back.
+     */
     fun pick(installed: PackMeta?, entry: PackEntry): PackDownload? {
         if (installed == null || !installed.modelSha256.equals(entry.modelSha256, ignoreCase = true)) return PackDownload.Full(entry)
+        if (!installed.printingsKept) return PackDownload.Full(entry)
         if (installed.version == entry.version) return null
         // A catalog that went back (a publish was rolled back) can't be reached by deltas.
         if (installed.version > entry.version) return PackDownload.Full(entry)

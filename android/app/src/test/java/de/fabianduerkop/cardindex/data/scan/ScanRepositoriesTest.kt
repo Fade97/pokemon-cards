@@ -10,11 +10,13 @@ import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.model.Region
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.recognition.Match
 import de.fabianduerkop.cardindex.recognition.NumberReading
 import de.fabianduerkop.cardindex.recognition.RefCard
+import de.fabianduerkop.cardindex.ui.review.ReviewDraft
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -40,9 +42,10 @@ class ScanRepositoriesTest {
     private lateinit var scans: ScanRepository
     private lateinit var queue: ReviewQueueRepository
 
-    private fun ref(localId: String, lang: String = "de", set: String = "sv03.5") = RefCard(
+    private fun ref(localId: String, lang: String = "de", set: String = "sv03.5", printings: List<String>? = null) = RefCard(
         key = "$lang/$set-$localId", cardId = "$set-$localId", lang = lang, setId = set, setName = "151",
         localId = localId, official = 165, name = "Card $localId", imageUrl = "https://assets.tcgdex.net/x", unseen = false,
+        printings = printings?.let(Printings::ofKeys),
     )
 
     @Before
@@ -75,6 +78,44 @@ class ScanRepositoriesTest {
         assertTrue(scans.undo(id))
         assertFalse(scans.undo(id))
         assertEquals(0, db.copyDao().observeAllCopies().first().size)
+    }
+
+    @Test
+    fun aCardPrintedInOneFinishIsAddedWithThatFinish_othersKeepTheDefault() = runTest {
+        scans.addFromScan(ref("006", printings = listOf("holo")))
+        scans.addFromScan(ref("199", printings = listOf("reverse")))
+        // 1st edition is a print run, not a finish: a holo-only WotC rare is still holo.
+        scans.addFromScan(ref("004", set = "base1", printings = listOf("holo", "firstEdition")))
+        scans.addFromScan(ref("001", printings = listOf("normal", "reverse")))
+        scans.addFromScan(ref("002", printings = listOf("reverse", "holo")))
+        scans.addFromScan(ref("003", printings = null))
+        val finishes = db.copyDao().observeAllCopies().first().associate { it.copy.cardId to it.copy.finish }
+        assertEquals(
+            mapOf(
+                "sv03.5-006" to Finish.HOLO, "sv03.5-199" to Finish.REVERSE_HOLO, "base1-004" to Finish.HOLO,
+                "sv03.5-001" to Finish.NORMAL, "sv03.5-002" to Finish.NORMAL, "sv03.5-003" to Finish.NORMAL,
+            ),
+            finishes,
+        )
+        // The gap-filling catalog row keeps the printings too, and the finish stays editable.
+        val id = db.copyDao().observeAllCopies().first().first { it.copy.cardId == "sv03.5-006" }.copy.id
+        assertTrue(scans.setVariant(id, Finish.REVERSE_HOLO, Edition.UNLIMITED, Condition.NEAR_MINT))
+        assertEquals(Finish.REVERSE_HOLO, db.copyDao().byId(id)!!.finish)
+    }
+
+    @Test
+    fun aReviewCandidatePrintedInOneFinishStartsTheDraftWithIt() = runTest {
+        queue.enqueue(
+            byteArrayOf(9),
+            listOf(Match(0, ref("006", printings = listOf("holo")), 0.6f), Match(1, ref("001", printings = listOf("normal", "reverse")), 0.5f)),
+            reading = null,
+            reason = ReviewReason.NUMBER_NOT_READ,
+            checkVariant = false,
+        )
+        val candidates = queue.observeItems().first().single().candidates.associate { it.rank to it.card.printings }
+        val draft = ReviewDraft.forItem(checkVariant = false)
+        assertEquals(Finish.HOLO, draft.forCard(candidates[0]).finish)
+        assertEquals(Finish.NORMAL, draft.copy(rank = 1).forCard(candidates[1]).finish)
     }
 
     @Test

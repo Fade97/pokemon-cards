@@ -80,6 +80,7 @@ interface WishlistDao {
             c.id AS card_id, c.setId AS card_setId, c.localId AS card_localId, c.name AS card_name,
             c.language AS card_language, c.rarity AS card_rarity, c.energyType AS card_energyType,
             c.imageUrl AS card_imageUrl, c.retired AS card_retired, c.numberKey AS card_numberKey,
+            c.printings AS card_printings,
             s.id AS set_id, s.name AS set_name, s.series AS set_series, s.language AS set_language,
             s.printedTotal AS set_printedTotal, s.region AS set_region, s.retired AS set_retired,
             (SELECT COALESCE(SUM(o.quantity), 0) FROM owned_copies o

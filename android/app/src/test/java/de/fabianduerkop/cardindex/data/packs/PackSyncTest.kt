@@ -12,6 +12,8 @@ import de.fabianduerkop.cardindex.data.packs.PackFixtures.content
 import de.fabianduerkop.cardindex.data.packs.PackFixtures.set
 import de.fabianduerkop.cardindex.data.scan.ScanCatalog
 import de.fabianduerkop.cardindex.model.EnergyType
+import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.Printings
 import de.fabianduerkop.cardindex.model.Region
 import de.fabianduerkop.cardindex.recognition.PackIntegrityException
 import de.fabianduerkop.cardindex.recognition.RefCard
@@ -45,6 +47,7 @@ class PackSyncTest {
     private val server = MockWebServer()
     private val fake = FakePackServer()
     private lateinit var db: CardIndexDatabase
+    private lateinit var root: File
     private lateinit var store: PackStore
     private lateinit var http: PackHttp
     private lateinit var prefs: PackPreferences
@@ -76,7 +79,8 @@ class PackSyncTest {
         server.dispatcher = fake
         server.start()
         db = inMemoryDatabase()
-        store = PackStore(tmp.newFolder("packs"))
+        root = tmp.newFolder("packs")
+        store = PackStore(root)
         http = PackHttp(server.url("/").toString(), OkHttpClient(), store.downloadDir)
         prefs = PackPreferences(ApplicationProvider.getApplicationContext())
         prefs.wanted = emptySet()
@@ -173,6 +177,26 @@ class PackSyncTest {
     }
 
     @Test
+    fun printingsRoundTripAndUnknownKeysAreDropped() {
+        val pack = withPrintings(en1)
+        assertEquals(pack.cards, PackCards.parse(pack.cardsJsonGz()).cards)
+        val doc = org.json.JSONObject(PackContent.gunzip(pack.cardsJsonGz()).toString(Charsets.UTF_8))
+        val cards = doc.getJSONArray("cards")
+        val byId = (0 until cards.length()).map(cards::getJSONObject).associateBy { it.getString("id") }
+        assertEquals("[\"normal\",\"reverse\"]", byId.getValue("sv2-001").getJSONArray("printings").toString())
+        assertTrue(byId.getValue("sv1-002").isNull("printings"))
+        // A key from a later builder this app doesn't know, alone or next to a known one.
+        val later = PackContent.parseCard(org.json.JSONObject(
+            """{"id":"a-1","setId":"a","localId":"1","name":"x","image":null,"printings":["galaxy"]}""",
+        ))
+        assertNull(later.printings)
+        val mixed = PackContent.parseCard(org.json.JSONObject(
+            """{"id":"a-1","setId":"a","localId":"1","name":"x","image":null,"printings":["galaxy","holo"]}""",
+        ))
+        assertEquals(holo, mixed.printings)
+    }
+
+    @Test
     fun cardFileRoundTripsWithItsIndex() {
         val parsed = PackContent.parse(en2.cardsJsonGz(), en2.indexBytes(), PackFixtures.DIM)
         assertEquals(en2.cards, parsed.cards)
@@ -256,6 +280,74 @@ class PackSyncTest {
         assertTrue(cards.getValue("sv1-002").retired)
         assertEquals("Renamed", cards.getValue("sv1-001").name)
         assertFalse(cards.getValue("sv3-001").retired)
+    }
+
+    private val holo = Printings.ofKeys(listOf("holo"))
+    private val normalReverse = Printings.ofKeys(listOf("normal", "reverse"))
+
+    /** [content] with printings on two of its cards, as ml/packs.py writes them since #143. */
+    private fun withPrintings(content: PackContent, version: Int = content.version) = content(
+        content.lang, version, content.sets,
+        content.cards.map {
+            when (it.id) {
+                "sv1-001" -> it.copy(printings = holo)
+                "sv2-001" -> it.copy(printings = normalReverse)
+                else -> it
+            }
+        },
+    )
+
+    @Test
+    fun printingsArriveWithADeltaAndReachTheCatalog() = runTest {
+        val model = fake.publishModel("mnv3", modelBytes)
+        fake.publish(en1, model)
+        manager.addLanguages(setOf("en"))
+        manager.sync(poll = false)
+        assertNull(db.catalogDao().cardsInLanguage("en").first { it.id == "sv1-001" }.printings)
+
+        val en1b = withPrintings(en1, version = 2)
+        fake.publish(en1b, model, bases = listOf(en1))
+        manager.sync(poll = true)
+
+        val pack = store.installed.value.packs.getValue("en")
+        assertEquals(2, pack.meta.version)
+        // The stored card file keeps them, so it can be the base of the next delta.
+        assertEquals(en1b.cards, PackCards.parse(pack.cardsFile.readBytes()).cards)
+        val cards = db.catalogDao().cardsInLanguage("en").associateBy { it.id }
+        assertEquals(Finish.HOLO, cards.getValue("sv1-001").printings?.onlyFinish)
+        assertEquals(normalReverse, cards.getValue("sv2-001").printings)
+        assertNull(cards.getValue("sv1-002").printings)
+    }
+
+    @Test
+    fun aPackAnOlderAppStoredIsDownloadedAgainInFull_andTheCatalogGetsItsPrintings() = runTest {
+        val model = fake.publishModel("mnv3", modelBytes)
+        val current = withPrintings(en1)
+        fake.publish(current, model)
+        manager.addLanguages(setOf("en"))
+        manager.sync(poll = false)
+        // What an app before #143 leaves after applying a delta: no printings in the card file, the catalog or
+        // pack.json, at the catalog's version.
+        val old = store.installed.value.packs.getValue("en")
+        old.cardsFile.writeBytes(en1.cardsJsonGz())
+        File(old.dir, InstalledPack.META).writeText(old.meta.toJson().apply { remove("printingsKept") }.toString())
+        db.catalogDao().upsertCards(db.catalogDao().cardsInLanguage("en").map { it.copy(printings = null) })
+        store = PackStore(root)
+        manager = newManager()
+        assertFalse(store.installed.value.packs.getValue("en").meta.printingsKept)
+        assertEquals(old.meta, PackMeta.fromJson(old.meta.toJson()))
+
+        fake.requests.clear()
+        assertEquals(SyncOutcome.Done, manager.sync(poll = true))
+
+        assertTrue(fake.paths().containsAll(listOf("en/cards-1.json.gz", "en/index-1.bin")))
+        val pack = store.installed.value.packs.getValue("en")
+        assertTrue(pack.meta.printingsKept)
+        assertEquals(Finish.HOLO, db.catalogDao().cardsInLanguage("en").first { it.id == "sv1-001" }.printings?.onlyFinish)
+        // Once is enough.
+        fake.requests.clear()
+        manager.sync(poll = true)
+        assertEquals(listOf("catalog.json"), fake.paths())
     }
 
     @Test

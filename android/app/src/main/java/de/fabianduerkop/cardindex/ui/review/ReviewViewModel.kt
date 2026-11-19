@@ -95,7 +95,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         ReviewUiState(
             loading = false,
             current = current,
-            draft = current?.let { drafts[it.entity.id] ?: defaultDraft(it) } ?: ReviewDraft(),
+            draft = current?.let { item ->
+                val draft = drafts[item.entity.id] ?: defaultDraft(item)
+                draft.forCard(item.candidates.firstOrNull { it.rank == draft.rank }?.card?.printings)
+            } ?: ReviewDraft(),
             position = done + 1,
             total = done + open.size,
             confirmed = confirmed,
