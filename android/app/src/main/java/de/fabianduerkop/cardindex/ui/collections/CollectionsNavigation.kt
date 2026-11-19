@@ -40,6 +40,7 @@ fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: (
                 onOpenCollection = { navController.navigate(CollectionsRoutes.collection(it)) },
                 onOpenScan = onOpenScan,
                 onOpenWishlist = { navController.navigate(CollectionsRoutes.WISHLIST) },
+                onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
             )
         }
         composable(CollectionsRoutes.WISHLIST) {

@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.calculateEndPadding
+import androidx.compose.foundation.layout.calculateStartPadding
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -13,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -29,6 +35,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -43,6 +50,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
+import de.fabianduerkop.cardindex.data.db.WantedWithCard
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
@@ -63,9 +71,14 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 import kotlinx.coroutines.launch
 
 /**
- * Collections (Pearl, ADR 0014): the value summary, one featured set on the foil cover, compact rows for every other
- * set, then All cards and the user's own collections. The featured set is the one the user pinned in the set detail,
- * else the most valuable set (#156); see [featuredSet].
+ * Collections (Pearl, ADR 0014): the value summary, then a switch between three views (#164) that stays at the top
+ * while the list scrolls, so binders and the wishlist never sink below a long list of sets:
+ * - Sets: one featured set on the foil cover and compact rows for every other set. The featured set is the one the
+ *   user pinned in the set detail, else the most valuable set (#156); see [featuredSet].
+ * - Binders: All cards and the user's own collections.
+ * - Wishlist: the wanted cards (#134), as on the wishlist screen.
+ * The last view is remembered across starts (AppSettings.collectionsView). With no cards yet the screen shows the
+ * empty state instead, with any collections and the wishlist below it.
  */
 @Composable
 fun CollectionsScreen(
@@ -74,23 +87,34 @@ fun CollectionsScreen(
     modifier: Modifier = Modifier,
     onOpenScan: () -> Unit = {},
     onOpenWishlist: () -> Unit = {},
+    onOpenCard: (cardId: String, language: String) -> Unit = { _, _ -> },
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
+            val settings = container.settings
             CollectionsViewModel(
                 container.collections,
                 container.prices,
                 container.primaryPriceSource,
                 container.priceHistory,
                 container.entitlements.isPro,
-                container.settings.featuredSetFlow,
+                settings.featuredSetFlow,
+                storedView = settings.collectionsView,
+                saveView = { settings.collectionsView = it },
             )
         },
+    ),
+    wishlist: WishlistViewModel = viewModel(
+        factory = containerViewModelFactory { container, _ -> WishlistViewModel(container.collections) },
     ),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val portfolio by viewModel.portfolio.collectAsStateWithLifecycle()
     val wanted by viewModel.wishlistCount.collectAsStateWithLifecycle()
+    val view by viewModel.view.collectAsStateWithLifecycle()
+    val wantedEntries by wishlist.entries.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
+    val listState = rememberLazyListState()
+    val scope = rememberCoroutineScope()
 
     TopLevelScaffold(
         title = stringResource(R.string.nav_collections),
@@ -105,7 +129,17 @@ fun CollectionsScreen(
             )
         },
     ) { padding ->
-        LazyColumn(modifier = Modifier.fillMaxSize(), contentPadding = padding) {
+        // The top padding sits outside the list, so the switch sticks below the app bar rather than behind it.
+        val direction = LocalLayoutDirection.current
+        LazyColumn(
+            modifier = Modifier.fillMaxSize().padding(top = padding.calculateTopPadding()),
+            state = listState,
+            contentPadding = PaddingValues(
+                start = padding.calculateStartPadding(direction),
+                end = padding.calculateEndPadding(direction),
+                bottom = padding.calculateBottomPadding(),
+            ),
+        ) {
             if (!state.loading && state.totalCopies == 0) {
                 item { EmptyCollections(onOpenScan) }
                 // Collections made before the first card stay reachable, so they can be renamed or deleted; so does
@@ -126,53 +160,30 @@ fun CollectionsScreen(
                         onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
                     )
                 }
-                item {
-                    SectionHeader(
-                        title = stringResource(R.string.collections_sets),
-                        trailing = pluralStringResource(R.plurals.collections_sets_count, state.sets.size, state.sets.size),
-                        modifier = Modifier.padding(horizontal = ScreenPadding),
+                stickyHeader(key = "view-switch") {
+                    CollectionsSwitch(
+                        view,
+                        onSelect = { chosen ->
+                            viewModel.showView(chosen)
+                            // Scrolled into the sets, the new view starts right under the switch, without animation.
+                            if (listState.firstVisibleItemIndex > SWITCH_INDEX) {
+                                scope.launch { listState.scrollToItem(SWITCH_INDEX) }
+                            }
+                        },
                     )
                 }
-                item {
-                    LanguageChips(
-                        languages = state.languages,
-                        selected = state.selectedLanguages,
-                        onToggle = viewModel::toggleLanguage,
-                        modifier = Modifier.padding(bottom = Spacing.sm),
+                when (view) {
+                    CollectionsView.SETS -> setItems(
+                        state,
+                        onToggleLanguage = viewModel::toggleLanguage,
+                        onOpenSet = onOpenSet,
                     )
-                }
-                if (state.sets.isEmpty()) {
-                    item {
-                        PlaceholderText(
-                            stringResource(R.string.collections_no_sets_in_language),
-                            Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md),
-                        )
-                    }
-                }
-                state.featured?.let { featured ->
-                    item(key = "featured-" + featured.completion.setId) {
-                        FeaturedSet(
-                            featured,
-                            pinned = state.featuredPinned,
-                            onClick = { onOpenSet(featured.completion.setId) },
-                            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.xs),
-                        )
-                    }
-                }
-                items(state.otherSets, key = { "set-" + it.completion.setId }) { row ->
-                    SetRow(row, onClick = { onOpenSet(row.completion.setId) })
-                }
-                item { YoursHeader(state.collections.size + 2) }
-                item {
-                    CollectionRow(
-                        name = stringResource(R.string.collections_all_cards),
-                        cards = state.totalCopies,
-                        onClick = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
+                    CollectionsView.BINDERS -> binderItems(state, onOpenCollection = onOpenCollection)
+                    CollectionsView.WISHLIST -> wishlistItems(
+                        wantedEntries,
+                        onOpenCard = onOpenCard,
+                        onRemove = wishlist::remove,
                     )
-                }
-                item { WishlistRow(wanted, onOpenWishlist) }
-                items(state.collections, key = { "col-" + it.id }) { collection ->
-                    CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
                 }
                 item { Box(Modifier.height(Spacing.xl)) }
             }
@@ -187,6 +198,123 @@ fun CollectionsScreen(
                 viewModel.createCollection(name, description)
                 creating = false
             },
+        )
+    }
+}
+
+/** List index of the switch: right after the value header. */
+private const val SWITCH_INDEX = 1
+
+/**
+ * The Sets / Binders / Wishlist switch (#164) on the page colour, so rows scrolling under it stay hidden, with the
+ * divider that closes the value header below it.
+ */
+@Composable
+private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView) -> Unit) {
+    val labels = CollectionsView.entries.map { entry ->
+        stringResource(
+            when (entry) {
+                CollectionsView.SETS -> R.string.collections_view_sets
+                CollectionsView.BINDERS -> R.string.collections_view_binders
+                CollectionsView.WISHLIST -> R.string.collections_view_wishlist
+            },
+        )
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .background(MaterialTheme.colorScheme.background)
+            .padding(horizontal = ScreenPadding),
+    ) {
+        ViewSwitch(
+            labels = labels,
+            selectedIndex = view.ordinal,
+            onSelect = { onSelect(CollectionsView.entries[it]) },
+            modifier = Modifier.padding(vertical = Spacing.sm),
+        )
+        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+    }
+}
+
+/** Sets view: the count, language chips, the featured set on the foil cover and a row for every other set. */
+private fun LazyListScope.setItems(
+    state: CollectionsUiState,
+    onToggleLanguage: (String?) -> Unit,
+    onOpenSet: (String) -> Unit,
+) {
+    item {
+        SectionHeader(
+            title = stringResource(R.string.collections_sets),
+            trailing = pluralStringResource(R.plurals.collections_sets_count, state.sets.size, state.sets.size),
+            modifier = Modifier.padding(horizontal = ScreenPadding),
+        )
+    }
+    item {
+        LanguageChips(
+            languages = state.languages,
+            selected = state.selectedLanguages,
+            onToggle = onToggleLanguage,
+            modifier = Modifier.padding(bottom = Spacing.sm),
+        )
+    }
+    if (state.sets.isEmpty()) {
+        item {
+            PlaceholderText(
+                stringResource(R.string.collections_no_sets_in_language),
+                Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md),
+            )
+        }
+    }
+    state.featured?.let { featured ->
+        item(key = "featured-" + featured.completion.setId) {
+            FeaturedSet(
+                featured,
+                pinned = state.featuredPinned,
+                onClick = { onOpenSet(featured.completion.setId) },
+                modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.xs),
+            )
+        }
+    }
+    items(state.otherSets, key = { "set-" + it.completion.setId }) { row ->
+        SetRow(row, onClick = { onOpenSet(row.completion.setId) })
+    }
+}
+
+/** Binders view: All cards, then the user's own collections, or a hint to start one with New. */
+private fun LazyListScope.binderItems(state: CollectionsUiState, onOpenCollection: (Long) -> Unit) {
+    item {
+        CollectionRow(
+            name = stringResource(R.string.collections_all_cards),
+            cards = state.totalCopies,
+            onClick = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
+        )
+    }
+    if (state.collections.isEmpty()) {
+        item {
+            PlaceholderText(
+                stringResource(R.string.collections_binders_empty),
+                Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md),
+            )
+        }
+    }
+    items(state.collections, key = { "col-" + it.id }) { collection ->
+        CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
+    }
+}
+
+/** Wishlist view: the wanted cards with Remove, as on the wishlist screen; nothing while they load. */
+private fun LazyListScope.wishlistItems(
+    entries: List<WantedWithCard>?,
+    onOpenCard: (cardId: String, language: String) -> Unit,
+    onRemove: (WantedWithCard) -> Unit,
+) {
+    if (entries == null) return
+    item { WishlistIntro(empty = entries.isEmpty()) }
+    items(entries, key = { "wanted-" + it.wanted.id }) { entry ->
+        WantedRow(
+            entry,
+            onClick = { onOpenCard(entry.card.id, entry.card.language) },
+            onRemove = { onRemove(entry) },
         )
     }
 }
@@ -226,7 +354,6 @@ private fun ValueHeader(
                 modifier = Modifier.padding(top = Spacing.xs),
             )
         }
-        HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
 

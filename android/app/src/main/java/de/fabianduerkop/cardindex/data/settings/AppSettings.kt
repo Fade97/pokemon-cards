@@ -98,6 +98,14 @@ class AppSettings(context: Context) {
         get() = prefs.getInt(KEY_SET_LEGEND_VISITS, 0)
         set(value) = prefs.edit { putInt(KEY_SET_LEGEND_VISITS, value) }
 
+    /**
+     * Name of the view the Collections home showed last (#164): sets, binders or the wishlist; null before the first
+     * switch. The screen reads it with CollectionsView.fromStored, which turns an unknown name into sets.
+     */
+    var collectionsView: String?
+        get() = prefs.getString(KEY_COLLECTIONS_VIEW, null)
+        set(value) = prefs.edit { if (value == null) remove(KEY_COLLECTIONS_VIEW) else putString(KEY_COLLECTIONS_VIEW, value) }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -123,5 +131,6 @@ class AppSettings(context: Context) {
         const val KEY_FEATURED_SET = "featured_set"
         const val KEY_SCAN_INTRO_SEEN = "scan_intro_seen"
         const val KEY_SET_LEGEND_VISITS = "set_legend_visits"
+        const val KEY_COLLECTIONS_VIEW = "collections_view"
     }
 }

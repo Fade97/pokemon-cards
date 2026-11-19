@@ -64,6 +64,11 @@
     <string name="collections_all_languages">All languages</string>
     <string name="collections_sets">Sets</string>
     <string name="collections_yours">Your collections</string>
+    <!-- Collections home switch (#164); read by TalkBack as tabs. -->
+    <string name="collections_view_sets">Sets</string>
+    <string name="collections_view_binders">Binders</string>
+    <string name="collections_view_wishlist">Wishlist</string>
+    <string name="collections_binders_empty">No binders of your own yet. Tap New to start one, for example a trade binder.</string>
     <string name="collections_all_cards">All cards</string>
     <plurals name="collections_cards_count">
         <item quantity="one">%1$d card</item>

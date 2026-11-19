@@ -170,6 +170,22 @@ val CollectionsUiState.otherSets: List<SetRowUi>
 internal fun featuredSet(sets: List<SetRowUi>, pinnedId: String?): SetRowUi? =
     sets.firstOrNull { it.completion.setId == pinnedId } ?: sets.maxByOrNull { it.value?.amountMinor ?: 0L }
 
+/**
+ * The three views of the Collections home (#164), switched below the value header so binders and the wishlist don't
+ * sink below every set. In switch order.
+ */
+enum class CollectionsView {
+    SETS,
+    BINDERS,
+    WISHLIST,
+    ;
+
+    companion object {
+        /** The view stored under [name] (AppSettings.collectionsView); sets when nothing or an unknown name is stored. */
+        fun fromStored(name: String?): CollectionsView = entries.firstOrNull { it.name == name } ?: SETS
+    }
+}
+
 private data class CollectionsBase(
     val languages: List<String>,
     val chosen: Set<String>,
@@ -186,8 +202,20 @@ class CollectionsViewModel(
     history: PriceHistoryRepository,
     isPro: Flow<Boolean>,
     pinnedSet: Flow<String?> = flowOf(null),
+    storedView: String? = null,
+    private val saveView: (String) -> Unit = {},
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
+    private val chosenView = MutableStateFlow(CollectionsView.fromStored(storedView))
+
+    /** The view below the value header (#164); starts on the one shown last, see [showView]. */
+    val view: StateFlow<CollectionsView> = chosenView
+
+    /** Switches the home to [view] and remembers it for the next start. */
+    fun showView(view: CollectionsView) {
+        chosenView.value = view
+        saveView(view.name)
+    }
 
     private val base = combine(
         repository.observeOwnedLanguages(),
