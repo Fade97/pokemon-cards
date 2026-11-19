@@ -186,7 +186,7 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
                     })
                 },
                 onPause = { viewModel.setPaused(!paused) },
-                onTorch = { torch = !torch; controller.enableTorch(torch) },
+                onTorch = { torch = !torch; controller.enableTorch(torch); viewModel.setTorch(torch) },
                 onGallery = { pickPhoto.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
                 onBack = viewModel::backToLive,
                 modifier = Modifier.align(Alignment.BottomCenter).padding(8.dp),
