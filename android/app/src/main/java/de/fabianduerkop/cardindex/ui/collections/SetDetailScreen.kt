@@ -86,7 +86,15 @@ fun SetDetailScreen(
     onOpenCard: (cardId: String, language: String) -> Unit,
     viewModel: SetDetailViewModel = viewModel(
         factory = containerViewModelFactory { container, saved ->
-            SetDetailViewModel(container.collections, container.ownPhotos, container.prices, container.primaryPriceSource, saved)
+            SetDetailViewModel(
+                container.collections,
+                container.ownPhotos,
+                container.prices,
+                container.primaryPriceSource,
+                saved,
+                pinnedSet = container.settings.featuredSetFlow,
+                pinSet = { container.settings.featuredSet = it },
+            )
         },
     ),
 ) {
@@ -100,6 +108,17 @@ fun SetDetailScreen(
     DetailScaffold(
         title = detail?.set?.name.orEmpty(),
         onBack = onBack,
+        actions = {
+            if (detail != null) {
+                TextAction(
+                    text = stringResource(if (state.pinned) R.string.collections_unpin_set else R.string.collections_pin_set),
+                    onClick = viewModel::togglePinned,
+                    contentDescription = stringResource(
+                        if (state.pinned) R.string.collections_unpin_set_description else R.string.collections_pin_set_description,
+                    ),
+                )
+            }
+        },
         bottomBar = {
             if (selected != null) {
                 MissingSlotBar(

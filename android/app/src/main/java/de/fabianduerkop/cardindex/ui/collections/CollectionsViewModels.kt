@@ -144,7 +144,12 @@ data class CollectionsUiState(
     val languages: List<String> = emptyList(),
     val selectedLanguages: Set<String> = emptySet(),
     val totalCopies: Int = 0,
+    /** Every set in the language filter, by region and name; the featured one is among them. */
     val sets: List<SetRowUi> = emptyList(),
+    /** The set on the foil cover (#156), see [featuredSet]. */
+    val featured: SetRowUi? = null,
+    /** Whether [featured] is the user's pinned set rather than the most valuable one. */
+    val featuredPinned: Boolean = false,
     val collections: List<CollectionSummary> = emptyList(),
     /** Value of every copy in the main market, all languages (the header says so). */
     val value: CollectionValue? = null,
@@ -152,6 +157,17 @@ data class CollectionsUiState(
     /** Newest market date among the cached prices of owned cards. */
     val priceDate: Instant? = null,
 )
+
+/** The sets below the foil cover: every set except the featured one, in their order. */
+val CollectionsUiState.otherSets: List<SetRowUi>
+    get() = sets.filter { it.completion.setId != featured?.completion?.setId }
+
+/**
+ * The set on the Collections foil cover (#156): the one the user pinned while it is in the list, else the most
+ * valuable set. With no prices (or a tie) the earlier set in the list wins, so the cover never jumps at random.
+ */
+internal fun featuredSet(sets: List<SetRowUi>, pinnedId: String?): SetRowUi? =
+    sets.firstOrNull { it.completion.setId == pinnedId } ?: sets.maxByOrNull { it.value?.amountMinor ?: 0L }
 
 private data class CollectionsBase(
     val languages: List<String>,
@@ -168,6 +184,7 @@ class CollectionsViewModel(
     primarySource: Flow<PriceSource>,
     history: PriceHistoryRepository,
     isPro: Flow<Boolean>,
+    pinnedSet: Flow<String?> = flowOf(null),
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
 
@@ -180,24 +197,33 @@ class CollectionsViewModel(
         ::CollectionsBase,
     )
 
-    val state: StateFlow<CollectionsUiState> = combine(base, prices.observeAll(), primarySource) { b, priceMap, source ->
+    val state: StateFlow<CollectionsUiState> = combine(
+        base,
+        prices.observeAll(),
+        primarySource,
+        pinnedSet,
+    ) { b, priceMap, source, pinnedId ->
         val inFilter = b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
         val bySet = inFilter.groupBy { it.set.id }
+        val sets = b.completion.map { completion ->
+            val copies = bySet[completion.setId].orEmpty()
+            SetRowUi(
+                completion = completion,
+                ownedSlots = copies.mapTo(HashSet()) { numberKey(it.card.localId) },
+                value = PriceSelection.total(copies.map { it.copy }, priceMap, source),
+                series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
+                art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
+            )
+        }
+        val featured = featuredSet(sets, pinnedId)
         CollectionsUiState(
             loading = false,
             languages = b.languages,
             selectedLanguages = b.chosen.intersect(b.languages.toSet()),
             totalCopies = b.copies.sumOf { it.copy.quantity },
-            sets = b.completion.map { completion ->
-                val copies = bySet[completion.setId].orEmpty()
-                SetRowUi(
-                    completion = completion,
-                    ownedSlots = copies.mapTo(HashSet()) { numberKey(it.card.localId) },
-                    value = PriceSelection.total(copies.map { it.copy }, priceMap, source),
-                    series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
-                    art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
-                )
-            },
+            sets = sets,
+            featured = featured,
+            featuredPinned = featured != null && featured.completion.setId == pinnedId,
             collections = b.collections,
             value = PriceSelection.total(b.copies.map { it.copy }, priceMap, source),
             source = source,
@@ -262,6 +288,8 @@ data class SetDetailUiState(
     val photos: OwnPhotos = OwnPhotos(),
     /** Value of the owned copies in the chosen languages. */
     val value: CollectionValue? = null,
+    /** Whether the user pinned this set to the Collections foil cover (#156). */
+    val pinned: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -271,14 +299,16 @@ class SetDetailViewModel(
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
     savedState: SavedStateHandle,
+    pinnedSet: Flow<String?> = flowOf(null),
+    private val pinSet: (String?) -> Unit = {},
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
     private val selected = MutableStateFlow(emptySet<String>())
     private val mode = MutableStateFlow(SetViewMode.COMPACT)
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
-    private val view = combine(selected, mode, filter, photos) { chosen, mode, filter, photos ->
-        SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos)
+    private val view = combine(selected, mode, filter, photos, pinnedSet) { chosen, mode, filter, photos, pinnedId ->
+        SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
     }
 
     val state: StateFlow<SetDetailUiState> = combine(
@@ -303,6 +333,9 @@ class SetDetailViewModel(
 
     fun setMode(value: SetViewMode) { mode.value = value }
     fun setFilter(value: SlotFilter) { filter.value = value }
+
+    /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
+    fun togglePinned() = pinSet(if (state.value.pinned) null else setId)
 }
 
 data class CardDetailUiState(

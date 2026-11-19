@@ -64,8 +64,8 @@ import kotlinx.coroutines.launch
 
 /**
  * Collections (Pearl, ADR 0014): the value summary, one featured set on the foil cover, compact rows for every other
- * set, then All cards and the user's own collections. The featured set is simply the first set in the existing order;
- * there is no pinning.
+ * set, then All cards and the user's own collections. The featured set is the one the user pinned in the set detail,
+ * else the most valuable set (#156); see [featuredSet].
  */
 @Composable
 fun CollectionsScreen(
@@ -82,6 +82,7 @@ fun CollectionsScreen(
                 container.primaryPriceSource,
                 container.priceHistory,
                 container.entitlements.isPro,
+                container.settings.featuredSetFlow,
             )
         },
     ),
@@ -148,16 +149,17 @@ fun CollectionsScreen(
                         )
                     }
                 }
-                state.sets.firstOrNull()?.let { featured ->
+                state.featured?.let { featured ->
                     item(key = "featured-" + featured.completion.setId) {
                         FeaturedSet(
                             featured,
+                            pinned = state.featuredPinned,
                             onClick = { onOpenSet(featured.completion.setId) },
                             modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.xs),
                         )
                     }
                 }
-                items(state.sets.drop(1), key = { "set-" + it.completion.setId }) { row ->
+                items(state.otherSets, key = { "set-" + it.completion.setId }) { row ->
                     SetRow(row, onClick = { onOpenSet(row.completion.setId) })
                 }
                 item { YoursHeader(state.collections.size + 2) }
@@ -230,7 +232,7 @@ private fun ValueHeader(
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
-private fun setDescription(row: SetRowUi): String {
+private fun setDescription(row: SetRowUi, pinned: Boolean = false): String {
     val set = row.completion
     val progress = row.progress
     val parts = listOfNotNull(
@@ -238,6 +240,7 @@ private fun setDescription(row: SetRowUi): String {
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
     return parts.joinToString(", ")
 }
@@ -247,9 +250,9 @@ private fun setDescription(row: SetRowUi): String {
  * or the numbered placeholder when there is none or the phone is offline), the count, value and completion bar.
  */
 @Composable
-private fun FeaturedSet(row: SetRowUi, onClick: () -> Unit, modifier: Modifier = Modifier) {
+private fun FeaturedSet(row: SetRowUi, pinned: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val set = row.completion
-    val description = setDescription(row)
+    val description = setDescription(row, pinned)
     FoilCover(onClick = onClick, modifier = modifier, onClickLabel = stringResource(R.string.collections_open_set)) {
         Column(Modifier.clearAndSetSemantics { contentDescription = description }) {
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -257,6 +260,7 @@ private fun FeaturedSet(row: SetRowUi, onClick: () -> Unit, modifier: Modifier =
                     val overline = listOfNotNull(
                         row.series,
                         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
+                        if (pinned) stringResource(R.string.collections_featured_pinned) else null,
                     ).joinToString(" · ")
                     if (overline.isNotEmpty()) {
                         Text(

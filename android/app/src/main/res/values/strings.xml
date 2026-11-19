@@ -82,6 +82,13 @@
         <item quantity="other">%1$d collections</item>
     </plurals>
     <string name="collections_open_set">Open set</string>
+    <!-- Featured set on the Collections cover (#156): pinned by the user, else the most valuable set. -->
+    <string name="collections_featured_pinned">Pinned</string>
+    <string name="collections_featured_pinned_description">pinned</string>
+    <string name="collections_pin_set">Pin</string>
+    <string name="collections_unpin_set">Unpin</string>
+    <string name="collections_pin_set_description">Pin this set to the top of Collections</string>
+    <string name="collections_unpin_set_description">Unpin this set from the top of Collections</string>
     <string name="collections_open_collection">Open collection</string>
     <!-- After a count like "87/165" on the featured set cover. -->
     <string name="collections_collected">collected</string>
