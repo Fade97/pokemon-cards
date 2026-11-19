@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import de.fabianduerkop.cardindex.data.collections.Recaps
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetMissing
 import de.fabianduerkop.cardindex.data.collections.SetProgress
@@ -54,14 +55,7 @@ object SetShare {
                 wanted = numberKey(slot.localId) in wantedKeys,
             )
         }
-        val completedOn = if (total > 0 && detail.progress.base >= total) {
-            detail.copies.filterNot { isSecret(numberKey(it.card.localId), total) }
-                .groupBy { numberKey(it.card.localId) }
-                .values.maxOfOrNull { copies -> copies.minOf { it.copy.createdAt } }
-                ?.atZone(zone)?.toLocalDate()
-        } else {
-            null
-        }
+        val completedOn = Recaps.completionDate(detail.copies, total, zone)
         return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing, completedOn)
     }
 

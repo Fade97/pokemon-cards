@@ -5,6 +5,7 @@ import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
 import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.CopyWithCard
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.db.SetNumber
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.model.Finish
@@ -65,7 +66,7 @@ class SessionReceiptTest {
     fun newSlots_countOnlyNumbersNobodyOwnedBefore_acrossLanguages() {
         // 006 was owned in German before; 025 twice this session is one slot; 6 and 006 are the same number.
         val session = listOf(copy("006"), copy("025"), copy("025", language = "de"), copy("099"))
-        val receipt = SessionReceipt.build(session, before = listOf(copy("6", language = "de")), prices, PriceSource.CARDMARKET)
+        val receipt = SessionReceipt.build(session, before = listOf(SetNumber("sv03.5", "6")), prices, PriceSource.CARDMARKET)
 
         assertEquals(2, receipt.newSlots)
         assertEquals(1, receipt.sets)
