@@ -53,9 +53,10 @@
     </plurals>
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
-    <plurals name="collections_unpriced">
-        <item quantity="one">%1$d copy has no %2$s price</item>
-        <item quantity="other">%1$d copies have no %2$s price</item>
+    <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
+    <plurals name="collections_value_coverage">
+        <item quantity="one">For %1$d of %2$d copy, the rest have no %3$s price</item>
+        <item quantity="other">For %1$d of %2$d copies, the rest have no %3$s price</item>
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
@@ -112,6 +113,8 @@
     <string name="collections_filter_all">All</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
+    <!-- Missing base numbers, then missing secret rares beyond the printed total (#161). -->
+    <string name="collections_filter_missing_secret">Missing %1$d · +%2$d secret</string>
     <string name="collections_slot_missing">Missing</string>
     <string name="collections_slot_unknown">Not in your installed cards yet</string>
     <string name="collections_slot_close">Close</string>
@@ -429,9 +432,14 @@
     <string name="scan_target_title">Scan into</string>
     <string name="scan_target_hint">Every scan is in All cards. Pick a collection to add the next scans there too.</string>
     <string name="scan_target_none">Every scan is in All cards. Create a collection in Collections to scan straight into it.</string>
-    <plurals name="scan_scanned_count">
-        <item quantity="one">%1$d card this session</item>
-        <item quantity="other">%1$d cards this session</item>
+    <!-- Session count (#161): cards added, then " · " and the cards saved for review, when any. -->
+    <plurals name="scan_session_added">
+        <item quantity="one">%1$d added this session</item>
+        <item quantity="other">%1$d added this session</item>
+    </plurals>
+    <plurals name="scan_session_queued">
+        <item quantity="one">%1$d needs checking</item>
+        <item quantity="other">%1$d need checking</item>
     </plurals>
     <string name="scan_review">Review</string>
     <string name="scan_review_empty_description">Review queue, nothing waiting</string>
@@ -480,7 +488,12 @@
     <!-- Set name, language -->
     <string name="review_set_language">%1$s, %2$s</string>
     <!-- Similarity of the scan to a candidate, in percent -->
-    <string name="review_similarity">%1$d %%</string>
+    <!-- Tap action on the scan crop (#161) -->
+    <string name="review_crop_enlarge">Compare large</string>
+    <string name="review_compare_scan">Your scan</string>
+    <!-- Card name, collector number, e.g. "Charmander, 004/165" -->
+    <string name="review_compare_card_description">%1$s, %2$s</string>
+    <string name="review_compare_close">Close</string>
     <string name="review_pick_variant">Pick the finish and the edition to confirm.</string>
     <string name="review_quantity">Quantity</string>
     <string name="review_quantity_less">One less</string>

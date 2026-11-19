@@ -171,8 +171,9 @@ private fun SetGrid(
     onSlot: (SetSlot) -> Unit,
 ) {
     // Filters and grid list every slot (buildSetSlots), secret rares included; the header counts the base set (#132).
+    // The Missing chip splits the same way, so "Missing 158 · +42 secret" adds up with a 7/165 header (#161).
     val owned = detail.ownedNumbers
-    val missing = detail.slots.size - owned
+    val missing = detail.missing
     val shown = when (state.filter) {
         SlotFilter.ALL -> detail.slots
         SlotFilter.OWNED -> detail.slots.filter { it.owned }
@@ -216,7 +217,11 @@ private fun SetGrid(
                 ChoiceChip(
                     state.filter == SlotFilter.MISSING,
                     { onFilter(SlotFilter.MISSING) },
-                    stringResource(R.string.collections_filter_missing, missing),
+                    if (missing.secret > 0 && detail.set.printedTotal > 0) {
+                        stringResource(R.string.collections_filter_missing_secret, missing.base, missing.secret)
+                    } else {
+                        stringResource(R.string.collections_filter_missing, missing.total)
+                    },
                 )
             }
         }

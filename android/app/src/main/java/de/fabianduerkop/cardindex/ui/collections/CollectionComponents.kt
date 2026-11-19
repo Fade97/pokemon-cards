@@ -88,7 +88,7 @@ internal fun SectionLabel(text: String, modifier: Modifier = Modifier) {
 
 /**
  * The value summary of the Pearl collection screens: what the cards are worth in the main market, with its source
- * ([label]) above and the price date and unpriced copies below. Only real values: without any price it says "No
+ * ([label]) above and the price date and how many copies it covers below (#161). Only real values: without any price it says "No
  * prices yet". With [onCaptionClick] the caption is a 48 dp link (e.g. to All cards).
  */
 @Composable
@@ -113,7 +113,15 @@ internal fun ValueSummary(
         )
         val details = buildList {
             if (value != null && value.unpricedCopies > 0 && priced) {
-                add(pluralStringResource(R.plurals.collections_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency))
+                add(
+                    pluralStringResource(
+                        R.plurals.collections_value_coverage,
+                        value.totalCopies,
+                        value.pricedCopies,
+                        value.totalCopies,
+                        value.currency,
+                    ),
+                )
             }
             priceDate?.let { add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()))) }
         }

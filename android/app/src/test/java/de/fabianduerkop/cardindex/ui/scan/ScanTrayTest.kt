@@ -27,6 +27,7 @@ class ScanTrayTest {
             .record(LastScan.Queued(ref("002"), ReviewReason.NUMBER_NOT_READ, itemId = 5))
             .record(LastScan.Added(ref("003"), copyId = 12))
         assertEquals(3, tray.scanned)
+        assertEquals(2 to 1, tray.added to tray.queued)
         assertEquals(3L, tray.decisions)
 
         val (third, afterThird) = tray.undo()!!
@@ -40,6 +41,8 @@ class ScanTrayTest {
         val (second, afterSecond) = tray.undo()!!
         assertEquals(5L, (second as LastScan.Queued).itemId)
         tray = afterSecond
+        // Undoing the queued card takes it off the "need checking" count, not the added one.
+        assertEquals(1 to 0, tray.added to tray.queued)
         // The card before comes back with the finish the user chose for it.
         val latest = tray.latest as LastScan.Added
         assertEquals(11L, latest.copyId)

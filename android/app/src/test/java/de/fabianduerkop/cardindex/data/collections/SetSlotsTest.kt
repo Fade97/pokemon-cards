@@ -108,6 +108,18 @@ class SetSlotsTest {
     }
 
     @Test
+    fun setDetailMissing_splitsBaseNumbersFromSecretRares_andAddsUpToTheMissingFilter() {
+        val catalog = listOf(card("s-006", "s", "006", "en"), card("s-007", "s", "007", "en"), card("s-TG01", "s", "TG01", "en"))
+        val copies = listOf(owned("001", "en"), owned("005", "en"), owned("007", "en"))
+        val detail = SetDetail(set, listOf("en"), buildSetSlots(5, catalog, copies, null), copies)
+
+        // 2/5 owned in the header, so 3 base numbers missing; 006 and TG01 are the secret rares still missing.
+        assertEquals(SetMissing(base = 3, secret = 2), detail.missing)
+        assertEquals(detail.slots.count { !it.owned }, detail.missing.total)
+        assertEquals(detail.set.printedTotal - detail.progress.base, detail.missing.base)
+    }
+
+    @Test
     fun progress_withoutAPrintedTotal_isEmpty() {
         assertEquals(0f, setProgress(listOf("1"), 0).fraction, 0f)
         assertEquals(1, setProgress(listOf("1"), 0).secret)
