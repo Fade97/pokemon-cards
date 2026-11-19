@@ -22,6 +22,8 @@ coil = "3.6.3"
 okhttp = "5.5.1"
 coroutines = "1.11.0"
 work = "2.12.0"
+# Open-source licenses screen (#136): the Gradle plugin collects licenses at build time; the app reads its JSON.
+aboutlibraries = "15.3.0"
 junit = "4.13.2"
 robolectric = "4.18"
 androidxTestCore = "1.7.0"
@@ -52,7 +54,6 @@ androidx-camera-lifecycle = { module = "androidx.camera:camera-lifecycle", versi
 androidx-camera-view = { module = "androidx.camera:camera-view", version.ref = "camerax" }
 # Bundled models: recognition works offline without a Play services download.
 mlkit-text-recognition-latin = { module = "com.google.mlkit:text-recognition", version.ref = "mlkitTextRecognition" }
-mlkit-text-recognition-japanese = { module = "com.google.mlkit:text-recognition-japanese", version.ref = "mlkitTextRecognition" }
 litert = { module = "com.google.ai.edge.litert:litert", version.ref = "litert" }
 # GPU accelerator for CompiledModel (native library only); the embedder falls back to the CPU without it.
 litert-gpu = { module = "com.google.ai.edge.litert:litert-gpu", version.ref = "litert" }
@@ -62,6 +63,7 @@ coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version
 okhttp = { module = "com.squareup.okhttp3:okhttp", version.ref = "okhttp" }
 okhttp-mockwebserver = { module = "com.squareup.okhttp3:mockwebserver", version.ref = "okhttp" }
 androidx-work-runtime = { module = "androidx.work:work-runtime-ktx", version.ref = "work" }
+androidx-work-testing = { module = "androidx.work:work-testing", version.ref = "work" }
 kotlinx-coroutines-android = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-android", version.ref = "coroutines" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutines" }
 junit = { module = "junit:junit", version.ref = "junit" }
@@ -76,3 +78,4 @@ kotlin-android = { id = "org.jetbrains.kotlin.android", version.ref = "kotlin" }
 kotlin-compose = { id = "org.jetbrains.kotlin.plugin.compose", version.ref = "kotlin" }
 ksp = { id = "com.google.devtools.ksp", version.ref = "ksp" }
 room = { id = "androidx.room", version.ref = "room" }
+aboutlibraries = { id = "com.mikepenz.aboutlibraries.plugin.android", version.ref = "aboutlibraries" }

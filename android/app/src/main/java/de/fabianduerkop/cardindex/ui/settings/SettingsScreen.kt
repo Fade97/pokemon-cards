@@ -62,7 +62,7 @@ import kotlinx.coroutines.launch
 /**
  * Settings in Pearl (#100): one section per topic on the page, as in the study's settings, built from the shared
  * rows, buttons and notices. What each control stores is unchanged. About has the version, the privacy policy and the
- * tester feedback form; licenses come later.
+ * tester feedback form, and the open-source licenses (#136).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -71,6 +71,7 @@ fun SettingsScreen(
     onOpenConsent: () -> Unit = {},
     onOpenContributions: () -> Unit = {},
     onOpenDesignGallery: () -> Unit = {},
+    onOpenLicenses: () -> Unit = {},
     viewModel: SettingsViewModel = viewModel(factory = containerViewModelFactory { container, _ -> SettingsViewModel(container) }),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -232,6 +233,7 @@ fun SettingsScreen(
                 Column {
                     PrivacyPolicyLink()
                     SourceCodeLink()
+                    TextAction(stringResource(R.string.settings_licenses), onClick = onOpenLicenses)
                     TesterFeedbackLink()
                 }
                 val appName = stringResource(R.string.app_name)
@@ -309,7 +311,7 @@ private fun TesterFeedbackLink() {
 }
 
 @Composable
-private fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier) {
+internal fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
     TextAction(label, modifier = modifier, onClick = {

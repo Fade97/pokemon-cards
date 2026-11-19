@@ -44,6 +44,17 @@ class AppSettings(context: Context) {
     fun stopContributing() = prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
 
     /**
+     * Language packs may download over mobile data (#137). Off by default: all packs together are about 110 MB, so
+     * they wait for an unmetered network (PackSyncWorker). Change it with AppContainer.setPacksOnMobileData, which
+     * also moves waiting downloads to the new rule.
+     */
+    var packsOnMobileData: Boolean
+        get() = prefs.getBoolean(KEY_PACKS_ON_MOBILE_DATA, false)
+        set(value) = prefs.edit { putBoolean(KEY_PACKS_ON_MOBILE_DATA, value) }
+
+    val packsOnMobileDataFlow: Flow<Boolean> = observe { packsOnMobileData }
+
+    /**
      * Uuid of the custom collection scans are added to besides All Cards (#139), or null for All Cards only. Kept
      * across app starts: sorting a pile into one binder often takes more than one sitting, and the Scan screen always
      * shows the choice.
@@ -79,6 +90,7 @@ class AppSettings(context: Context) {
         const val KEY_PRICE_SOURCE = "price_source"
         const val KEY_CONTRIBUTION_CONSENT = "contribution_consent"
         const val KEY_DEBUG_PRO = "debug_pro"
+        const val KEY_PACKS_ON_MOBILE_DATA = "packs_on_mobile_data"
         const val KEY_SCAN_TARGET = "scan_target_collection"
     }
 }

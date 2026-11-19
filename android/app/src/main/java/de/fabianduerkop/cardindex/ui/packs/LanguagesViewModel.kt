@@ -56,6 +56,8 @@ data class LanguagesUiState(
     val catalog: CatalogStatus = CatalogStatus.Loading,
     val syncing: Boolean = false,
     val syncError: String? = null,
+    /** Packs may download over mobile data (#137); off means they wait for Wi-Fi. */
+    val mobileData: Boolean = false,
 ) {
     val installed: List<LanguageRow> get() = rows.filter { it.wanted || it.installedVersion != null }
     val addable: List<LanguageRow> get() = rows.filter { !it.wanted && it.installedVersion == null }
@@ -83,10 +85,17 @@ class LanguagesViewModel(private val container: AppContainer) : ViewModel() {
     private val wanted = MutableStateFlow(packs.wanted)
 
     val state: StateFlow<LanguagesUiState> = combine(
-        packs.installed, packs.state, packs.catalog, catalogStatus, wanted,
-    ) { installed, sync, catalog, status, wanted -> build(installed, sync, catalog, status, wanted) }
+        combine(packs.installed, packs.state, packs.catalog, catalogStatus, wanted) { installed, sync, catalog, status, wanted ->
+            build(installed, sync, catalog, status, wanted)
+        },
+        container.settings.packsOnMobileDataFlow,
+    ) { state, mobileData -> state.copy(mobileData = mobileData) }
         .flowOn(Dispatchers.Default)
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), LanguagesUiState())
+        .stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5_000),
+            LanguagesUiState(mobileData = container.settings.packsOnMobileData),
+        )
 
     init {
         refreshCatalog()
@@ -119,6 +128,11 @@ class LanguagesViewModel(private val container: AppContainer) : ViewModel() {
             packs.removeLanguage(lang)
             wanted.value = packs.wanted
         }
+    }
+
+    /** The "Use mobile data for language packs" switch (#137). */
+    fun setMobileData(value: Boolean) {
+        viewModelScope.launch { container.setPacksOnMobileData(value) }
     }
 
     /** Downloads a broken or failed pack again in full. */

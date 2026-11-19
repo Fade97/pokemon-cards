@@ -128,6 +128,12 @@ class AppContainer(private val context: Context) {
         )
     }
 
+    /** The "Use mobile data for language packs" switch (#137): stores it and moves waiting pack work to the new rule. */
+    suspend fun setPacksOnMobileData(value: Boolean) {
+        settings.packsOnMobileData = value
+        PackSyncWorker.applyNetworkSetting(context, value)
+    }
+
     /**
      * A new OCR for one recognition engine, which owns and closes it. ML Kit for now; a build without Google
      * libraries (#19) swaps in its own [NumberReader] here.

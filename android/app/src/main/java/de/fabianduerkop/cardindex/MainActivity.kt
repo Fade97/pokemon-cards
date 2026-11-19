@@ -18,7 +18,7 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         schedulePackWork()
-        PriceAlertNotifications.createChannel(this)
+        if (PriceAlertNotifications.declared(this)) PriceAlertNotifications.createChannel(this)
         lifecycleScope.launch { appContainer.priceAlerts.syncSchedule() }
         setContent { LumifoilTheme { CardIndexApp() } }
     }

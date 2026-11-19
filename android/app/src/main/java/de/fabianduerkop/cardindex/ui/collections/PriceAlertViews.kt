@@ -108,7 +108,11 @@ internal fun rememberNotificationPermissionRequest(): () -> Unit {
     val context = LocalContext.current
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { }
     return {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && !PriceAlertNotifications.permitted(context)) {
+        if (
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
+            PriceAlertNotifications.declared(context) &&
+            !PriceAlertNotifications.permitted(context)
+        ) {
             launcher.launch(Manifest.permission.POST_NOTIFICATIONS)
         }
     }

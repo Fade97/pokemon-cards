@@ -43,6 +43,7 @@ import de.fabianduerkop.cardindex.ui.navigation.TopLevelDestination
 import de.fabianduerkop.cardindex.ui.review.ReviewScreen
 import de.fabianduerkop.cardindex.ui.scan.ScanScreen
 import de.fabianduerkop.cardindex.ui.search.searchGraph
+import de.fabianduerkop.cardindex.ui.settings.LicensesScreen
 import de.fabianduerkop.cardindex.ui.settings.SettingsScreen
 
 /**
@@ -128,11 +129,13 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                         onOpenConsent = { navController.navigate(CONSENT_ROUTE) },
                         onOpenContributions = { navController.navigate(CONTRIBUTIONS_ROUTE) },
                         onOpenDesignGallery = { navController.navigate(DESIGN_ROUTE) },
+                        onOpenLicenses = { navController.navigate(LICENSES_ROUTE) },
                     )
                 }
                 composable(CONSENT_ROUTE) { ContributionConsentScreen(onBack = { navController.popBackStack() }) }
                 composable(CONTRIBUTIONS_ROUTE) { ContributionsScreen(onBack = { navController.popBackStack() }) }
                 composable(DESIGN_ROUTE) { DesignGalleryScreen(onBack = { navController.popBackStack() }) }
+                composable(LICENSES_ROUTE) { LicensesScreen(onBack = { navController.popBackStack() }) }
             }
         }
     }
@@ -165,6 +168,9 @@ private const val CONTRIBUTIONS_ROUTE = "contribute/mine"
 
 /** The Pearl component gallery (#96), a debug-only page reached from Settings for checking the design system. */
 private const val DESIGN_ROUTE = "design"
+
+/** Open-source licenses (#136), from About in Settings. */
+private const val LICENSES_ROUTE = "settings/licenses"
 
 @Composable
 private fun BottomBar(navController: NavHostController) {

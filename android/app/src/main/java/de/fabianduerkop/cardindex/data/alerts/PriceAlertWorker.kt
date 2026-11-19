@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.data.alerts
 
 import android.Manifest
+import android.annotation.SuppressLint
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -103,11 +104,23 @@ object PriceAlertNotifications {
         context.getSystemService(NotificationManager::class.java).createNotificationChannel(channel)
     }
 
+    /**
+     * Whether this build declares `POST_NOTIFICATIONS`. Only debug builds do until release builds can reach alerts
+     * (#16, #138), so a release build neither asks for it nor creates the alerts channel.
+     */
+    fun declared(context: Context): Boolean =
+        @Suppress("DEPRECATION") // The PackageInfoFlags overload is API 33+.
+        context.packageManager.getPackageInfo(context.packageName, PackageManager.GET_PERMISSIONS)
+            .requestedPermissions.orEmpty().contains(Manifest.permission.POST_NOTIFICATIONS)
+
     /** Android 13+ asks for the permission; before, notifications are allowed unless the user turned them off. */
     fun permitted(context: Context): Boolean =
         Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
             ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
 
+    // Release builds don't declare POST_NOTIFICATIONS until #16 (#138), so lint can't see the permission there. They
+    // never get here: without Pro there are no alerts, and permitted() is false on Android 13+ without the permission.
+    @SuppressLint("MissingPermission", "NotificationPermission")
     suspend fun post(context: Context, hits: List<PriceAlertHit>) {
         if (hits.isEmpty() || !permitted(context)) return
         createChannel(context)
