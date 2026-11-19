@@ -453,6 +453,36 @@
         <item quantity="one">%1$d needs checking</item>
         <item quantity="other">%1$d need checking</item>
     </plurals>
+    <!-- Session receipt (#163): a 9:16 image of what this scanning session added, shared via the share sheet. -->
+    <string name="scan_receipt_open">Session receipt</string>
+    <string name="receipt_title">Session receipt</string>
+    <string name="receipt_heading">Scan session</string>
+    <plurals name="receipt_cards">
+        <item quantity="one">%1$d card added</item>
+        <item quantity="other">%1$d cards added</item>
+    </plurals>
+    <plurals name="receipt_new_slots">
+        <item quantity="one">%1$d new set slot</item>
+        <item quantity="other">%1$d new set slots</item>
+    </plurals>
+    <plurals name="receipt_sets">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
+    <string name="receipt_best_find">Best find</string>
+    <!-- Card name and number of copies, e.g. "Pikachu ×2" -->
+    <string name="receipt_line_copies">%1$s ×%2$d</string>
+    <string name="receipt_no_price">no price</string>
+    <string name="receipt_no_prices">No prices yet</string>
+    <plurals name="receipt_more">
+        <item quantity="one">+ %1$d more print</item>
+        <item quantity="other">+ %1$d more prints</item>
+    </plurals>
+    <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted are not on it.</string>
+    <string name="receipt_share">Share image</string>
+    <string name="receipt_share_title">Share session receipt</string>
+    <string name="receipt_close">Close</string>
+    <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
     <string name="scan_review_empty_description">Review queue, nothing waiting</string>
     <plurals name="scan_review_description">

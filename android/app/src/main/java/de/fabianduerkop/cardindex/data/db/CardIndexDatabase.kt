@@ -25,6 +25,7 @@ import androidx.sqlite.db.SupportSQLiteDatabase
         PriceHistoryFetchEntity::class,
         PriceAlertEntity::class,
         WantedCardEntity::class,
+        ScanSessionCopyEntity::class,
     ],
     version = CardIndexDatabase.VERSION,
     exportSchema = true,
@@ -39,10 +40,11 @@ abstract class CardIndexDatabase : RoomDatabase() {
     abstract fun priceHistoryDao(): PriceHistoryDao
     abstract fun priceAlertDao(): PriceAlertDao
     abstract fun wishlistDao(): WishlistDao
+    abstract fun scanSessionDao(): ScanSessionDao
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 6
+        const val VERSION = 7
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -116,8 +118,20 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /** v7 (#163): the scan session ledger. A new table only; sessions before it have no receipt. */
+        val MIGRATION_6_7 = object : Migration(6, 7) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL(
+                    "CREATE TABLE IF NOT EXISTS `scan_session_copies` (`copyId` INTEGER NOT NULL, `sessionId` TEXT NOT NULL, " +
+                        "`addedAt` INTEGER NOT NULL, PRIMARY KEY(`copyId`), " +
+                        "FOREIGN KEY(`copyId`) REFERENCES `owned_copies`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+                )
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_scan_session_copies_sessionId` ON `scan_session_copies` (`sessionId`)")
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7)
 
         private const val NAME = "cardindex.db"
 

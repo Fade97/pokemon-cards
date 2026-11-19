@@ -374,3 +374,31 @@ interface CollectionDao {
     )
     fun observeCopiesInCollection(collectionId: Long): Flow<List<CopyWithCard>>
 }
+
+/** The scan session ledger (#163): copies a session added, as they are now. */
+@Dao
+interface ScanSessionDao {
+    @Insert
+    suspend fun insert(row: ScanSessionCopyEntity)
+
+    /** The session's copies that still exist, newest first, with their cards and sets. */
+    @Query(
+        """
+        SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN
+        JOIN scan_session_copies ss ON ss.copyId = o.id
+        WHERE ss.sessionId = :sessionId
+        ORDER BY o.createdAt DESC, o.id DESC
+        """,
+    )
+    fun observeSession(sessionId: String): Flow<List<CopyWithCard>>
+
+    /** Copies in [setIds] that this session did not add: what a set slot was filled with before (#163). */
+    @Query(
+        """
+        SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN
+        WHERE c.setId IN (:setIds)
+            AND o.id NOT IN (SELECT copyId FROM scan_session_copies WHERE sessionId = :sessionId)
+        """,
+    )
+    suspend fun otherCopiesInSets(sessionId: String, setIds: List<String>): List<CopyWithCard>
+}

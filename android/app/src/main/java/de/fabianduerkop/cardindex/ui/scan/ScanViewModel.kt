@@ -18,6 +18,7 @@ import de.fabianduerkop.cardindex.data.prices.PriceRegion
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
+import de.fabianduerkop.cardindex.data.scan.SessionReceipt
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.needsVariantCheck
@@ -39,17 +40,22 @@ import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.recognition.judgeMatch
 import de.fabianduerkop.cardindex.recognition.outlineGate
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.opencv.core.Mat
 import java.io.ByteArrayOutputStream
+import java.util.UUID
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.Executors
 
@@ -146,6 +152,26 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     /** The user's main market, for the price of a hit and the session total (#162). */
     val priceSource: StateFlow<PriceSource> = application.appContainer.primaryPriceSource
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PriceRegion.defaultSource())
+
+    /** This visit of the Scan screen: its copies go into the session ledger under this id (#163). */
+    private val sessionId: String = UUID.randomUUID().toString()
+    private val sessions = db.scanSessionDao()
+
+    /**
+     * The receipt of this session (#163), from the ledger as the collection is now, priced in the main market.
+     * Only computed while the receipt is on screen.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val receipt: StateFlow<SessionReceipt?> = combine(sessions.observeSession(sessionId), prices.observeAll(), priceSource) { copies, all, source ->
+        Triple(copies, all, source)
+    }
+        .mapLatest { (copies, all, source) ->
+            val setIds = copies.map { it.card.setId }.distinct()
+            val before = if (setIds.isEmpty()) emptyList() else sessions.otherCopiesInSets(sessionId, setIds)
+            SessionReceipt.build(copies, before, all, source)
+        }
+        .flowOn(Dispatchers.IO)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Whether the user has scanned before; until then the tray explains how scanning works (#162). */
     val introSeen: StateFlow<Boolean> = settings.scanIntroSeenFlow
@@ -296,7 +322,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val checkVariant = needsVariantCheck(card.setId, card.printings)
         when {
             !goesToReview(event) -> viewModelScope.launch(Dispatchers.IO) {
-                runCatching { scans.addHit(card, scanTarget.uuid) }
+                runCatching { scans.addHit(card, scanTarget.uuid, sessionId) }
                     .onSuccess { hit ->
                         val id = hit.copyId
                         // An auto-added card counts as confirmed (issue #14); Undo below withdraws it again.
