@@ -283,6 +283,44 @@ class SchemaMigrationTest {
         }
     }
 
+    /**
+     * v7 → v8 (#172) adds the binder cover: an existing binder keeps its name and cards and has no picked cover
+     * (the automatic one), and a picked cover is stored and read back.
+     */
+    @Test
+    fun migration7To8_keepsBinders_withTheAutomaticCover() {
+        val name = databasePath("migration-7-8.db")
+        helper.createDatabase(name, 7).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('sv03.5', '151', 'SV', 'en', 165, 'INTERNATIONAL', 0)")
+            execSQL("INSERT INTO cards (id, setId, localId, name, language, rarity, energyType, imageUrl, retired, numberKey, printings) VALUES ('sv03.5-025', 'sv03.5', '025', 'Pikachu', 'en', NULL, NULL, NULL, 0, '25', NULL)")
+            execSQL(
+                "INSERT INTO owned_copies (id, uuid, cardId, cardLanguage, quantity, finish, edition, condition, createdAt, updatedAt) " +
+                    "VALUES (7, 'u-1', 'sv03.5-025', 'en', 2, 'NORMAL', 'UNLIMITED', 'NEAR_MINT', 0, 0)",
+            )
+            execSQL("INSERT INTO collections (id, uuid, name, description, kind, setId, updatedAt) VALUES (3, 'c-1', 'Trade binder', 'Doubles', 'CUSTOM', NULL, 0)")
+            execSQL("INSERT INTO collection_copies (collectionId, copyId) VALUES (3, 7)")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 8, true, CardIndexDatabase.MIGRATION_7_8).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val binder = db.collectionDao().observeCustomCollections().first().single()
+                assertEquals(listOf("Trade binder", "Doubles", 2, null), listOf(binder.name, binder.description, binder.cards, binder.coverCopyUuid))
+                assertEquals(listOf(CollectionCopyCrossRef(3, 7)), db.collectionDao().observeAllMemberships().first())
+
+                db.collectionDao().update(db.collectionDao().byId(3)!!.copy(coverCopyUuid = "u-1"))
+                assertEquals("u-1", db.collectionDao().observeCustomCollections().first().single().coverCopyUuid)
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     /** Absolute: with a bare name, Room's driver check fails on Windows hosts (backslash paths). */
     private fun databasePath(name: String): String =
         ApplicationProvider.getApplicationContext<Context>().getDatabasePath(name).absolutePath

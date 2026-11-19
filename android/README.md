@@ -372,6 +372,7 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
                "grade": null, "purchasePriceMinor": 2450, "purchaseCurrency": "EUR", "purchaseDate": "2025-08-02",
                "createdAt": "2025-08-02T18:00:00Z", "updatedAt": "2026-03-12T09:30:00Z" }],
   "collections": [{ "uuid": "0b9e…", "name": "Trade binder", "description": null,
+                    "coverCopyUuid": "6f1c3c2e-…",
                     "updatedAt": "2026-03-12T09:30:00Z", "copies": ["6f1c3c2e-…"] }],
   "alerts": [{ "uuid": "8a6b3a52-…", "cardId": "sv03.5-006", "cardLanguage": "de", "source": "CARDMARKET",
                "variant": "HOLO", "direction": "ABOVE", "thresholdMinor": 5000, "currency": "EUR",
@@ -385,6 +386,9 @@ same file twice changes nothing, and a backup can be merged into a phone whose c
   SHADOWLESS; `condition` NEAR_MINT … POOR (null for graded copies); `grader` PSA, CGC, BGS, OTHER;
   `region` INTERNATIONAL, JP; alert `source` CARDMARKET, TCGPLAYER; `variant` NORMAL, HOLO, REVERSE_HOLO,
   FIRST_EDITION, FIRST_EDITION_HOLO; `direction` ABOVE (fires at or above the threshold), BELOW (at or below).
+- A collection's `coverCopyUuid` (#172, optional) is the copy the user picked as the binder's cover; missing or
+  null means the automatic cover (the most valuable card). It came without a version bump: an older app reads the
+  file and only drops the picked cover.
 - An alert's fields are the `price_alerts` columns under the same names. `thresholdMinor` is in the market's
   currency (`currency`); `armed` is false after the alert fired, until the price is back across the threshold.
   Sign-in and sync (#16) will upload alerts with these names and uuids, so keep them stable.

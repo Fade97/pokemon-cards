@@ -227,9 +227,10 @@ internal fun secretDescription(progress: SetProgress): String? =
     progress.secret.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_secret_description, it, it) }
 
 /**
- * One row of a Pearl list (collections, binders): optional leading icon, a title that may wrap to two lines, a
- * muted second line, an optional [below] line under it (e.g. the weekly price change, #173), an optional [trailing]
- * block and a chevron. The whole row is one button of at least 56 dp.
+ * One row of a Pearl list (collections, binders): optional leading icon or [leading] content (a binder's cover, #172),
+ * a title that may wrap to two lines, a muted second line (at most [subtitleMaxLines]), an optional [below] line under
+ * it (e.g. the weekly price change, #173), an optional [trailing] block and a chevron. The whole row is one button of
+ * at least 56 dp.
  * [contentDescription] replaces what TalkBack would read from the texts, e.g. "87 of 165" instead of "87 slash 165".
  */
 @Composable
@@ -242,6 +243,8 @@ internal fun ListRow(
     onClickLabel: String? = null,
     contentDescription: String? = null,
     below: (@Composable () -> Unit)? = null,
+    leading: (@Composable () -> Unit)? = null,
+    subtitleMaxLines: Int = Int.MAX_VALUE,
     trailing: @Composable () -> Unit = {},
 ) {
     Column(
@@ -265,6 +268,10 @@ internal fun ListRow(
                 )
                 Spacer(Modifier.width(Spacing.md))
             }
+            if (leading != null) {
+                leading()
+                Spacer(Modifier.width(Spacing.md))
+            }
             Column(Modifier.weight(1f)) {
                 Text(
                     title,
@@ -277,6 +284,8 @@ internal fun ListRow(
                         subtitle,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = subtitleMaxLines,
+                        overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.padding(top = Spacing.xxs),
                     )
                 }

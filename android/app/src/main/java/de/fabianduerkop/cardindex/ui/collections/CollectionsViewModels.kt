@@ -159,6 +159,12 @@ data class CollectionsUiState(
     val source: PriceSource = PriceSource.CARDMARKET,
     /** Newest market date among the cached prices of owned cards. */
     val priceDate: Instant? = null,
+    /** Each custom collection's cover by collection id (#172); empty binders have none. */
+    val covers: Map<Long, BinderCover> = emptyMap(),
+    /** The All cards row's cover: the most valuable card overall. */
+    val allCardsCover: BinderCover? = null,
+    /** Own photos, so a cover shows the user's photo where they prefer it (ADR 0009). */
+    val photos: OwnPhotos = OwnPhotos(),
 )
 
 /** The sets below the foil cover: every set except the featured one, in their order. */
@@ -206,6 +212,7 @@ class CollectionsViewModel(
     pinnedSet: Flow<String?> = flowOf(null),
     storedView: String? = null,
     private val saveView: (String) -> Unit = {},
+    photos: Flow<OwnPhotos> = flowOf(OwnPhotos()),
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
     private val chosenView = MutableStateFlow(CollectionsView.fromStored(storedView))
@@ -228,12 +235,15 @@ class CollectionsViewModel(
         ::CollectionsBase,
     )
 
+    private val binders = combine(repository.observeCollectionCopyIds(), photos, ::Pair)
+
     val state: StateFlow<CollectionsUiState> = combine(
         base,
         prices.observeAll(),
         primarySource,
         pinnedSet,
-    ) { b, priceMap, source, pinnedId ->
+        binders,
+    ) { b, priceMap, source, pinnedId, (members, photos) ->
         val inFilter = b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
         val bySet = inFilter.groupBy { it.set.id }
         val sets = b.completion.map { completion ->
@@ -247,6 +257,15 @@ class CollectionsViewModel(
             )
         }
         val featured = featuredSet(sets, pinnedId)
+        // Binder covers (#172) from every copy, whatever the language filter: a binder looks the same in every view.
+        val quotes = b.copies.mapNotNull { item ->
+            PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), source, item.copy)?.let { item.copy.id to it }
+        }.toMap()
+        val covers = b.collections.mapNotNull { collection ->
+            val ids = members[collection.id] ?: return@mapNotNull null
+            binderCover(b.copies.filter { it.copy.id in ids }, collection.coverCopyUuid, quotes, source.currency)
+                ?.let { collection.id to it }
+        }.toMap()
         CollectionsUiState(
             loading = false,
             languages = b.languages,
@@ -260,6 +279,9 @@ class CollectionsViewModel(
             source = source,
             priceDate = b.copies.flatMap { priceMap[it.card.id].orEmpty() }
                 .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
+            covers = covers,
+            allCardsCover = binderCover(b.copies, null, quotes, source.currency),
+            photos = photos,
         )
     }.stateIn(this, CollectionsUiState())
 
@@ -585,6 +607,13 @@ data class CollectionDetailUiState(
     val value: CollectionValue? = null,
     /** Current price of each copy (by copy id) in the main market, per card. */
     val quotes: Map<Long, PriceQuote> = emptyMap(),
+    /** A custom collection's cover (#172), picked or automatic; null for All cards and empty binders. */
+    val cover: BinderCover? = null,
+    /** What the automatic cover shows, for the picker's Automatic choice (#172). */
+    val automaticCover: CopyWithCard? = null,
+    /** The cards the cover picker offers (#172), one per print, most valuable first. */
+    val coverChoices: List<CopyWithCard> = emptyList(),
+    val photos: OwnPhotos = OwnPhotos(),
 ) {
     val cardCount: Int get() = copies.sumOf { it.copy.quantity }
 }
@@ -597,6 +626,7 @@ class CollectionDetailViewModel(
     savedState: SavedStateHandle,
     history: PriceHistoryRepository? = null,
     isPro: Flow<Boolean> = flowOf(false),
+    photos: Flow<OwnPhotos> = flowOf(OwnPhotos()),
 ) : ViewModel() {
     /** [CollectionsRoutes.ALL_CARDS] for All cards. */
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
@@ -617,7 +647,8 @@ class CollectionDetailViewModel(
         sort,
         prices.observeAll(),
         primarySource,
-    ) { (collection, copies), sort, priceMap, market ->
+        photos,
+    ) { (collection, copies), sort, priceMap, market, photos ->
         val quotes = copies.mapNotNull { item ->
             PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), market, item.copy)?.let { item.copy.id to it }
         }.toMap()
@@ -630,6 +661,10 @@ class CollectionDetailViewModel(
             sort = sort,
             value = value,
             quotes = quotes,
+            cover = collection?.let { binderCover(copies, it.coverCopyUuid, quotes, value.currency) },
+            automaticCover = collection?.let { binderCover(copies, null, quotes, value.currency)?.copy },
+            coverChoices = if (collection == null) emptyList() else coverChoices(copies, collection.coverCopyUuid, quotes, value.currency),
+            photos = photos,
         )
     }.stateIn(this, CollectionDetailUiState())
 
@@ -673,8 +708,9 @@ class CollectionDetailViewModel(
 
     fun setSort(value: CopySort) { sort.value = value }
 
-    fun update(name: String, description: String?) {
-        viewModelScope.launch { repository.updateCollection(collectionId, name, description) }
+    /** Saves the edit sheet: name, description and the cover, a copy uuid or null for the automatic one (#172). */
+    fun update(name: String, description: String?, coverCopyUuid: String?) {
+        viewModelScope.launch { repository.updateCollection(collectionId, name, description, coverCopyUuid) }
     }
 
     fun delete() {

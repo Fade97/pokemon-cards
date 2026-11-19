@@ -7,8 +7,10 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
@@ -28,6 +30,8 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
+import de.fabianduerkop.cardindex.data.db.CopyWithCard
+import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.TextAction
@@ -35,25 +39,33 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /**
  * Creates a custom collection ([initial] null) or edits one (Pearl sheet: 22 dp top corners, one solid button). Create stays disabled until there is a name, as in the
- * mockup. [onDelete] is offered only when editing.
+ * mockup. [onDelete] is offered only when editing. With [coverChoices] (editing a binder with cards) it also picks the
+ * binder's cover (#172); [onSave] gets the picked copy's uuid, or null for the automatic cover.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CollectionSheet(
     initial: CollectionEntity?,
     onDismiss: () -> Unit,
-    onSave: (name: String, description: String?) -> Unit,
+    onSave: (name: String, description: String?, coverCopyUuid: String?) -> Unit,
     onDelete: (() -> Unit)? = null,
+    cover: BinderCover? = null,
+    automaticCover: CopyWithCard? = null,
+    coverChoices: List<CopyWithCard> = emptyList(),
+    photos: OwnPhotos = OwnPhotos(),
 ) {
     var name by rememberSaveable { mutableStateOf(initial?.name.orEmpty()) }
     var description by rememberSaveable { mutableStateOf(initial?.description.orEmpty()) }
+    // Only a pick that still shows (the copy is in the binder) is kept; a stale one saves as automatic.
+    var coverUuid by rememberSaveable { mutableStateOf(cover?.takeIf { it.picked }?.copy?.copy?.uuid) }
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
         shape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp)),
         containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Column(Modifier.padding(horizontal = ScreenPadding).navigationBarsPadding()) {
+        // Scrolls, so Save stays reachable with the cover picker at large font sizes.
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(horizontal = ScreenPadding).navigationBarsPadding()) {
             Text(
                 stringResource(if (initial == null) R.string.collection_new_title else R.string.collection_edit_title),
                 style = MaterialTheme.typography.headlineSmall,
@@ -84,6 +96,16 @@ internal fun CollectionSheet(
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
             )
+            if (coverChoices.isNotEmpty()) {
+                CoverPicker(
+                    automatic = automaticCover,
+                    choices = coverChoices,
+                    selectedUuid = coverUuid,
+                    photos = photos,
+                    onSelect = { coverUuid = it },
+                    modifier = Modifier.padding(top = Spacing.lg),
+                )
+            }
             if (onDelete != null) {
                 TextAction(
                     stringResource(R.string.collection_delete),
@@ -105,7 +127,7 @@ internal fun CollectionSheet(
                 SecondaryButton(stringResource(R.string.cancel), onClick = onDismiss)
                 PrimaryButton(
                     stringResource(if (initial == null) R.string.collection_create else R.string.collection_save),
-                    onClick = { onSave(name, description) },
+                    onClick = { onSave(name, description, coverUuid?.takeIf { uuid -> coverChoices.any { it.copy.uuid == uuid } }) },
                     enabled = name.isNotBlank(),
                     modifier = Modifier.weight(1f),
                 )

@@ -50,6 +50,7 @@ fun CollectionDetailScreen(
                 saved,
                 container.priceHistory,
                 container.entitlements.isPro,
+                photos = container.ownPhotos,
             )
         },
     ),
@@ -147,8 +148,8 @@ fun CollectionDetailScreen(
         CollectionSheet(
             initial = collection,
             onDismiss = { editing = false },
-            onSave = { name, description ->
-                viewModel.update(name, description)
+            onSave = { name, description, cover ->
+                viewModel.update(name, description, cover)
                 editing = false
             },
             onDelete = {
@@ -156,6 +157,10 @@ fun CollectionDetailScreen(
                 viewModel.delete()
                 onBack()
             },
+            cover = state.cover,
+            automaticCover = state.automaticCover,
+            coverChoices = state.coverChoices,
+            photos = state.photos,
         )
     }
 }

@@ -35,13 +35,14 @@ data class SetCompletion(
     val copies: Int,
 )
 
-/** A collection with the number of cards in it (sum of quantities). */
+/** A collection with the number of cards in it (sum of quantities) and the cover the user picked, if any (#172). */
 data class CollectionSummary(
     val id: Long,
     val name: String,
     val description: String?,
     val kind: CollectionKind,
     val cards: Int,
+    val coverCopyUuid: String? = null,
 )
 
 /** One copy's membership in a named custom collection. */
