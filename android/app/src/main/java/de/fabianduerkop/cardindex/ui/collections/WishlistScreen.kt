@@ -33,6 +33,7 @@ import de.fabianduerkop.cardindex.data.db.WantedWithCard
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
@@ -62,6 +63,7 @@ class WishlistViewModel(private val repository: CollectionRepository) : ViewMode
 fun WishlistScreen(
     onBack: () -> Unit,
     onOpenCard: (cardId: String, language: String) -> Unit,
+    onOpenSearch: () -> Unit = {},
     viewModel: WishlistViewModel = viewModel(
         factory = containerViewModelFactory { container, _ -> WishlistViewModel(container.collections) },
     ),
@@ -70,7 +72,7 @@ fun WishlistScreen(
     DetailScaffold(title = stringResource(R.string.wishlist_title), onBack = onBack) { padding ->
         val list = entries ?: return@DetailScaffold
         LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
-            item { WishlistIntro(empty = list.isEmpty()) }
+            item { WishlistIntro(empty = list.isEmpty(), onFindCard = onOpenSearch) }
             items(list, key = { it.wanted.id }) { entry ->
                 WantedRow(
                     entry,
@@ -82,15 +84,22 @@ fun WishlistScreen(
     }
 }
 
-/** What wanted cards are (or how to add one, while there are none), above the wanted rows. */
+/**
+ * What wanted cards are above the wanted rows; while there are none, how to add one and the one way there (#174):
+ * [onFindCard] opens Search.
+ */
 @Composable
-internal fun WishlistIntro(empty: Boolean) {
+internal fun WishlistIntro(empty: Boolean, onFindCard: () -> Unit) {
     Column(Modifier.padding(horizontal = ScreenPadding)) {
         PlaceholderText(
             stringResource(if (empty) R.string.wishlist_empty else R.string.wishlist_hint),
             Modifier.padding(vertical = Spacing.md),
         )
-        if (!empty) HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        if (empty) {
+            SecondaryButton(stringResource(R.string.wishlist_find), onClick = onFindCard, modifier = Modifier.padding(bottom = Spacing.md))
+        } else {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        }
     }
 }
 

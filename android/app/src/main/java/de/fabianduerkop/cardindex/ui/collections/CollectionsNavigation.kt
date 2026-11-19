@@ -31,8 +31,11 @@ object CollectionsRoutes {
     fun collection(id: Long) = "collections/collection/$id"
 }
 
-/** [onOpenScan] is the header shortcut on the Collections home (ADR 0014): it switches to the Scan tab. */
-fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: () -> Unit) {
+/**
+ * [onOpenScan] is the header shortcut on the Collections home (ADR 0014): it switches to the Scan tab; empty
+ * collections use it too (#174). [onOpenSearch] switches to Search, from an empty wishlist.
+ */
+fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: () -> Unit, onOpenSearch: () -> Unit) {
     navigation(startDestination = CollectionsRoutes.HOME, route = TopLevelDestination.COLLECTIONS.route) {
         composable(CollectionsRoutes.HOME) {
             CollectionsScreen(
@@ -41,12 +44,14 @@ fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: (
                 onOpenScan = onOpenScan,
                 onOpenWishlist = { navController.navigate(CollectionsRoutes.WISHLIST) },
                 onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
+                onOpenSearch = onOpenSearch,
             )
         }
         composable(CollectionsRoutes.WISHLIST) {
             WishlistScreen(
                 onBack = { navController.popBackStack() },
                 onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
+                onOpenSearch = onOpenSearch,
             )
         }
         composable(CollectionsRoutes.SET) {
@@ -66,6 +71,7 @@ fun NavGraphBuilder.collectionsGraph(navController: NavController, onOpenScan: (
             CollectionDetailScreen(
                 onBack = { navController.popBackStack() },
                 onOpenCard = { id, language -> navController.navigate(CollectionsRoutes.card(id, language)) },
+                onOpenScan = onOpenScan,
             )
         }
     }

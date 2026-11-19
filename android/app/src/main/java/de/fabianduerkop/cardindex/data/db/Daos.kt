@@ -252,6 +252,10 @@ interface CopyDao {
     @Query("SELECT * FROM owned_copies WHERE uuid = :uuid")
     suspend fun byUuid(uuid: String): OwnedCopyEntity?
 
+    /** How many cards the user owns, quantities included; the first-run goal counts toward 10 with it (#174). */
+    @Query("SELECT COALESCE(SUM(quantity), 0) FROM owned_copies")
+    fun observeCardCount(): Flow<Int>
+
     /** The All Cards collection: every owned copy, newest first. */
     @Query("SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN ORDER BY o.createdAt DESC, o.id DESC")
     fun observeAllCopies(): Flow<List<CopyWithCard>>

@@ -74,8 +74,8 @@
         <item quantity="one">%1$d card</item>
         <item quantity="other">%1$d cards</item>
     </plurals>
-    <string name="collections_empty_title">No cards yet</string>
-    <string name="collections_empty_body">Scan a card to add it. Every set you own a card from gets its own collection, with each number as a slot.</string>
+    <string name="collections_empty_title">Start with 10 cards</string>
+    <string name="collections_empty_body">Scan your first 10 cards and see what they are worth. Every set you own a card from gets its own checklist, with each number as a slot.</string>
     <string name="collections_no_sets_in_language">No cards in the chosen languages.</string>
     <string name="collections_debug_sample">Add sample data (debug build)</string>
     <string name="collections_empty_scan">Scan a card</string>
@@ -144,7 +144,8 @@
     <string name="wishlist_remove">Remove from wishlist</string>
     <string name="wishlist_on">On your wishlist</string>
     <string name="wishlist_hint">Wanted cards don\'t count as owned, in set completion or in the value.</string>
-    <string name="wishlist_empty">Nothing on your wishlist yet. Open a card and tap Add to wishlist.</string>
+    <string name="wishlist_empty">Nothing on your wishlist yet. Find a card you want and tap Add to wishlist.</string>
+    <string name="wishlist_find">Find a card</string>
     <string name="wishlist_found">You own it now</string>
     <string name="wishlist_remove_short">Remove</string>
     <string name="wishlist_remove_description">Remove %1$s from the wishlist</string>
@@ -159,7 +160,9 @@
     <string name="collections_sort_number">Number</string>
     <string name="collections_sort_newest">Newest</string>
     <string name="collections_edit">Edit</string>
-    <string name="collections_collection_empty">Nothing in here yet. Open a card and pick this collection in its copy sheet.</string>
+    <string name="collections_collection_empty">Nothing in here yet. Scan cards straight into it, or pick it in a card\'s copy sheet.</string>
+    <string name="collections_collection_scan">Scan into this collection</string>
+    <string name="collections_all_empty_scan">Scan a card</string>
     <string name="collections_card_unknown">This card is not on this device.</string>
 
     <string name="price_title">Price</string>
@@ -298,6 +301,7 @@
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
+    <string name="search_none_scan">Scan the card instead</string>
     <string name="search_failed">The card list on this device could not be read.</string>
     <string name="search_no_languages">No card languages are installed yet. Download one to search its cards.</string>
     <string name="search_choose_languages">Choose languages</string>
@@ -457,6 +461,13 @@
     <string name="scan_removed">Took back %1$s.</string>
     <string name="scan_save_failed">Couldn’t save %1$s. Keep it in view to try again.</string>
     <!-- Empty tray once the user has scanned before (#162); scan_tray_empty is the first-run explanation. -->
+    <!-- First-run goal in the scan tray (#174), e.g. "First goal: 3 of 10 cards" -->
+    <string name="first_goal_progress">First goal: %1$d of %2$d cards</string>
+    <string name="first_goal_hint">Then see what they are worth.</string>
+    <string name="first_goal_reached">Goal reached: your first %1$d cards</string>
+    <string name="first_goal_value">They are worth %1$s.</string>
+    <string name="first_goal_no_price">Their prices show up once the phone is online.</string>
+    <string name="first_goal_open">See your collection</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>

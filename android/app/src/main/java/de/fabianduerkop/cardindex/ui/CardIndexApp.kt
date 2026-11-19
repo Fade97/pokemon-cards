@@ -77,6 +77,7 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                         onOpenReview = { navController.navigate(REVIEW_ROUTE) },
                         onOpenLab = { navController.navigate(LAB_ROUTE) },
                         onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                        onOpenCollections = { navController.navigateTopLevel(TopLevelDestination.COLLECTIONS) },
                     )
                 }
                 composable(LAB_ROUTE) { LabScreen() }
@@ -121,8 +122,16 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                     )
                 }
             }
-            collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
-            searchGraph(navController, onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) })
+            collectionsGraph(
+                navController,
+                onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) },
+                onOpenSearch = { navController.navigateTopLevel(TopLevelDestination.SEARCH) },
+            )
+            searchGraph(
+                navController,
+                onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) },
+            )
             navigation(startDestination = SETTINGS_HOME_ROUTE, route = TopLevelDestination.SETTINGS.route) {
                 composable(SETTINGS_HOME_ROUTE) {
                     SettingsScreen(
