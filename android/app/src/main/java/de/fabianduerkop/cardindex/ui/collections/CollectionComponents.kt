@@ -38,6 +38,7 @@ import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
@@ -181,10 +182,23 @@ internal fun progressText(owned: Int, total: Int, countColor: Color = Color.Unsp
     }
 }
 
-/** The same count spoken: "87 of 165 collected". */
+/** The same count spoken: "87 of 165 collected", with ", plus 10 secret cards" when there are any (#132). */
 @Composable
-internal fun progressDescription(owned: Int, total: Int): String =
-    stringResource(R.string.collections_progress_description, owned, total)
+internal fun progressDescription(progress: SetProgress): String =
+    listOfNotNull(
+        stringResource(R.string.collections_progress_description, progress.base, progress.printedTotal),
+        secretDescription(progress),
+    ).joinToString(", ")
+
+/** "+10 secret" for owned slots beyond the printed total (#132), null without any. */
+@Composable
+internal fun secretText(progress: SetProgress): String? =
+    progress.secret.takeIf { it > 0 }?.let { stringResource(R.string.collections_secret, it) }
+
+/** "plus 10 secret cards", spoken, null without any. */
+@Composable
+internal fun secretDescription(progress: SetProgress): String? =
+    progress.secret.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_secret_description, it, it) }
 
 /**
  * One row of a Pearl list (collections, binders): optional leading icon, a title that may wrap to two lines, a

@@ -16,7 +16,7 @@ private const val COPY_WITH_CARD_COLUMNS = """
     o.*,
     c.id AS card_id, c.setId AS card_setId, c.localId AS card_localId, c.name AS card_name,
     c.language AS card_language, c.rarity AS card_rarity, c.energyType AS card_energyType,
-    c.imageUrl AS card_imageUrl, c.retired AS card_retired,
+    c.imageUrl AS card_imageUrl, c.retired AS card_retired, c.numberKey AS card_numberKey,
     s.id AS set_id, s.name AS set_name, s.series AS set_series, s.language AS set_language,
     s.printedTotal AS set_printedTotal, s.region AS set_region, s.retired AS set_retired
 """
@@ -25,6 +25,41 @@ private const val COPY_WITH_CARD_JOIN = """
     FROM owned_copies o
     JOIN cards c ON c.id = o.cardId AND c.language = o.cardLanguage
     JOIN card_sets s ON s.id = c.setId
+"""
+
+/*
+ * Card search (#99, #124). The inner query filters and sorts only row ids and sort keys, and the outer one joins the
+ * page (at most `:limit` rows) back to its card, set and owned count, so the owned subquery doesn't run for every
+ * match. Set names are matched once through `card_sets` instead of a set lookup per card row.
+ */
+private const val SEARCH_HEAD = """
+    SELECT c.*, s.name AS setName, s.printedTotal AS printedTotal,
+        (SELECT COALESCE(SUM(o.quantity), 0) FROM owned_copies o
+            WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS owned
+    FROM (
+        SELECT c.rowid AS rid,"""
+
+private const val SEARCH_KEYS = """
+            (c.name LIKE :prefix ESCAPE '\') AS byPrefix, c.name AS sortName, s.name AS sortSet,
+            c.language AS sortLanguage, LENGTH(c.localId) AS sortLength, c.localId AS sortNumber"""
+
+private const val SEARCH_FROM = """
+        FROM cards c LEFT JOIN card_sets s ON s.id = c.setId
+        WHERE c.retired = 0 AND c.language IN (:languages)
+            AND (:total IS NULL OR c.setId IN (SELECT id FROM card_sets WHERE printedTotal = :total))"""
+
+private const val SEARCH_NAME = """
+    (c.name LIKE :text ESCAPE '\' OR c.setId IN (SELECT id FROM card_sets WHERE name LIKE :text ESCAPE '\'))"""
+
+private const val SEARCH_ORDER = "byNumber DESC, byPrefix DESC, sortName, sortSet, sortLanguage, sortLength, sortNumber"
+
+private const val SEARCH_TAIL = """
+        ORDER BY $SEARCH_ORDER
+        LIMIT :limit
+    ) p
+    JOIN cards c ON c.rowid = p.rid
+    LEFT JOIN card_sets s ON s.id = c.setId
+    ORDER BY p.byNumber DESC, p.byPrefix DESC, p.sortName, p.sortSet, p.sortLanguage, p.sortLength, p.sortNumber
 """
 
 /** Catalog data from language packs and the price API. Upserts only, see Entities.kt. */
@@ -132,36 +167,47 @@ interface CatalogDao {
     fun observeCardPrints(cardId: String): Flow<List<CardEntity>>
 
     /**
-     * Search (#99) over the current cards in [languages]. [text] is a LIKE pattern for the card or set name, [number] a
-     * collector number without leading zeros, upper case. With [both] a card must match the name and the number
-     * ("pikachu 25"), else either one ("151" is a set name and a number). Number matches come first, then names that
-     * start with [prefix]. A [total] keeps only sets of that printed size. See [de.fabianduerkop.cardindex.data.search.SearchTerms].
+     * Search (#99) over the current cards in [languages]: cards whose name or set name matches [text] (a LIKE
+     * pattern). Matches are ordered by names that start with [prefix], then card name, set name, language and
+     * number. A [total] keeps only sets of that printed size. See [de.fabianduerkop.cardindex.data.search.SearchTerms].
      */
     @Query(
-        """
-        SELECT c.*, s.name AS setName, s.printedTotal AS printedTotal,
-            (SELECT COALESCE(SUM(o.quantity), 0) FROM owned_copies o
-                WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS owned
-        FROM cards c LEFT JOIN card_sets s ON s.id = c.setId
-        WHERE c.retired = 0 AND c.language IN (:languages) AND (:total IS NULL OR s.printedTotal = :total) AND (
-            CASE WHEN :both THEN
-                (c.name LIKE :text ESCAPE '\' OR s.name LIKE :text ESCAPE '\')
-                    AND UPPER(LTRIM(c.localId, '0')) = :number
-            ELSE
-                (:text IS NOT NULL AND (c.name LIKE :text ESCAPE '\' OR s.name LIKE :text ESCAPE '\'))
-                    OR (:number IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = :number)
-            END
-        )
-        ORDER BY (:number IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = :number) DESC,
-            (c.name LIKE :prefix ESCAPE '\') DESC, c.name, s.name, c.language, LENGTH(c.localId), c.localId
-        LIMIT :limit
-        """,
+        "$SEARCH_HEAD 0 AS byNumber, $SEARCH_KEYS $SEARCH_FROM AND $SEARCH_NAME $SEARCH_TAIL",
     )
-    fun searchCards(
+    fun searchByName(
         text: String?,
         prefix: String?,
-        number: String?,
-        both: Boolean,
+        total: Int?,
+        languages: List<String>,
+        limit: Int,
+    ): Flow<List<CardSearchHit>>
+
+    /**
+     * [searchByName] or collector number [number] (without leading zeros, upper case): `151` is a set name and a
+     * number. Number matches come first.
+     */
+    @Query(
+        "$SEARCH_HEAD c.numberKey = :number AS byNumber, $SEARCH_KEYS $SEARCH_FROM " +
+            "AND (c.numberKey = :number OR $SEARCH_NAME) $SEARCH_TAIL",
+    )
+    fun searchByNameOrNumber(
+        text: String?,
+        prefix: String?,
+        number: String,
+        total: Int?,
+        languages: List<String>,
+        limit: Int,
+    ): Flow<List<CardSearchHit>>
+
+    /** [searchByName] and collector number [number] together ("pikachu 25"); the number index finds the cards. */
+    @Query(
+        "$SEARCH_HEAD 1 AS byNumber, $SEARCH_KEYS $SEARCH_FROM " +
+            "AND c.numberKey = :number AND $SEARCH_NAME $SEARCH_TAIL",
+    )
+    fun searchByNameAndNumber(
+        text: String?,
+        prefix: String?,
+        number: String,
         total: Int?,
         languages: List<String>,
         limit: Int,
@@ -273,6 +319,9 @@ interface CollectionDao {
 
     @Query("SELECT * FROM collections WHERE id = :id")
     fun observe(id: Long): Flow<CollectionEntity?>
+
+    @Query("SELECT * FROM collections WHERE uuid = :uuid")
+    fun observeByUuid(uuid: String): Flow<CollectionEntity?>
 
     /** The custom collections a copy is in, for the collection chips of the copy sheet. */
     @Query("SELECT collectionId FROM collection_copies WHERE copyId = :copyId")

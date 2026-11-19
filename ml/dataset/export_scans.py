@@ -13,7 +13,8 @@ Reads a copy of the backend's D1 `contributions` table and a local copy of the R
 `--rows` takes a `wrangler d1 export` SQL dump, a SQLite file, or the JSON of
 `wrangler d1 execute DB --remote --json --command "SELECT * FROM contributions"`.
 
-A row is released only if it is stored (`stored_at`), not withdrawn (`withdrawn_at IS NULL`), has a CC0 consent
+A row is released only if it is stored (`stored_at`), not withdrawn (`withdrawn_at IS NULL`), approved by an admin
+(`review = 'approved'`, backend #135; a dump without the column has nothing approved), has a CC0 consent
 version, a well-formed card id and language, and an image whose SHA-256 matches the row. The image is walked again
 with the backend's metadata rules (defence in depth; a stored image should already be clean) and must keep its
 size limits. What goes out per scan: an opaque scan id, card id, language, card-level split, consent version, the
@@ -82,6 +83,10 @@ def skip_reason(row: dict) -> str | None:
     stored = row["stored_at"] if "stored_at" in row else row.get("created_at")
     if not stored:
         return "not stored"
+    # Quarantine (#135): only what an admin approved. Dumps from before migration 0003 have no review column; none of
+    # their rows were looked at, so none are released.
+    if row.get("review") != "approved":
+        return "not approved"
     if row.get("consent_version") not in CC0_CONSENTS:
         return "consent"
     if not _CARD.match(row.get("card_id") or "") or not _LANG.match(row.get("lang") or ""):

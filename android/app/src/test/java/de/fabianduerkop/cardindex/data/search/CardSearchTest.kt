@@ -2,9 +2,13 @@
 package de.fabianduerkop.cardindex.data.search
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import androidx.sqlite.db.SimpleSQLiteQuery
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.db.CardSearchHit
+import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.model.Region
 import de.fabianduerkop.cardindex.testing.card
 import de.fabianduerkop.cardindex.testing.inMemoryDatabase
 import de.fabianduerkop.cardindex.testing.seedCatalog
@@ -152,5 +156,114 @@ class CardSearchTest {
         assertEquals(2, page.hits.size)
         assertTrue(page.more)
         assertFalse(find("pikachu 25", limit = 2).more)
+    }
+
+    @Test
+    fun cardsCarryTheirNumberKey() {
+        assertEquals("6", card("x-006", "x", "006", "en").numberKey)
+        assertEquals("TG05", card("x-tg05", "x", "tg05", "en").numberKey)
+        assertEquals("", card("x-000", "x", "000", "en").numberKey)
+    }
+
+    @Test
+    fun numberMatchesFirst_thenNamesStartingWithTheText_thenByNameSetAndLanguage() = runTest {
+        seedMixed()
+        val hits = find("25", setOf("en", "de")).hits.map { "${it.card.language}/${it.card.id}" }
+        // Number 25 first (by name, set name, language), then "25" in a card or set name (by card name).
+        assertEquals(
+            listOf("de/sv03.5-025", "en/sv03.5-025", "en/swsh-025", "en/xy-006", "en/xy-125", "en/xy-tg25b"),
+            hits,
+        )
+    }
+
+    /**
+     * #124 rewrote the query for speed; results and their order must stay what the #99 query returned. The old query
+     * runs here as a reference over a catalog with every kind of match, page sizes 50 and 2.
+     */
+    @Test
+    fun sameHitsInTheSameOrderAsTheQueryBefore124() = runTest {
+        seedMixed()
+        db.copyDao().insert(OwnedCopyEntity(cardId = "sv03.5-025", cardLanguage = "de", quantity = 2, createdAt = Instant.EPOCH))
+        db.copyDao().insert(OwnedCopyEntity(cardId = "sv03.5-025", cardLanguage = "de", quantity = 1, createdAt = Instant.EPOCH))
+        db.copyDao().insert(OwnedCopyEntity(cardId = "swsh-025", cardLanguage = "en", quantity = 1, createdAt = Instant.EPOCH))
+        val queries = listOf(
+            "p", "pi", "pikachu", "PIKACHU", "chu", "1", "15", "151", "0", "02", "025", "025/", "025/165", "25/202",
+            "pikachu 25", "pikachu 025/165", "151 25", "mewthree", "tg25b", "tg", "100%", "_", "world", "ex", "Ex 199",
+            "#6", "000",
+        )
+        for (languages in listOf(setOf("en", "de"), setOf("en", "de", "ja"), setOf("ja"))) {
+            for (query in queries) {
+                for (limit in listOf(CardSearch.PAGE, 2)) {
+                    val terms = SearchTerms.parse(query)!!
+                    val expected = before124(terms, languages, limit + 1)
+                    val actual = search.observe(terms, languages, limit).first()
+                    assertEquals("$query $languages $limit", expected.take(limit), actual.hits.map(::row))
+                    assertEquals("$query $languages $limit", expected.size > limit, actual.more)
+                }
+            }
+        }
+    }
+
+    private suspend fun seedMixed() {
+        db.seedCatalog()
+        db.catalogDao().upsertSets(
+            listOf(
+                CardSetEntity("swsh", "Sword & Shield", "SWSH", "en", 202, Region.INTERNATIONAL),
+                CardSetEntity("xy", "Pikachu World Collection 25", "XY", "en", 146, Region.INTERNATIONAL),
+            ),
+        )
+        db.catalogDao().upsertCards(
+            listOf(
+                named(card("sv03.5-025", "sv03.5", "025", "en"), "Pikachu"),
+                named(card("sv03.5-025", "sv03.5", "025", "de"), "Pikachu"),
+                named(card("sv03.5-026", "sv03.5", "026", "en"), "Raichu"),
+                named(card("sv03.5-199", "sv03.5", "199", "en"), "Charizard ex"),
+                named(card("sv03.5-180", "sv03.5", "180", "en"), "Pikachu 100%"),
+                named(card("swsh-025", "swsh", "025", "en"), "Pikachu"),
+                named(card("swsh-151", "swsh", "151", "en"), "Flying Pikachu"),
+                named(card("swsh-199", "swsh", "199", "en"), "Pikachu ex"),
+                named(card("xy-125", "xy", "125", "en"), "Detective Pikachu 25"),
+                named(card("xy-tg25b", "xy", "TG25b", "en"), "Surfing Pikachu"),
+                named(card("xy-006", "xy", "006", "en"), "Charmander"),
+                named(card("xy-old", "xy", "07", "en"), "Old Pikachu").copy(retired = true),
+                named(card("SV2a-025", "SV2a", "025", "ja"), "ピカチュウ"),
+            ),
+        )
+    }
+
+    private fun row(hit: CardSearchHit) = listOf(hit.card.id, hit.card.language, hit.setName, hit.printedTotal, hit.owned)
+
+    /** The search query of #99, as it was before #124, with the same parameters. */
+    private fun before124(terms: SearchTerms, languages: Set<String>, limit: Int): List<List<Any?>> {
+        val escaped = terms.text?.let(SearchTerms::escapeLike)
+        val langs = languages.joinToString(",") { "'$it'" }
+        val sql = """
+            SELECT c.id, c.language, s.name AS setName, s.printedTotal AS printedTotal,
+                (SELECT COALESCE(SUM(o.quantity), 0) FROM owned_copies o
+                    WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS owned
+            FROM cards c LEFT JOIN card_sets s ON s.id = c.setId
+            WHERE c.retired = 0 AND c.language IN ($langs) AND (?5 IS NULL OR s.printedTotal = ?5) AND (
+                CASE WHEN ?4 THEN
+                    (c.name LIKE ?1 ESCAPE '\' OR s.name LIKE ?1 ESCAPE '\')
+                        AND UPPER(LTRIM(c.localId, '0')) = ?3
+                ELSE
+                    (?1 IS NOT NULL AND (c.name LIKE ?1 ESCAPE '\' OR s.name LIKE ?1 ESCAPE '\'))
+                        OR (?3 IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = ?3)
+                END
+            )
+            ORDER BY (?3 IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = ?3) DESC,
+                (c.name LIKE ?2 ESCAPE '\') DESC, c.name, s.name, c.language, LENGTH(c.localId), c.localId
+            LIMIT ?6
+        """
+        val args = arrayOf<Any?>(
+            escaped?.let { "%$it%" }, escaped?.let { "$it%" }, terms.number, if (terms.both) 1 else 0, terms.total, limit,
+        )
+        return db.openHelper.readableDatabase.query(SimpleSQLiteQuery(sql, args)).use { c ->
+            buildList {
+                while (c.moveToNext()) {
+                    add(listOf(c.getString(0), c.getString(1), c.getString(2), if (c.isNull(3)) null else c.getInt(3), c.getInt(4)))
+                }
+            }
+        }
     }
 }

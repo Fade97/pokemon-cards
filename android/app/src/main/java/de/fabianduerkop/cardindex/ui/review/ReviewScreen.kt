@@ -88,6 +88,7 @@ fun ReviewScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val undo by viewModel.undo.collectAsStateWithLifecycle()
+    val target by viewModel.target.collectAsStateWithLifecycle()
     DetailScaffold(
         title = stringResource(R.string.review_title),
         onBack = onBack,
@@ -113,6 +114,7 @@ fun ReviewScreen(
                         if (item != null) {
                             Footer(
                                 state.draft,
+                                target = target?.name,
                                 onQuantity = viewModel::changeQuantity,
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
@@ -341,7 +343,13 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
 }
 
 @Composable
-private fun Footer(draft: ReviewDraft, onQuantity: (Int) -> Unit, onSkip: () -> Unit, onConfirm: () -> Unit) {
+private fun Footer(
+    draft: ReviewDraft,
+    target: String?,
+    onQuantity: (Int) -> Unit,
+    onSkip: () -> Unit,
+    onConfirm: () -> Unit,
+) {
     Column(
         Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
@@ -364,6 +372,14 @@ private fun Footer(draft: ReviewDraft, onQuantity: (Int) -> Unit, onSkip: () -> 
                 stringResource(R.string.review_pick_variant),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
+            )
+        }
+        // The scan target chosen on the Scan screen (#139); only said when it is more than All Cards.
+        if (target != null) {
+            Text(
+                stringResource(R.string.review_adds_to, target),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {

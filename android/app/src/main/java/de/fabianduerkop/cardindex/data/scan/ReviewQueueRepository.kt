@@ -108,7 +108,8 @@ class ReviewQueueRepository(
 
     /**
      * Adds the candidate at [rank] as an owned copy with the user's variant, condition and quantity, and removes the
-     * item. One transaction, so a crash can't leave both the copy and the item (a later confirm would double it).
+     * item. The copy also goes into the custom collection [targetUuid] when it still exists: the scan target chosen
+     * when the user confirms, not when the card was queued (#139). One transaction, so a crash can't leave both the copy and the item (a later confirm would double it).
      * Returns what was changed, for [undoConfirm].
      */
     suspend fun confirm(
@@ -118,6 +119,7 @@ class ReviewQueueRepository(
         edition: Edition,
         condition: Condition,
         quantity: Int,
+        targetUuid: String? = null,
     ): ConfirmedReview {
         require(quantity >= 1) { "quantity must be at least 1, was $quantity" }
         lateinit var item: ReviewItemEntity
@@ -137,6 +139,7 @@ class ReviewQueueRepository(
                     createdAt = clock(),
                 ),
             )
+            ScanTarget.addCopy(db, id, targetUuid)
             dao.delete(itemId)
             id
         }
@@ -148,7 +151,7 @@ class ReviewQueueRepository(
     }
 
     /**
-     * Takes back a [confirm]: removes exactly the copy it added and puts the item back where it was in the queue, with
+     * Takes back a [confirm]: removes exactly the copy it added (its collection membership goes with it) and puts the item back where it was in the queue, with
      * its candidates and crop. Nothing changes, and the result is false, when that copy is already gone (deleted
      * elsewhere), so an Undo can never remove a different copy.
      */
@@ -183,8 +186,22 @@ class ReviewQueueRepository(
             .filter { it.rank == PICKED_RANK || (it.cardId == cardId && it.cardLanguage == language) }
             .forEach { dao.deleteCandidate(itemId, it.rank) }
         dao.insertCandidates(listOf(ReviewCandidateEntity(itemId, PICKED_RANK, cardId, language, ReviewCandidateEntity.PICKED_BY_HAND)))
+        dao.saveDraftRank(itemId, PICKED_RANK)
         PickedCard(PICKED_RANK, item.checkVariant)
     }
+
+    /**
+     * Stores the user's choices for an item (#141), so leaving Review or process death doesn't reset them. Null means
+     * not picked. False if the item is gone.
+     */
+    suspend fun saveDraft(
+        itemId: Long,
+        rank: Int?,
+        finish: Finish?,
+        edition: Edition?,
+        condition: Condition?,
+        quantity: Int?,
+    ): Boolean = dao.saveDraft(itemId, rank, finish, edition, condition, quantity) > 0
 
     /** Moves an item to the back of the queue; it stays reachable. False if it is gone. */
     suspend fun skip(itemId: Long): Boolean = dao.requeue(itemId, clock()) > 0

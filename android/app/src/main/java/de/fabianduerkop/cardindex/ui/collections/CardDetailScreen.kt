@@ -131,6 +131,8 @@ fun CardDetailScreen(
                         edition = owned?.edition ?: Edition.UNLIMITED,
                         cardLanguage = detail.card.language,
                         modifier = Modifier.padding(horizontal = ScreenPadding),
+                        load = state.priceLoad,
+                        onRetry = viewModel::retryPrices,
                     )
                 }
                 history?.let { chart ->

@@ -11,6 +11,8 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
+import de.fabianduerkop.cardindex.data.db.CollectionEntity
+import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.packs.PackLoader
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
@@ -92,7 +94,7 @@ data class Viewfinder(
 /**
  * Live scanning (#8): every camera frame (latest only) goes through detect → gate → embed → kNN; cards that are not
  * decided yet also get the number OCR and rerank. [LiveScanDecider] turns frames into one decision per card:
- * confident cards go straight into All Cards (undoable), unsure ones into the review queue. All engine work runs on
+ * confident cards go straight into All Cards and the chosen scan target (undoable), unsure ones into the review queue. All engine work runs on
  * [worker], so the engine is never used concurrently; database writes run on the IO dispatcher.
  */
 class ScanViewModel(application: Application) : AndroidViewModel(application) {
@@ -123,6 +125,16 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private val queuedKeys = HashSet<String>()
     private var previousDetection: Detection? = null
     private var lastFrameAt = 0L
+
+    private val scanTarget = application.appContainer.scanTarget
+
+    /** The custom collection scans also go into (#139); null is All Cards only. */
+    val target: StateFlow<CollectionEntity?> = scanTarget.observe()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    /** Custom collections the user can scan into. */
+    val collections: StateFlow<List<CollectionSummary>> = application.appContainer.collections.observeCustomCollections()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     private val packs = application.appContainer.packs
     private val contributions = application.appContainer.contributions
@@ -271,7 +283,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         val checkVariant = needsVariantCheck(card.setId)
         when {
             !goesToReview(event) -> viewModelScope.launch(Dispatchers.IO) {
-                runCatching { scans.addFromScan(card) }
+                runCatching { scans.addFromScan(card, scanTarget.uuid) }
                     .onSuccess { id ->
                         // An auto-added card counts as confirmed (issue #14); Undo below withdraws it again.
                         val contribution = runCatching { contributions.contribute(card.cardId, card.lang, jpeg(result.crop)) }
@@ -339,6 +351,13 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                 is LastScan.Queued -> runCatching { reviewQueue.discard(scan.itemId) }
                     .onFailure { Log.e(TAG, "undoing review item ${scan.itemId} failed", it) }
             }
+        }
+    }
+
+    /** Later scans go into custom collection [collectionId] too; null is All Cards only. Earlier scans stay where they are. */
+    fun chooseTarget(collectionId: Long?) {
+        viewModelScope.launch(Dispatchers.IO) {
+            runCatching { scanTarget.choose(collectionId) }.onFailure { Log.e(TAG, "choosing scan target $collectionId failed", it) }
         }
     }
 

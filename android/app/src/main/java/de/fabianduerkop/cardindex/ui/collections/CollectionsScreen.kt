@@ -223,12 +223,14 @@ private fun ValueHeader(
     }
 }
 
-/** Spoken summary of a set: "151, 87 of 165 cards, 684,20 €". */
+/** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
 private fun setDescription(row: SetRowUi): String {
     val set = row.completion
+    val progress = row.progress
     val parts = listOfNotNull(
-        pluralStringResource(R.plurals.collections_set_row, set.printedTotal, set.name, row.ownedNumbers, set.printedTotal),
+        pluralStringResource(R.plurals.collections_set_row, set.printedTotal, set.name, progress.base, set.printedTotal),
+        secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
     )
@@ -278,10 +280,11 @@ private fun FeaturedSet(row: SetRowUi, onClick: () -> Unit, modifier: Modifier =
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     progressText(
-                        row.ownedNumbers,
+                        row.progress.base,
                         set.printedTotal,
                         countColor = MaterialTheme.colorScheme.onSurface,
-                        suffix = stringResource(R.string.collections_collected),
+                        suffix = listOfNotNull(stringResource(R.string.collections_collected), secretText(row.progress))
+                            .joinToString(" · "),
                     ),
                     style = MaterialTheme.typography.labelLarge,
                     modifier = Modifier.weight(1f),
@@ -294,7 +297,7 @@ private fun FeaturedSet(row: SetRowUi, onClick: () -> Unit, modifier: Modifier =
                     )
                 }
             }
-            CompletionBar(row.ownedNumbers, set.printedTotal, Modifier.padding(top = Spacing.md))
+            CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
         }
     }
 }
@@ -338,6 +341,7 @@ private fun SetRow(row: SetRowUi, onClick: () -> Unit) {
     val subtitle = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
     ).joinToString(" · ")
     ListRow(
@@ -349,11 +353,11 @@ private fun SetRow(row: SetRowUi, onClick: () -> Unit) {
         trailing = {
             Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End) {
                 Text(
-                    progressText(row.ownedNumbers, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
+                    progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
                     style = MaterialTheme.typography.titleMedium,
                     maxLines = 1,
                 )
-                CompletionBar(row.ownedNumbers, set.printedTotal, Modifier.padding(top = Spacing.xs))
+                CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.xs))
             }
         },
     )

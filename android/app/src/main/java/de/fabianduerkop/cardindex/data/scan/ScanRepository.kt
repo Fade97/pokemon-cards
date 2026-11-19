@@ -22,15 +22,18 @@ object CopyDefaults {
 }
 
 /**
- * Writes confident live-scan hits into All Cards. Each hit is its own copy with the [CopyDefaults] (DESIGN.md,
+ * Writes confident live-scan hits into All Cards, and into the scan target collection if the user chose one (#139). Each hit is its own copy with the [CopyDefaults] (DESIGN.md,
  * Recognition): finish and edition can't be told reliably from a photo, and merging into an existing copy would make
  * Undo and later edits touch copies the user added by hand.
  */
 class ScanRepository(private val db: CardIndexDatabase, private val clock: () -> Instant = Instant::now) {
-    /** Adds one copy of [card]; returns its row id for [undo]. */
-    suspend fun addFromScan(card: RefCard): Long = db.withTransaction {
+    /**
+     * Adds one copy of [card], also to the custom collection [targetUuid] when it still exists (see [ScanTarget]);
+     * returns its row id for [undo].
+     */
+    suspend fun addFromScan(card: RefCard, targetUuid: String? = null): Long = db.withTransaction {
         ScanCatalog.ensure(db.catalogDao(), listOf(card))
-        db.copyDao().insert(
+        val id = db.copyDao().insert(
             OwnedCopyEntity(
                 cardId = card.cardId,
                 cardLanguage = card.lang,
@@ -40,6 +43,8 @@ class ScanRepository(private val db: CardIndexDatabase, private val clock: () ->
                 createdAt = clock(),
             ),
         )
+        ScanTarget.addCopy(db, id, targetUuid)
+        id
     }
 
     /**
@@ -53,6 +58,6 @@ class ScanRepository(private val db: CardIndexDatabase, private val clock: () ->
             true
         }
 
-    /** Removes a copy added by [addFromScan]; false if it is already gone. */
+    /** Removes a copy added by [addFromScan] (and with it its collection membership); false if it is already gone. */
     suspend fun undo(copyId: Long): Boolean = db.copyDao().deleteById(copyId) > 0
 }

@@ -62,6 +62,23 @@ fun buildSetSlots(
     }
 }
 
+/**
+ * Base-set completion (#132): [base] owned numbers from 1 to [printedTotal], shown as `base/printedTotal`, and
+ * [secret] owned slots outside that range (secret rares like 180/165, or ids like `TG05`), shown apart as
+ * "+N secret". So the count never reads 170/165 and the bar never passes 100 %.
+ */
+data class SetProgress(val base: Int, val printedTotal: Int, val secret: Int) {
+    /** Share of the base set, 0 to 1. */
+    val fraction: Float get() = if (printedTotal > 0) (base.toFloat() / printedTotal).coerceIn(0f, 1f) else 0f
+}
+
+/** [SetProgress] from owned slot keys ([numberKey]s, so `006` and `6` count once). */
+fun setProgress(ownedKeys: Collection<String>, printedTotal: Int): SetProgress {
+    val keys = ownedKeys.mapTo(HashSet()) { numberKey(it) }
+    val base = keys.count { key -> key.toIntOrNull()?.let { it in 1..printedTotal } == true }
+    return SetProgress(base = base, printedTotal = printedTotal, secret = keys.size - base)
+}
+
 /** `"006"` and `"6"` are the same slot; non-numeric ids (`TG05`) stay as they are. */
 internal fun numberKey(localId: String): String =
     if (localId.isNotEmpty() && localId.all(Char::isDigit)) localId.trimStart('0').ifEmpty { "0" } else localId

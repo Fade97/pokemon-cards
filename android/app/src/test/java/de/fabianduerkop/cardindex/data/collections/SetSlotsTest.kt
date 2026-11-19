@@ -70,4 +70,46 @@ class SetSlotsTest {
         assertNull(buildSetSlots(5, emptyList(), listOf(owned("001", "en")), null)[1].card)
         assertEquals(EnergyType.FIRE, buildSetSlots(5, emptyList(), listOf(owned("001", "en")), null)[0].energyType)
     }
+
+    @Test
+    fun progress_countsBaseNumbersOfThePrintedTotal_andSecretRaresApart() {
+        // 160 base cards and 10 secret rares of a 165-card set read 160/165 +10, not 170/165 (#132).
+        val owned = (1..160).map { it.toString().padStart(3, '0') } + (166..175).map { it.toString() }
+
+        val progress = setProgress(owned, 165)
+
+        assertEquals(SetProgress(base = 160, printedTotal = 165, secret = 10), progress)
+        assertEquals(160f / 165, progress.fraction, 0.0001f)
+    }
+
+    @Test
+    fun progress_neverPassesTheWholeSet() {
+        val progress = setProgress((1..170).map { it.toString() }, 165)
+
+        assertEquals(165, progress.base)
+        assertEquals(5, progress.secret)
+        assertEquals(1f, progress.fraction, 0f)
+    }
+
+    @Test
+    fun progress_countsPaddedNumbersOnce_andLettersAsSecret() {
+        val progress = setProgress(listOf("006", "6", "TG05", "0"), 10)
+
+        assertEquals(SetProgress(base = 1, printedTotal = 10, secret = 2), progress)
+    }
+
+    @Test
+    fun setDetailProgress_matchesItsSlots_whileTheOwnedFilterListsEverySlot() {
+        val copies = listOf(owned("001", "en"), owned("005", "en"), owned("007", "en"), owned("TG01", "en"))
+        val detail = SetDetail(set, listOf("en"), buildSetSlots(5, emptyList(), copies, null), copies)
+
+        assertEquals(4, detail.ownedNumbers)
+        assertEquals(SetProgress(base = 2, printedTotal = 5, secret = 2), detail.progress)
+    }
+
+    @Test
+    fun progress_withoutAPrintedTotal_isEmpty() {
+        assertEquals(0f, setProgress(listOf("1"), 0).fraction, 0f)
+        assertEquals(1, setProgress(listOf("1"), 0).secret)
+    }
 }

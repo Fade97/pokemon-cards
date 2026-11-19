@@ -31,7 +31,11 @@ data class SetDetail(
     val slots: List<SetSlot>,
     val copies: List<CopyWithCard>,
 ) {
+    /** Every owned slot, secret rares included: what the Owned filter lists. */
     val ownedNumbers: Int get() = slots.count { it.owned }
+
+    /** The header's count and bar: owned base numbers of the printed total, secret rares apart (#132). */
+    val progress: SetProgress get() = setProgress(slots.filter { it.owned }.map { it.localId }, set.printedTotal)
 }
 
 /** One card: its print in the requested language (or any), all its prints, and the user's copies of it. */
