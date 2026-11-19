@@ -186,8 +186,22 @@ class ReviewQueueRepository(
             .filter { it.rank == PICKED_RANK || (it.cardId == cardId && it.cardLanguage == language) }
             .forEach { dao.deleteCandidate(itemId, it.rank) }
         dao.insertCandidates(listOf(ReviewCandidateEntity(itemId, PICKED_RANK, cardId, language, ReviewCandidateEntity.PICKED_BY_HAND)))
+        dao.saveDraftRank(itemId, PICKED_RANK)
         PickedCard(PICKED_RANK, item.checkVariant)
     }
+
+    /**
+     * Stores the user's choices for an item (#141), so leaving Review or process death doesn't reset them. Null means
+     * not picked. False if the item is gone.
+     */
+    suspend fun saveDraft(
+        itemId: Long,
+        rank: Int?,
+        finish: Finish?,
+        edition: Edition?,
+        condition: Condition?,
+        quantity: Int?,
+    ): Boolean = dao.saveDraft(itemId, rank, finish, edition, condition, quantity) > 0
 
     /** Moves an item to the back of the queue; it stays reachable. False if it is gone. */
     suspend fun skip(itemId: Long): Boolean = dao.requeue(itemId, clock()) > 0

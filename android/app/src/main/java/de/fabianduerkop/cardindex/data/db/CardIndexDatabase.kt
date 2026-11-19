@@ -40,7 +40,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 3
+        const val VERSION = 4
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -71,8 +71,23 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v4: the search key of the collector number ([CardEntity.numberKey], #124) in its own indexed column, filled
+         * the way search compared it before (the next pack import writes it again); and the review draft on its item
+         * (#141), new nullable columns where null is "not picked".
+         */
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `cards` ADD COLUMN `numberKey` TEXT NOT NULL DEFAULT ''")
+                db.execSQL("UPDATE `cards` SET `numberKey` = UPPER(LTRIM(`localId`, '0'))")
+                db.execSQL("CREATE INDEX IF NOT EXISTS `index_cards_numberKey` ON `cards` (`numberKey`)")
+                listOf("draftRank INTEGER", "draftFinish TEXT", "draftEdition TEXT", "draftCondition TEXT", "draftQuantity INTEGER")
+                    .forEach { db.execSQL("ALTER TABLE `review_items` ADD COLUMN $it") }
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
-        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3)
+        val MIGRATIONS: Array<Migration> = arrayOf(MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4)
 
         private const val NAME = "cardindex.db"
 
