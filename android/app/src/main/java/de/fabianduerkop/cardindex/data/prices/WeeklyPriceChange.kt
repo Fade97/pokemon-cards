@@ -1,0 +1,126 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package de.fabianduerkop.cardindex.data.prices
+
+import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
+import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
+import de.fabianduerkop.cardindex.data.db.PriceHistoryEntity
+import de.fabianduerkop.cardindex.model.PriceSource
+import de.fabianduerkop.cardindex.model.PriceVariant
+import java.time.LocalDate
+
+enum class PriceDirection { UP, DOWN, FLAT }
+
+/**
+ * How a price or a list's value moved over the last week (#173): [startMinor] on [start] against [endMinor] on [end],
+ * in one [currency]. Only copies priced at both ends are in it ([coveredCopies]); [pricedCopies] is how many copies
+ * have a current price in that market, so a list can say "3 of 4 cards" when some lack a week of history.
+ */
+data class WeeklyChange(
+    val startMinor: Long,
+    val endMinor: Long,
+    val currency: String,
+    val start: LocalDate,
+    val end: LocalDate,
+    val coveredCopies: Int,
+    val pricedCopies: Int,
+) {
+    val deltaMinor: Long get() = endMinor - startMinor
+
+    val direction: PriceDirection
+        get() = when {
+            deltaMinor > 0 -> PriceDirection.UP
+            deltaMinor < 0 -> PriceDirection.DOWN
+            else -> PriceDirection.FLAT
+        }
+
+    /** Some copies with a current price have no week of history and are left out of the change. */
+    val partial: Boolean get() = coveredCopies < pricedCopies
+}
+
+/**
+ * The weekly change of set rows and copy lists (#173), from the cached Pro price history (ADR 0012). Without Pro there
+ * is no history on the phone, so there is no change to show; nothing here invents one.
+ *
+ * The change runs from the newest history day back [DAYS] days. A day the market skipped takes the last price before
+ * it, as in [PriceHistorySelection.portfolio], but only within [MAX_GAP_DAYS]: an older price says nothing about this
+ * week. History whose newest day is more than [MAX_GAP_DAYS] before today is stale (the import stopped) and shows no
+ * change either.
+ *
+ * Each copy is followed in the printing its current price comes from ([PriceSelection.quote]), so a list's change
+ * covers the same copies and prices as its total, never a fallback printing's series.
+ */
+object WeeklyPriceChange {
+    const val DAYS = 7L
+
+    /** As [PriceFreshness.STALE_AFTER]: the backend imports once a night, so three missed nights is the limit. */
+    const val MAX_GAP_DAYS = 3L
+
+    /** The first day the history cache needs for a weekly change on [today]. */
+    fun from(today: LocalDate): LocalDate = today.minusDays(DAYS + MAX_GAP_DAYS)
+
+    /**
+     * The change of one card's price as [quote] shows it, per card (not times the quantity), in the quote's market
+     * and printing. Null when that printing has no price within [MAX_GAP_DAYS] of either end.
+     */
+    fun ofQuote(rows: List<PriceHistoryEntity>, quote: PriceQuote, today: LocalDate): WeeklyChange? {
+        val points = series(rows, quote.source, quote.variant)
+        val end = points.lastOrNull()?.date ?: return null
+        if (end.isBefore(today.minusDays(MAX_GAP_DAYS))) return null
+        val (startPrice, endPrice) = ends(points, end) ?: return null
+        return WeeklyChange(startPrice, endPrice, quote.currency, end.minusDays(DAYS), end, 1, 1)
+    }
+
+    /**
+     * The change of [copies]' value in [source]'s currency: each copy with a current price, valued at both ends with
+     * its printing's history, times its quantity. Copies [source] doesn't price (their language, or no fitting
+     * printing) are left out, as in [PriceSelection.total]. Null when no copy has a price at both ends.
+     */
+    fun ofCopies(
+        copies: List<OwnedCopyEntity>,
+        pricesByCard: Map<String, List<CachedPriceEntity>>,
+        historyByCard: Map<String, List<PriceHistoryEntity>>,
+        source: PriceSource,
+        today: LocalDate,
+    ): WeeklyChange? {
+        // Copies of the same card and printing share one series.
+        val groups = copies.mapNotNull { copy ->
+            PriceSelection.quote(pricesByCard[copy.cardId].orEmpty(), source, copy)?.let { (copy.cardId to it.variant) to copy.quantity }
+        }.groupBy({ it.first }, { it.second }).map { (key, quantities) ->
+            series(historyByCard[key.first].orEmpty(), source, key.second) to quantities.sum()
+        }
+        val priced = groups.sumOf { it.second }
+        val end = groups.mapNotNull { it.first.lastOrNull()?.date }.maxOrNull() ?: return null
+        if (end.isBefore(today.minusDays(MAX_GAP_DAYS))) return null
+
+        var startSum = 0L
+        var endSum = 0L
+        var covered = 0
+        for ((points, quantity) in groups) {
+            val (startPrice, endPrice) = ends(points, end) ?: continue
+            startSum += startPrice * quantity
+            endSum += endPrice * quantity
+            covered += quantity
+        }
+        if (covered == 0) return null
+        return WeeklyChange(startSum, endSum, source.currency, end.minusDays(DAYS), end, covered, priced)
+    }
+
+    /** One printing's daily prices in [source], ascending; days without a price are left out. */
+    private fun series(rows: List<PriceHistoryEntity>, source: PriceSource, variant: PriceVariant): List<PricePoint> =
+        rows.filter { it.source == source && it.variant == variant }
+            .flatMap(PriceHistoryCodec::points)
+            .distinctBy { it.date }
+            .sortedBy { it.date }
+
+    /** The prices on [end] and [DAYS] before it, each the last known within [MAX_GAP_DAYS]; null if either is missing. */
+    private fun ends(points: List<PricePoint>, end: LocalDate): Pair<Long, Long>? {
+        val endPrice = priceOn(points, end) ?: return null
+        val startPrice = priceOn(points, end.minusDays(DAYS)) ?: return null
+        return startPrice to endPrice
+    }
+
+    private fun priceOn(points: List<PricePoint>, day: LocalDate): Long? =
+        points.lastOrNull { !it.date.isAfter(day) }
+            ?.takeIf { !it.date.isBefore(day.minusDays(MAX_GAP_DAYS)) }
+            ?.amountMinor
+}

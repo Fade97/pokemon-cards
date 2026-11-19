@@ -38,6 +38,8 @@ import de.fabianduerkop.cardindex.data.prices.forLanguage
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
+import de.fabianduerkop.cardindex.data.prices.WeeklyChange
+import de.fabianduerkop.cardindex.data.prices.WeeklyPriceChange
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
@@ -277,6 +279,32 @@ class CollectionsViewModel(
     }.stateIn(this, null)
 
     fun setPortfolioRange(range: HistoryRange) { portfolioChart.range.value = range }
+
+    /**
+     * Pro (#173): each set's value change over the last 7 days, by set id, for the same copies and market as the set
+     * row's value (the language filter applies). Sets without a week of history are missing; empty without Pro. The
+     * portfolio chart's refresh above fetches the history: every range is longer than a week.
+     */
+    val weeklyChanges: StateFlow<Map<String, WeeklyChange>> = isPro.distinctUntilChanged().flatMapLatest { pro ->
+        if (!pro) {
+            flowOf(emptyMap())
+        } else {
+            val today = history.today()
+            combine(
+                base,
+                prices.observeAll(),
+                history.observeAll(WeeklyPriceChange.from(today)),
+                primarySource,
+            ) { b, priceMap, rows, source ->
+                b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
+                    .groupBy { it.set.id }
+                    .mapNotNull { (setId, copies) ->
+                        WeeklyPriceChange.ofCopies(copies.map { it.copy }, priceMap, rows, source, today)?.let { setId to it }
+                    }
+                    .toMap()
+            }.flowOn(Dispatchers.Default)
+        }
+    }.stateIn(this, emptyMap())
 
     /** Wishlist entries (#134) the user has no copy of yet, for the wishlist row. */
     val wishlistCount: StateFlow<Int> = repository.observeWishlistCount().stateIn(this, 0)
@@ -567,6 +595,8 @@ class CollectionDetailViewModel(
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
     savedState: SavedStateHandle,
+    history: PriceHistoryRepository? = null,
+    isPro: Flow<Boolean> = flowOf(false),
 ) : ViewModel() {
     /** [CollectionsRoutes.ALL_CARDS] for All cards. */
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
@@ -602,6 +632,42 @@ class CollectionDetailViewModel(
             quotes = quotes,
         )
     }.stateIn(this, CollectionDetailUiState())
+
+    /**
+     * Pro (#173): the weekly change of each copy's price as its row shows it (per card, that market and printing), by
+     * copy id. Copies without a week of history are missing; empty without Pro.
+     */
+    val weeklyChanges: StateFlow<Map<Long, WeeklyChange>> =
+        if (history == null) {
+            MutableStateFlow(emptyMap())
+        } else {
+            isPro.distinctUntilChanged().flatMapLatest { pro ->
+                if (!pro) {
+                    flowOf(emptyMap())
+                } else {
+                    val today = history.today()
+                    combine(state, history.observeAll(WeeklyPriceChange.from(today))) { s, rows ->
+                        s.copies.mapNotNull { item ->
+                            val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
+                            WeeklyPriceChange.ofQuote(rows[item.card.id].orEmpty(), quote, today)?.let { item.copy.id to it }
+                        }.toMap()
+                    }.flowOn(Dispatchers.Default)
+                }
+            }.stateIn(this, emptyMap())
+        }
+
+    init {
+        // Usually cached by the Collections screen's portfolio chart already; this fills what it lacks (a card added
+        // since). Months the cache has are not asked again.
+        if (history != null) {
+            viewModelScope.launch {
+                val cardIds = source.map { (_, copies) -> copies.map { it.card.id }.toSet() }.distinctUntilChanged()
+                combine(isPro, cardIds, ::Pair).collectLatest { (pro, ids) ->
+                    if (pro && ids.isNotEmpty()) history.refresh(ids, WeeklyPriceChange.from(history.today()))
+                }
+            }
+        }
+    }
 
     val isAllCards: Boolean get() = collectionId == CollectionsRoutes.ALL_CARDS
 

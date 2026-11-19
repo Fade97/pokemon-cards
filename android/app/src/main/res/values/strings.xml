@@ -197,6 +197,22 @@
     <string name="history_offline">Saved history; the price service is not reachable right now.</string>
     <string name="history_refused">The price service did not accept this device for Pro.</string>
     <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
+    <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
+    <string name="weekly_change">%1$s in 7 days</string>
+    <string name="weekly_change_flat">No change in 7 days</string>
+    <!-- Which copies the change covers, when some have no week of price history -->
+    <plurals name="weekly_change_covered">
+        <item quantity="one">%1$d of %2$d copy</item>
+        <item quantity="other">%1$d of %2$d copies</item>
+    </plurals>
+    <!-- Screen-reader text. %1$s: "1,20 € (12 %)" without a sign -->
+    <string name="weekly_change_up_description">Up %1$s over the last 7 days</string>
+    <string name="weekly_change_down_description">Down %1$s over the last 7 days</string>
+    <string name="weekly_change_flat_description">No price change over the last 7 days</string>
+    <plurals name="weekly_change_covered_description">
+        <item quantity="one">for %1$d of %2$d copy</item>
+        <item quantity="other">for %1$d of %2$d copies</item>
+    </plurals>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>

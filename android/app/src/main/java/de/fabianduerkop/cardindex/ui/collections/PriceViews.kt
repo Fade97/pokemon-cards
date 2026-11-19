@@ -26,6 +26,7 @@ import de.fabianduerkop.cardindex.data.prices.PriceFreshness
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
+import de.fabianduerkop.cardindex.data.prices.WeeklyChange
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
@@ -68,10 +69,16 @@ private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
  * Price of a copy at the end of a list row, with a second line under it (the card language). With [totalCurrency], a
  * price in another currency says that it is not in the list's total: TCGplayer has no price for a German copy, so a
  * dollar total leaves out its euro price instead of converting it. [stacked] lays it out start-aligned for a row that
- * puts it under the details.
+ * puts it under the details. With Pro, [change] adds the weekly change of that price under it (#173).
  */
 @Composable
-internal fun QuoteColumn(quote: PriceQuote?, secondLine: String, totalCurrency: String? = null, stacked: Boolean = false) {
+internal fun QuoteColumn(
+    quote: PriceQuote?,
+    secondLine: String,
+    totalCurrency: String? = null,
+    stacked: Boolean = false,
+    change: WeeklyChange? = null,
+) {
     val outside = quote != null && totalCurrency != null && quote.currency != totalCurrency
     val price = quote?.let { Money.format(it.amountMinor, it.currency) } ?: "–"
     val priceColor = if (outside) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface
@@ -80,6 +87,7 @@ internal fun QuoteColumn(quote: PriceQuote?, secondLine: String, totalCurrency: 
         // Under the row's details (#121): the price, then the notes on one line.
         Column {
             Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
+            change?.let { WeeklyChangeLine(it) }
             Text(
                 listOfNotNull(secondLine, notInTotal).joinToString(" · "),
                 style = MaterialTheme.typography.bodySmall,
@@ -90,6 +98,7 @@ internal fun QuoteColumn(quote: PriceQuote?, secondLine: String, totalCurrency: 
     }
     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm).widthIn(max = 128.dp)) {
         Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
+        change?.let { WeeklyChangeLine(it, textAlign = TextAlign.End) }
         Text(
             secondLine,
             style = MaterialTheme.typography.bodySmall,
