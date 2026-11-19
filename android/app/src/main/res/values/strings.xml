@@ -86,6 +86,13 @@
     <string name="collections_collected">collected</string>
     <!-- Spoken form of a set's count, e.g. "87 of 165 collected". -->
     <string name="collections_progress_description">%1$d of %2$d collected</string>
+    <!-- Owned secret rares above the printed total, shown apart from a count like "160/165" (#132). -->
+    <string name="collections_secret">+%1$d secret</string>
+    <!-- Spoken form of collections_secret, after "160 of 165 collected, ". -->
+    <plurals name="collections_secret_description">
+        <item quantity="one">plus %1$d secret card</item>
+        <item quantity="other">plus %1$d secret cards</item>
+    </plurals>
     <string name="collections_legend_compact">Filled slots are owned. Outlined slots are missing.</string>
     <string name="collections_legend_cards">Missing cards are grey, with an outline and the word Missing.</string>
     <string name="collections_region_jp">JP</string>
@@ -125,13 +132,20 @@
     <string name="price_label_tcgplayer">TCGplayer market</string>
     <string name="price_for_print">For %1$s</string>
     <string name="price_as_of">Prices from %1$s</string>
+    <!-- One market's price date when both markets are shown, e.g. "Cardmarket prices from 17 Nov 2026" (#133). -->
+    <string name="price_market_as_of">%1$s prices from %2$s</string>
     <string name="price_none">No price yet</string>
     <string name="price_none_hint">Prices come from the price service when you are online and stay saved for offline use. Some cards and printings have no market price.</string>
     <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s offers)</string>
     <string name="price_open_cardmarket">Open on Cardmarket</string>
     <string name="price_open_tcgplayer">Open on TCGplayer</string>
     <string name="price_currencies">Each market\'s price is in its own currency. Prices are never converted.</string>
-    <string name="price_saved_on">Saved on %1$s and not updated since. Prices update when you are online.</string>
+    <!-- %1$s is the market (Cardmarket or TCGplayer), %2$s that market's own price date (#133). -->
+    <string name="price_stale">The %1$s price is from %2$s and may be out of date.</string>
+    <string name="price_loading">Loading the price…</string>
+    <!-- No saved price and the price service could not be reached; differs from price_none (#133). -->
+    <string name="price_failed">The price could not be loaded. The price service is not reachable right now.</string>
+    <string name="price_retry">Try again</string>
     <string name="collections_quote_not_in_total">Not in the %1$s total</string>
     <!-- Pro price history (#17) -->
     <string name="history_title">Price history</string>
