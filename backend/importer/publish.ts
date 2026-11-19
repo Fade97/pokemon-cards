@@ -19,6 +19,7 @@ import {
 } from "../src/price-data";
 import type { Db } from "./db";
 import { mapLimit } from "./jobs/context";
+import type { WeekAgo } from "./week-ago";
 
 export interface Sink {
   readonly name: string;
@@ -71,12 +72,22 @@ export class R2Sink implements Sink {
 /** Parallel uploads per sink; R2 handles more, but the nightly run has no hurry. */
 const UPLOAD_CONCURRENCY = 8;
 
-export async function publish(db: Db, sinks: Sink[], now: Date): Promise<string> {
+/**
+ * Writes the current price files, the day's snapshot and meta.json last. With `weekAgo` (week-ago.ts), each market of
+ * a card that had prices a week ago carries them for the free weekly direction (#186); without it the files are as
+ * before.
+ */
+export async function publish(db: Db, sinks: Sink[], now: Date, weekAgo?: WeekAgo | null): Promise<string> {
   const generatedAt = now.toISOString();
   const prices = await readAllPrices(db);
 
   const shards = new Map<string, Record<string, CardPrice>>();
   for (const price of prices) {
+    if (weekAgo) {
+      const week = weekAgo.of(price.id);
+      if (price.cardmarket && week.cardmarket) price.cardmarket.weekAgo = week.cardmarket;
+      if (price.tcgplayer && week.tcgplayer) price.tcgplayer.weekAgo = week.tcgplayer;
+    }
     const shard = shardOf(price.id);
     if (!shards.has(shard)) shards.set(shard, {});
     shards.get(shard)![price.id] = price;
