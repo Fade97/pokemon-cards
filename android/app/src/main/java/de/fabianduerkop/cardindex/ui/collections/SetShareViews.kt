@@ -1,0 +1,329 @@
+// SPDX-License-Identifier: GPL-3.0-or-later
+package de.fabianduerkop.cardindex.ui.collections
+
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.components.LumifoilWordmark
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.share.ImageShare
+import de.fabianduerkop.cardindex.ui.share.ShareCanvas
+import de.fabianduerkop.cardindex.ui.share.ShareImageButton
+import de.fabianduerkop.cardindex.ui.share.ShareImagePreview
+import de.fabianduerkop.cardindex.ui.theme.Spacing
+
+/** Up to this many missing cards are listed with their names on the image; more become a grid of numbers. */
+private const val NamedLines = 18
+
+/** Numbers shown on the missing-list image before "+ 40 more"; the text checklist always has all of them. */
+private const val NumberChips = 150
+
+/** The share images' page padding. */
+private val PagePadding = 24.dp
+
+/**
+ * Share a set (#170): the slot map ("these are my last nine") or the missing list, as an image as it will be posted,
+ * and the missing list also as plain text to paste into a trade chat. No card art (ADR 0009), nothing uploaded.
+ */
+@Composable
+internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
+    val context = LocalContext.current
+    var tab by rememberSaveable { mutableIntStateOf(0) }
+    val layer = rememberGraphicsLayer()
+    val mapTab = tab == 0
+    val chooserTitle = stringResource(R.string.set_share_chooser)
+    val text = checklistText(data)
+    val description = if (mapTab) mapDescription(data) else missingDescription(data)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Spacing.gutter)
+            .padding(bottom = Spacing.xl),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            stringResource(R.string.set_share_title),
+            Modifier.fillMaxWidth().semantics { heading() },
+            style = MaterialTheme.typography.titleLarge,
+        )
+        ViewSwitch(
+            labels = listOf(stringResource(R.string.set_share_map), stringResource(R.string.set_share_missing)),
+            selectedIndex = tab,
+            onSelect = { tab = it },
+        )
+        ShareImagePreview(layer, description) {
+            if (mapTab) SlotMapImage(data) else MissingListImage(data)
+        }
+        Text(
+            stringResource(R.string.set_share_no_art),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+        )
+        ShareImageButton(
+            stringResource(R.string.set_share_image),
+            layer = layer,
+            fileName = "foilark-" + (if (mapTab) "slots-" else "missing-") + data.setName.filter { it.isLetterOrDigit() }.lowercase(),
+            chooserTitle = chooserTitle,
+            modifier = Modifier.fillMaxWidth(),
+        )
+        if (!mapTab && data.missingLines.isNotEmpty()) {
+            SecondaryButton(
+                stringResource(R.string.set_share_text),
+                onClick = { context.startActivity(ImageShare.textIntent(text, chooserTitle)) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        }
+        TextAction(stringResource(R.string.receipt_close), onClick = onDone)
+    }
+}
+
+/** Wordmark, set name with its languages, and how far the set is: the top of both images. */
+@Composable
+private fun ShareHeader(data: SetShareData, overline: String) {
+    val colors = MaterialTheme.colorScheme
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        LumifoilWordmark()
+        Spacer(Modifier.weight(1f))
+        data.languages?.let { Text(it, style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant) }
+    }
+    Spacer(Modifier.height(Spacing.md))
+    Text(overline, style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+    Text(
+        data.setName,
+        style = MaterialTheme.typography.headlineSmall,
+        color = colors.onSurface,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+    )
+    Text(progressText(data), style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
+}
+
+/**
+ * The slot map: every number of the set as a square, owned filled in sea-glass, missing hollow, wishlist ones with a
+ * sea-glass outline. The squares grow to fill the page, so small sets read at thumbnail size.
+ */
+@Composable
+internal fun SlotMapImage(data: SetShareData) {
+    ShareCanvas {
+        val colors = MaterialTheme.colorScheme
+        Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            ShareHeader(data, stringResource(R.string.set_share_map_overline))
+            Spacer(Modifier.height(Spacing.sm))
+            BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
+                val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value)
+                val cell = maxWidth / columns
+                Column {
+                    data.slots.chunked(columns).forEach { row ->
+                        Row { row.forEach { SlotCell(it, cell) } }
+                    }
+                }
+            }
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                LegendSquare(filled = true)
+                Text(stringResource(R.string.set_share_legend_owned), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                Spacer(Modifier.width(Spacing.sm))
+                LegendSquare(filled = false)
+                Text(stringResource(R.string.set_share_legend_missing), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                if (data.anyWanted) {
+                    Spacer(Modifier.width(Spacing.sm))
+                    LegendSquare(filled = false, wanted = true)
+                    Text(stringResource(R.string.set_share_legend_wanted), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SlotCell(slot: ShareSlot, size: Dp) {
+    val colors = MaterialTheme.colorScheme
+    val gap = (size * 0.08f).coerceAtLeast(1.dp)
+    val shape = RoundedCornerShape(size * 0.18f)
+    Box(Modifier.size(size).padding(gap / 2), contentAlignment = Alignment.Center) {
+        Box(
+            Modifier
+                .fillMaxSize()
+                .then(
+                    when {
+                        slot.owned -> Modifier.background(colors.primary, shape)
+                        slot.wanted -> Modifier.border((size * 0.07f).coerceAtLeast(1.5.dp), colors.primary, shape)
+                        else -> Modifier.border(1.dp, colors.outline, shape)
+                    },
+                ),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text(
+                slot.label,
+                color = if (slot.owned) colors.onPrimary else colors.onSurfaceVariant,
+                // The share canvas has font scale 1, so a dp value works as sp here.
+                fontSize = (size.value * if (slot.label.length > 3) 0.26f else 0.34f).sp,
+                fontWeight = if (slot.owned) FontWeight.SemiBold else FontWeight.Normal,
+                maxLines = 1,
+                softWrap = false,
+            )
+        }
+    }
+}
+
+@Composable
+private fun LegendSquare(filled: Boolean, wanted: Boolean = false) {
+    val colors = MaterialTheme.colorScheme
+    val shape = RoundedCornerShape(3.dp)
+    Box(
+        Modifier
+            .size(12.dp)
+            .then(
+                when {
+                    filled -> Modifier.background(colors.primary, shape)
+                    wanted -> Modifier.border(2.dp, colors.primary, shape)
+                    else -> Modifier.border(1.dp, colors.outline, shape)
+                },
+            ),
+    )
+}
+
+/**
+ * The missing list: "These are the ones I need", then each missing card with its name (few missing) or a grid of
+ * numbers (many). Wishlist ones carry a star. A complete set says so instead.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun MissingListImage(data: SetShareData) {
+    ShareCanvas {
+        val colors = MaterialTheme.colorScheme
+        Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            ShareHeader(data, stringResource(R.string.set_share_missing_overline))
+            Spacer(Modifier.height(Spacing.sm))
+            val lines = data.missingLines
+            if (lines.isEmpty()) {
+                Text(stringResource(R.string.set_share_complete), style = MaterialTheme.typography.headlineMedium, color = colors.primary)
+                return@Column
+            }
+            Text(
+                pluralStringResource(R.plurals.set_share_missing_count, lines.size, lines.size),
+                style = MaterialTheme.typography.displaySmall,
+                color = colors.onSurface,
+            )
+            Text(stringResource(R.string.set_share_trade), style = MaterialTheme.typography.bodyMedium, color = colors.onSurfaceVariant)
+            Spacer(Modifier.height(Spacing.sm))
+            Column(Modifier.weight(1f)) {
+                if (lines.size <= NamedLines) {
+                    lines.forEach { line ->
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            Text(line.number, style = numberStyle(MaterialTheme.typography.labelLarge), color = colors.onSurface)
+                            Text(
+                                line.name.orEmpty(),
+                                Modifier.weight(1f),
+                                style = MaterialTheme.typography.bodyMedium,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                            if (line.wanted) Text(SetShare.WANTED_MARK, color = colors.primary, style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+                } else {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        lines.take(NumberChips).forEach { line ->
+                            Text(
+                                line.number.substringBefore('/') + if (line.wanted) " " + SetShare.WANTED_MARK else "",
+                                Modifier
+                                    .border(1.dp, if (line.wanted) colors.primary else colors.outlineVariant, RoundedCornerShape(4.dp))
+                                    .padding(horizontal = 4.dp, vertical = 1.dp),
+                                style = numberStyle(MaterialTheme.typography.labelSmall),
+                                color = colors.onSurface,
+                            )
+                        }
+                    }
+                    val more = lines.size - NumberChips
+                    if (more > 0) {
+                        Text(
+                            pluralStringResource(R.plurals.receipt_more, more, more),
+                            Modifier.padding(top = Spacing.xs),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = colors.onSurfaceVariant,
+                        )
+                    }
+                }
+            }
+            if (data.anyWanted) {
+                Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** "87 of 165 · 3 secret rares". */
+@Composable
+private fun progressText(data: SetShareData): String {
+    val progress = data.progress
+    val base = stringResource(R.string.set_share_progress, progress.base, progress.printedTotal)
+    if (progress.secret == 0) return base
+    return base + " · " + pluralStringResource(R.plurals.set_share_secret, progress.secret, progress.secret)
+}
+
+/** The plain-text checklist (#170): a heading line, every missing card, the star's meaning, and where it came from. */
+@Composable
+private fun checklistText(data: SetShareData): String {
+    val name = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
+    val count = pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size)
+    return buildList {
+        add(stringResource(R.string.set_share_text_heading, name, count))
+        addAll(SetShare.checklistLines(data.missingLines))
+        if (data.anyWanted) add(stringResource(R.string.set_share_wanted_note))
+        add(stringResource(R.string.set_share_text_footer))
+    }.joinToString("\n")
+}
+
+@Composable
+private fun mapDescription(data: SetShareData): String =
+    stringResource(R.string.set_share_map_description, data.setName, progressText(data))
+
+@Composable
+private fun missingDescription(data: SetShareData): String =
+    stringResource(
+        R.string.set_share_missing_description,
+        data.setName,
+        pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size),
+    )
