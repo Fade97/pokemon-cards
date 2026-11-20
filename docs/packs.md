@@ -20,8 +20,25 @@ R2 bucket PACKS                         served as
   <lang>/delta-<v-1>-<v>.bin
 ```
 
-- `<lang>` is the TCGdex language code: `en de fr it es pt nl pl ja` in v1. TCGdex has only a few NL/PL sets
+- `<lang>` is the TCGdex language code: `en de fr it es pt nl pl ja zh-tw ko` in v1 (`zh-tw`: Traditional Chinese). TCGdex has only a few NL/PL sets
   (3 and 2 on 2026-11-17), and only about 56 % of the JP cards have an image, so those packs index fewer cards.
+- **`zh-tw` and `ko` borrow from `ja`** (#18, [research](research/ko-zh-card-sources.md)): both print the Japanese sets
+  with the same set codes and numbers, and TCGdex gives their cards the Japanese card's id (`packs.STANDIN_LANGS`).
+  - `embed` uses the Japanese card's image as the reference wherever TCGdex has none in the language. The row is
+    taken as it is from `<work>/ja/embeddings.*` (or the `ja` embedding cache), so both packs hold the same bytes, and
+    it is never saved in the language's own cache: once TCGdex adds the card's own image, the card is embedded from
+    that. The pack's `image` stays the language's own (null), so the app never shows a Japanese card (ADR 0009).
+  - `ko`'s card list is the Japanese one (`packs.CARD_LIST_LANGS`; TCGdex `ko` had 239 cards in 3 of 95 sets on
+    2026-11-18), with the Korean card and set names where TCGdex has them, then names from the official Korean card
+    database (`ml/ko_names.py`, `fetch --ko-names <data>/ko-names/names.json`), else the Japanese ones. The crawl
+    reads only name, set and number from plain card pages, at most one request every 1.5 s, cached and resumable;
+    its output stays in the data dir.
+  - `fetch` needs `ja` first (`--langs` is reordered so it comes first) and skips the CDN gap probe for both: 21 of
+    21 probed files were 404.
+  - On 2026-11-20: `zh-tw` 7,436 cards, 4,665 indexed (2,146 own images, 2,519 Japanese), `ko` 13,156 cards, 7,359
+    indexed (all Japanese), 239 Korean names. With clean images, 1,429 zh-tw cards that have their own image and a
+    Japanese twin found the twin in the `ja` rows first in 91.0 % and in the top 2 in 97.2 % of cases. Phone photos
+    are not measured yet.
 - `fetch` fills in images the TCGdex API leaves out although the file is on its CDN (tcgdex/cards-database#2362,
   #2477): for every card without `image` it sends one `HEAD` to `<cdn>/<lang>/<serie>/<set>/<localId>/high.webp`
   and sets `image` when the answer is 2xx (403/404/410 mean missing). Answers are cached in `<work>/tcgdex/<lang>.cdn-gap.json` for

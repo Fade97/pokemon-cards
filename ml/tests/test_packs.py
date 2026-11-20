@@ -663,3 +663,89 @@ def test_fetch_variants_refuses_an_answer_with_errors(tmp_path, monkeypatch):
     with pytest.raises(SystemExit, match="boom"):
         build_packs.fetch_variants("en", tmp_path / "en.variants.json", max_age_days=7)
     assert not (tmp_path / "en.variants.json").exists()
+
+
+# ---------------------------------------------------------------------------------------------------------------
+# ko / zh-tw: Japanese card list and images stand in (#18)
+
+def ja_fixture():
+    sets = [{"id": "SV4K", "name": "古代の咆哮", "serieId": "SV", "serieName": "スカーレット&バイオレット",
+             "releaseDate": "2023-10-27", "official": 66, "total": 66, "abbreviation": None, "logo": None,
+             "symbol": None},
+            {"id": "M6a", "name": "メガドリーム", "serieId": "M", "serieName": "MEGA", "releaseDate": "2026-01-23",
+             "official": 103, "total": 103, "abbreviation": None, "logo": None, "symbol": None}]
+    cards = [{"id": "SV4K-001", "setId": "SV4K", "localId": "001", "name": "ヤナップ",
+              "image": "https://assets.tcgdex.net/ja/SV/SV4K/001", "printings": ["normal"]},
+             {"id": "SV4K-002", "setId": "SV4K", "localId": "002", "name": "ヤナッキー",
+              "image": "https://assets.tcgdex.net/ja/SV/SV4K/002", "printings": ["normal", "reverse"]},
+             {"id": "M6a-001", "setId": "M6a", "localId": "001", "name": "タマタマ", "image": None,
+              "printings": None}]
+    return sets, cards
+
+
+def test_standin_langs_borrow_from_a_pack_language():
+    for lang, base in {**packs.STANDIN_LANGS, **packs.CARD_LIST_LANGS}.items():
+        assert lang in packs.LANGS and base in packs.LANGS and base not in packs.STANDIN_LANGS
+    assert build_packs.bases_first(["ko", "en", "zh-tw", "ja"]) == ["en", "ja", "ko", "zh-tw"]
+    assert build_packs.parse_langs("zh-tw,ko") == ["zh-tw", "ko"]
+
+
+def test_standin_images_only_fill_cards_without_an_own_image():
+    _, ja = ja_fixture()
+    own = [{**ja[0], "image": "https://assets.tcgdex.net/zh-tw/SV/SV4K/001"}, {**ja[1], "image": None},
+           {**ja[2], "image": None}, {"id": "SC1a-001", "setId": "SC1a", "localId": "001", "name": "x",
+                                      "image": None, "printings": None}]
+    # 001 has its own image, M6a-001 has no Japanese image, SC1a is Asia-only: none of them gets a stand-in.
+    assert packs.standin_images(own, ja) == {"SV4K-002": "https://assets.tcgdex.net/ja/SV/SV4K/002"}
+    standin = packs.standin_images(own, ja)
+    assert packs.reference_image("zh-tw", own[0], standin) == own[0]["image"]
+    assert packs.reference_image("zh-tw", own[1], standin) == "https://assets.tcgdex.net/ja/SV/SV4K/002"
+    assert packs.reference_image("zh-tw", own[2], standin) is None
+
+
+def test_merge_card_list_takes_the_base_list_with_own_names_and_never_the_base_image():
+    ja_sets, ja_cards = ja_fixture()
+    ko_sets = [{**ja_sets[0], "name": "고대의 포효", "serieName": "스칼렛&바이올렛", "official": 0, "total": 0,
+                "releaseDate": None},
+               {"id": "SV-P", "name": "프로모", "serieId": "SV", "serieName": None, "releaseDate": None,
+                "official": None, "total": 3, "abbreviation": None, "logo": None, "symbol": None}]
+    ko_cards = [{"id": "SV4K-001", "setId": "SV4K", "localId": "001", "name": "야나프", "image": None,
+                 "printings": None},
+                {"id": "SV-P-001", "setId": "SV-P", "localId": "001", "name": "피카츄", "image": None,
+                 "printings": ["holo"]}]
+    sets, cards = packs.merge_card_list(ko_sets, ko_cards, ja_sets, ja_cards)
+    by_set = {s["id"]: s for s in sets}
+    # Own names replace the base's; counts and an own null release date do not.
+    assert by_set["SV4K"]["name"] == "고대의 포효" and by_set["SV4K"]["serieName"] == "스칼렛&바이올렛"
+    assert by_set["SV4K"]["official"] == 66 and by_set["SV4K"]["releaseDate"] == "2023-10-27"
+    assert by_set["M6a"]["name"] == "メガドリーム" and "SV-P" in by_set
+    by_id = {c["id"]: c for c in cards}
+    assert [c["id"] for c in cards] == ["M6a-001", "SV-P-001", "SV4K-001", "SV4K-002"]
+    assert by_id["SV4K-001"]["name"] == "야나프" and by_id["SV4K-001"]["printings"] == ["normal"]
+    assert by_id["SV4K-002"]["name"] == "ヤナッキー" and by_id["SV4K-002"]["printings"] == ["normal", "reverse"]
+    assert all(c["image"] is None for c in cards)
+    # The Japanese images still stand in for embedding.
+    assert set(packs.standin_images(cards, ja_cards)) == {"SV4K-001", "SV4K-002"}
+
+
+def test_merge_card_list_names_come_from_tcgdex_then_the_extra_source_then_the_base():
+    ja_sets, ja_cards = ja_fixture()
+    ko_cards = [{"id": "SV4K-001", "setId": "SV4K", "localId": "001", "name": "야나프", "image": None,
+                 "printings": None}]
+    extra = {"SV4K-001": "다른 이름", "SV4K-002": "야나키", "M6a-001": "아라리"}
+    _, cards = packs.merge_card_list([], ko_cards, ja_sets, ja_cards, extra)
+    assert {c["id"]: c["name"] for c in cards} == {"SV4K-001": "야나프", "SV4K-002": "야나키", "M6a-001": "아라리"}
+    _, cards = packs.merge_card_list([], ko_cards, ja_sets, ja_cards)
+    assert {c["id"]: c["name"] for c in cards}["SV4K-002"] == "ヤナッキー"
+
+
+def test_ko_names_parses_a_card_page_and_maps_it_to_the_japanese_id():
+    import ko_names
+    page = ('<img src="/public-assets/home/data/cards.image_www/data/wmimages/MEGA/M6a/M6a_001.webp?w=512" '
+            'class="feature_image"><span class="p_num">001/103<span id="x"> </span></span>'
+            '<span class="card-hp title">아라리</span>')
+    card = ko_names.parse_card(page)
+    assert card == {"name": "아라리", "series": "MEGA", "set": "M6a", "localId": "001", "printed": "001/103"}
+    assert ko_names.tcgdex_id(card) == "M6a-001"
+    assert ko_names.parse_card("<html>error</html>") is None
+    assert ko_names.parse_card(page.replace("아라리", " ")) is None
