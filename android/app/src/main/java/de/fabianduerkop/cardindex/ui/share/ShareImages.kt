@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -70,8 +71,12 @@ object ShareImageSize {
 fun ShareCanvas(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalDensity provides Density(ShareImageSize.DENSITY, fontScale = 1f)) {
         LumifoilTheme(darkTheme = false) {
-            Box(Modifier.requiredSize(ShareImageSize.Width, ShareImageSize.Height).background(MaterialTheme.colorScheme.background)) {
-                content()
+            // The theme doesn't reset the content colour, so text without its own colour would keep the dark sheet's
+            // light grey around the preview and vanish on the white page.
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                Box(Modifier.requiredSize(ShareImageSize.Width, ShareImageSize.Height).background(MaterialTheme.colorScheme.background)) {
+                    content()
+                }
             }
         }
     }
