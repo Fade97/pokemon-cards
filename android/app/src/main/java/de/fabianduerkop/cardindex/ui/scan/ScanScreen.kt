@@ -21,6 +21,8 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -50,6 +52,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -95,8 +98,10 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
+import de.fabianduerkop.cardindex.data.scan.FirstGoal
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
@@ -113,6 +118,7 @@ import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
+import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.review.VariantChoices
 import de.fabianduerkop.cardindex.ui.review.conditionLabel
 import de.fabianduerkop.cardindex.ui.review.editionLabel
@@ -140,6 +146,8 @@ fun ScanScreen(
     onOpenReview: () -> Unit = {},
     onOpenLab: () -> Unit = {},
     onOpenLanguages: () -> Unit = {},
+    onOpenCollections: () -> Unit = {},
+    onOpenSet: (setId: String) -> Unit = {},
     viewModel: ScanViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -196,7 +204,7 @@ fun ScanScreen(
                     )
                 }
             }
-            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable })
+            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections, onOpenSet)
         }
     }
 }
@@ -229,7 +237,14 @@ private fun ScanMessage(content: @Composable () -> Unit) {
 private enum class CameraProblem { NONE_FOUND, IN_USE, DISABLED, DO_NOT_DISTURB, FAILED }
 
 @Composable
-private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenReview: () -> Unit, onOpenLab: (() -> Unit)?) {
+private fun LiveScan(
+    viewModel: ScanViewModel,
+    engine: ScanEngineState,
+    onOpenReview: () -> Unit,
+    onOpenLab: (() -> Unit)?,
+    onOpenCollections: () -> Unit,
+    onOpenSet: (setId: String) -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewfinder by viewModel.viewfinder.collectAsStateWithLifecycle()
@@ -238,6 +253,9 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     var torch by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<CameraProblem?>(null) }
+    // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
+    val hit = hitFor(tray.latest, viewfinder.decision)
+    val halo = valueHalo(hit, viewfinder.hint, priceSource)
 
     val controller = remember {
         val fourThree = AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY
@@ -288,14 +306,14 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                         // A paused camera shows no live outline: nothing is being read.
                         outline = viewfinder.outline.takeIf { !paused },
                         outlineColor = outlineColor(viewfinder.hint, LumifoilTheme.colors.camera),
+                        halo = { halo.value },
                     )
                 }
                 LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
                 CameraReading(
                     engine,
                     viewfinder,
-                    // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
-                    hit = hitFor(tray.latest, viewfinder.decision),
+                    hit = hit,
                     priceSource = priceSource,
                     paused = paused,
                     problem = problem,
@@ -318,10 +336,42 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                     if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
                 }
             }
-            Tray(viewModel, onOpenReview, Modifier.heightIn(max = trayMax))
+            Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
         }
     }
 }
+
+/**
+ * The brief halo of a valuable hit (#168): in, a short hold, out, about 1.2 s, once per decision. It never holds up
+ * anything: the next decision or the card leaving the frame stops it at once, and a card that moves and settles again
+ * doesn't replay it. A price that arrives after the card was added still plays it, while the card is in view. With
+ * animations off there is no halo; the hint text and the haptic carry the reveal.
+ */
+@Composable
+private fun valueHalo(hit: LastScan.Added?, hint: ScanHint, priceSource: PriceSource): Animatable<Float, *> {
+    val reducedMotion = rememberReducedMotion()
+    val halo = remember { Animatable(0f) }
+    var played by remember { mutableLongStateOf(0L) }
+    val decision = hit?.decision?.takeIf { showsValueHalo(hit, hint, priceSource, reducedMotion) }
+    LaunchedEffect(decision) {
+        if (decision == null || decision == played) {
+            halo.snapTo(0f)
+            return@LaunchedEffect
+        }
+        played = decision
+        halo.snapTo(0f)
+        halo.animateTo(1f, tween(HALO_IN_MS))
+        halo.animateTo(0f, tween(HALO_OUT_MS, delayMillis = HALO_HOLD_MS))
+    }
+    return halo
+}
+
+private const val HALO_IN_MS = 150
+private const val HALO_HOLD_MS = 450
+private const val HALO_OUT_MS = 600
+
+/** The gap between the two pulses of a valuable hit's haptic: one felt rhythm, not two separate buzzes. */
+private const val DOUBLE_PULSE_GAP_MS = 110L
 
 /**
  * Reports camera errors (another app holds the camera, a policy or privacy switch turned it off, no camera, a
@@ -443,6 +493,9 @@ private fun CameraReading(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val done = hit?.takeIf { viewfinder.hint == ScanHint.DONE }
+                // Said in words too, so the reveal doesn't depend on the halo or the haptic (#168).
+                val valuable = done?.isValuable(priceSource) == true
+                val threshold = HitReveal.threshold(priceSource).let { Money.formatWhole(it.amountMinor, it.currency) }
                 // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
                 done?.ownQuote(priceSource)?.let { quote ->
                     Text(
@@ -453,14 +506,14 @@ private fun CameraReading(
                     )
                 }
                 HintPill(
-                    stringResource(
-                        when {
-                            done?.wishlistFound == true -> R.string.scan_hint_wishlist
-                            viewfinder.hint == ScanHint.DONE -> R.string.scan_hint_added
-                            viewfinder.hint == ScanHint.QUEUED -> R.string.scan_hint_queued
-                            else -> R.string.scan_hint_reading
-                        },
-                    ),
+                    when {
+                        done?.wishlistFound == true && valuable -> stringResource(R.string.scan_hint_wishlist_valuable, threshold)
+                        done?.wishlistFound == true -> stringResource(R.string.scan_hint_wishlist)
+                        valuable -> stringResource(R.string.scan_hint_valuable, threshold)
+                        viewfinder.hint == ScanHint.DONE -> stringResource(R.string.scan_hint_added)
+                        viewfinder.hint == ScanHint.QUEUED -> stringResource(R.string.scan_hint_queued)
+                        else -> stringResource(R.string.scan_hint_reading)
+                    },
                     dot = outlineColor(viewfinder.hint, camera),
                 )
             }
@@ -532,28 +585,47 @@ private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
 /** The latest card first (its collector number is the strongest type here), then the count and the review queue. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: Modifier = Modifier) {
+private fun Tray(
+    viewModel: ScanViewModel,
+    onOpenReview: () -> Unit,
+    onOpenCollections: () -> Unit,
+    onOpenSet: (setId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     val introSeen by viewModel.introSeen.collectAsStateWithLifecycle()
+    val firstGoal by viewModel.firstGoal.collectAsStateWithLifecycle()
+    val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
-    // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
-    // tick than an added one, so the hand can tell them apart without looking (#161).
-    var felt by remember { mutableLongStateOf(tray.decisions) }
-    LaunchedEffect(tray.decisions) {
-        if (tray.decisions > felt) {
-            val latest = tray.latest
-            haptics.performHapticFeedback(
-                when {
-                    latest is LastScan.Queued -> HapticFeedbackType.ContextClick
-                    // A wanted card found (#162) feels different from every other hit.
-                    latest is LastScan.Added && latest.wishlistFound -> HapticFeedbackType.LongPress
-                    else -> HapticFeedbackType.Confirm
-                },
-            )
+    // Only a new decision buzzes (or a price that makes the hit on screen valuable); Undo and coming back to the screen
+    // don't. Each kind of hit has its own feel, so the hand can tell them apart without looking (#161, #162, #168).
+    // Read only in the effect, so keeping it here recomposes nothing.
+    var felt by remember { mutableStateOf(tray) }
+    LaunchedEffect(tray) {
+        val onScreen = hitFor(tray.latest, viewModel.viewfinder.value.decision) != null
+        val feel = hapticBetween(felt, tray, priceSource, hitOnScreen = onScreen)
+        felt = tray
+        when (feel) {
+            null -> Unit
+            HitFeel.QUEUED -> haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            HitFeel.WISHLIST -> haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            HitFeel.ADDED -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            // Two quick confirms. The next change of the tray cancels the second one rather than waiting for it.
+            HitFeel.VALUABLE -> {
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                delay(DOUBLE_PULSE_GAP_MS)
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            }
         }
-        felt = tray.decisions
+    }
+    // A set milestone (#169) gets its own, stronger feel, once per milestone.
+    val milestoneNow by viewModel.milestone.collectAsStateWithLifecycle()
+    var feltMilestone by remember { mutableStateOf(milestoneNow) }
+    LaunchedEffect(milestoneNow) {
+        if (milestoneNow != null && milestoneNow != feltMilestone) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        feltMilestone = milestoneNow
     }
     var editing by remember { mutableStateOf<LastScan.Added?>(null) }
     val target by viewModel.target.collectAsStateWithLifecycle()
@@ -571,6 +643,8 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             LatestScan(tray, introSeen, onUndo = viewModel::undo, onChange = { editing = it })
+            firstGoal?.let { FirstGoalCard(it, onOpenCollections) }
+            milestone?.let { MilestoneCard(it, onOpenSet = { onOpenSet(it.set.id) }) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -639,15 +713,112 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
 
 /**
  * "€48.20" for the session's added cards in the main market (#162), with "· 2 without a EUR price" when some have
- * none there; null until any added card has a price, so the line never says €0.00.
+ * none there. With no price at all it says only "3 without a EUR price", never €0.00; null before anything was added.
  */
 @Composable
 private fun sessionValue(value: CollectionValue): String? {
-    if (value.pricedCopies == 0) return null
+    val unpriced = value.unpricedCopies.takeIf { it > 0 }?.let {
+        pluralStringResource(R.plurals.scan_session_unpriced, it, it, value.currency)
+    }
+    // Nothing priced yet (offline, or only cards this market doesn't price): still say how many have no price.
+    if (value.pricedCopies == 0) return unpriced
     val amount = Money.format(value.amountMinor, value.currency)
-    if (value.unpricedCopies == 0) return amount
-    return amount + " · " +
-        pluralStringResource(R.plurals.scan_session_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency)
+    return if (unpriced == null) amount else "$amount · $unpriced"
+}
+
+/**
+ * A set milestone this session reached (#169): "50 % of 151 (EN)", or "151 (EN) complete" with the certificate a tap
+ * away on the set screen. Calm like the first goal: a tinted card and a haptic, no confetti.
+ */
+@Composable
+private fun MilestoneCard(milestone: Milestone, onOpenSet: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val setLabel = milestoneSetLabel(milestone)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(colors.secondaryContainer)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            if (milestone.complete) {
+                stringResource(R.string.milestone_complete, setLabel)
+            } else {
+                stringResource(R.string.milestone_reached, milestone.level, setLabel)
+            },
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.onSurface,
+        )
+        Text(
+            stringResource(R.string.set_share_progress, milestone.progress.base, milestone.progress.printedTotal),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant,
+        )
+        TextAction(
+            stringResource(if (milestone.complete) R.string.milestone_certificate else R.string.milestone_open_set),
+            onClick = onOpenSet,
+        )
+    }
+}
+
+/** "151 (EN)": the set and the language its milestone counts. */
+internal fun milestoneSetLabel(milestone: Milestone): String = "${milestone.set.name} (${milestone.language.uppercase()})"
+
+/**
+ * The first-run goal (#174): "First goal: 3 of 10 cards" with a thin bar while it runs, then what the first cards are
+ * worth and the way to see them. Calm like the rest of the tray (ADR 0014): no confetti, the number is the reward.
+ */
+@Composable
+private fun FirstGoalCard(goal: FirstGoal.State, onOpenCollections: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(colors.secondaryContainer)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        when (goal) {
+            is FirstGoal.State.Progress -> {
+                Text(
+                    stringResource(R.string.first_goal_progress, goal.cards, FirstGoal.TARGET),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onSurface,
+                )
+                Text(stringResource(R.string.first_goal_hint), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                LinearProgressIndicator(
+                    progress = { (goal.cards.toFloat() / FirstGoal.TARGET).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.xxs),
+                    color = colors.primary,
+                    trackColor = colors.surface,
+                    drawStopIndicator = {},
+                )
+            }
+            is FirstGoal.State.Reached -> {
+                Text(
+                    stringResource(R.string.first_goal_reached, FirstGoal.TARGET),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onSurface,
+                )
+                val value = goal.value
+                Text(
+                    if (value.pricedCopies > 0) {
+                        stringResource(R.string.first_goal_value, Money.format(value.amountMinor, value.currency))
+                    } else {
+                        stringResource(R.string.first_goal_no_price)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurface,
+                )
+                TextAction(stringResource(R.string.first_goal_open), onClick = onOpenCollections)
+            }
+        }
+    }
 }
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */

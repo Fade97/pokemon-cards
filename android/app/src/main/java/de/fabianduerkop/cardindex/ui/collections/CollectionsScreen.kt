@@ -20,10 +20,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +54,7 @@ import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.WantedWithCard
+import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -81,6 +85,7 @@ import kotlinx.coroutines.launch
  * The last view is remembered across starts (AppSettings.collectionsView). With no cards yet the screen shows the
  * empty state instead, with any collections and the wishlist below it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
     onOpenSet: (String) -> Unit,
@@ -89,6 +94,7 @@ fun CollectionsScreen(
     onOpenScan: () -> Unit = {},
     onOpenWishlist: () -> Unit = {},
     onOpenCard: (cardId: String, language: String) -> Unit = { _, _ -> },
+    onOpenSearch: () -> Unit = {},
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
             val settings = container.settings
@@ -101,6 +107,9 @@ fun CollectionsScreen(
                 settings.featuredSetFlow,
                 storedView = settings.collectionsView,
                 saveView = { settings.collectionsView = it },
+                openedRecaps = settings.openedRecaps,
+                markRecapOpened = { settings.openedRecaps = settings.openedRecaps + it },
+                photos = container.ownPhotos,
             )
         },
     ),
@@ -113,6 +122,8 @@ fun CollectionsScreen(
     val weekly by viewModel.weeklyChanges.collectAsStateWithLifecycle()
     val wanted by viewModel.wishlistCount.collectAsStateWithLifecycle()
     val view by viewModel.view.collectAsStateWithLifecycle()
+    val recaps by viewModel.recaps.collectAsStateWithLifecycle()
+    val openRecap by viewModel.recap.collectAsStateWithLifecycle()
     val wantedEntries by wishlist.entries.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -157,17 +168,21 @@ fun CollectionsScreen(
                     item { YoursHeader(state.collections.size + if (wanted > 0) 1 else 0) }
                     if (wanted > 0) item { WishlistRow(wanted, onOpenWishlist) }
                     items(state.collections, key = { "col-" + it.id }) { collection ->
-                        CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
+                        CollectionRow(collection, cover = null, photos = state.photos, onClick = { onOpenCollection(collection.id) })
                     }
                 }
             } else if (!state.loading) {
                 item {
-                    ValueHeader(
-                        state = state,
-                        portfolio = portfolio,
-                        onPortfolioRange = viewModel::setPortfolioRange,
-                        onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
-                    )
+                    Column {
+                        ValueHeader(
+                            state = state,
+                            portfolio = portfolio,
+                            onPortfolioRange = viewModel::setPortfolioRange,
+                            onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
+                        )
+                        // Ready recaps (#175) wait here, in the same item, so the switch keeps its index.
+                        recaps.forEach { entry -> RecapRow(entry, onClick = { viewModel.showRecap(entry.period) }) }
+                    }
                 }
                 stickyHeader(key = "view-switch") {
                     CollectionsSwitch(view, onSelect = show)
@@ -184,6 +199,7 @@ fun CollectionsScreen(
                         wantedEntries,
                         onOpenCard = onOpenCard,
                         onRemove = wishlist::remove,
+                        onFindCard = onOpenSearch,
                     )
                 }
                 item { Box(Modifier.height(Spacing.xl)) }
@@ -191,11 +207,20 @@ fun CollectionsScreen(
         }
     }
 
+    openRecap?.let { recap ->
+        ModalBottomSheet(
+            onDismissRequest = viewModel::closeRecap,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            RecapSheet(recap, onDone = viewModel::closeRecap)
+        }
+    }
+
     if (creating) {
         CollectionSheet(
             initial = null,
             onDismiss = { creating = false },
-            onSave = { name, description ->
+            onSave = { name, description, _ ->
                 viewModel.createCollection(name, description)
                 creating = false
                 // A new collection lives under Binders: show it there, not behind another view (#164).
@@ -285,12 +310,19 @@ private fun LazyListScope.setItems(
     }
 }
 
-/** Binders view: All cards, then the user's own collections, or a hint to start one with New. */
+/**
+ * Binders view: All cards, then the user's own collections, or a hint to start one with New. Each row shows its
+ * cover (#172): the card the user picked in the edit sheet, else the most valuable one; All cards shows the most
+ * valuable card overall.
+ */
 private fun LazyListScope.binderItems(state: CollectionsUiState, onOpenCollection: (Long) -> Unit) {
     item {
         CollectionRow(
             name = stringResource(R.string.collections_all_cards),
+            description = null,
             cards = state.totalCopies,
+            cover = state.allCardsCover,
+            photos = state.photos,
             onClick = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
         )
     }
@@ -303,7 +335,7 @@ private fun LazyListScope.binderItems(state: CollectionsUiState, onOpenCollectio
         }
     }
     items(state.collections, key = { "col-" + it.id }) { collection ->
-        CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
+        CollectionRow(collection, state.covers[collection.id], state.photos, onClick = { onOpenCollection(collection.id) })
     }
 }
 
@@ -312,9 +344,10 @@ private fun LazyListScope.wishlistItems(
     entries: List<WantedWithCard>?,
     onOpenCard: (cardId: String, language: String) -> Unit,
     onRemove: (WantedWithCard) -> Unit,
+    onFindCard: () -> Unit,
 ) {
     if (entries == null) return
-    item { WishlistIntro(empty = entries.isEmpty()) }
+    item { WishlistIntro(empty = entries.isEmpty(), onFindCard = onFindCard) }
     items(entries, key = { "wanted-" + it.wanted.id }) { entry ->
         WantedRow(
             entry,
@@ -526,17 +559,41 @@ private fun YoursHeader(count: Int) {
 }
 
 @Composable
-private fun CollectionRow(collection: CollectionSummary, onClick: () -> Unit) =
-    CollectionRow(name = collection.name, cards = collection.cards, onClick = onClick)
+private fun CollectionRow(collection: CollectionSummary, cover: BinderCover?, photos: OwnPhotos, onClick: () -> Unit) =
+    CollectionRow(collection.name, collection.description, collection.cards, cover, photos, onClick)
 
+/**
+ * A binder row (#172): its cover, the name, the description as an optional one-line subtitle, and the card count.
+ * The cover is decorative; TalkBack reads the texts.
+ */
 @Composable
-private fun CollectionRow(name: String, cards: Int, onClick: () -> Unit) {
+private fun CollectionRow(
+    name: String,
+    description: String?,
+    cards: Int,
+    cover: BinderCover?,
+    photos: OwnPhotos,
+    onClick: () -> Unit,
+) {
+    val count = pluralStringResource(R.plurals.collections_cards_count, cards, cards)
+    val subtitle = description?.trim()?.takeIf { it.isNotEmpty() }
     ListRow(
         title = name,
-        subtitle = pluralStringResource(R.plurals.collections_cards_count, cards, cards),
+        subtitle = subtitle ?: count,
+        subtitleMaxLines = 1,
         onClick = onClick,
-        icon = R.drawable.ic_nav_collections,
+        leading = { CoverThumb(cover?.copy, photos) },
         onClickLabel = stringResource(R.string.collections_open_collection),
+        below = subtitle?.let {
+            {
+                Text(
+                    count,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.xxs),
+                )
+            }
+        },
     )
 }
 
@@ -547,7 +604,8 @@ private fun WishlistRow(wanted: Int, onClick: () -> Unit) {
         title = stringResource(R.string.wishlist_title),
         subtitle = pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted),
         onClick = onClick,
-        icon = R.drawable.ic_nav_collections,
+        // Hollow like a missing slot (wanted cards are not owned yet), and in line with the binder covers below.
+        leading = { CoverThumb(null, OwnPhotos()) },
         onClickLabel = stringResource(R.string.collections_open_collection),
     )
 }

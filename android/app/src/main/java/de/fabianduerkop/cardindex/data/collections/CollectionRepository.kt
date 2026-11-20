@@ -115,6 +115,10 @@ class CollectionRepository(
 
     fun observeCopiesInCollection(id: Long): Flow<List<CopyWithCard>> = collectionDao.observeCopiesInCollection(id)
 
+    /** Collection id → ids of the copies in it, for the binder covers (#172). */
+    fun observeCollectionCopyIds(): Flow<Map<Long, Set<Long>>> =
+        collectionDao.observeAllMemberships().map { rows -> rows.groupBy({ it.collectionId }, { it.copyId }).mapValues { it.value.toSet() } }
+
     fun observeCollectionIdsOf(copyId: Long): Flow<Set<Long>> =
         collectionDao.observeCollectionIdsOf(copyId).map { it.toSet() }
 
@@ -131,10 +135,16 @@ class CollectionRepository(
         ),
     )
 
-    suspend fun updateCollection(id: Long, name: String, description: String?) {
+    /** Renames a collection and sets its cover (#172): a copy uuid, or null for the automatic cover. */
+    suspend fun updateCollection(id: Long, name: String, description: String?, coverCopyUuid: String?) {
         val current = collectionDao.byId(id) ?: return
         collectionDao.update(
-            current.copy(name = name.trim(), description = description?.trim()?.ifEmpty { null }, updatedAt = now()),
+            current.copy(
+                name = name.trim(),
+                description = description?.trim()?.ifEmpty { null },
+                coverCopyUuid = coverCopyUuid,
+                updatedAt = now(),
+            ),
         )
     }
 

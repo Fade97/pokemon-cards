@@ -37,4 +37,13 @@ object ImageShare {
         }
         return Intent.createChooser(send, chooserTitle)
     }
+
+    /** The share sheet for plain [text], such as a missing-card checklist (#170) to paste into a trade chat. */
+    fun textIntent(text: String, chooserTitle: String): Intent {
+        val send = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, text)
+        }
+        return Intent.createChooser(send, chooserTitle)
+    }
 }

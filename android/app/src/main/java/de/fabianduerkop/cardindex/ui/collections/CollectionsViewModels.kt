@@ -8,6 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
+import de.fabianduerkop.cardindex.data.collections.Milestone
+import de.fabianduerkop.cardindex.data.collections.Recap
+import de.fabianduerkop.cardindex.data.collections.RecapPeriod
+import de.fabianduerkop.cardindex.data.collections.Recaps
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.collections.SetSlot
@@ -45,6 +49,7 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -56,12 +61,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Cards fanned on the featured set cover. */
 private const val FEATURED_ART = 3
@@ -160,6 +167,12 @@ data class CollectionsUiState(
     val source: PriceSource = PriceSource.CARDMARKET,
     /** Newest market date among the cached prices of owned cards. */
     val priceDate: Instant? = null,
+    /** Each custom collection's cover by collection id (#172); empty binders have none. */
+    val covers: Map<Long, BinderCover> = emptyMap(),
+    /** The All cards row's cover: the most valuable card overall. */
+    val allCardsCover: BinderCover? = null,
+    /** Own photos, so a cover shows the user's photo where they prefer it (ADR 0009). */
+    val photos: OwnPhotos = OwnPhotos(),
 )
 
 /** The sets below the foil cover: every set except the featured one, in their order. */
@@ -189,6 +202,9 @@ enum class CollectionsView {
     }
 }
 
+/** A recap the Collections home offers (#175); [new] until opened. */
+data class RecapEntry(val period: RecapPeriod, val new: Boolean)
+
 private data class CollectionsBase(
     val languages: List<String>,
     val chosen: Set<String>,
@@ -202,11 +218,15 @@ class CollectionsViewModel(
     private val repository: CollectionRepository,
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
-    history: PriceHistoryRepository,
-    isPro: Flow<Boolean>,
+    private val history: PriceHistoryRepository,
+    private val isPro: Flow<Boolean>,
     pinnedSet: Flow<String?> = flowOf(null),
     storedView: String? = null,
     private val saveView: (String) -> Unit = {},
+    openedRecaps: Set<String> = emptySet(),
+    private val markRecapOpened: (String) -> Unit = {},
+    private val today: () -> LocalDate = LocalDate::now,
+    photos: Flow<OwnPhotos> = flowOf(OwnPhotos()),
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
     private val chosenView = MutableStateFlow(CollectionsView.fromStored(storedView))
@@ -229,12 +249,15 @@ class CollectionsViewModel(
         ::CollectionsBase,
     )
 
+    private val binders = combine(repository.observeCollectionCopyIds(), photos, ::Pair)
+
     val state: StateFlow<CollectionsUiState> = combine(
         base,
         prices.observeAll(),
         primarySource,
         pinnedSet,
-    ) { b, priceMap, source, pinnedId ->
+        binders,
+    ) { b, priceMap, source, pinnedId, (members, photos) ->
         val inFilter = b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
         val bySet = inFilter.groupBy { it.set.id }
         val sets = b.completion.map { completion ->
@@ -248,6 +271,15 @@ class CollectionsViewModel(
             )
         }
         val featured = featuredSet(sets, pinnedId)
+        // Binder covers (#172) from every copy, whatever the language filter: a binder looks the same in every view.
+        val quotes = b.copies.mapNotNull { item ->
+            PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), source, item.copy)?.let { item.copy.id to it }
+        }.toMap()
+        val covers = b.collections.mapNotNull { collection ->
+            val ids = members[collection.id] ?: return@mapNotNull null
+            binderCover(b.copies.filter { it.copy.id in ids }, collection.coverCopyUuid, quotes, source.currency)
+                ?.let { collection.id to it }
+        }.toMap()
         CollectionsUiState(
             loading = false,
             languages = b.languages,
@@ -261,6 +293,9 @@ class CollectionsViewModel(
             source = source,
             priceDate = b.copies.flatMap { priceMap[it.card.id].orEmpty() }
                 .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
+            covers = covers,
+            allCardsCover = binderCover(b.copies, null, quotes, source.currency),
+            photos = photos,
         )
     }.stateIn(this, CollectionsUiState())
 
@@ -289,8 +324,8 @@ class CollectionsViewModel(
      */
     val weeklyChanges: StateFlow<Map<String, WeeklyTrend>> = isPro.distinctUntilChanged().flatMapLatest { pro ->
         if (!pro) {
-            val today = history.today()
             combine(base, prices.observeAll(), primarySource) { b, priceMap, source ->
+                val today = history.today()
                 b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
                     .groupBy { it.set.id }
                     .mapNotNull { (setId, copies) ->
@@ -299,13 +334,15 @@ class CollectionsViewModel(
                     .toMap()
             }.flowOn(Dispatchers.Default)
         } else {
-            val today = history.today()
+            // The history window is fixed when Pro turns on; "today" is read on every update, so a screen left open
+            // past midnight (UTC) still judges staleness by the real date.
             combine(
                 base,
                 prices.observeAll(),
-                history.observeAll(WeeklyPriceChange.from(today)),
+                history.observeAll(WeeklyPriceChange.from(history.today())),
                 primarySource,
             ) { b, priceMap, rows, source ->
+                val today = history.today()
                 b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
                     .groupBy { it.set.id }
                     .mapNotNull { (setId, copies) ->
@@ -315,6 +352,50 @@ class CollectionsViewModel(
             }.flowOn(Dispatchers.Default)
         }
     }.stateIn(this, emptyMap())
+
+    private val opened = MutableStateFlow(openedRecaps)
+
+    /**
+     * Recaps ready to look at (#175): last month all through this month, last year in January, each only when
+     * something was added in it. No notification; [RecapEntry.new] until it was opened once.
+     */
+    val recaps: StateFlow<List<RecapEntry>> = combine(repository.observeAllCopies(), opened) { copies, seen ->
+        val zone = ZoneId.systemDefault()
+        RecapPeriod.ready(today())
+            .filter { period -> copies.any { period.contains(it.copy.createdAt, zone) } }
+            .map { RecapEntry(it, new = it.key !in seen) }
+    }.flowOn(Dispatchers.Default).stateIn(this, emptyList())
+
+    private val openRecap = MutableStateFlow<RecapPeriod?>(null)
+
+    /**
+     * The recap on screen, from the collection as it is now and, with Pro, the cached price history (ADR 0012);
+     * computed only while one is open.
+     */
+    val recap: StateFlow<Recap?> = openRecap.flatMapLatest { period ->
+        if (period == null) {
+            flowOf(null)
+        } else {
+            val rows = isPro.distinctUntilChanged().flatMapLatest { pro -> if (pro) history.observeAll(period.start) else flowOf(null) }
+            combine(repository.observeAllCopies(), prices.observeAll(), primarySource, rows) { copies, priceMap, source, historyRows ->
+                Recaps.build(period, copies, priceMap, source, historyRows)
+            }.flowOn(Dispatchers.Default)
+        }
+    }.stateIn(this, null)
+
+    /** Opens the recap of [period]; with Pro it also loads the price history back to its start. */
+    fun showRecap(period: RecapPeriod) {
+        openRecap.value = period
+        markRecapOpened(period.key)
+        opened.value = opened.value + period.key
+        viewModelScope.launch {
+            if (!isPro.first()) return@launch
+            val ids = repository.observeAllCopies().first().mapTo(HashSet()) { it.copy.cardId }
+            if (ids.isNotEmpty()) runCatching { history.refresh(ids, period.start) }
+        }
+    }
+
+    fun closeRecap() { openRecap.value = null }
 
     /** Wishlist entries (#134) the user has no copy of yet, for the wishlist row. */
     val wishlistCount: StateFlow<Int> = repository.observeWishlistCount().stateIn(this, 0)
@@ -368,6 +449,9 @@ internal object SetLegend {
     const val FIRST_VISITS = 3
 
     fun showsOnVisit(pastVisits: Int): Boolean = pastVisits < FIRST_VISITS
+
+    /** One visit after [pastVisits] earlier ones: whether the legend shows, and [record] counted only when it does. */
+    fun visit(pastVisits: Int, record: () -> Unit): Boolean = showsOnVisit(pastVisits).also { if (it) record() }
 }
 
 data class SetDetailUiState(
@@ -396,6 +480,10 @@ class SetDetailViewModel(
     private val pinSet: (String?) -> Unit = {},
     pastLegendVisits: Int = SetLegend.FIRST_VISITS,
     recordLegendVisit: () -> Unit = {},
+    private val celebrate: suspend (setId: String, language: String) -> Milestone? = { _, _ -> null },
+    lastVisit: Long? = null,
+    recordVisit: (atMillis: Long) -> Unit = {},
+    now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
     private val selected = MutableStateFlow(emptySet<String>())
@@ -403,11 +491,7 @@ class SetDetailViewModel(
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
     // One visit per screen, not per rotation: the view model outlives configuration changes (#165).
-    private val legend = MutableStateFlow(SetLegend.showsOnVisit(pastLegendVisits))
-
-    init {
-        if (legend.value) recordLegendVisit()
-    }
+    private val legend = MutableStateFlow(SetLegend.visit(pastLegendVisits, recordLegendVisit))
 
     private val view = combine(selected, mode, filter, photos, pinnedSet) { chosen, mode, filter, photos, pinnedId ->
         SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
@@ -445,6 +529,45 @@ class SetDetailViewModel(
 
     /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
     fun togglePinned() = pinSet(if (state.value.pinned) null else setId)
+
+    private val _milestone = MutableStateFlow<Milestone?>(null)
+
+    /**
+     * A milestone of this set reached since it was last celebrated (#169), e.g. through Review or a hand-added copy;
+     * the screen shows it once, then [dismissMilestone].
+     */
+    val milestone: StateFlow<Milestone?> = _milestone
+
+    fun dismissMilestone() { _milestone.value = null }
+
+    private val _newSlots = MutableStateFlow(emptySet<String>())
+
+    /** Numbers ([numberKey]) filled since the last visit (#169): each pulses once. None on the first visit. */
+    val newSlots: StateFlow<Set<String>> = _newSlots
+
+    init {
+        recordVisit(now())
+        viewModelScope.launch {
+            val detail = state.first { !it.loading }.detail ?: return@launch
+            if (lastVisit != null) {
+                _newSlots.value = detail.copies.filter { it.copy.createdAt.toEpochMilli() > lastVisit }
+                    .mapTo(HashSet()) { numberKey(it.card.localId) }
+            }
+            _milestone.value = withContext(Dispatchers.IO) {
+                detail.copies.map { it.copy.cardLanguage }.distinct()
+                    .mapNotNull { runCatching { celebrate(setId, it) }.getOrNull() }
+                    .maxByOrNull { it.level }
+            }
+        }
+    }
+
+    /**
+     * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist
+     * mark them (#170), so a friend sees which missing cards matter most.
+     */
+    val wantedNumbers: StateFlow<Set<String>> = repository.observeWishlist()
+        .map { wanted -> wanted.filter { !it.found && it.set.id == setId }.mapTo(HashSet()) { numberKey(it.card.localId) } }
+        .stateIn(this, emptySet())
 }
 
 data class CardDetailUiState(
@@ -595,6 +718,13 @@ data class CollectionDetailUiState(
     val value: CollectionValue? = null,
     /** Current price of each copy (by copy id) in the main market, per card. */
     val quotes: Map<Long, PriceQuote> = emptyMap(),
+    /** A custom collection's cover (#172), picked or automatic; null for All cards and empty binders. */
+    val cover: BinderCover? = null,
+    /** What the automatic cover shows, for the picker's Automatic choice (#172). */
+    val automaticCover: CopyWithCard? = null,
+    /** The cards the cover picker offers (#172), one per print, most valuable first. */
+    val coverChoices: List<CopyWithCard> = emptyList(),
+    val photos: OwnPhotos = OwnPhotos(),
 ) {
     val cardCount: Int get() = copies.sumOf { it.copy.quantity }
 }
@@ -607,6 +737,8 @@ class CollectionDetailViewModel(
     savedState: SavedStateHandle,
     history: PriceHistoryRepository? = null,
     isPro: Flow<Boolean> = flowOf(false),
+    private val chooseScanTarget: suspend (collectionId: Long?) -> Unit = {},
+    photos: Flow<OwnPhotos> = flowOf(OwnPhotos()),
 ) : ViewModel() {
     /** [CollectionsRoutes.ALL_CARDS] for All cards. */
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
@@ -627,7 +759,8 @@ class CollectionDetailViewModel(
         sort,
         prices.observeAll(),
         primarySource,
-    ) { (collection, copies), sort, priceMap, market ->
+        photos,
+    ) { (collection, copies), sort, priceMap, market, photos ->
         val quotes = copies.mapNotNull { item ->
             PriceSelection.copyQuote(priceMap[item.card.id].orEmpty(), market, item.copy)?.let { item.copy.id to it }
         }.toMap()
@@ -640,31 +773,45 @@ class CollectionDetailViewModel(
             sort = sort,
             value = value,
             quotes = quotes,
+            cover = collection?.let { binderCover(copies, it.coverCopyUuid, quotes, value.currency) },
+            automaticCover = collection?.let { binderCover(copies, null, quotes, value.currency)?.copy },
+            coverChoices = if (collection == null) emptyList() else coverChoices(copies, collection.coverCopyUuid, quotes, value.currency),
+            photos = photos,
         )
     }.stateIn(this, CollectionDetailUiState())
 
     /**
+     * Makes this collection the scan target and then [openScan]s (#174), so the first scans of an empty binder land
+     * in it. All cards keeps the current target: every scan goes there anyway.
+     */
+    fun scanHere(openScan: () -> Unit) {
+        viewModelScope.launch {
+            state.value.collection?.let { chooseScanTarget(it.id) }
+            openScan()
+        }
+    }
+
+    /**
      * The weekly change of each copy's price as its row shows it (per card, that market and printing), by copy id: Pro
      * (#173) with the amounts from the history, free users (#186) only the direction, from the week-ago prices in the
-     * cached price files. Copies without a week of prices are missing.
+     * cached price files. Copies without a week of prices are missing. "Today" is read on every update, so a screen
+     * left open past midnight (UTC) still judges staleness by the real date.
      */
     val weeklyChanges: StateFlow<Map<Long, WeeklyTrend>> =
         isPro.distinctUntilChanged().flatMapLatest { pro ->
             when {
-                !pro -> {
+                !pro -> combine(state, prices.observeAll()) { s, priceMap ->
                     val today = history?.today() ?: LocalDate.now(ZoneOffset.UTC)
-                    combine(state, prices.observeAll()) { s, priceMap ->
-                        s.copies.mapNotNull { item ->
-                            val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
-                            WeeklyPriceChange.directionOfQuote(priceMap[item.card.id].orEmpty(), quote, today)
-                                ?.let { item.copy.id to it }
-                        }.toMap()
-                    }.flowOn(Dispatchers.Default)
-                }
+                    s.copies.mapNotNull { item ->
+                        val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
+                        WeeklyPriceChange.directionOfQuote(priceMap[item.card.id].orEmpty(), quote, today)
+                            ?.let { item.copy.id to it }
+                    }.toMap()
+                }.flowOn(Dispatchers.Default)
                 history == null -> flowOf(emptyMap())
                 else -> {
-                    val today = history.today()
-                    combine(state, history.observeAll(WeeklyPriceChange.from(today))) { s, rows ->
+                    combine(state, history.observeAll(WeeklyPriceChange.from(history.today()))) { s, rows ->
+                        val today = history.today()
                         s.copies.mapNotNull { item ->
                             val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
                             WeeklyPriceChange.ofQuote(rows[item.card.id].orEmpty(), quote, today)?.let { item.copy.id to it }
@@ -691,8 +838,9 @@ class CollectionDetailViewModel(
 
     fun setSort(value: CopySort) { sort.value = value }
 
-    fun update(name: String, description: String?) {
-        viewModelScope.launch { repository.updateCollection(collectionId, name, description) }
+    /** Saves the edit sheet: name, description and the cover, a copy uuid or null for the automatic one (#172). */
+    fun update(name: String, description: String?, coverCopyUuid: String?) {
+        viewModelScope.launch { repository.updateCollection(collectionId, name, description, coverCopyUuid) }
     }
 
     fun delete() {

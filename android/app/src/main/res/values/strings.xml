@@ -68,14 +68,14 @@
     <string name="collections_view_sets">Sets</string>
     <string name="collections_view_binders">Binders</string>
     <string name="collections_view_wishlist">Wishlist</string>
-    <string name="collections_binders_empty">No binders of your own yet. Tap New to start one, for example a trade binder.</string>
+    <string name="collections_binders_empty">No collections of your own yet. Tap New to start one, for example a trade binder.</string>
     <string name="collections_all_cards">All cards</string>
     <plurals name="collections_cards_count">
         <item quantity="one">%1$d card</item>
         <item quantity="other">%1$d cards</item>
     </plurals>
-    <string name="collections_empty_title">No cards yet</string>
-    <string name="collections_empty_body">Scan a card to add it. Every set you own a card from gets its own collection, with each number as a slot.</string>
+    <string name="collections_empty_title">Start with 10 cards</string>
+    <string name="collections_empty_body">Scan your first 10 cards and see what they are worth. Every set you own a card from gets its own checklist, with each number as a slot.</string>
     <string name="collections_no_sets_in_language">No cards in the chosen languages.</string>
     <string name="collections_debug_sample">Add sample data (debug build)</string>
     <string name="collections_empty_scan">Scan a card</string>
@@ -144,7 +144,8 @@
     <string name="wishlist_remove">Remove from wishlist</string>
     <string name="wishlist_on">On your wishlist</string>
     <string name="wishlist_hint">Wanted cards don\'t count as owned, in set completion or in the value.</string>
-    <string name="wishlist_empty">Nothing on your wishlist yet. Open a card and tap Add to wishlist.</string>
+    <string name="wishlist_empty">Nothing on your wishlist yet. Find a card you want and tap Add to wishlist.</string>
+    <string name="wishlist_find">Find a card</string>
     <string name="wishlist_found">You own it now</string>
     <string name="wishlist_remove_short">Remove</string>
     <string name="wishlist_remove_description">Remove %1$s from the wishlist</string>
@@ -159,7 +160,9 @@
     <string name="collections_sort_number">Number</string>
     <string name="collections_sort_newest">Newest</string>
     <string name="collections_edit">Edit</string>
-    <string name="collections_collection_empty">Nothing in here yet. Open a card and pick this collection in its copy sheet.</string>
+    <string name="collections_collection_empty">Nothing in here yet. Scan cards straight into it, or pick it in a card\'s copy sheet.</string>
+    <string name="collections_collection_scan">Scan into this collection</string>
+    <string name="collections_all_empty_scan">Scan a card</string>
     <string name="collections_card_unknown">This card is not on this device.</string>
 
     <string name="price_title">Price</string>
@@ -200,6 +203,9 @@
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
     <string name="weekly_change">%1$s in 7 days</string>
     <string name="weekly_change_flat">No change in 7 days</string>
+    <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
+    <string name="weekly_change_short">%1$s · 7 days</string>
+    <string name="weekly_change_short_flat">No change · 7 days</string>
     <!-- Which copies the change covers, when some have no week of price history -->
     <plurals name="weekly_change_covered">
         <item quantity="one">%1$d of %2$d copy</item>
@@ -229,6 +235,10 @@
     <string name="collection_save">Save</string>
     <string name="collection_delete">Delete collection</string>
     <string name="collection_delete_hint">The cards stay in All cards.</string>
+    <string name="collection_cover">Cover</string>
+    <string name="collection_cover_hint">Shown in the binder list. Automatic shows the most valuable card.</string>
+    <string name="collection_cover_automatic">Automatic</string>
+    <string name="collection_cover_automatic_description">Automatic, the most valuable card: %1$s</string>
     <string name="cancel">Cancel</string>
 
     <string name="copy_add_title">Add copy</string>
@@ -277,6 +287,13 @@
     <string name="viewer_zoom_in">Zoom in</string>
     <string name="viewer_zoom_reset">Reset zoom</string>
     <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
+    <string name="viewer_photo_failed">This photo could not be loaded. It may have been moved or deleted.</string>
+    <!-- Tilt light (#167, ADR 0015): under the image name whenever the app draws its own light over the card, so it
+         never passes for the card's real finish. -->
+    <string name="viewer_foil_holo">Simulated holo light</string>
+    <string name="viewer_foil_reverse_holo">Simulated reverse holo light</string>
+    <!-- Only on phones without a gyroscope. -->
+    <string name="viewer_foil_touch">Touch and hold the card, then drag to move the light</string>
 
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
@@ -299,6 +316,7 @@
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
+    <string name="search_none_scan">Scan the card instead</string>
     <string name="search_failed">The card list on this device could not be read.</string>
     <string name="search_no_languages">No card languages are installed yet. Download one to search its cards.</string>
     <string name="search_choose_languages">Choose languages</string>
@@ -458,7 +476,23 @@
     <string name="scan_removed">Took back %1$s.</string>
     <string name="scan_save_failed">Couldn’t save %1$s. Keep it in view to try again.</string>
     <!-- Empty tray once the user has scanned before (#162); scan_tray_empty is the first-run explanation. -->
-    <string name="scan_tray_ready">Hold a card in the frame to add it.</string>
+    <!-- First-run goal in the scan tray (#174), e.g. "First goal: 3 of 10 cards" -->
+    <string name="first_goal_progress">First goal: %1$d of %2$d cards</string>
+    <string name="first_goal_hint">Then see what they are worth.</string>
+    <string name="first_goal_reached">Goal reached: your first %1$d cards</string>
+    <string name="first_goal_value">They are worth %1$s.</string>
+    <string name="first_goal_no_price">Their prices show up once the phone is online.</string>
+    <string name="first_goal_open">See your collection</string>
+    <!-- Set milestones (#169), e.g. "50 % of 151 (EN)" and "151 (EN) complete" -->
+    <string name="milestone_reached">%1$d %% of %2$s</string>
+    <string name="milestone_complete">%1$s complete</string>
+    <string name="milestone_open_set">Open set</string>
+    <string name="milestone_certificate">See the certificate</string>
+    <string name="milestone_share_certificate">Share certificate</string>
+    <string name="milestone_dismiss">OK</string>
+    <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
+    <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
@@ -467,6 +501,9 @@
     <string name="scan_hint_added">Added. Take the next card.</string>
     <!-- A scan added a card that was on the wishlist and not owned yet (#162). -->
     <string name="scan_hint_wishlist">On your wishlist. Added.</string>
+    <!-- A scan added a card priced at or over the reveal threshold in the main market (#168); %1$s is "€20" or "$20". -->
+    <string name="scan_hint_valuable">Worth %1$s or more. Added.</string>
+    <string name="scan_hint_wishlist_valuable">On your wishlist, worth %1$s or more. Added.</string>
     <!-- Price of the card just added, e.g. "€8.40 · Cardmarket trend" (#162). -->
     <string name="scan_price_cardmarket">%1$s · Cardmarket trend</string>
     <string name="scan_price_tcgplayer">%1$s · TCGplayer market</string>
@@ -526,11 +563,69 @@
         <item quantity="one">+ %1$d more print</item>
         <item quantity="other">+ %1$d more prints</item>
     </plurals>
-    <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted are not on it.</string>
+    <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted, and unsure scans you confirm later in Review, are not on it.</string>
     <string name="receipt_share">Share image</string>
     <string name="receipt_share_title">Share session receipt</string>
-    <string name="receipt_share_failed">The receipt could not be shared. Try again.</string>
+    <string name="share_failed">This could not be shared. Try again.</string>
     <string name="receipt_close">Close</string>
+    <!-- Sharing a set (#170): the slot map and the missing list as images, the missing list also as text -->
+    <string name="set_share_action">Share</string>
+    <string name="set_share_action_description">Share this set</string>
+    <string name="set_share_title">Share this set</string>
+    <string name="set_share_map">Slot map</string>
+    <string name="set_share_missing">Missing list</string>
+    <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
+    <string name="set_share_image">Share image</string>
+    <string name="set_share_text">Share as text</string>
+    <string name="set_share_chooser">Share set</string>
+    <string name="set_share_map_overline">My set</string>
+    <!-- Recaps (#175): "Your November 2026 in cards", shown on Collections once the month is over -->
+    <string name="recap_row_month">Your %1$s in cards</string>
+    <string name="recap_row_year">Your %1$s in cards</string>
+    <string name="recap_row_hint">Your recap is ready to look at and share.</string>
+    <string name="recap_open">Open recap</string>
+    <string name="recap_title">Recap: %1$s</string>
+    <string name="recap_share_title">Share recap</string>
+    <string name="recap_overline_month">My month in cards</string>
+    <string name="recap_overline_year">My year in cards</string>
+    <plurals name="recap_cards_added">
+        <item quantity="one">%1$d card added</item>
+        <item quantity="other">%1$d cards added</item>
+    </plurals>
+    <string name="recap_worth_now">Worth %1$s today</string>
+    <!-- Pro: how the collection's value moved over the period, e.g. "Collection +€12.40 (+3 %)" -->
+    <string name="recap_value_change">Collection %1$s</string>
+    <string name="recap_top_find">Top find</string>
+    <string name="recap_best_riser">Best riser</string>
+    <plurals name="recap_sets_completed">
+        <item quantity="one">%1$d set completed</item>
+        <item quantity="other">%1$d sets completed</item>
+    </plurals>
+    <string name="set_share_certificate">Certificate</string>
+    <string name="set_share_certificate_overline">Set complete</string>
+    <string name="set_share_completed_on">Completed %1$s</string>
+    <string name="set_share_missing_overline">Still missing</string>
+    <!-- e.g. "87 of 165" -->
+    <string name="set_share_progress">%1$d of %2$d</string>
+    <plurals name="set_share_secret">
+        <item quantity="one">%1$d secret rare</item>
+        <item quantity="other">%1$d secret rares</item>
+    </plurals>
+    <string name="set_share_legend_owned">Owned</string>
+    <string name="set_share_legend_missing">Missing</string>
+    <string name="set_share_legend_wanted">Wanted most</string>
+    <plurals name="set_share_missing_count">
+        <item quantity="one">%1$d card missing</item>
+        <item quantity="other">%1$d cards missing</item>
+    </plurals>
+    <string name="set_share_trade">These are the ones I need. Got any to trade?</string>
+    <string name="set_share_complete">Complete. Nothing missing.</string>
+    <string name="set_share_wanted_note">★ wanted most</string>
+    <!-- First line of the text checklist, e.g. "151 (EN): 9 cards missing" -->
+    <string name="set_share_text_heading">%1$s: %2$s</string>
+    <string name="set_share_text_footer">From my Foilark collection</string>
+    <string name="set_share_map_description">Slot map of %1$s: %2$s owned</string>
+    <string name="set_share_missing_description">Missing list of %1$s: %2$s</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
     <string name="scan_review_empty_description">Review queue, nothing waiting</string>

@@ -15,6 +15,9 @@ data class CardSearchHit(
 )
 
 /** An owned copy together with its card and set, for lists of copies. */
+/** One collector number of a set, as owned (#163): a set slot, before [numberKey]-style merging. */
+data class SetNumber(val setId: String, val localId: String)
+
 data class CopyWithCard(
     @Embedded val copy: OwnedCopyEntity,
     @Embedded(prefix = "card_") val card: CardEntity,
@@ -35,13 +38,14 @@ data class SetCompletion(
     val copies: Int,
 )
 
-/** A collection with the number of cards in it (sum of quantities). */
+/** A collection with the number of cards in it (sum of quantities) and the cover the user picked, if any (#172). */
 data class CollectionSummary(
     val id: Long,
     val name: String,
     val description: String?,
     val kind: CollectionKind,
     val cards: Int,
+    val coverCopyUuid: String? = null,
 )
 
 /** One copy's membership in a named custom collection. */

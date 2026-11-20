@@ -74,6 +74,7 @@ object BackupJson {
                         .put("uuid", c.uuid)
                         .put("name", c.name)
                         .putOpt("description", c.description)
+                        .putOpt("coverCopyUuid", c.coverCopyUuid)
                         .put("updatedAt", c.updatedAt.toString())
                         .put("copies", JSONArray(data.memberships[c.uuid].orEmpty()))
                 },
@@ -104,6 +105,8 @@ object BackupJson {
                         uuid = it.getString("uuid"),
                         name = it.getString("name"),
                         description = it.optStringOrNull("description"),
+                        // Since #172, without a format bump: an older app only loses the picked cover.
+                        coverCopyUuid = it.optStringOrNull("coverCopyUuid"),
                         kind = CollectionKind.CUSTOM,
                         updatedAt = Instant.parse(it.getString("updatedAt")),
                     )

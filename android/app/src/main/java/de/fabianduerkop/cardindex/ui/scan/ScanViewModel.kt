@@ -10,12 +10,16 @@ import androidx.camera.core.ImageProxy
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.packs.PackLoader
+import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
+import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
+import de.fabianduerkop.cardindex.data.scan.FirstGoal
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
 import de.fabianduerkop.cardindex.data.scan.SessionReceipt
@@ -51,6 +55,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.opencv.core.Mat
@@ -173,19 +178,57 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
         .mapLatest { (copies, all, source) ->
             val setIds = copies.map { it.card.setId }.distinct()
-            val before = if (setIds.isEmpty()) emptyList() else sessions.otherCopiesInSets(sessionId, setIds)
+            val before = if (setIds.isEmpty()) emptyList() else sessions.otherNumbersInSets(sessionId, setIds)
             SessionReceipt.build(copies, before, all, source)
         }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
+    private var goalStart: Int? = null
+    private var goalReachedHere = false
+
+    /**
+     * The first-run goal (#174) for the tray: progress toward [FirstGoal.TARGET] cards, then what they are worth in
+     * the main market. Null once the goal is behind the user, and from then on nothing is watched for it.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val firstGoal: StateFlow<FirstGoal.State?> = if (settings.firstGoalDone) {
+        MutableStateFlow<FirstGoal.State?>(null)
+    } else {
+        combine(db.copyDao().observeCardCount(), prices.observeAll(), priceSource) { cards, all, source -> Triple(cards, all, source) }
+            .mapLatest { (cards, all, source) ->
+                val start = goalStart ?: cards.also { goalStart = it }
+                val reached = start < FirstGoal.TARGET && (goalReachedHere || cards >= FirstGoal.TARGET)
+                val value = if (reached) PriceSelection.total(db.copyDao().all(), all, source) else CollectionValue.empty(source)
+                FirstGoal.state(start, cards, goalReachedHere, value).also { state ->
+                    if (state is FirstGoal.State.Reached) goalReachedHere = true
+                    if (state !is FirstGoal.State.Progress && !settings.firstGoalDone) settings.firstGoalDone = true
+                }
+            }
+            // Already past the goal when the screen opened: one null, then stop watching the collection for it.
+            .transformWhile { state ->
+                emit(state)
+                state != null
+            }
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }
+
     /** Whether the user has scanned before; until then the tray explains how scanning works (#162). */
     val introSeen: StateFlow<Boolean> = settings.scanIntroSeenFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), settings.scanIntroSeen)
+    private val milestones = application.appContainer.milestones
+
+    private val _milestone = MutableStateFlow<Milestone?>(null)
+
+    /** The latest set milestone a scan of this session reached (#169), for the tray; null before any. */
+    val milestone: StateFlow<Milestone?> = _milestone.asStateFlow()
     private val contributions = application.appContainer.contributions
     private val numberReader = application.appContainer::newNumberReader
 
     init {
+        // Milestones reached before #169 count as celebrated; do it before the first new card can reach one.
+        viewModelScope.launch(Dispatchers.IO) { runCatching { milestones.seed() } }
         // Reload when a pack or the model is installed, replaced or removed; not when a pack is only marked broken
         // (that comes from loading, and the loaded engine already left it out).
         viewModelScope.launch {
@@ -355,6 +398,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                             )
                         }
                         markIntroSeen()
+                        // A set milestone this card reached (#169): once per set and language, Undo and redo included.
+                        runCatching { milestones.celebrate(card.setId, card.lang) }
+                            .onFailure { Log.w(TAG, "checking milestones of ${card.setId} failed", it) }
+                            .getOrNull()
+                            ?.let { _milestone.value = it }
                         // A card nobody owned before has no cached price yet: ask the price service once, then
                         // show it on the hit and in the total. Offline it simply stays without a price.
                         if (cached.isEmpty()) fetchPrice(card, id)

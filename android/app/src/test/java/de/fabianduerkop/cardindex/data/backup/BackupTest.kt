@@ -186,6 +186,28 @@ class BackupTest {
         assertEquals(7, target.copyDao().byUuid(local.uuid)!!.quantity)
     }
 
+    /** The picked binder cover (#172) travels with the binder, and a newer backup's pick replaces the phone's. */
+    @Test
+    fun json_carriesTheBinderCover() = runTest {
+        seedSource()
+        val binder = source.collectionDao().allCustom().single()
+        val inBinder = source.copyDao().all().single { it.cardId == "sv03.5-006" }
+        clock.advance(60)
+        collections(source).updateCollection(binder.id, binder.name, binder.description, inBinder.uuid)
+
+        val json = export(source, BackupFileType.JSON)
+        assertTrue(json.contains("\"coverCopyUuid\": \"${inBinder.uuid}\""))
+        import(target, json)
+        assertEquals(inBinder.uuid, collections(target).observeCustomCollections().first().single().coverCopyUuid)
+
+        // Back to the automatic cover on the source, later: the newer backup clears the pick.
+        clock.advance(60)
+        collections(source).updateCollection(binder.id, binder.name, binder.description, null)
+        val newer = import(target, export(source, BackupFileType.JSON))
+        assertEquals(1, newer.collectionsUpdated)
+        assertEquals(null, collections(target).observeCustomCollections().first().single().coverCopyUuid)
+    }
+
     @Test
     fun json_rejectsForeignAndNewerFiles() = runTest {
         assertThrows(BackupFormatException::class.java) { BackupJson.read("""{"hello":1}""") }

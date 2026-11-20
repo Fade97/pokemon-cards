@@ -146,12 +146,14 @@ class BackupRepository(
                     }
                     else -> {
                         collectionIds[collection.uuid] = local.id
-                        val changed = local.name != collection.name || local.description != collection.description
+                        val changed = local.name != collection.name || local.description != collection.description ||
+                            local.coverCopyUuid != collection.coverCopyUuid
                         if (collection.updatedAt >= local.updatedAt && changed) {
                             collections.update(
                                 local.copy(
                                     name = collection.name,
                                     description = collection.description,
+                                    coverCopyUuid = collection.coverCopyUuid,
                                     updatedAt = merged(collection.updatedAt, local.updatedAt),
                                 ),
                             )

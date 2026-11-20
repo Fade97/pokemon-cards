@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 8,
-    "identityHash": "548add120d761c9858af81804339d0b9",
+    "identityHash": "3ffe79bc01e6a45c50fe2adc4bd85b00",
     "entities": [
       {
         "tableName": "card_sets",
@@ -312,7 +312,7 @@
       },
       {
         "tableName": "collections",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `kind` TEXT NOT NULL, `setId` TEXT, `updatedAt` INTEGER NOT NULL, FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `uuid` TEXT NOT NULL, `name` TEXT NOT NULL, `description` TEXT, `kind` TEXT NOT NULL, `setId` TEXT, `updatedAt` INTEGER NOT NULL, `coverCopyUuid` TEXT, FOREIGN KEY(`setId`) REFERENCES `card_sets`(`id`) ON UPDATE NO ACTION ON DELETE NO ACTION )",
         "fields": [
           {
             "fieldPath": "id",
@@ -353,6 +353,11 @@
             "columnName": "updatedAt",
             "affinity": "INTEGER",
             "notNull": true
+          },
+          {
+            "fieldPath": "coverCopyUuid",
+            "columnName": "coverCopyUuid",
+            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -457,7 +462,7 @@
       },
       {
         "tableName": "cached_prices",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `priceDate` INTEGER, `fetchedAt` INTEGER NOT NULL, `productId` INTEGER, `weekAgoMinor` INTEGER, `weekAgoDate` TEXT, PRIMARY KEY(`cardId`, `source`, `variant`))",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`cardId` TEXT NOT NULL, `source` TEXT NOT NULL, `variant` TEXT NOT NULL, `currency` TEXT NOT NULL, `trendMinor` INTEGER, `lowMinor` INTEGER, `avgMinor` INTEGER, `priceDate` INTEGER, `fetchedAt` INTEGER NOT NULL, `productId` INTEGER, PRIMARY KEY(`cardId`, `source`, `variant`))",
         "fields": [
           {
             "fieldPath": "cardId",
@@ -513,16 +518,6 @@
             "fieldPath": "productId",
             "columnName": "productId",
             "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "weekAgoMinor",
-            "columnName": "weekAgoMinor",
-            "affinity": "INTEGER"
-          },
-          {
-            "fieldPath": "weekAgoDate",
-            "columnName": "weekAgoDate",
-            "affinity": "TEXT"
           }
         ],
         "primaryKey": {
@@ -1109,7 +1104,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '548add120d761c9858af81804339d0b9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3ffe79bc01e6a45c50fe2adc4bd85b00')"
     ]
   }
 }

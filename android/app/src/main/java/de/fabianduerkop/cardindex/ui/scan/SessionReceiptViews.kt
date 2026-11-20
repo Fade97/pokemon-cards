@@ -1,20 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
-import android.graphics.Bitmap
-import android.util.Log
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -22,34 +17,16 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.graphics.asAndroidBitmap
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.heading
-import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
-import androidx.core.graphics.scale
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.scan.ReceiptLine
 import de.fabianduerkop.cardindex.data.scan.SessionReceipt
@@ -58,30 +35,14 @@ import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.ui.collections.formatDate
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.LumifoilWordmark
-import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.TextAction
-import de.fabianduerkop.cardindex.ui.share.ImageShare
-import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
+import de.fabianduerkop.cardindex.ui.share.ShareCanvas
+import de.fabianduerkop.cardindex.ui.share.ShareImageButton
+import de.fabianduerkop.cardindex.ui.share.ShareImagePreview
 import de.fabianduerkop.cardindex.ui.theme.Spacing
-import kotlinx.coroutines.CancellationException
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
-
-/** The receipt's size in dp: 9:16, so 1080 × 1920 px at 3x, the size story and short-video apps expect (#163). */
-private val ReceiptWidth = 360.dp
-private val ReceiptHeight = 640.dp
-
-/**
- * The receipt is always laid out at this density, whatever the phone's: the PNG is exactly 1080 × 1920 px and sharp,
- * never a smaller render stretched up.
- */
-private const val ReceiptDensity = 3f
-private const val ReceiptPixelWidth = 1080
-private const val ReceiptPixelHeight = 1920
 
 /** Prints listed by name; the rest are summed up as "+ 12 more". */
 private const val ReceiptLines = 6
@@ -92,14 +53,7 @@ private const val ReceiptLines = 6
  */
 @Composable
 internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDone: () -> Unit) {
-    val context = LocalContext.current
-    val scope = rememberCoroutineScope()
     val layer = rememberGraphicsLayer()
-    val chooserTitle = stringResource(R.string.receipt_share_title)
-    var sharing by remember { mutableStateOf(false) }
-    var shareFailed by remember { mutableStateOf(false) }
-    val description = receiptDescription(receipt)
-
     Column(
         Modifier
             .fillMaxWidth()
@@ -114,80 +68,20 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
             Modifier.fillMaxWidth().semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
         )
-        BoxWithConstraints(Modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-            // The image is laid out at its own pixel size and only drawn smaller here, so the PNG depends on
-            // neither the phone's width nor its density.
-            val shown = minOf(maxWidth, ReceiptWidth)
-            val density = LocalDensity.current
-            val pixels = with(density) { DpSize(ReceiptPixelWidth.toDp(), ReceiptPixelHeight.toDp()) }
-            val scale = with(density) { shown.toPx() } / ReceiptPixelWidth
-            Box(
-                Modifier
-                    .size(shown, shown * (ReceiptHeight / ReceiptWidth))
-                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
-                    .semantics { contentDescription = description },
-                contentAlignment = Alignment.Center,
-            ) {
-                Box(
-                    Modifier
-                        .requiredSize(pixels)
-                        .graphicsLayer(scaleX = scale, scaleY = scale)
-                        .drawWithContent {
-                            layer.record { this@drawWithContent.drawContent() }
-                            drawLayer(layer)
-                        },
-                ) {
-                    ReceiptImage(receipt, today)
-                }
-            }
-        }
+        ShareImagePreview(layer, receiptDescription(receipt)) { ReceiptImage(receipt, today) }
         Text(
             stringResource(R.string.receipt_no_art),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
-        PrimaryButton(
+        ShareImageButton(
             stringResource(R.string.receipt_share),
-            enabled = !sharing,
-            onClick = {
-                sharing = true
-                shareFailed = false
-                scope.launch {
-                    try {
-                        val rendered = layer.toImageBitmap().asAndroidBitmap()
-                        val file = withContext(Dispatchers.IO) {
-                            // A software copy: a hardware bitmap can't always be scaled or compressed directly.
-                            val software = rendered.copy(Bitmap.Config.ARGB_8888, false)
-                            val png = if (software.width == ReceiptPixelWidth && software.height == ReceiptPixelHeight) {
-                                software
-                            } else {
-                                software.scale(ReceiptPixelWidth, ReceiptPixelHeight)
-                            }
-                            ImageShare.write(context, png, "foilark-session-${today}")
-                        }
-                        context.startActivity(ImageShare.intent(context, file, chooserTitle))
-                    } catch (e: CancellationException) {
-                        throw e
-                    } catch (e: Exception) {
-                        Log.e(TAG, "sharing the session receipt failed", e)
-                        shareFailed = true
-                    } finally {
-                        sharing = false
-                    }
-                }
-            },
+            layer = layer,
+            fileName = "foilark-session-$today",
+            chooserTitle = stringResource(R.string.receipt_share_title),
             modifier = Modifier.fillMaxWidth(),
         )
-        if (shareFailed) {
-            Text(
-                stringResource(R.string.receipt_share_failed),
-                Modifier.semantics { liveRegion = LiveRegionMode.Polite },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                textAlign = TextAlign.Center,
-            )
-        }
         TextAction(stringResource(R.string.receipt_close), onClick = onDone)
     }
 }
@@ -199,41 +93,38 @@ internal fun SessionReceiptSheet(receipt: SessionReceipt, today: LocalDate, onDo
  */
 @Composable
 internal fun ReceiptImage(receipt: SessionReceipt, today: LocalDate) {
-    CompositionLocalProvider(LocalDensity provides Density(ReceiptDensity, fontScale = 1f)) {
-        LumifoilTheme(darkTheme = false) {
-            val colors = MaterialTheme.colorScheme
-            Column(
-                Modifier
-                    .requiredSize(ReceiptWidth, ReceiptHeight)
-                    .background(colors.background)
-                    .padding(horizontal = 28.dp, vertical = 32.dp),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    LumifoilWordmark()
-                    Spacer(Modifier.weight(1f))
-                    Text(formatDate(today), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
-                }
-                Spacer(Modifier.height(Spacing.md))
-                Text(stringResource(R.string.receipt_heading), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+    ShareCanvas {
+        val colors = MaterialTheme.colorScheme
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(horizontal = 28.dp, vertical = 32.dp),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                LumifoilWordmark()
+                Spacer(Modifier.weight(1f))
+                Text(formatDate(today), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+            }
+            Spacer(Modifier.height(Spacing.md))
+            Text(stringResource(R.string.receipt_heading), style = MaterialTheme.typography.labelLarge, color = colors.onSurfaceVariant)
+            Text(
+                pluralStringResource(R.plurals.receipt_cards, receipt.cards, receipt.cards),
+                style = MaterialTheme.typography.displaySmall,
+                color = colors.onSurface,
+            )
+            ReceiptValue(receipt)
+            Text(receiptStats(receipt), style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
+            receipt.bestFind?.let { BestFind(it) }
+            HorizontalDivider(Modifier.padding(vertical = Spacing.xs), color = colors.outlineVariant)
+            receipt.lines.take(ReceiptLines).forEach { ReceiptRow(it) }
+            val more = receipt.lines.size - ReceiptLines
+            if (more > 0) {
                 Text(
-                    pluralStringResource(R.plurals.receipt_cards, receipt.cards, receipt.cards),
-                    style = MaterialTheme.typography.displaySmall,
-                    color = colors.onSurface,
+                    pluralStringResource(R.plurals.receipt_more, more, more),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = colors.onSurfaceVariant,
                 )
-                ReceiptValue(receipt)
-                Text(receiptStats(receipt), style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
-                receipt.bestFind?.let { BestFind(it) }
-                HorizontalDivider(Modifier.padding(vertical = Spacing.xs), color = colors.outlineVariant)
-                receipt.lines.take(ReceiptLines).forEach { ReceiptRow(it) }
-                val more = receipt.lines.size - ReceiptLines
-                if (more > 0) {
-                    Text(
-                        pluralStringResource(R.plurals.receipt_more, more, more),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = colors.onSurfaceVariant,
-                    )
-                }
             }
         }
     }
@@ -330,4 +221,3 @@ private fun marketLabel(source: PriceSource): Int = when (source) {
 
 private fun Instant.localDate(): LocalDate = atZone(ZoneId.systemDefault()).toLocalDate()
 
-private const val TAG = "SessionReceipt"

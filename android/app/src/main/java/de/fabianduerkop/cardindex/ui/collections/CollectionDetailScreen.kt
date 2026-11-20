@@ -28,6 +28,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
@@ -41,6 +42,7 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 fun CollectionDetailScreen(
     onBack: () -> Unit,
     onOpenCard: (cardId: String, language: String) -> Unit,
+    onOpenScan: () -> Unit = {},
     viewModel: CollectionDetailViewModel = viewModel(
         factory = containerViewModelFactory { container, saved ->
             CollectionDetailViewModel(
@@ -50,6 +52,8 @@ fun CollectionDetailScreen(
                 saved,
                 container.priceHistory,
                 container.entitlements.isPro,
+                chooseScanTarget = container.scanTarget::choose,
+                photos = container.ownPhotos,
             )
         },
     ),
@@ -116,10 +120,17 @@ fun CollectionDetailScreen(
                 }
                 if (state.copies.isEmpty()) {
                     item {
-                        PlaceholderText(
-                            stringResource(R.string.collections_collection_empty),
-                            Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md),
-                        )
+                        Column(Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.md)) {
+                            PlaceholderText(stringResource(R.string.collections_collection_empty))
+                            // One way to fill it (#174): scanning straight into this collection.
+                            SecondaryButton(
+                                stringResource(
+                                    if (collection != null) R.string.collections_collection_scan else R.string.collections_all_empty_scan,
+                                ),
+                                onClick = { viewModel.scanHere(onOpenScan) },
+                                modifier = Modifier.padding(top = Spacing.md),
+                            )
+                        }
                     }
                 }
                 items(state.copies, key = { it.copy.id }) { item ->
@@ -147,8 +158,8 @@ fun CollectionDetailScreen(
         CollectionSheet(
             initial = collection,
             onDismiss = { editing = false },
-            onSave = { name, description ->
-                viewModel.update(name, description)
+            onSave = { name, description, cover ->
+                viewModel.update(name, description, cover)
                 editing = false
             },
             onDelete = {
@@ -156,6 +167,10 @@ fun CollectionDetailScreen(
                 viewModel.delete()
                 onBack()
             },
+            cover = state.cover,
+            automaticCover = state.automaticCover,
+            coverChoices = state.coverChoices,
+            photos = state.photos,
         )
     }
 }
