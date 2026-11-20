@@ -2,6 +2,9 @@
 package de.fabianduerkop.cardindex.ui.collections
 
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
@@ -39,8 +42,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -56,9 +61,11 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.buildAnnotatedString
@@ -70,8 +77,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.collections.Milestone
+import de.fabianduerkop.cardindex.data.collections.Milestones
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetSlot
+import de.fabianduerkop.cardindex.data.collections.numberKey
 import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
@@ -85,6 +95,7 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.numberOverTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
+import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
@@ -111,6 +122,9 @@ fun SetDetailScreen(
                 pinSet = { container.settings.featuredSet = it },
                 pastLegendVisits = container.settings.setLegendVisits,
                 recordLegendVisit = { container.settings.setLegendVisits += 1 },
+                celebrate = container.milestones::celebrate,
+                lastVisit = saved.get<String>(CollectionsRoutes.ARG_SET_ID)?.let(container.settings::setVisitedAt),
+                recordVisit = { at -> saved.get<String>(CollectionsRoutes.ARG_SET_ID)?.let { container.settings.markSetVisited(it, at) } },
             )
         },
     ),
@@ -120,6 +134,8 @@ fun SetDetailScreen(
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
     val selected = detail?.slots?.firstOrNull { it.localId == selectedKey }
     val wantedNumbers by viewModel.wantedNumbers.collectAsStateWithLifecycle()
+    val milestone by viewModel.milestone.collectAsStateWithLifecycle()
+    val newSlots by viewModel.newSlots.collectAsStateWithLifecycle()
     var sharing by rememberSaveable { mutableStateOf(false) }
     // Back closes the missing-card bar first, then leaves the set (#101).
     BackHandler(enabled = selected != null) { selectedKey = null }
@@ -176,6 +192,10 @@ fun SetDetailScreen(
                 detail = detail,
                 padding = padding,
                 selectedKey = selectedKey,
+                milestone = milestone,
+                newSlots = newSlots,
+                onShare = { sharing = true },
+                onDismissMilestone = viewModel::dismissMilestone,
                 onToggleLanguage = viewModel::toggleLanguage,
                 onMode = viewModel::setMode,
                 onFilter = viewModel::setFilter,
@@ -200,6 +220,10 @@ private fun SetGrid(
     detail: SetDetail,
     padding: PaddingValues,
     selectedKey: String?,
+    milestone: Milestone?,
+    newSlots: Set<String>,
+    onShare: () -> Unit,
+    onDismissMilestone: () -> Unit,
     onToggleLanguage: (String?) -> Unit,
     onMode: (SetViewMode) -> Unit,
     onFilter: (SlotFilter) -> Unit,
@@ -208,6 +232,8 @@ private fun SetGrid(
 ) {
     // Filters and grid list every slot (buildSetSlots), secret rares included; the header counts the base set (#132).
     val shown = detail.slots.filteredBy(state.filter)
+    val reducedMotion = rememberReducedMotion()
+    val pulsed = remember { HashSet<String>() }
     val compact = state.mode == SetViewMode.COMPACT
     var languageSheet by rememberSaveable { mutableStateOf(false) }
     if (languageSheet) {
@@ -225,6 +251,9 @@ private fun SetGrid(
         horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.md),
     ) {
+        milestone?.let { reached ->
+            header { MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
+        }
         header {
             SetHeader(detail, state.selectedLanguages, state.value)
         }
@@ -247,10 +276,15 @@ private fun SetGrid(
             }
         }
         items(shown, key = { it.localId }) { slot ->
-            if (compact) {
-                CompactSlot(slot, detail.set.printedTotal, selected = slot.localId == selectedKey, onClick = { onSlot(slot) })
-            } else {
-                CardSlot(slot, detail.set.printedTotal, state.photos, selected = slot.localId == selectedKey, onClick = { onSlot(slot) })
+            // A slot filled since the last visit pulses once (#169), not again when it scrolls back into view.
+            val key = numberKey(slot.localId)
+            val pulse = slot.owned && key in newSlots && !reducedMotion && pulsed.add(key)
+            PulseOnce(pulse) {
+                if (compact) {
+                    CompactSlot(slot, detail.set.printedTotal, selected = slot.localId == selectedKey, onClick = { onSlot(slot) })
+                } else {
+                    CardSlot(slot, detail.set.printedTotal, state.photos, selected = slot.localId == selectedKey, onClick = { onSlot(slot) })
+                }
             }
         }
     }
@@ -304,7 +338,10 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                 }
             }
         }
-        secretText(progress)?.let {
+        // Secret rares counted apart (#169): "Secret rares 12/42" when the catalog knows them, else "+12 secret".
+        val secretTotal = detail.slots.count { isSecretNumber(it.localId, progress.printedTotal) }
+        val secretLine = if (secretTotal > 0) stringResource(R.string.collections_secret_of, progress.secret, secretTotal) else secretText(progress)
+        secretLine?.let {
             // Part of the count's spoken description above.
             Text(
                 it,
@@ -313,7 +350,7 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                 modifier = Modifier.clearAndSetSemantics {},
             )
         }
-        CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md))
+        CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md), marks = MilestoneMarks)
     }
 }
 
@@ -601,3 +638,58 @@ private fun Modifier.fadeHiddenEnd(scroll: ScrollState): Modifier =
                 )
             }
         }
+
+/** Scale a newly filled slot starts from before it springs to full size (#169). */
+private const val PulseFrom = 0.7f
+
+/** [content] springs from small to full size once when [pulse] is true on its first composition; else it just shows. */
+@Composable
+private fun PulseOnce(pulse: Boolean, content: @Composable () -> Unit) {
+    val scale = remember { Animatable(if (pulse) PulseFrom else 1f) }
+    LaunchedEffect(Unit) {
+        if (scale.value != 1f) scale.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = Spring.StiffnessLow))
+    }
+    Box(Modifier.graphicsLayer { scaleX = scale.value; scaleY = scale.value }) { content() }
+}
+
+/**
+ * A milestone of this set (#169) reached since it was last celebrated: "50 % of 151 (EN)", or "151 (EN) complete"
+ * with Share certificate. Shown once; OK puts it away.
+ */
+@Composable
+private fun MilestoneBanner(milestone: Milestone, onShare: () -> Unit, onDismiss: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val label = "${milestone.set.name} (${milestone.language.uppercase()})"
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(top = Spacing.sm)
+            .clip(MaterialTheme.shapes.medium)
+            .background(colors.secondaryContainer)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            if (milestone.complete) {
+                stringResource(R.string.milestone_complete, label)
+            } else {
+                stringResource(R.string.milestone_reached, milestone.level, label)
+            },
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.onSurface,
+        )
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            if (milestone.complete) TextAction(stringResource(R.string.milestone_share_certificate), onClick = onShare)
+            TextAction(stringResource(R.string.milestone_dismiss), onClick = onDismiss)
+        }
+    }
+}
+
+/** The 25, 50 and 75 % milestones (#169) as marks on the completion bar; 100 % is its end. */
+private val MilestoneMarks = Milestones.LEVELS.filter { it < 100 }.map { it / 100f }
+
+/** A number past the printed total, or a lettered one (TG05): a secret rare, as the header counts them. */
+private fun isSecretNumber(localId: String, printedTotal: Int): Boolean =
+    printedTotal > 0 && numberKey(localId).toIntOrNull()?.let { it in 1..printedTotal } != true
+

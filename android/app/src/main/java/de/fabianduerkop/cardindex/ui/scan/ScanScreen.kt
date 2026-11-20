@@ -96,6 +96,7 @@ import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.scan.FirstGoal
@@ -143,6 +144,7 @@ fun ScanScreen(
     onOpenLab: () -> Unit = {},
     onOpenLanguages: () -> Unit = {},
     onOpenCollections: () -> Unit = {},
+    onOpenSet: (setId: String) -> Unit = {},
     viewModel: ScanViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -199,7 +201,7 @@ fun ScanScreen(
                     )
                 }
             }
-            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections)
+            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections, onOpenSet)
         }
     }
 }
@@ -238,6 +240,7 @@ private fun LiveScan(
     onOpenReview: () -> Unit,
     onOpenLab: (() -> Unit)?,
     onOpenCollections: () -> Unit,
+    onOpenSet: (setId: String) -> Unit,
 ) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
@@ -327,7 +330,7 @@ private fun LiveScan(
                     if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
                 }
             }
-            Tray(viewModel, onOpenReview, onOpenCollections, Modifier.heightIn(max = trayMax))
+            Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
         }
     }
 }
@@ -541,12 +544,19 @@ private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
 /** The latest card first (its collector number is the strongest type here), then the count and the review queue. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, onOpenCollections: () -> Unit, modifier: Modifier = Modifier) {
+private fun Tray(
+    viewModel: ScanViewModel,
+    onOpenReview: () -> Unit,
+    onOpenCollections: () -> Unit,
+    onOpenSet: (setId: String) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     val introSeen by viewModel.introSeen.collectAsStateWithLifecycle()
     val firstGoal by viewModel.firstGoal.collectAsStateWithLifecycle()
+    val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
     // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
     // tick than an added one, so the hand can tell them apart without looking (#161).
@@ -565,6 +575,13 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, onOpenColle
         }
         felt = tray.decisions
     }
+    // A set milestone (#169) gets its own, stronger feel, once per milestone.
+    val milestoneNow by viewModel.milestone.collectAsStateWithLifecycle()
+    var feltMilestone by remember { mutableStateOf(milestoneNow) }
+    LaunchedEffect(milestoneNow) {
+        if (milestoneNow != null && milestoneNow != feltMilestone) haptics.performHapticFeedback(HapticFeedbackType.GestureThresholdActivate)
+        feltMilestone = milestoneNow
+    }
     var editing by remember { mutableStateOf<LastScan.Added?>(null) }
     val target by viewModel.target.collectAsStateWithLifecycle()
     var choosingTarget by remember { mutableStateOf(false) }
@@ -582,6 +599,7 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, onOpenColle
         ) {
             LatestScan(tray, introSeen, onUndo = viewModel::undo, onChange = { editing = it })
             firstGoal?.let { FirstGoalCard(it, onOpenCollections) }
+            milestone?.let { MilestoneCard(it, onOpenSet = { onOpenSet(it.set.id) }) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -662,6 +680,47 @@ private fun sessionValue(value: CollectionValue): String? {
     val amount = Money.format(value.amountMinor, value.currency)
     return if (unpriced == null) amount else "$amount · $unpriced"
 }
+
+/**
+ * A set milestone this session reached (#169): "50 % of 151 (EN)", or "151 (EN) complete" with the certificate a tap
+ * away on the set screen. Calm like the first goal: a tinted card and a haptic, no confetti.
+ */
+@Composable
+private fun MilestoneCard(milestone: Milestone, onOpenSet: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val setLabel = milestoneSetLabel(milestone)
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(colors.secondaryContainer)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        Text(
+            if (milestone.complete) {
+                stringResource(R.string.milestone_complete, setLabel)
+            } else {
+                stringResource(R.string.milestone_reached, milestone.level, setLabel)
+            },
+            style = MaterialTheme.typography.titleSmall,
+            color = colors.onSurface,
+        )
+        Text(
+            stringResource(R.string.set_share_progress, milestone.progress.base, milestone.progress.printedTotal),
+            style = MaterialTheme.typography.bodySmall,
+            color = colors.onSurfaceVariant,
+        )
+        TextAction(
+            stringResource(if (milestone.complete) R.string.milestone_certificate else R.string.milestone_open_set),
+            onClick = onOpenSet,
+        )
+    }
+}
+
+/** "151 (EN)": the set and the language its milestone counts. */
+internal fun milestoneSetLabel(milestone: Milestone): String = "${milestone.set.name} (${milestone.language.uppercase()})"
 
 /**
  * The first-run goal (#174): "First goal: 3 of 10 cards" with a thin bar while it runs, then what the first cards are

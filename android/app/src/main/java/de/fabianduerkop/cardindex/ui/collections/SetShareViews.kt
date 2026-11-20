@@ -88,7 +88,10 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             style = MaterialTheme.typography.titleLarge,
         )
         ViewSwitch(
-            labels = listOf(stringResource(R.string.set_share_map), stringResource(R.string.set_share_missing)),
+            labels = listOf(
+                stringResource(if (data.completedOn != null) R.string.set_share_certificate else R.string.set_share_map),
+                stringResource(R.string.set_share_missing),
+            ),
             selectedIndex = tab,
             onSelect = { tab = it },
         )
@@ -149,7 +152,16 @@ internal fun SlotMapImage(data: SetShareData) {
     ShareCanvas {
         val colors = MaterialTheme.colorScheme
         Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            ShareHeader(data, stringResource(R.string.set_share_map_overline))
+            // Complete, the slot map is the certificate (#169): every square filled, and the day it was done.
+            val completedOn = data.completedOn
+            ShareHeader(data, stringResource(if (completedOn != null) R.string.set_share_certificate_overline else R.string.set_share_map_overline))
+            if (completedOn != null) {
+                Text(
+                    stringResource(R.string.set_share_completed_on, formatDate(completedOn)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = colors.primary,
+                )
+            }
             Spacer(Modifier.height(Spacing.sm))
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                 val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value)

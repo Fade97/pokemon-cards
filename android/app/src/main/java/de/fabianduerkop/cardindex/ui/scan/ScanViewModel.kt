@@ -10,6 +10,7 @@ import androidx.camera.core.ImageProxy
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
@@ -216,10 +217,18 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     /** Whether the user has scanned before; until then the tray explains how scanning works (#162). */
     val introSeen: StateFlow<Boolean> = settings.scanIntroSeenFlow
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), settings.scanIntroSeen)
+    private val milestones = application.appContainer.milestones
+
+    private val _milestone = MutableStateFlow<Milestone?>(null)
+
+    /** The latest set milestone a scan of this session reached (#169), for the tray; null before any. */
+    val milestone: StateFlow<Milestone?> = _milestone.asStateFlow()
     private val contributions = application.appContainer.contributions
     private val numberReader = application.appContainer::newNumberReader
 
     init {
+        // Milestones reached before #169 count as celebrated; do it before the first new card can reach one.
+        viewModelScope.launch(Dispatchers.IO) { runCatching { milestones.seed() } }
         // Reload when a pack or the model is installed, replaced or removed; not when a pack is only marked broken
         // (that comes from loading, and the loaded engine already left it out).
         viewModelScope.launch {
@@ -389,6 +398,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
                             )
                         }
                         markIntroSeen()
+                        // A set milestone this card reached (#169): once per set and language, Undo and redo included.
+                        runCatching { milestones.celebrate(card.setId, card.lang) }
+                            .onFailure { Log.w(TAG, "checking milestones of ${card.setId} failed", it) }
+                            .getOrNull()
+                            ?.let { _milestone.value = it }
                         // A card nobody owned before has no cached price yet: ask the price service once, then
                         // show it on the hit and in the total. Offline it simply stays without a price.
                         if (cached.isEmpty()) fetchPrice(card, id)

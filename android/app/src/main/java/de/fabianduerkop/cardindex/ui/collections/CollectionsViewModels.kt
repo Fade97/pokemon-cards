@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
+import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.collections.SetSlot
@@ -55,12 +56,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Cards fanned on the featured set cover. */
 private const val FEATURED_ART = 3
@@ -391,6 +394,10 @@ class SetDetailViewModel(
     private val pinSet: (String?) -> Unit = {},
     pastLegendVisits: Int = SetLegend.FIRST_VISITS,
     recordLegendVisit: () -> Unit = {},
+    private val celebrate: suspend (setId: String, language: String) -> Milestone? = { _, _ -> null },
+    lastVisit: Long? = null,
+    recordVisit: (atMillis: Long) -> Unit = {},
+    now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
     private val selected = MutableStateFlow(emptySet<String>())
@@ -436,6 +443,37 @@ class SetDetailViewModel(
 
     /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
     fun togglePinned() = pinSet(if (state.value.pinned) null else setId)
+
+    private val _milestone = MutableStateFlow<Milestone?>(null)
+
+    /**
+     * A milestone of this set reached since it was last celebrated (#169), e.g. through Review or a hand-added copy;
+     * the screen shows it once, then [dismissMilestone].
+     */
+    val milestone: StateFlow<Milestone?> = _milestone
+
+    fun dismissMilestone() { _milestone.value = null }
+
+    private val _newSlots = MutableStateFlow(emptySet<String>())
+
+    /** Numbers ([numberKey]) filled since the last visit (#169): each pulses once. None on the first visit. */
+    val newSlots: StateFlow<Set<String>> = _newSlots
+
+    init {
+        recordVisit(now())
+        viewModelScope.launch {
+            val detail = state.first { !it.loading }.detail ?: return@launch
+            if (lastVisit != null) {
+                _newSlots.value = detail.copies.filter { it.copy.createdAt.toEpochMilli() > lastVisit }
+                    .mapTo(HashSet()) { numberKey(it.card.localId) }
+            }
+            _milestone.value = withContext(Dispatchers.IO) {
+                detail.copies.map { it.copy.cardLanguage }.distinct()
+                    .mapNotNull { runCatching { celebrate(setId, it) }.getOrNull() }
+                    .maxByOrNull { it.level }
+            }
+        }
+    }
 
     /**
      * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist

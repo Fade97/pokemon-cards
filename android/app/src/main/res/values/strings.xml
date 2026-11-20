@@ -468,6 +468,15 @@
     <string name="first_goal_value">They are worth %1$s.</string>
     <string name="first_goal_no_price">Their prices show up once the phone is online.</string>
     <string name="first_goal_open">See your collection</string>
+    <!-- Set milestones (#169), e.g. "50 % of 151 (EN)" and "151 (EN) complete" -->
+    <string name="milestone_reached">%1$d %% of %2$s</string>
+    <string name="milestone_complete">%1$s complete</string>
+    <string name="milestone_open_set">Open set</string>
+    <string name="milestone_certificate">See the certificate</string>
+    <string name="milestone_share_certificate">Share certificate</string>
+    <string name="milestone_dismiss">OK</string>
+    <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
+    <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
@@ -552,6 +561,9 @@
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>
     <string name="set_share_map_overline">My set</string>
+    <string name="set_share_certificate">Certificate</string>
+    <string name="set_share_certificate_overline">Set complete</string>
+    <string name="set_share_completed_on">Completed %1$s</string>
     <string name="set_share_missing_overline">Still missing</string>
     <!-- e.g. "87 of 165" -->
     <string name="set_share_progress">%1$d of %2$d</string>
