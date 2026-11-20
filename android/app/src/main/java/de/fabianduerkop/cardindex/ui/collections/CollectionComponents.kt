@@ -49,6 +49,8 @@ import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.Hyphens
+import androidx.compose.ui.text.style.LineBreak
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.text.withStyle
@@ -360,7 +362,8 @@ internal fun ViewSwitch(
             ) {
                 Text(
                     label,
-                    style = MaterialTheme.typography.labelLarge,
+                    // At large font sizes a long label breaks at a syllable with a hyphen ("Wish-list"), not mid-word.
+                    style = MaterialTheme.typography.labelLarge.copy(hyphens = Hyphens.Auto, lineBreak = LineBreak.Paragraph),
                     color = if (selected) colors.primary else colors.onSurface,
                     textAlign = TextAlign.Center,
                 )

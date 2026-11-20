@@ -15,6 +15,9 @@ data class CardSearchHit(
 )
 
 /** An owned copy together with its card and set, for lists of copies. */
+/** One collector number of a set, as owned (#163): a set slot, before [numberKey]-style merging. */
+data class SetNumber(val setId: String, val localId: String)
+
 data class CopyWithCard(
     @Embedded val copy: OwnedCopyEntity,
     @Embedded(prefix = "card_") val card: CardEntity,

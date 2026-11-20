@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.navArgument
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.ui.collections.CollectionsRoutes
 import de.fabianduerkop.cardindex.ui.review.ReviewViewModel
 import de.fabianduerkop.cardindex.ui.search.SearchScreen
 import kotlinx.coroutines.flow.filterNotNull
@@ -77,6 +78,11 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                         onOpenReview = { navController.navigate(REVIEW_ROUTE) },
                         onOpenLab = { navController.navigate(LAB_ROUTE) },
                         onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                        onOpenCollections = { navController.navigateTopLevel(TopLevelDestination.COLLECTIONS) },
+                        onOpenSet = { setId ->
+                            navController.navigateTopLevel(TopLevelDestination.COLLECTIONS)
+                            navController.navigate(CollectionsRoutes.set(setId))
+                        },
                     )
                 }
                 composable(LAB_ROUTE) { LabScreen() }
@@ -121,8 +127,16 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
                     )
                 }
             }
-            collectionsGraph(navController, onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) })
-            searchGraph(navController, onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) })
+            collectionsGraph(
+                navController,
+                onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) },
+                onOpenSearch = { navController.navigateTopLevel(TopLevelDestination.SEARCH) },
+            )
+            searchGraph(
+                navController,
+                onOpenLanguages = { navController.navigateTopLevel(TopLevelDestination.SETTINGS) },
+                onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) },
+            )
             navigation(startDestination = SETTINGS_HOME_ROUTE, route = TopLevelDestination.SETTINGS.route) {
                 composable(SETTINGS_HOME_ROUTE) {
                     SettingsScreen(

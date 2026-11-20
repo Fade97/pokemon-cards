@@ -252,6 +252,10 @@ interface CopyDao {
     @Query("SELECT * FROM owned_copies WHERE uuid = :uuid")
     suspend fun byUuid(uuid: String): OwnedCopyEntity?
 
+    /** How many cards the user owns, quantities included; the first-run goal counts toward 10 with it (#174). */
+    @Query("SELECT COALESCE(SUM(quantity), 0) FROM owned_copies")
+    fun observeCardCount(): Flow<Int>
+
     /** The All Cards collection: every owned copy, newest first. */
     @Query("SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN ORDER BY o.createdAt DESC, o.id DESC")
     fun observeAllCopies(): Flow<List<CopyWithCard>>
@@ -396,13 +400,16 @@ interface ScanSessionDao {
     )
     fun observeSession(sessionId: String): Flow<List<CopyWithCard>>
 
-    /** Copies in [setIds] that this session did not add: what a set slot was filled with before (#163). */
+    /**
+     * Set numbers in [setIds] owned through copies this session did not add: the slots that were filled before
+     * (#163). Only the distinct numbers, not whole copies, since the receipt asks again on every change (#175).
+     */
     @Query(
         """
-        SELECT $COPY_WITH_CARD_COLUMNS $COPY_WITH_CARD_JOIN
+        SELECT DISTINCT c.setId AS setId, c.localId AS localId $COPY_WITH_CARD_JOIN
         WHERE c.setId IN (:setIds)
             AND o.id NOT IN (SELECT copyId FROM scan_session_copies WHERE sessionId = :sessionId)
         """,
     )
-    suspend fun otherCopiesInSets(sessionId: String, setIds: List<String>): List<CopyWithCard>
+    suspend fun otherNumbersInSets(sessionId: String, setIds: List<String>): List<SetNumber>
 }

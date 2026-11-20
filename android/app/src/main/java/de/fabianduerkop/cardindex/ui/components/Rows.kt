@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.heading
@@ -78,10 +79,11 @@ fun DataRow(label: String, value: String, modifier: Modifier = Modifier) {
 
 /** A thin completion bar for a set, e.g. 87 of 165. The surrounding text says the numbers; this repeats them for TalkBack. */
 @Composable
-fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier) {
+fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier, marks: List<Float> = emptyList()) {
     val fraction = if (total > 0) (owned.toFloat() / total).coerceIn(0f, 1f) else 0f
     val track = MaterialTheme.colorScheme.outlineVariant
     val fill = MaterialTheme.colorScheme.primary
+    val gap = MaterialTheme.colorScheme.background
     Canvas(
         modifier
             .fillMaxWidth()
@@ -91,6 +93,11 @@ fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier) {
         val radius = CornerRadius(size.height / 2)
         drawRoundRect(track, cornerRadius = radius)
         if (fraction > 0f) drawRoundRect(fill, size = Size(size.width * fraction, size.height), cornerRadius = radius)
+        // Milestones (#169) as small gaps in the bar, so 25, 50 and 75 % read as steps.
+        val gapWidth = 2.dp.toPx()
+        marks.forEach { mark ->
+            drawRect(gap, topLeft = Offset(size.width * mark - gapWidth / 2, 0f), size = Size(gapWidth, size.height))
+        }
     }
 }
 

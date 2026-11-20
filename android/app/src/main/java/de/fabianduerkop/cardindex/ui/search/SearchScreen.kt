@@ -57,6 +57,7 @@ import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
+import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.components.focusRing
@@ -78,6 +79,8 @@ fun SearchScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     title: String = stringResource(R.string.search_title),
+    /** The way out of "No cards found" (#174); null where scanning makes no sense, such as picking a card in Review. */
+    onOpenScan: (() -> Unit)? = null,
     viewModel: SearchViewModel = viewModel(
         factory = containerViewModelFactory { container, saved ->
             SearchViewModel(
@@ -143,7 +146,7 @@ fun SearchScreen(
                         modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
                     )
                 }
-                else -> results(state.results, onOpenCard = onOpenCard, onRetry = viewModel::retry)
+                else -> results(state.results, onOpenCard = onOpenCard, onRetry = viewModel::retry, onOpenScan = onOpenScan)
             }
         }
     }
@@ -175,6 +178,7 @@ private fun LazyListScope.results(
     results: SearchResults,
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
+    onOpenScan: (() -> Unit)?,
 ) {
     when (results) {
         SearchResults.Idle -> item { Note(stringResource(R.string.search_hint)) }
@@ -189,7 +193,7 @@ private fun LazyListScope.results(
             )
         }
         is SearchResults.Found -> if (results.hits.isEmpty()) {
-            item { NoMatch() }
+            item { NoMatch(onOpenScan) }
         } else {
             item {
                 Text(
@@ -222,7 +226,7 @@ private fun Note(text: String) {
 }
 
 @Composable
-private fun NoMatch() {
+private fun NoMatch(onOpenScan: (() -> Unit)?) {
     Column(
         Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.xxl),
         horizontalAlignment = Alignment.CenterHorizontally,
@@ -245,6 +249,9 @@ private fun NoMatch() {
             textAlign = TextAlign.Center,
             modifier = Modifier.padding(top = Spacing.xs),
         )
+        if (onOpenScan != null) {
+            SecondaryButton(stringResource(R.string.search_none_scan), onClick = onOpenScan, modifier = Modifier.padding(top = Spacing.md))
+        }
     }
 }
 

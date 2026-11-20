@@ -18,6 +18,9 @@ import de.fabianduerkop.cardindex.recognition.Quad
 /**
  * Draws the card guide (dashed) and the detected outline over a frame shown with ContentScale.Fit, so both line up
  * with what is analysed; a dot marks the outline's first corner. Shared by the Scan screen and the lab.
+ *
+ * [halo] (0 to 1, read only while drawing, so animating it redraws without recomposing) draws a wide light band
+ * behind the outline: the brief accent of a valuable hit (#168).
  */
 @Composable
 fun FrameOverlay(
@@ -28,6 +31,8 @@ fun FrameOverlay(
     outlineColor: Color,
     modifier: Modifier = Modifier,
     guideColor: Color = LumifoilTheme.colors.camera.guide,
+    halo: () -> Float = { 0f },
+    haloColor: Color = LumifoilTheme.colors.camera.content,
 ) {
     Canvas(modifier.fillMaxSize()) {
         val fw = frameWidth.toFloat()
@@ -42,11 +47,16 @@ fun FrameOverlay(
         }
         outline?.let {
             val pts = map(it)
+            val h = halo().coerceIn(0f, 1f)
+            if (h > 0f) drawQuad(pts, haloColor.copy(alpha = HALO_ALPHA * h), Stroke(width = 12.dp.toPx()))
             drawQuad(pts, outlineColor, Stroke(width = 3.dp.toPx()))
             drawCircle(outlineColor, radius = 5.dp.toPx(), center = pts[0])
         }
     }
 }
+
+/** The halo at its brightest: clearly there on a dark table, still calm on a bright one. */
+private const val HALO_ALPHA = 0.55f
 
 private fun DrawScope.drawQuad(pts: List<Offset>, color: Color, stroke: Stroke) {
     val path = Path().apply {
