@@ -68,7 +68,7 @@ private fun size(bytes: Long): String = Formatter.formatShortFileSize(LocalConte
 @Composable
 fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = languagesViewModel()) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val deviceLanguage = LocalConfiguration.current.locales[0].language
+    val deviceLanguage = packLanguageOf(LocalConfiguration.current.locales[0])
     var touched by rememberSaveable { mutableStateOf<Set<String>?>(null) }
     val picked = state.pickerChoice(touched, deviceLanguage)
     Surface(Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {

@@ -3,6 +3,7 @@ package de.fabianduerkop.cardindex.ui.packs
 
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.util.Locale
 
 class PickerChoiceTest {
     private fun row(code: String, available: Boolean) =
@@ -31,5 +32,20 @@ class PickerChoiceTest {
     fun keepsTheUsersChoiceButDropsLanguagesWithoutAPack() {
         assertEquals(setOf("de"), state.pickerChoice(setOf("de", "nl"), "en"))
         assertEquals(emptySet<String>(), state.pickerChoice(emptySet(), "en"))
+    }
+
+    @Test
+    fun mapsTheTraditionalChineseLocalesToTheZhTwPack() {
+        fun of(tag: String) = packLanguageOf(Locale.forLanguageTag(tag))
+        assertEquals("zh-tw", of("zh-TW"))
+        assertEquals("zh-tw", of("zh-HK"))
+        assertEquals("zh-tw", of("zh-Hant"))
+        assertEquals("zh-tw", of("zh-Hant-CN"))
+        assertEquals("zh-cn", of("zh-CN"))
+        assertEquals("zh-cn", of("zh-Hans-HK"))
+        assertEquals("ko", of("ko-KR"))
+        assertEquals("de", of("de-AT"))
+        val zhTw = LanguagesUiState(rows = listOf(row("en", true), row("zh-tw", true)))
+        assertEquals(setOf("zh-tw"), zhTw.pickerChoice(null, of("zh-TW")))
     }
 }

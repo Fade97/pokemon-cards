@@ -20,12 +20,35 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.Locale
 
-/** The pack languages of format version 1 (docs/packs.md), in the order the picker lists them. */
-val PACK_LANGUAGES = listOf("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ja")
+/**
+ * The pack languages of format version 1 (docs/packs.md), in the order the picker lists them. A language without a
+ * pack in the catalog shows as unavailable. `zh-tw` is Traditional Chinese (Taiwan and Hong Kong), #18.
+ */
+val PACK_LANGUAGES = listOf("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ja", "zh-tw", "ko")
 
-/** The language's name in the phone's language, e.g. "German" for `de`. */
-fun languageName(code: String): String =
-    Locale.forLanguageTag(code).getDisplayLanguage(Locale.getDefault()).replaceFirstChar { it.titlecase(Locale.getDefault()) }
+/** The language's name in the phone's language, e.g. "German" for `de`, "Chinese (Traditional)" for `zh-tw`. */
+fun languageName(code: String): String {
+    val here = Locale.getDefault()
+    // TCGdex's zh-tw covers Taiwan and Hong Kong: name the script, not one region.
+    val name = if (code == TRADITIONAL_CHINESE) {
+        Locale.forLanguageTag("zh-Hant").getDisplayName(here)
+    } else {
+        Locale.forLanguageTag(code).getDisplayLanguage(here)
+    }
+    return name.replaceFirstChar { it.titlecase(here) }
+}
+
+private const val TRADITIONAL_CHINESE = "zh-tw"
+
+/**
+ * The pack language that fits the phone's [locale]: its language code, except Chinese, which is `zh-tw` for the
+ * traditional script (Taiwan, Hong Kong, Macau) and `zh-cn` (no pack yet) for the simplified one.
+ */
+fun packLanguageOf(locale: Locale): String {
+    if (locale.language != "zh") return locale.language
+    val traditional = locale.script == "Hant" || (locale.script.isEmpty() && locale.country in setOf("TW", "HK", "MO"))
+    return if (traditional) TRADITIONAL_CHINESE else "zh-cn"
+}
 
 data class LanguageRow(
     val code: String,

@@ -170,6 +170,20 @@ def fetch_variants(lang: str, cache: Path, *, max_age_days: float) -> dict[str, 
     return variants
 
 
+def read_metadata(work: Path, lang: str) -> dict:
+    """<work>/<lang>/metadata.json, which a language that borrows from `lang` (packs.STANDIN_LANGS,
+    packs.CARD_LIST_LANGS) needs; fetch `lang` first."""
+    path = work / lang / "metadata.json"
+    if not path.exists():
+        raise SystemExit(f"{path} is missing: fetch {lang} first (--langs {lang},...)")
+    return json.loads(path.read_text(encoding="utf-8"))
+
+
+def bases_first(langs: list[str]) -> list[str]:
+    """`langs` with every language a listed one borrows from (packs.STANDIN_LANGS) moved before it."""
+    return sorted(langs, key=lambda lang: lang in packs.STANDIN_LANGS)
+
+
 def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_days: float, workers: int,
                cdn_gap: bool = True) -> dict:
     """Card metadata of one language. Set answers are cached in <work>/tcgdex/<lang>/ and fetched again when the
@@ -196,15 +210,21 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
         answers = list(ex.map(one, listing))
     sets = [packs.set_record(s) for s in answers]
     cards = [c for s in answers for c in packs.card_records(s)]
-    if cdn_gap:
+    # ko/zh-tw: 21 of 21 files the API leaves out were 404 on the CDN (2026-11-18), and the Japanese image stands in.
+    if cdn_gap and lang not in packs.STANDIN_LANGS:
         found = probe_cdn_gap(lang, sets, cards, cache.parent / f"{lang}.cdn-gap.json",
                               max_age_days=max_age_days, workers=workers)
         cards = packs.fill_cdn_gap(cards, found)
     cards = packs.fill_printings(cards, fetch_variants(lang, cache.parent / f"{lang}.variants.json",
                                                        max_age_days=max_age_days))
+    if base_lang := packs.CARD_LIST_LANGS.get(lang):
+        base = read_metadata(work, base_lang)
+        own = sum(1 for c in cards if c["name"])
+        sets, cards = packs.merge_card_list(sets, cards, base["sets"], base["cards"])
+        print(f"{lang}: card list of {base_lang} ({len(cards)} cards), own names for {own}")
     known = sum(1 for c in cards if c["printings"])
     print(f"{lang}: printings known for {known} of {len(cards)} cards")
-    meta = {"lang": lang, "fetchedAt": now_iso(), "sets": packs.sort_sets(sets), "cards": packs.sort_cards(cards)}
+    meta ={"lang": lang, "fetchedAt": now_iso(), "sets": packs.sort_sets(sets), "cards": packs.sort_cards(cards)}
     out = work / lang / "metadata.json"
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_text(json.dumps(meta, ensure_ascii=False, indent=1), encoding="utf-8")
@@ -279,6 +299,33 @@ def embed_rows(cards: list, cached: dict[str, tuple[str, bytes]], embed_one, *, 
     return ids, rows, entries, stats
 
 
+def read_embedding_cache(cache_json: Path, cache_bin: Path, dim: int, lang: str) -> dict[str, tuple[str, bytes]]:
+    """Card id -> (image sha256, row) from one language's embedding cache; empty when it is missing or broken."""
+    cached: dict[str, tuple[str, bytes]] = {}
+    if cache_json.exists() and cache_bin.exists():
+        entries = json.loads(cache_json.read_text())
+        blob = cache_bin.read_bytes()
+        if len(blob) == len(entries) * dim * 4:
+            for n, (cid, img_sha) in enumerate(entries):
+                cached[cid] = (img_sha, blob[n * dim * 4:(n + 1) * dim * 4])
+        else:
+            print(f"{lang}: embedding cache does not match its ids, starting over")
+    return cached
+
+
+def read_work_embeddings(work: Path, lang: str, model_sha: str, dim: int) -> dict[str, tuple[str, bytes]]:
+    """Card id -> ("", row) from <work>/<lang>/embeddings.*, the rows the language's pack indexes; empty when they
+    are missing or from another model. The image hash is unknown (""), so an image file on disk is embedded again."""
+    info_path, bin_path = work / lang / "embeddings.json", work / lang / "embeddings.bin"
+    if not info_path.exists() or not bin_path.exists():
+        return {}
+    info = json.loads(info_path.read_text())
+    blob = bin_path.read_bytes()
+    if info.get("modelSha256") != model_sha or info.get("dim") != dim or len(blob) != len(info["ids"]) * dim * 4:
+        return {}
+    return {cid: ("", blob[n * dim * 4:(n + 1) * dim * 4]) for n, cid in enumerate(info["ids"])}
+
+
 def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, download_images: bool,
           threads: int, drop_images: bool = False, chunk: int = 256) -> None:
     """Embeds every card that has a reference image with the app's own .tflite model (same code path as
@@ -315,23 +362,37 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
             continue
         meta = json.loads(meta_path.read_text(encoding="utf-8"))
         sets = {s["id"]: s for s in meta["sets"]}
+        base_lang = packs.STANDIN_LANGS.get(lang)
+        standin = packs.standin_images(meta["cards"], read_metadata(work, base_lang)["cards"]) if base_lang else {}
         # Cards TCGdex has no image of are embedded from another source where one is known (packs.REF_FALLBACK,
-        # e.g. set mee); their pack entry keeps `image: null`.
-        cards = [Card(f"{lang}/{c['id']}", c["id"], lang, c["setId"], sets[c["setId"]]["name"], c["localId"],
-                      int(sets[c["setId"]]["official"] or 0), c["name"], "", (), url)
-                 for c in meta["cards"] if (url := packs.reference_image(lang, c))]
+        # e.g. set mee) or from the same card in the stand-in language (ko, zh-tw: Japanese); their pack entry keeps
+        # `image: null`. A stand-in card's image file is the base language's, so the two share it on disk.
+        cards = [Card(f"{lang}/{c['id']}", c["id"], base_lang if c["id"] in standin else lang, c["setId"],
+                      sets[c["setId"]]["name"], c["localId"], int(sets[c["setId"]]["official"] or 0), c["name"], "",
+                      (), url)
+                 for c in meta["cards"] if (url := packs.reference_image(lang, c, standin))]
         cache_dir = DATA_DIR / "packs-embcache" / model_sha[:12]
         cache_dir.mkdir(parents=True, exist_ok=True)
         cache_json, cache_bin = cache_dir / f"{lang}.json", cache_dir / f"{lang}.bin"
-        cached: dict[str, tuple[str, bytes]] = {}
-        if cache_json.exists() and cache_bin.exists():
-            entries = json.loads(cache_json.read_text())
-            blob = cache_bin.read_bytes()
-            if len(blob) == len(entries) * dim * 4:
-                for n, (cid, img_sha) in enumerate(entries):
-                    cached[cid] = (img_sha, blob[n * dim * 4:(n + 1) * dim * 4])
-            else:
-                print(f"{lang}: embedding cache does not match its ids, starting over")
+        cached = read_embedding_cache(cache_json, cache_bin, dim, lang)
+        # Stand-in rows come from the base language's cache on every run and are never saved under `lang`: once
+        # TCGdex adds the card's own image, the card is not cached here and gets embedded from that image.
+        if standin:
+            base_cached = read_embedding_cache(cache_dir / f"{base_lang}.json", cache_dir / f"{base_lang}.bin", dim,
+                                               base_lang)
+            base_cached.update(read_work_embeddings(work, base_lang, model_sha, dim))
+            paths = {c.card_id: c.ref_path for c in cards}
+            for cid in standin:
+                cached.pop(cid, None)
+                if cid in base_cached:
+                    # The base pack's row as it is, so both packs hold the same bytes for the card: a row from the
+                    # work dir has no image hash, so take the file's, or embed_rows would embed it again.
+                    sha, row = base_cached[cid]
+                    if not sha and paths[cid].exists():
+                        sha = packs.sha256_bytes(paths[cid].read_bytes())
+                    cached[cid] = (sha, row)
+            print(f"{lang}: {len(standin)} cards use the {base_lang} image, "
+                  f"{sum(1 for cid in standin if cid in cached)} of them from the {base_lang} embedding cache")
 
         download = None
         if download_images:
@@ -343,6 +404,9 @@ def embed(work: Path, langs: list[str], *, model_rel: str, corners_rel: str, dow
         def save_cache(entries: list, rows: list) -> None:
             # A crash at any point leaves the old pair, no cache, or the new pair; never ids from one save with
             # rows from another (the loader needs both files).
+            if standin:
+                kept = [n for n, e in enumerate(entries) if e[0] not in standin]
+                entries, rows = [entries[n] for n in kept], [rows[n] for n in kept]
             tmp_json, tmp_bin = cache_json.with_suffix(".json.tmp"), cache_bin.with_suffix(".bin.tmp")
             tmp_bin.write_bytes(b"".join(rows))
             tmp_json.write_text(json.dumps(entries))
@@ -582,6 +646,7 @@ def main(argv: list[str] | None = None) -> None:
         for add in adders:
             add(p)
     args = ap.parse_args(argv)
+    args.langs = bases_first(args.langs)
     if getattr(args, "drop_images", False) and not args.download_images:
         sys.exit("--drop-images only deletes images this run downloads; pass --download-images too")
     if getattr(args, "upload", False) and args.no_embeddings:

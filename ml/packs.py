@@ -15,8 +15,18 @@ from dataclasses import dataclass
 from pathlib import Path
 
 FORMAT_VERSION = 1
-# TCGdex language codes of the v1 packs (ADR 0003: EU + JP). "ja" is TCGdex's code for Japanese.
-LANGS = ("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ja")
+# TCGdex language codes of the v1 packs (ADR 0003: EU + JP, #18: Korean and Traditional Chinese). "ja" is TCGdex's
+# code for Japanese, "zh-tw" for Traditional Chinese (Taiwan and Hong Kong).
+LANGS = ("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ja", "zh-tw", "ko")
+
+# Languages that print the Japanese sets: same set codes and numbers, and TCGdex gives their cards the Japanese
+# card's id (docs/research/ko-zh-card-sources.md, #18). Where TCGdex has no image in the language, the Japanese
+# card's image is the reference to embed; the pack's `image` stays the language's own, so the app never shows the
+# Japanese card (ADR 0009). Language -> the language whose images stand in.
+STANDIN_LANGS = {"zh-tw": "ja", "ko": "ja"}
+# Of those, languages whose own TCGdex card list is almost empty (ko: 239 cards in 3 of 95 sets on 2026-11-18): their
+# card list is the other language's, with the own names where TCGdex has them. Language -> the list's language.
+CARD_LIST_LANGS = {"ko": "ja"}
 # Delta links kept in the catalog per language. An app further behind downloads the full pack.
 MAX_DELTAS = 6
 
@@ -153,9 +163,51 @@ def ref_fallback_url(lang: str, set_id: str, local_id: str) -> str | None:
     return f"{REF_FALLBACK}/{code}/{code}_{int(local_id):03d}_R_{llang}_LG.png"
 
 
-def reference_image(lang: str, card: dict) -> str | None:
-    """Where the embed step gets a card's reference image: TCGdex's base URL, else `ref_fallback_url`."""
-    return card["image"] or ref_fallback_url(lang, card["setId"], card["localId"] or "")
+def reference_image(lang: str, card: dict, standin: dict[str, str] | None = None) -> str | None:
+    """Where the embed step gets a card's reference image: TCGdex's base URL, else the stand-in image of the same
+    card in another language (`standin_images`), else `ref_fallback_url`."""
+    return (card["image"] or (standin or {}).get(card["id"])
+            or ref_fallback_url(lang, card["setId"], card["localId"] or ""))
+
+
+def standin_images(cards: list[dict], base_cards: list[dict]) -> dict[str, str]:
+    """Card id -> the image base URL of the card with the same id in `base_cards`, for the cards without an own
+    image (STANDIN_LANGS). Cards the base has no image of are left out."""
+    base = {c["id"]: c["image"] for c in base_cards if c["image"]}
+    return {c["id"]: base[c["id"]] for c in cards if not c["image"] and c["id"] in base}
+
+
+# Set fields the own language's TCGdex answer replaces in a borrowed card list. The card counts stay the base's: a
+# set the own language lists without cards would otherwise count 0.
+OWN_SET_FIELDS = ("name", "serieName", "releaseDate", "abbreviation", "logo", "symbol")
+
+
+def merge_card_list(own_sets: list[dict], own_cards: list[dict], base_sets: list[dict],
+                    base_cards: list[dict]) -> tuple[list[dict], list[dict]]:
+    """The sets and cards of a language that borrows the card list of another (CARD_LIST_LANGS).
+
+    Every base set and card, with the own language's names, set fields and printings where TCGdex has them, plus
+    the own cards and sets the base lacks. `image` is always the own language's (null for a borrowed card): the
+    base's image is only ever a stand-in to embed (standin_images), never one the app shows.
+    """
+    own_set = {s["id"]: s for s in own_sets}
+    own_card = {c["id"]: c for c in own_cards}
+    sets = []
+    for s in base_sets:
+        own = own_set.get(s["id"], {})
+        sets.append({**s, **{k: own[k] for k in OWN_SET_FIELDS if own.get(k)}})
+    sets += [s for s in own_sets if s["id"] not in {b["id"] for b in base_sets}]
+    cards = []
+    for c in base_cards:
+        own = own_card.get(c["id"])
+        if own is None:
+            cards.append({**c, "image": None, "printings": c.get("printings")})
+        else:
+            cards.append({**own, "name": own["name"] or c["name"],
+                          "printings": own["printings"] or c.get("printings")})
+    base_ids = {c["id"] for c in base_cards}
+    cards += [c for c in own_cards if c["id"] not in base_ids]
+    return sort_sets(sets), sort_cards(cards)
 
 
 def app_image_url(url: str | None) -> str | None:
