@@ -6,6 +6,7 @@ import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.CopyWithCard
+import de.fabianduerkop.cardindex.data.db.SetNumber
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
@@ -47,12 +48,12 @@ data class SessionReceipt(
 
     companion object {
         /**
-         * The receipt of [session]'s copies. [before] are the other copies in the same sets (not from this session),
-         * to tell which slots are new; [pricesByCard] the cached prices, [source] the user's main market.
+         * The receipt of [session]'s copies. [before] are the numbers other copies in the same sets own (not from
+         * this session), to tell which slots are new; [pricesByCard] the cached prices, [source] the user's main market.
          */
         fun build(
             session: List<CopyWithCard>,
-            before: List<CopyWithCard>,
+            before: List<SetNumber>,
             pricesByCard: Map<String, List<CachedPriceEntity>>,
             source: PriceSource,
         ): SessionReceipt {
@@ -72,7 +73,7 @@ data class SessionReceipt(
                     )
                 }
                 .sortedWith(compareByDescending<ReceiptLine> { it.quote?.amountMinor ?: -1L }.thenBy { it.card.name })
-            val filledBefore = before.mapTo(HashSet()) { slot(it) }
+            val filledBefore = before.mapTo(HashSet()) { it.setId to numberKey(it.localId) }
             return SessionReceipt(
                 cards = session.sumOf { it.copy.quantity },
                 value = value,

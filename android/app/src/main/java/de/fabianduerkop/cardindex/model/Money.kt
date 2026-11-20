@@ -15,6 +15,15 @@ object Money {
         return format.format(BigDecimal.valueOf(minor, 2))
     }
 
+    /** A round amount without cents, for figures like a threshold: `€20`, `$20`. */
+    fun formatWhole(minor: Long, currency: String, locale: Locale = Locale.getDefault()): String {
+        val format = NumberFormat.getCurrencyInstance(locale)
+        runCatching { format.currency = Currency.getInstance(currency) }
+        format.minimumFractionDigits = 0
+        format.maximumFractionDigits = 0
+        return format.format(BigDecimal.valueOf(minor, 2))
+    }
+
     /** The amount alone, for an input field next to a currency symbol: `24,50` in German. */
     fun formatPlain(minor: Long, locale: Locale = Locale.getDefault()): String {
         val format = NumberFormat.getNumberInstance(locale).apply {

@@ -8,6 +8,10 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
+import de.fabianduerkop.cardindex.data.collections.Milestone
+import de.fabianduerkop.cardindex.data.collections.Recap
+import de.fabianduerkop.cardindex.data.collections.RecapPeriod
+import de.fabianduerkop.cardindex.data.collections.Recaps
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.collections.SetSlot
@@ -45,6 +49,7 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -55,12 +60,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 
 /** Cards fanned on the featured set cover. */
 private const val FEATURED_ART = 3
@@ -188,6 +195,9 @@ enum class CollectionsView {
     }
 }
 
+/** A recap the Collections home offers (#175); [new] until opened. */
+data class RecapEntry(val period: RecapPeriod, val new: Boolean)
+
 private data class CollectionsBase(
     val languages: List<String>,
     val chosen: Set<String>,
@@ -201,11 +211,14 @@ class CollectionsViewModel(
     private val repository: CollectionRepository,
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
-    history: PriceHistoryRepository,
-    isPro: Flow<Boolean>,
+    private val history: PriceHistoryRepository,
+    private val isPro: Flow<Boolean>,
     pinnedSet: Flow<String?> = flowOf(null),
     storedView: String? = null,
     private val saveView: (String) -> Unit = {},
+    openedRecaps: Set<String> = emptySet(),
+    private val markRecapOpened: (String) -> Unit = {},
+    private val today: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
     private val chosenView = MutableStateFlow(CollectionsView.fromStored(storedView))
@@ -289,13 +302,15 @@ class CollectionsViewModel(
         if (!pro) {
             flowOf(emptyMap())
         } else {
-            val today = history.today()
+            // The history window is fixed when Pro turns on; "today" is read on every update, so a screen left open
+            // past midnight (UTC) still judges staleness by the real date.
             combine(
                 base,
                 prices.observeAll(),
-                history.observeAll(WeeklyPriceChange.from(today)),
+                history.observeAll(WeeklyPriceChange.from(history.today())),
                 primarySource,
             ) { b, priceMap, rows, source ->
+                val today = history.today()
                 b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
                     .groupBy { it.set.id }
                     .mapNotNull { (setId, copies) ->
@@ -305,6 +320,50 @@ class CollectionsViewModel(
             }.flowOn(Dispatchers.Default)
         }
     }.stateIn(this, emptyMap())
+
+    private val opened = MutableStateFlow(openedRecaps)
+
+    /**
+     * Recaps ready to look at (#175): last month all through this month, last year in January, each only when
+     * something was added in it. No notification; [RecapEntry.new] until it was opened once.
+     */
+    val recaps: StateFlow<List<RecapEntry>> = combine(repository.observeAllCopies(), opened) { copies, seen ->
+        val zone = ZoneId.systemDefault()
+        RecapPeriod.ready(today())
+            .filter { period -> copies.any { period.contains(it.copy.createdAt, zone) } }
+            .map { RecapEntry(it, new = it.key !in seen) }
+    }.flowOn(Dispatchers.Default).stateIn(this, emptyList())
+
+    private val openRecap = MutableStateFlow<RecapPeriod?>(null)
+
+    /**
+     * The recap on screen, from the collection as it is now and, with Pro, the cached price history (ADR 0012);
+     * computed only while one is open.
+     */
+    val recap: StateFlow<Recap?> = openRecap.flatMapLatest { period ->
+        if (period == null) {
+            flowOf(null)
+        } else {
+            val rows = isPro.distinctUntilChanged().flatMapLatest { pro -> if (pro) history.observeAll(period.start) else flowOf(null) }
+            combine(repository.observeAllCopies(), prices.observeAll(), primarySource, rows) { copies, priceMap, source, historyRows ->
+                Recaps.build(period, copies, priceMap, source, historyRows)
+            }.flowOn(Dispatchers.Default)
+        }
+    }.stateIn(this, null)
+
+    /** Opens the recap of [period]; with Pro it also loads the price history back to its start. */
+    fun showRecap(period: RecapPeriod) {
+        openRecap.value = period
+        markRecapOpened(period.key)
+        opened.value = opened.value + period.key
+        viewModelScope.launch {
+            if (!isPro.first()) return@launch
+            val ids = repository.observeAllCopies().first().mapTo(HashSet()) { it.copy.cardId }
+            if (ids.isNotEmpty()) runCatching { history.refresh(ids, period.start) }
+        }
+    }
+
+    fun closeRecap() { openRecap.value = null }
 
     /** Wishlist entries (#134) the user has no copy of yet, for the wishlist row. */
     val wishlistCount: StateFlow<Int> = repository.observeWishlistCount().stateIn(this, 0)
@@ -358,6 +417,9 @@ internal object SetLegend {
     const val FIRST_VISITS = 3
 
     fun showsOnVisit(pastVisits: Int): Boolean = pastVisits < FIRST_VISITS
+
+    /** One visit after [pastVisits] earlier ones: whether the legend shows, and [record] counted only when it does. */
+    fun visit(pastVisits: Int, record: () -> Unit): Boolean = showsOnVisit(pastVisits).also { if (it) record() }
 }
 
 data class SetDetailUiState(
@@ -386,6 +448,10 @@ class SetDetailViewModel(
     private val pinSet: (String?) -> Unit = {},
     pastLegendVisits: Int = SetLegend.FIRST_VISITS,
     recordLegendVisit: () -> Unit = {},
+    private val celebrate: suspend (setId: String, language: String) -> Milestone? = { _, _ -> null },
+    lastVisit: Long? = null,
+    recordVisit: (atMillis: Long) -> Unit = {},
+    now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
     private val selected = MutableStateFlow(emptySet<String>())
@@ -393,11 +459,7 @@ class SetDetailViewModel(
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
     // One visit per screen, not per rotation: the view model outlives configuration changes (#165).
-    private val legend = MutableStateFlow(SetLegend.showsOnVisit(pastLegendVisits))
-
-    init {
-        if (legend.value) recordLegendVisit()
-    }
+    private val legend = MutableStateFlow(SetLegend.visit(pastLegendVisits, recordLegendVisit))
 
     private val view = combine(selected, mode, filter, photos, pinnedSet) { chosen, mode, filter, photos, pinnedId ->
         SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
@@ -435,6 +497,45 @@ class SetDetailViewModel(
 
     /** Pins this set to the Collections foil cover, or unpins it so the most valuable set returns (#156). */
     fun togglePinned() = pinSet(if (state.value.pinned) null else setId)
+
+    private val _milestone = MutableStateFlow<Milestone?>(null)
+
+    /**
+     * A milestone of this set reached since it was last celebrated (#169), e.g. through Review or a hand-added copy;
+     * the screen shows it once, then [dismissMilestone].
+     */
+    val milestone: StateFlow<Milestone?> = _milestone
+
+    fun dismissMilestone() { _milestone.value = null }
+
+    private val _newSlots = MutableStateFlow(emptySet<String>())
+
+    /** Numbers ([numberKey]) filled since the last visit (#169): each pulses once. None on the first visit. */
+    val newSlots: StateFlow<Set<String>> = _newSlots
+
+    init {
+        recordVisit(now())
+        viewModelScope.launch {
+            val detail = state.first { !it.loading }.detail ?: return@launch
+            if (lastVisit != null) {
+                _newSlots.value = detail.copies.filter { it.copy.createdAt.toEpochMilli() > lastVisit }
+                    .mapTo(HashSet()) { numberKey(it.card.localId) }
+            }
+            _milestone.value = withContext(Dispatchers.IO) {
+                detail.copies.map { it.copy.cardLanguage }.distinct()
+                    .mapNotNull { runCatching { celebrate(setId, it) }.getOrNull() }
+                    .maxByOrNull { it.level }
+            }
+        }
+    }
+
+    /**
+     * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist
+     * mark them (#170), so a friend sees which missing cards matter most.
+     */
+    val wantedNumbers: StateFlow<Set<String>> = repository.observeWishlist()
+        .map { wanted -> wanted.filter { !it.found && it.set.id == setId }.mapTo(HashSet()) { numberKey(it.card.localId) } }
+        .stateIn(this, emptySet())
 }
 
 data class CardDetailUiState(
@@ -597,6 +698,7 @@ class CollectionDetailViewModel(
     savedState: SavedStateHandle,
     history: PriceHistoryRepository? = null,
     isPro: Flow<Boolean> = flowOf(false),
+    private val chooseScanTarget: suspend (collectionId: Long?) -> Unit = {},
 ) : ViewModel() {
     /** [CollectionsRoutes.ALL_CARDS] for All cards. */
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
@@ -634,6 +736,17 @@ class CollectionDetailViewModel(
     }.stateIn(this, CollectionDetailUiState())
 
     /**
+     * Makes this collection the scan target and then [openScan]s (#174), so the first scans of an empty binder land
+     * in it. All cards keeps the current target: every scan goes there anyway.
+     */
+    fun scanHere(openScan: () -> Unit) {
+        viewModelScope.launch {
+            state.value.collection?.let { chooseScanTarget(it.id) }
+            openScan()
+        }
+    }
+
+    /**
      * Pro (#173): the weekly change of each copy's price as its row shows it (per card, that market and printing), by
      * copy id. Copies without a week of history are missing; empty without Pro.
      */
@@ -645,8 +758,8 @@ class CollectionDetailViewModel(
                 if (!pro) {
                     flowOf(emptyMap())
                 } else {
-                    val today = history.today()
-                    combine(state, history.observeAll(WeeklyPriceChange.from(today))) { s, rows ->
+                    combine(state, history.observeAll(WeeklyPriceChange.from(history.today()))) { s, rows ->
+                        val today = history.today()
                         s.copies.mapNotNull { item ->
                             val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
                             WeeklyPriceChange.ofQuote(rows[item.card.id].orEmpty(), quote, today)?.let { item.copy.id to it }

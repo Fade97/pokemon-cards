@@ -60,6 +60,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.paneTitle
@@ -100,6 +101,8 @@ data class CardViewerImage(
     val label: String,
     val description: String,
     val key: String = model.toString(),
+    /** The user's own photo, stored on the phone: when it fails, a connection is not the reason. */
+    val ownPhoto: Boolean = false,
     val foil: FoilFinish? = null,
 )
 
@@ -285,6 +288,7 @@ private fun ZoomablePage(
     var animation by remember { mutableStateOf<Job?>(null) }
     val scope = rememberCoroutineScope()
     val density = LocalDensity.current
+    val failedText = stringResource(if (image.ownPhoto) R.string.viewer_photo_failed else R.string.viewer_image_failed)
     val zoomIn = stringResource(R.string.viewer_zoom_in)
     val zoomReset = stringResource(R.string.viewer_zoom_reset)
     // Read in composition only when they flip, not on every frame of a pinch.
@@ -344,8 +348,9 @@ private fun ZoomablePage(
                     )
                 }
                 .semantics {
-                    contentDescription = image.description
-                    customActions = buildList {
+                    // A failed page says so instead of describing a picture that isn't there, and offers no zoom.
+                    contentDescription = if (failed) failedText else image.description
+                    if (!failed) customActions = buildList {
                         if (canZoomIn) {
                             add(
                                 CustomAccessibilityAction(zoomIn) {
@@ -407,11 +412,12 @@ private fun ZoomablePage(
             }
             if (failed) {
                 Text(
-                    stringResource(R.string.viewer_image_failed),
+                    failedText,
                     style = MaterialTheme.typography.bodyMedium,
                     color = LumifoilTheme.colors.camera.muted,
                     textAlign = TextAlign.Center,
-                    modifier = Modifier.padding(horizontal = Spacing.xxl),
+                    // The page above already says it to TalkBack.
+                    modifier = Modifier.padding(horizontal = Spacing.xxl).clearAndSetSemantics {},
                 )
             }
         }

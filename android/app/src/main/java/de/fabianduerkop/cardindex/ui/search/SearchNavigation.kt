@@ -22,13 +22,14 @@ object SearchRoutes {
     fun card(cardId: String, language: String) = "search/card/${Uri.encode(cardId)}/${Uri.encode(language)}"
 }
 
-/** [onOpenLanguages] opens Settings, where the card languages are chosen. */
-fun NavGraphBuilder.searchGraph(navController: NavController, onOpenLanguages: () -> Unit) {
+/** [onOpenLanguages] opens Settings, where the card languages are chosen; [onOpenScan] the Scan tab (#174). */
+fun NavGraphBuilder.searchGraph(navController: NavController, onOpenLanguages: () -> Unit, onOpenScan: () -> Unit) {
     navigation(startDestination = SearchRoutes.HOME, route = TopLevelDestination.SEARCH.route) {
         composable(SearchRoutes.HOME) {
             SearchScreen(
                 onOpenCard = { id, language -> navController.navigate(SearchRoutes.card(id, language)) },
                 onOpenLanguages = onOpenLanguages,
+                onOpenScan = onOpenScan,
             )
         }
         composable(SearchRoutes.CARD) { CardDetailScreen(onBack = { navController.popBackStack() }) }

@@ -14,6 +14,7 @@ import de.fabianduerkop.cardindex.data.catalog.CatalogSource
 import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.data.catalog.RoomCatalogSource
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
+import de.fabianduerkop.cardindex.data.collections.SetMilestones
 import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
 import de.fabianduerkop.cardindex.data.contributions.ContributionRepository
 import de.fabianduerkop.cardindex.data.contributions.ContributionWorker
@@ -41,6 +42,7 @@ import de.fabianduerkop.cardindex.recognition.MlKitNumberReader
 import de.fabianduerkop.cardindex.recognition.NumberReader
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import okhttp3.OkHttpClient
 import java.util.Locale
@@ -54,6 +56,16 @@ class AppContainer(private val context: Context) {
     val scans: ScanImageStore by lazy { ScanImageStore(context.filesDir.resolve("scans")) }
     val collections: CollectionRepository by lazy { CollectionRepository(database, catalog, scans) }
     val scanTarget: ScanTargetChoice by lazy { ScanTargetChoice(database, settings) }
+
+    /** Set milestones (#169): what was celebrated lives in the settings, the progress comes from the copies. */
+    val milestones: SetMilestones by lazy {
+        SetMilestones(
+            SetMilestones.Store({ settings.celebratedMilestones }, { settings.celebratedMilestones = it }),
+            SetMilestones.Store({ settings.milestonesSeeded }, { settings.milestonesSeeded = it }),
+            allCopies = { database.copyDao().observeAllCopies().first() },
+            copiesInSet = { database.copyDao().observeCopiesInSet(it).first() },
+        )
+    }
 
     /** Own photos plus the preference, for every screen that shows card images. */
     val ownPhotos: Flow<OwnPhotos> by lazy {

@@ -54,6 +54,18 @@ internal fun weeklyChangeText(change: WeeklyChange): String {
     return "$main · $covered"
 }
 
+/**
+ * "+12 % · 7 days" for a narrow price column (a copy row's 128 dp): the percentage, or the amount when there is none.
+ * The full amount and coverage stay in [weeklyChangeDescription] for TalkBack.
+ */
+@Composable
+internal fun weeklyChangeShortText(change: WeeklyChange): String {
+    if (change.direction == PriceDirection.FLAT) return stringResource(R.string.weekly_change_short_flat)
+    val sign = if (change.direction == PriceDirection.UP) "+" else "−"
+    val size = percentChange(change.startMinor, change.endMinor) ?: Money.format(abs(change.deltaMinor), change.currency)
+    return stringResource(R.string.weekly_change_short, sign + size)
+}
+
 /** What TalkBack says (#173): "Up 1,20 € (12 %) over the last 7 days, for 3 of 4 copies". */
 @Composable
 internal fun weeklyChangeDescription(change: WeeklyChange): String {
@@ -78,7 +90,12 @@ internal fun weeklyChangeDescription(change: WeeklyChange): String {
  * sign and the words carry the direction, and TalkBack hears [weeklyChangeDescription] instead of "minus" and symbols.
  */
 @Composable
-internal fun WeeklyChangeLine(change: WeeklyChange, modifier: Modifier = Modifier, textAlign: TextAlign? = null) {
+internal fun WeeklyChangeLine(
+    change: WeeklyChange,
+    modifier: Modifier = Modifier,
+    textAlign: TextAlign? = null,
+    short: Boolean = false,
+) {
     val description = weeklyChangeDescription(change)
     val icon = when (change.direction) {
         PriceDirection.UP -> R.drawable.ic_trend_up
@@ -96,7 +113,7 @@ internal fun WeeklyChangeLine(change: WeeklyChange, modifier: Modifier = Modifie
         )
         Spacer(Modifier.width(Spacing.xxs))
         Text(
-            weeklyChangeText(change),
+            if (short) weeklyChangeShortText(change) else weeklyChangeText(change),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = textAlign,
