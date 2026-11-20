@@ -21,6 +21,8 @@ import androidx.camera.core.resolutionselector.ResolutionStrategy
 import androidx.camera.view.CameraController
 import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -116,6 +118,7 @@ import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
+import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.review.VariantChoices
 import de.fabianduerkop.cardindex.ui.review.conditionLabel
 import de.fabianduerkop.cardindex.ui.review.editionLabel
@@ -250,6 +253,9 @@ private fun LiveScan(
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     var torch by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<CameraProblem?>(null) }
+    // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
+    val hit = hitFor(tray.latest, viewfinder.decision)
+    val halo = valueHalo(hit, viewfinder.hint, priceSource)
 
     val controller = remember {
         val fourThree = AspectRatioStrategy.RATIO_4_3_FALLBACK_AUTO_STRATEGY
@@ -300,14 +306,14 @@ private fun LiveScan(
                         // A paused camera shows no live outline: nothing is being read.
                         outline = viewfinder.outline.takeIf { !paused },
                         outlineColor = outlineColor(viewfinder.hint, LumifoilTheme.colors.camera),
+                        halo = { halo.value },
                     )
                 }
                 LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
                 CameraReading(
                     engine,
                     viewfinder,
-                    // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
-                    hit = hitFor(tray.latest, viewfinder.decision),
+                    hit = hit,
                     priceSource = priceSource,
                     paused = paused,
                     problem = problem,
@@ -334,6 +340,38 @@ private fun LiveScan(
         }
     }
 }
+
+/**
+ * The brief halo of a valuable hit (#168): in, a short hold, out, about 1.2 s, once per decision. It never holds up
+ * anything: the next decision or the card leaving the frame stops it at once, and a card that moves and settles again
+ * doesn't replay it. A price that arrives after the card was added still plays it, while the card is in view. With
+ * animations off there is no halo; the hint text and the haptic carry the reveal.
+ */
+@Composable
+private fun valueHalo(hit: LastScan.Added?, hint: ScanHint, priceSource: PriceSource): Animatable<Float, *> {
+    val reducedMotion = rememberReducedMotion()
+    val halo = remember { Animatable(0f) }
+    var played by remember { mutableLongStateOf(0L) }
+    val decision = hit?.decision?.takeIf { showsValueHalo(hit, hint, priceSource, reducedMotion) }
+    LaunchedEffect(decision) {
+        if (decision == null || decision == played) {
+            halo.snapTo(0f)
+            return@LaunchedEffect
+        }
+        played = decision
+        halo.snapTo(0f)
+        halo.animateTo(1f, tween(HALO_IN_MS))
+        halo.animateTo(0f, tween(HALO_OUT_MS, delayMillis = HALO_HOLD_MS))
+    }
+    return halo
+}
+
+private const val HALO_IN_MS = 150
+private const val HALO_HOLD_MS = 450
+private const val HALO_OUT_MS = 600
+
+/** The gap between the two pulses of a valuable hit's haptic: one felt rhythm, not two separate buzzes. */
+private const val DOUBLE_PULSE_GAP_MS = 110L
 
 /**
  * Reports camera errors (another app holds the camera, a policy or privacy switch turned it off, no camera, a
@@ -455,6 +493,9 @@ private fun CameraReading(
                     overflow = TextOverflow.Ellipsis,
                 )
                 val done = hit?.takeIf { viewfinder.hint == ScanHint.DONE }
+                // Said in words too, so the reveal doesn't depend on the halo or the haptic (#168).
+                val valuable = done?.isValuable(priceSource) == true
+                val threshold = HitReveal.threshold(priceSource).let { Money.formatWhole(it.amountMinor, it.currency) }
                 // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
                 done?.ownQuote(priceSource)?.let { quote ->
                     Text(
@@ -465,14 +506,14 @@ private fun CameraReading(
                     )
                 }
                 HintPill(
-                    stringResource(
-                        when {
-                            done?.wishlistFound == true -> R.string.scan_hint_wishlist
-                            viewfinder.hint == ScanHint.DONE -> R.string.scan_hint_added
-                            viewfinder.hint == ScanHint.QUEUED -> R.string.scan_hint_queued
-                            else -> R.string.scan_hint_reading
-                        },
-                    ),
+                    when {
+                        done?.wishlistFound == true && valuable -> stringResource(R.string.scan_hint_wishlist_valuable, threshold)
+                        done?.wishlistFound == true -> stringResource(R.string.scan_hint_wishlist)
+                        valuable -> stringResource(R.string.scan_hint_valuable, threshold)
+                        viewfinder.hint == ScanHint.DONE -> stringResource(R.string.scan_hint_added)
+                        viewfinder.hint == ScanHint.QUEUED -> stringResource(R.string.scan_hint_queued)
+                        else -> stringResource(R.string.scan_hint_reading)
+                    },
                     dot = outlineColor(viewfinder.hint, camera),
                 )
             }
@@ -558,22 +599,26 @@ private fun Tray(
     val firstGoal by viewModel.firstGoal.collectAsStateWithLifecycle()
     val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
-    // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
-    // tick than an added one, so the hand can tell them apart without looking (#161).
-    var felt by remember { mutableLongStateOf(tray.decisions) }
-    LaunchedEffect(tray.decisions) {
-        if (tray.decisions > felt) {
-            val latest = tray.latest
-            haptics.performHapticFeedback(
-                when {
-                    latest is LastScan.Queued -> HapticFeedbackType.ContextClick
-                    // A wanted card found (#162) feels different from every other hit.
-                    latest is LastScan.Added && latest.wishlistFound -> HapticFeedbackType.LongPress
-                    else -> HapticFeedbackType.Confirm
-                },
-            )
+    // Only a new decision buzzes (or a price that makes the hit on screen valuable); Undo and coming back to the screen
+    // don't. Each kind of hit has its own feel, so the hand can tell them apart without looking (#161, #162, #168).
+    // Read only in the effect, so keeping it here recomposes nothing.
+    var felt by remember { mutableStateOf(tray) }
+    LaunchedEffect(tray) {
+        val onScreen = hitFor(tray.latest, viewModel.viewfinder.value.decision) != null
+        val feel = hapticBetween(felt, tray, priceSource, hitOnScreen = onScreen)
+        felt = tray
+        when (feel) {
+            null -> Unit
+            HitFeel.QUEUED -> haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
+            HitFeel.WISHLIST -> haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+            HitFeel.ADDED -> haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            // Two quick confirms. The next change of the tray cancels the second one rather than waiting for it.
+            HitFeel.VALUABLE -> {
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+                delay(DOUBLE_PULSE_GAP_MS)
+                haptics.performHapticFeedback(HapticFeedbackType.Confirm)
+            }
         }
-        felt = tray.decisions
     }
     // A set milestone (#169) gets its own, stronger feel, once per milestone.
     val milestoneNow by viewModel.milestone.collectAsStateWithLifecycle()
