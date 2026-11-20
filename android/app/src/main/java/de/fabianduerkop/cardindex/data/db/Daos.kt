@@ -356,7 +356,7 @@ interface CollectionDao {
     /** Custom collections with the number of cards in each. */
     @Query(
         """
-        SELECT col.id, col.name, col.description, col.kind, COALESCE(SUM(o.quantity), 0) AS cards
+        SELECT col.id, col.name, col.description, col.kind, COALESCE(SUM(o.quantity), 0) AS cards, col.coverCopyUuid
         FROM collections col
         LEFT JOIN collection_copies cc ON cc.collectionId = col.id
         LEFT JOIN owned_copies o ON o.id = cc.copyId
@@ -366,6 +366,10 @@ interface CollectionDao {
         """,
     )
     fun observeCustomCollections(): Flow<List<CollectionSummary>>
+
+    /** Every membership of a copy in a custom collection, for the binder covers (#172). */
+    @Query("SELECT * FROM collection_copies")
+    fun observeAllMemberships(): Flow<List<CollectionCopyCrossRef>>
 
     /** Copies in one custom collection, newest first. */
     @Query(

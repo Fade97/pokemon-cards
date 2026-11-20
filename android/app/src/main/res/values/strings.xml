@@ -230,6 +230,10 @@
     <string name="collection_save">Save</string>
     <string name="collection_delete">Delete collection</string>
     <string name="collection_delete_hint">The cards stay in All cards.</string>
+    <string name="collection_cover">Cover</string>
+    <string name="collection_cover_hint">Shown in the binder list. Automatic shows the most valuable card.</string>
+    <string name="collection_cover_automatic">Automatic</string>
+    <string name="collection_cover_automatic_description">Automatic, the most valuable card: %1$s</string>
     <string name="cancel">Cancel</string>
 
     <string name="copy_add_title">Add copy</string>

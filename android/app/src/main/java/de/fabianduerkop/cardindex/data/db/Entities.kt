@@ -138,6 +138,11 @@ data class CollectionEntity(
     val kind: CollectionKind,
     val setId: String? = null,
     val updatedAt: Instant,
+    /**
+     * The binder cover the user picked (#172): the uuid of a copy in this collection. Null, or a copy no longer in
+     * it, means the automatic cover, the most valuable card (see binderCover).
+     */
+    val coverCopyUuid: String? = null,
 )
 
 /** Membership of a copy in a custom collection (a binder, a trade pile, a wishlist). */

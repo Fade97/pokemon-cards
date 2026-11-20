@@ -54,6 +54,7 @@ import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.db.WantedWithCard
+import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.HistoryRange
 import de.fabianduerkop.cardindex.data.prices.WeeklyChange
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -108,6 +109,7 @@ fun CollectionsScreen(
                 saveView = { settings.collectionsView = it },
                 openedRecaps = settings.openedRecaps,
                 markRecapOpened = { settings.openedRecaps = settings.openedRecaps + it },
+                photos = container.ownPhotos,
             )
         },
     ),
@@ -166,7 +168,7 @@ fun CollectionsScreen(
                     item { YoursHeader(state.collections.size + if (wanted > 0) 1 else 0) }
                     if (wanted > 0) item { WishlistRow(wanted, onOpenWishlist) }
                     items(state.collections, key = { "col-" + it.id }) { collection ->
-                        CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
+                        CollectionRow(collection, cover = null, photos = state.photos, onClick = { onOpenCollection(collection.id) })
                     }
                 }
             } else if (!state.loading) {
@@ -218,7 +220,7 @@ fun CollectionsScreen(
         CollectionSheet(
             initial = null,
             onDismiss = { creating = false },
-            onSave = { name, description ->
+            onSave = { name, description, _ ->
                 viewModel.createCollection(name, description)
                 creating = false
                 // A new collection lives under Binders: show it there, not behind another view (#164).
@@ -308,12 +310,19 @@ private fun LazyListScope.setItems(
     }
 }
 
-/** Binders view: All cards, then the user's own collections, or a hint to start one with New. */
+/**
+ * Binders view: All cards, then the user's own collections, or a hint to start one with New. Each row shows its
+ * cover (#172): the card the user picked in the edit sheet, else the most valuable one; All cards shows the most
+ * valuable card overall.
+ */
 private fun LazyListScope.binderItems(state: CollectionsUiState, onOpenCollection: (Long) -> Unit) {
     item {
         CollectionRow(
             name = stringResource(R.string.collections_all_cards),
+            description = null,
             cards = state.totalCopies,
+            cover = state.allCardsCover,
+            photos = state.photos,
             onClick = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
         )
     }
@@ -326,7 +335,7 @@ private fun LazyListScope.binderItems(state: CollectionsUiState, onOpenCollectio
         }
     }
     items(state.collections, key = { "col-" + it.id }) { collection ->
-        CollectionRow(collection, onClick = { onOpenCollection(collection.id) })
+        CollectionRow(collection, state.covers[collection.id], state.photos, onClick = { onOpenCollection(collection.id) })
     }
 }
 
@@ -550,17 +559,41 @@ private fun YoursHeader(count: Int) {
 }
 
 @Composable
-private fun CollectionRow(collection: CollectionSummary, onClick: () -> Unit) =
-    CollectionRow(name = collection.name, cards = collection.cards, onClick = onClick)
+private fun CollectionRow(collection: CollectionSummary, cover: BinderCover?, photos: OwnPhotos, onClick: () -> Unit) =
+    CollectionRow(collection.name, collection.description, collection.cards, cover, photos, onClick)
 
+/**
+ * A binder row (#172): its cover, the name, the description as an optional one-line subtitle, and the card count.
+ * The cover is decorative; TalkBack reads the texts.
+ */
 @Composable
-private fun CollectionRow(name: String, cards: Int, onClick: () -> Unit) {
+private fun CollectionRow(
+    name: String,
+    description: String?,
+    cards: Int,
+    cover: BinderCover?,
+    photos: OwnPhotos,
+    onClick: () -> Unit,
+) {
+    val count = pluralStringResource(R.plurals.collections_cards_count, cards, cards)
+    val subtitle = description?.trim()?.takeIf { it.isNotEmpty() }
     ListRow(
         title = name,
-        subtitle = pluralStringResource(R.plurals.collections_cards_count, cards, cards),
+        subtitle = subtitle ?: count,
+        subtitleMaxLines = 1,
         onClick = onClick,
-        icon = R.drawable.ic_nav_collections,
+        leading = { CoverThumb(cover?.copy, photos) },
         onClickLabel = stringResource(R.string.collections_open_collection),
+        below = subtitle?.let {
+            {
+                Text(
+                    count,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.xxs),
+                )
+            }
+        },
     )
 }
 
@@ -571,7 +604,8 @@ private fun WishlistRow(wanted: Int, onClick: () -> Unit) {
         title = stringResource(R.string.wishlist_title),
         subtitle = pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted),
         onClick = onClick,
-        icon = R.drawable.ic_nav_collections,
+        // Hollow like a missing slot (wanted cards are not owned yet), and in line with the binder covers below.
+        leading = { CoverThumb(null, OwnPhotos()) },
         onClickLabel = stringResource(R.string.collections_open_collection),
     )
 }
