@@ -98,7 +98,8 @@ internal fun QuoteColumn(
     }
     Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm).widthIn(max = 128.dp)) {
         Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
-        change?.let { WeeklyChangeLine(it, textAlign = TextAlign.End) }
+        // The short form fits the narrow column on one line; the stacked layout above has room for the full one.
+        change?.let { WeeklyChangeLine(it, textAlign = TextAlign.End, short = true) }
         Text(
             secondLine,
             style = MaterialTheme.typography.bodySmall,

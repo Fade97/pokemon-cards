@@ -3,6 +3,7 @@ package de.fabianduerkop.cardindex.ui.collections
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -45,6 +46,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.BlendMode
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -56,6 +65,7 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -306,8 +316,9 @@ private fun FilterRow(
     val missing = detail.missing
     val compact = state.mode == SetViewMode.COMPACT
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        val chipScroll = rememberScrollState()
         Row(
-            Modifier.weight(1f).horizontalScroll(rememberScrollState()),
+            Modifier.weight(1f).fadeHiddenEnd(chipScroll).horizontalScroll(chipScroll),
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -543,3 +554,31 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
         }
     }
 }
+
+/** Width of the fade at the end of the filter row. */
+private val ChipRowFade = 24.dp
+
+/**
+ * Fades the end of a sideways-scrolling row while more of it is hidden there (#165), so the language chip off the
+ * edge of a narrow screen or at a large font is visibly still to come. Mirrored for right-to-left layouts.
+ */
+private fun Modifier.fadeHiddenEnd(scroll: ScrollState): Modifier =
+    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
+        .drawWithContent {
+            drawContent()
+            if (scroll.canScrollForward) {
+                val fade = ChipRowFade.toPx().coerceAtMost(size.width)
+                val rtl = layoutDirection == LayoutDirection.Rtl
+                val start = if (rtl) 0f else size.width - fade
+                drawRect(
+                    brush = Brush.horizontalGradient(
+                        colors = if (rtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent),
+                        startX = start,
+                        endX = start + fade,
+                    ),
+                    topLeft = Offset(start, 0f),
+                    size = Size(fade, size.height),
+                    blendMode = BlendMode.DstIn,
+                )
+            }
+        }

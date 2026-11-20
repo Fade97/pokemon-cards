@@ -288,6 +288,7 @@ private fun viewerImages(detail: CardDetail, images: DetailImages): List<CardVie
                     label = stringResource(R.string.viewer_own_photo, copy),
                     description = stringResource(R.string.viewer_own_photo_description, title, copy),
                     key = "photo:" + image.copy.copy.uuid,
+                    ownPhoto = true,
                 )
             }
         }
