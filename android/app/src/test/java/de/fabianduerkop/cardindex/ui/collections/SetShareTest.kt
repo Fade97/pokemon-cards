@@ -68,6 +68,18 @@ class SetShareTest {
     }
 
     @Test
+    fun cellsShrinkToTheRowHeight_whenTheGridIsTallerThanWide() {
+        // Delta-Herrschaft: 103 + 38 = 141 slots. 10 columns need 15 rows; on a 312 × 400 area a row is 26.7 high,
+        // less than the 31.2 column width, so every cell must use the row height or the last row is cut off.
+        val columns = SetShare.gridColumns(141, 312f, 400f)
+        val cell = SetShare.cellSize(141, columns, 312f, 400f)
+        val rows = kotlin.math.ceil(141 / columns.toFloat())
+        assertTrue(cell * rows <= 400f + 0.01f)
+        assertTrue(cell * columns <= 312f + 0.01f)
+        assertEquals(312f / 11, SetShare.cellSize(165, 11, 312f, 460f), 0.001f)
+    }
+
+    @Test
     fun aCompleteSetIsDatedByItsLastFirstFilledBaseNumber() {
         fun at(day: Int, localId: String) = CopyWithCard(
             OwnedCopyEntity(cardId = "s-$localId", cardLanguage = "en", createdAt = Instant.parse("2026-11-%02dT10:00:00Z".format(day))),

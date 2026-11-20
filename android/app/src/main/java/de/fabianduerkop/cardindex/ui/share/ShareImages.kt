@@ -32,6 +32,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -92,7 +93,7 @@ fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modif
             Modifier
                 .size(shown, shown * (ShareImageSize.Height / ShareImageSize.Width))
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
-                .semantics { contentDescription = description },
+                .clearAndSetSemantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
             Box(

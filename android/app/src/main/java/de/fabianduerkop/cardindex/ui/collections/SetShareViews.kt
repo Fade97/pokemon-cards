@@ -165,8 +165,9 @@ internal fun SlotMapImage(data: SetShareData) {
             Spacer(Modifier.height(Spacing.sm))
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
                 val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value)
-                val cell = maxWidth / columns
-                Column {
+                val cell = SetShare.cellSize(data.slots.size, columns, maxWidth.value, maxHeight.value).dp
+                // A height-bound grid is narrower than the page: centred, like the legend's page margins.
+                Column(Modifier.align(Alignment.TopCenter)) {
                     data.slots.chunked(columns).forEach { row ->
                         Row { row.forEach { SlotCell(it, cell) } }
                     }
