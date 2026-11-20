@@ -132,6 +132,11 @@ class AppSettings(context: Context) {
 
     fun markSetVisited(setId: String, atMillis: Long) = prefs.edit { putLong(KEY_SET_VISIT_PREFIX + setId, atMillis) }
 
+    /** Recaps (#175) opened at least once, by [RecapPeriod.key] ("2026-11", "2026"); the others show as new. */
+    var openedRecaps: Set<String>
+        get() = prefs.getStringSet(KEY_OPENED_RECAPS, null)?.toSet().orEmpty()
+        set(value) = prefs.edit { putStringSet(KEY_OPENED_RECAPS, value) }
+
     /** Debug builds only: pretend to have Pro (#17) until sign-in and billing exist (#16). See DebugEntitlements. */
     var debugPro: Boolean
         get() = prefs.getBoolean(KEY_DEBUG_PRO, false)
@@ -160,6 +165,7 @@ class AppSettings(context: Context) {
         const val KEY_CELEBRATED_MILESTONES = "celebrated_milestones"
         const val KEY_MILESTONES_SEEDED = "milestones_seeded"
         const val KEY_SET_VISIT_PREFIX = "set_visit_"
+        const val KEY_OPENED_RECAPS = "opened_recaps"
         const val KEY_SET_LEGEND_VISITS = "set_legend_visits"
         const val KEY_COLLECTIONS_VIEW = "collections_view"
     }

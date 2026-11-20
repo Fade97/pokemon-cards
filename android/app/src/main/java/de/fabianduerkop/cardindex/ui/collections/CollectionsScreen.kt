@@ -20,10 +20,13 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -81,6 +84,7 @@ import kotlinx.coroutines.launch
  * The last view is remembered across starts (AppSettings.collectionsView). With no cards yet the screen shows the
  * empty state instead, with any collections and the wishlist below it.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
     onOpenSet: (String) -> Unit,
@@ -102,6 +106,8 @@ fun CollectionsScreen(
                 settings.featuredSetFlow,
                 storedView = settings.collectionsView,
                 saveView = { settings.collectionsView = it },
+                openedRecaps = settings.openedRecaps,
+                markRecapOpened = { settings.openedRecaps = settings.openedRecaps + it },
             )
         },
     ),
@@ -114,6 +120,8 @@ fun CollectionsScreen(
     val weekly by viewModel.weeklyChanges.collectAsStateWithLifecycle()
     val wanted by viewModel.wishlistCount.collectAsStateWithLifecycle()
     val view by viewModel.view.collectAsStateWithLifecycle()
+    val recaps by viewModel.recaps.collectAsStateWithLifecycle()
+    val openRecap by viewModel.recap.collectAsStateWithLifecycle()
     val wantedEntries by wishlist.entries.collectAsStateWithLifecycle()
     var creating by rememberSaveable { mutableStateOf(false) }
     val listState = rememberLazyListState()
@@ -163,12 +171,16 @@ fun CollectionsScreen(
                 }
             } else if (!state.loading) {
                 item {
-                    ValueHeader(
-                        state = state,
-                        portfolio = portfolio,
-                        onPortfolioRange = viewModel::setPortfolioRange,
-                        onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
-                    )
+                    Column {
+                        ValueHeader(
+                            state = state,
+                            portfolio = portfolio,
+                            onPortfolioRange = viewModel::setPortfolioRange,
+                            onOpenAll = { onOpenCollection(CollectionsRoutes.ALL_CARDS) },
+                        )
+                        // Ready recaps (#175) wait here, in the same item, so the switch keeps its index.
+                        recaps.forEach { entry -> RecapRow(entry, onClick = { viewModel.showRecap(entry.period) }) }
+                    }
                 }
                 stickyHeader(key = "view-switch") {
                     CollectionsSwitch(view, onSelect = show)
@@ -190,6 +202,15 @@ fun CollectionsScreen(
                 }
                 item { Box(Modifier.height(Spacing.xl)) }
             }
+        }
+    }
+
+    openRecap?.let { recap ->
+        ModalBottomSheet(
+            onDismissRequest = viewModel::closeRecap,
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
+        ) {
+            RecapSheet(recap, onDone = viewModel::closeRecap)
         }
     }
 

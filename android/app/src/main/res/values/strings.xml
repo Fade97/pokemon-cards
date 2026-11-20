@@ -545,7 +545,7 @@
         <item quantity="one">+ %1$d more print</item>
         <item quantity="other">+ %1$d more prints</item>
     </plurals>
-    <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted are not on it.</string>
+    <string name="receipt_no_art">Numbers, names and prices only, no card pictures. Cards you took back or deleted, and unsure scans you confirm later in Review, are not on it.</string>
     <string name="receipt_share">Share image</string>
     <string name="receipt_share_title">Share session receipt</string>
     <string name="share_failed">This could not be shared. Try again.</string>
@@ -561,6 +561,28 @@
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>
     <string name="set_share_map_overline">My set</string>
+    <!-- Recaps (#175): "Your November 2026 in cards", shown on Collections once the month is over -->
+    <string name="recap_row_month">Your %1$s in cards</string>
+    <string name="recap_row_year">Your %1$s in cards</string>
+    <string name="recap_row_hint">Your recap is ready to look at and share.</string>
+    <string name="recap_open">Open recap</string>
+    <string name="recap_title">Recap: %1$s</string>
+    <string name="recap_share_title">Share recap</string>
+    <string name="recap_overline_month">My month in cards</string>
+    <string name="recap_overline_year">My year in cards</string>
+    <plurals name="recap_cards_added">
+        <item quantity="one">%1$d card added</item>
+        <item quantity="other">%1$d cards added</item>
+    </plurals>
+    <string name="recap_worth_now">Worth %1$s today</string>
+    <!-- Pro: how the collection's value moved over the period, e.g. "Collection +€12.40 (+3 %)" -->
+    <string name="recap_value_change">Collection %1$s</string>
+    <string name="recap_top_find">Top find</string>
+    <string name="recap_best_riser">Best riser</string>
+    <plurals name="recap_sets_completed">
+        <item quantity="one">%1$d set completed</item>
+        <item quantity="other">%1$d sets completed</item>
+    </plurals>
     <string name="set_share_certificate">Certificate</string>
     <string name="set_share_certificate_overline">Set complete</string>
     <string name="set_share_completed_on">Completed %1$s</string>

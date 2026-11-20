@@ -9,6 +9,9 @@ import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.collections.CardDetail
 import de.fabianduerkop.cardindex.data.collections.CollectionRepository
 import de.fabianduerkop.cardindex.data.collections.Milestone
+import de.fabianduerkop.cardindex.data.collections.Recap
+import de.fabianduerkop.cardindex.data.collections.RecapPeriod
+import de.fabianduerkop.cardindex.data.collections.Recaps
 import de.fabianduerkop.cardindex.data.collections.SetDetail
 import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.collections.SetSlot
@@ -46,6 +49,7 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -191,6 +195,9 @@ enum class CollectionsView {
     }
 }
 
+/** A recap the Collections home offers (#175); [new] until opened. */
+data class RecapEntry(val period: RecapPeriod, val new: Boolean)
+
 private data class CollectionsBase(
     val languages: List<String>,
     val chosen: Set<String>,
@@ -204,11 +211,14 @@ class CollectionsViewModel(
     private val repository: CollectionRepository,
     prices: PriceRepository,
     primarySource: Flow<PriceSource>,
-    history: PriceHistoryRepository,
-    isPro: Flow<Boolean>,
+    private val history: PriceHistoryRepository,
+    private val isPro: Flow<Boolean>,
     pinnedSet: Flow<String?> = flowOf(null),
     storedView: String? = null,
     private val saveView: (String) -> Unit = {},
+    openedRecaps: Set<String> = emptySet(),
+    private val markRecapOpened: (String) -> Unit = {},
+    private val today: () -> LocalDate = LocalDate::now,
 ) : ViewModel() {
     private val selected = MutableStateFlow(emptySet<String>())
     private val chosenView = MutableStateFlow(CollectionsView.fromStored(storedView))
@@ -310,6 +320,50 @@ class CollectionsViewModel(
             }.flowOn(Dispatchers.Default)
         }
     }.stateIn(this, emptyMap())
+
+    private val opened = MutableStateFlow(openedRecaps)
+
+    /**
+     * Recaps ready to look at (#175): last month all through this month, last year in January, each only when
+     * something was added in it. No notification; [RecapEntry.new] until it was opened once.
+     */
+    val recaps: StateFlow<List<RecapEntry>> = combine(repository.observeAllCopies(), opened) { copies, seen ->
+        val zone = ZoneId.systemDefault()
+        RecapPeriod.ready(today())
+            .filter { period -> copies.any { period.contains(it.copy.createdAt, zone) } }
+            .map { RecapEntry(it, new = it.key !in seen) }
+    }.flowOn(Dispatchers.Default).stateIn(this, emptyList())
+
+    private val openRecap = MutableStateFlow<RecapPeriod?>(null)
+
+    /**
+     * The recap on screen, from the collection as it is now and, with Pro, the cached price history (ADR 0012);
+     * computed only while one is open.
+     */
+    val recap: StateFlow<Recap?> = openRecap.flatMapLatest { period ->
+        if (period == null) {
+            flowOf(null)
+        } else {
+            val rows = isPro.distinctUntilChanged().flatMapLatest { pro -> if (pro) history.observeAll(period.start) else flowOf(null) }
+            combine(repository.observeAllCopies(), prices.observeAll(), primarySource, rows) { copies, priceMap, source, historyRows ->
+                Recaps.build(period, copies, priceMap, source, historyRows)
+            }.flowOn(Dispatchers.Default)
+        }
+    }.stateIn(this, null)
+
+    /** Opens the recap of [period]; with Pro it also loads the price history back to its start. */
+    fun showRecap(period: RecapPeriod) {
+        openRecap.value = period
+        markRecapOpened(period.key)
+        opened.value = opened.value + period.key
+        viewModelScope.launch {
+            if (!isPro.first()) return@launch
+            val ids = repository.observeAllCopies().first().mapTo(HashSet()) { it.copy.cardId }
+            if (ids.isNotEmpty()) runCatching { history.refresh(ids, period.start) }
+        }
+    }
+
+    fun closeRecap() { openRecap.value = null }
 
     /** Wishlist entries (#134) the user has no copy of yet, for the wishlist row. */
     val wishlistCount: StateFlow<Int> = repository.observeWishlistCount().stateIn(this, 0)

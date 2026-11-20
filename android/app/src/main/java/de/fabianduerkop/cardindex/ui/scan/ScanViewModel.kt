@@ -178,7 +178,7 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     }
         .mapLatest { (copies, all, source) ->
             val setIds = copies.map { it.card.setId }.distinct()
-            val before = if (setIds.isEmpty()) emptyList() else sessions.otherCopiesInSets(sessionId, setIds)
+            val before = if (setIds.isEmpty()) emptyList() else sessions.otherNumbersInSets(sessionId, setIds)
             SessionReceipt.build(copies, before, all, source)
         }
         .flowOn(Dispatchers.IO)
