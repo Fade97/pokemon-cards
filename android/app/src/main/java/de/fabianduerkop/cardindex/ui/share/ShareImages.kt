@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -32,6 +34,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
@@ -69,8 +72,12 @@ object ShareImageSize {
 fun ShareCanvas(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalDensity provides Density(ShareImageSize.DENSITY, fontScale = 1f)) {
         LumifoilTheme(darkTheme = false) {
-            Box(Modifier.requiredSize(ShareImageSize.Width, ShareImageSize.Height).background(MaterialTheme.colorScheme.background)) {
-                content()
+            // The theme doesn't reset the content colour, so text without its own colour would keep the dark sheet's
+            // light grey around the preview and vanish on the white page.
+            CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurface) {
+                Box(Modifier.requiredSize(ShareImageSize.Width, ShareImageSize.Height).background(MaterialTheme.colorScheme.background)) {
+                    content()
+                }
             }
         }
     }
@@ -91,8 +98,10 @@ fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modif
         Box(
             Modifier
                 .size(shown, shown * (ShareImageSize.Height / ShareImageSize.Width))
+                // Clipped to the rounded frame: the posted PNG has square corners, the preview must not show them.
+                .clip(MaterialTheme.shapes.medium)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
-                .semantics { contentDescription = description },
+                .clearAndSetSemantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
             Box(

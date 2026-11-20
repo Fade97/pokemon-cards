@@ -76,6 +76,15 @@ object SetShare {
         }
     }
 
+    /**
+     * The side of one square cell for [count] slots in [columns] columns of a [width] × [height] area: the smaller of
+     * the column width and the row height, so a tall set (141 slots in 10 × 15) never runs past the bottom.
+     */
+    fun cellSize(count: Int, columns: Int, width: Float, height: Float): Float {
+        val rows = ceil(count / columns.toFloat()).coerceAtLeast(1f)
+        return min(width / columns, height / rows)
+    }
+
     const val WANTED_MARK = "★"
 
     /** Numbers past the printed total are secret rares; letters (TG05) too, as the set header counts them. */

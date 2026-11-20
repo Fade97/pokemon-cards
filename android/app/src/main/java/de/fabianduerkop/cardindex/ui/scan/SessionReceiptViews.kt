@@ -199,10 +199,10 @@ private fun ReceiptRow(line: ReceiptLine) {
     }
 }
 
-/** "6 new set slots · 3 sets". */
+/** "6 new set slots · 3 sets", or just "1 set" when every card filled a slot already owned. */
 @Composable
-private fun receiptStats(receipt: SessionReceipt): String = listOf(
-    pluralStringResource(R.plurals.receipt_new_slots, receipt.newSlots, receipt.newSlots),
+private fun receiptStats(receipt: SessionReceipt): String = listOfNotNull(
+    receipt.newSlots.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.receipt_new_slots, it, it) },
     pluralStringResource(R.plurals.receipt_sets, receipt.sets, receipt.sets),
 ).joinToString(" · ")
 
