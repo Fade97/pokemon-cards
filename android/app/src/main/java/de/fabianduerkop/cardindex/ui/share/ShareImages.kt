@@ -24,6 +24,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
@@ -97,6 +98,8 @@ fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modif
         Box(
             Modifier
                 .size(shown, shown * (ShareImageSize.Height / ShareImageSize.Width))
+                // Clipped to the rounded frame: the posted PNG has square corners, the preview must not show them.
+                .clip(MaterialTheme.shapes.medium)
                 .border(1.dp, MaterialTheme.colorScheme.outlineVariant, MaterialTheme.shapes.medium)
                 .clearAndSetSemantics { contentDescription = description },
             contentAlignment = Alignment.Center,
