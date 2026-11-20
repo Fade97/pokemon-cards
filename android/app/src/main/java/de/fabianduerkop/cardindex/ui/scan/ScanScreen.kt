@@ -24,6 +24,11 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -273,13 +278,18 @@ private fun LiveScan(
             imageAnalysisBackpressureStrategy = ImageAnalysis.STRATEGY_KEEP_ONLY_LATEST
             imageAnalysisOutputImageFormat = ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
             setImageAnalysisAnalyzer(viewModel.worker, viewModel::analyze)
+            // A tap refocuses on the guide's centre, not where the finger lands; the zoom is set for the guide (#197).
+            isTapToFocusEnabled = false
+            isPinchToZoomEnabled = false
         }
     }
     DisposableEffect(lifecycleOwner) {
         controller.bindToLifecycle(lifecycleOwner)
         onDispose { controller.unbind() }
     }
-    CameraProblemWatcher(controller, lifecycleOwner) { problem = it }
+    val cameraInfo = CameraProblemWatcher(controller, lifecycleOwner) { problem = it }
+    GuideCamera(controller, cameraInfo, lifecycleOwner)
+    var focusTaps by remember { mutableIntStateOf(0) }
 
     BoxWithConstraints(Modifier.fillMaxSize()) {
         // The preview keeps at least about half the screen; a tall tray (large text) scrolls instead.
@@ -309,6 +319,16 @@ private fun LiveScan(
                         halo = { halo.value },
                     )
                 }
+                // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197).
+                Box(
+                    Modifier.fillMaxSize().pointerInput(controller) {
+                        detectTapGestures {
+                            controller.focusOnGuide()
+                            focusTaps++
+                        }
+                    },
+                )
+                FocusCue(focusTaps, Modifier.align(Alignment.Center))
                 LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
                 CameraReading(
                     engine,
@@ -382,7 +402,7 @@ private fun CameraProblemWatcher(
     controller: LifecycleCameraController,
     lifecycleOwner: LifecycleOwner,
     onProblem: (CameraProblem?) -> Unit,
-) {
+): CameraInfo? {
     val context = LocalContext.current
     var cameraInfo by remember { mutableStateOf<CameraInfo?>(null) }
     LaunchedEffect(controller) {
@@ -411,7 +431,35 @@ private fun CameraProblemWatcher(
         info.cameraState.observe(lifecycleOwner, observer)
         onDispose { info.cameraState.removeObserver(observer) }
     }
+    return info
 }
+
+/**
+ * A ring at the guide's centre after a tap (#197): the camera heard it and is focusing there. Fades out; with
+ * reduced motion it shows briefly and goes.
+ */
+@Composable
+private fun FocusCue(taps: Int, modifier: Modifier) {
+    val alpha = remember { Animatable(0f) }
+    val reducedMotion = rememberReducedMotion()
+    LaunchedEffect(taps) {
+        if (taps == 0) return@LaunchedEffect
+        alpha.snapTo(1f)
+        if (reducedMotion) {
+            delay(FOCUS_CUE_MS.toLong())
+            alpha.snapTo(0f)
+        } else {
+            alpha.animateTo(0f, tween(FOCUS_CUE_MS, delayMillis = FOCUS_CUE_HOLD_MS))
+        }
+    }
+    val color = LumifoilTheme.colors.camera.content
+    Canvas(modifier.size(64.dp)) {
+        drawCircle(color.copy(alpha = alpha.value), style = Stroke(2.dp.toPx()))
+    }
+}
+
+private const val FOCUS_CUE_HOLD_MS = 300
+private const val FOCUS_CUE_MS = 600
 
 private fun problemOf(code: Int): CameraProblem = when (code) {
     CameraState.ERROR_CAMERA_IN_USE, CameraState.ERROR_MAX_CAMERAS_IN_USE -> CameraProblem.IN_USE

@@ -467,7 +467,7 @@
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->
     <string name="scan_nothing_to_review">Nothing to review</string>
-    <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning.</string>
+    <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning. Blurry? Tap the picture to refocus.</string>
     <!-- Set name, language -->
     <string name="scan_added">Added: %1$s, %2$s</string>
     <string name="scan_queued">Saved for review: %1$s</string>
