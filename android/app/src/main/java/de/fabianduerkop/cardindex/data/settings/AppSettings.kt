@@ -91,6 +91,14 @@ class AppSettings(context: Context) {
     val scanIntroSeenFlow: Flow<Boolean> = observe { scanIntroSeen }
 
     /**
+     * The first-run goal (#174) is behind the user: reached on the Scan screen, or the collection already had 10
+     * cards when the screen first looked. The Scan screen then stops counting.
+     */
+    var firstGoalDone: Boolean
+        get() = prefs.getBoolean(KEY_FIRST_GOAL_DONE, false)
+        set(value) = prefs.edit { putBoolean(KEY_FIRST_GOAL_DONE, value) }
+
+    /**
      * How many times the set detail screen showed its slot legend on its own (#165). After SetLegend.FIRST_VISITS the
      * legend waits behind the info button.
      */
@@ -130,6 +138,7 @@ class AppSettings(context: Context) {
         const val KEY_SCAN_TARGET = "scan_target_collection"
         const val KEY_FEATURED_SET = "featured_set"
         const val KEY_SCAN_INTRO_SEEN = "scan_intro_seen"
+        const val KEY_FIRST_GOAL_DONE = "first_goal_done"
         const val KEY_SET_LEGEND_VISITS = "set_legend_visits"
         const val KEY_COLLECTIONS_VIEW = "collections_view"
     }

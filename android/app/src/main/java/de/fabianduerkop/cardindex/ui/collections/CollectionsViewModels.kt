@@ -598,6 +598,7 @@ class CollectionDetailViewModel(
     savedState: SavedStateHandle,
     history: PriceHistoryRepository? = null,
     isPro: Flow<Boolean> = flowOf(false),
+    private val chooseScanTarget: suspend (collectionId: Long?) -> Unit = {},
 ) : ViewModel() {
     /** [CollectionsRoutes.ALL_CARDS] for All cards. */
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
@@ -633,6 +634,17 @@ class CollectionDetailViewModel(
             quotes = quotes,
         )
     }.stateIn(this, CollectionDetailUiState())
+
+    /**
+     * Makes this collection the scan target and then [openScan]s (#174), so the first scans of an empty binder land
+     * in it. All cards keeps the current target: every scan goes there anyway.
+     */
+    fun scanHere(openScan: () -> Unit) {
+        viewModelScope.launch {
+            state.value.collection?.let { chooseScanTarget(it.id) }
+            openScan()
+        }
+    }
 
     /**
      * Pro (#173): the weekly change of each copy's price as its row shows it (per card, that market and printing), by

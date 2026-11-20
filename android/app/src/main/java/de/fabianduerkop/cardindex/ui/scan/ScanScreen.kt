@@ -50,6 +50,7 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
@@ -97,6 +98,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
+import de.fabianduerkop.cardindex.data.scan.FirstGoal
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.ReviewReason
@@ -140,6 +142,7 @@ fun ScanScreen(
     onOpenReview: () -> Unit = {},
     onOpenLab: () -> Unit = {},
     onOpenLanguages: () -> Unit = {},
+    onOpenCollections: () -> Unit = {},
     viewModel: ScanViewModel = viewModel(),
 ) {
     val context = LocalContext.current
@@ -196,7 +199,7 @@ fun ScanScreen(
                     )
                 }
             }
-            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable })
+            else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections)
         }
     }
 }
@@ -229,7 +232,13 @@ private fun ScanMessage(content: @Composable () -> Unit) {
 private enum class CameraProblem { NONE_FOUND, IN_USE, DISABLED, DO_NOT_DISTURB, FAILED }
 
 @Composable
-private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenReview: () -> Unit, onOpenLab: (() -> Unit)?) {
+private fun LiveScan(
+    viewModel: ScanViewModel,
+    engine: ScanEngineState,
+    onOpenReview: () -> Unit,
+    onOpenLab: (() -> Unit)?,
+    onOpenCollections: () -> Unit,
+) {
     val context = LocalContext.current
     val lifecycleOwner = LocalLifecycleOwner.current
     val viewfinder by viewModel.viewfinder.collectAsStateWithLifecycle()
@@ -318,7 +327,7 @@ private fun LiveScan(viewModel: ScanViewModel, engine: ScanEngineState, onOpenRe
                     if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
                 }
             }
-            Tray(viewModel, onOpenReview, Modifier.heightIn(max = trayMax))
+            Tray(viewModel, onOpenReview, onOpenCollections, Modifier.heightIn(max = trayMax))
         }
     }
 }
@@ -532,11 +541,12 @@ private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
 /** The latest card first (its collector number is the strongest type here), then the count and the review queue. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: Modifier = Modifier) {
+private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, onOpenCollections: () -> Unit, modifier: Modifier = Modifier) {
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val toReview by viewModel.reviewCount.collectAsStateWithLifecycle()
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
     val introSeen by viewModel.introSeen.collectAsStateWithLifecycle()
+    val firstGoal by viewModel.firstGoal.collectAsStateWithLifecycle()
     val haptics = LocalHapticFeedback.current
     // Only a new decision buzzes; Undo and coming back to the screen don't. A card saved for review gets a lighter
     // tick than an added one, so the hand can tell them apart without looking (#161).
@@ -571,6 +581,7 @@ private fun Tray(viewModel: ScanViewModel, onOpenReview: () -> Unit, modifier: M
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             LatestScan(tray, introSeen, onUndo = viewModel::undo, onChange = { editing = it })
+            firstGoal?.let { FirstGoalCard(it, onOpenCollections) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Column(Modifier.weight(1f)) {
                     Text(
@@ -650,6 +661,60 @@ private fun sessionValue(value: CollectionValue): String? {
     if (value.pricedCopies == 0) return unpriced
     val amount = Money.format(value.amountMinor, value.currency)
     return if (unpriced == null) amount else "$amount · $unpriced"
+}
+
+/**
+ * The first-run goal (#174): "First goal: 3 of 10 cards" with a thin bar while it runs, then what the first cards are
+ * worth and the way to see them. Calm like the rest of the tray (ADR 0014): no confetti, the number is the reward.
+ */
+@Composable
+private fun FirstGoalCard(goal: FirstGoal.State, onOpenCollections: () -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(colors.secondaryContainer)
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm)
+            .semantics(mergeDescendants = true) { liveRegion = LiveRegionMode.Polite },
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+    ) {
+        when (goal) {
+            is FirstGoal.State.Progress -> {
+                Text(
+                    stringResource(R.string.first_goal_progress, goal.cards, FirstGoal.TARGET),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onSurface,
+                )
+                Text(stringResource(R.string.first_goal_hint), style = MaterialTheme.typography.bodySmall, color = colors.onSurfaceVariant)
+                LinearProgressIndicator(
+                    progress = { (goal.cards.toFloat() / FirstGoal.TARGET).coerceIn(0f, 1f) },
+                    modifier = Modifier.fillMaxWidth().padding(top = Spacing.xxs),
+                    color = colors.primary,
+                    trackColor = colors.surface,
+                    drawStopIndicator = {},
+                )
+            }
+            is FirstGoal.State.Reached -> {
+                Text(
+                    stringResource(R.string.first_goal_reached, FirstGoal.TARGET),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = colors.onSurface,
+                )
+                val value = goal.value
+                Text(
+                    if (value.pricedCopies > 0) {
+                        stringResource(R.string.first_goal_value, Money.format(value.amountMinor, value.currency))
+                    } else {
+                        stringResource(R.string.first_goal_no_price)
+                    },
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = colors.onSurface,
+                )
+                TextAction(stringResource(R.string.first_goal_open), onClick = onOpenCollections)
+            }
+        }
+    }
 }
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */

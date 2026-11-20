@@ -14,8 +14,11 @@ import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.CollectionSummary
 import de.fabianduerkop.cardindex.data.packs.PackLoader
+import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.PriceRegion
+import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.data.scan.CopyDefaults
+import de.fabianduerkop.cardindex.data.scan.FirstGoal
 import de.fabianduerkop.cardindex.data.scan.ReviewQueueRepository
 import de.fabianduerkop.cardindex.data.scan.ScanRepository
 import de.fabianduerkop.cardindex.data.scan.SessionReceipt
@@ -51,6 +54,7 @@ import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.transformWhile
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import org.opencv.core.Mat
@@ -178,6 +182,36 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
         }
         .flowOn(Dispatchers.IO)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private var goalStart: Int? = null
+    private var goalReachedHere = false
+
+    /**
+     * The first-run goal (#174) for the tray: progress toward [FirstGoal.TARGET] cards, then what they are worth in
+     * the main market. Null once the goal is behind the user, and from then on nothing is watched for it.
+     */
+    @OptIn(ExperimentalCoroutinesApi::class)
+    val firstGoal: StateFlow<FirstGoal.State?> = if (settings.firstGoalDone) {
+        MutableStateFlow<FirstGoal.State?>(null)
+    } else {
+        combine(db.copyDao().observeCardCount(), prices.observeAll(), priceSource) { cards, all, source -> Triple(cards, all, source) }
+            .mapLatest { (cards, all, source) ->
+                val start = goalStart ?: cards.also { goalStart = it }
+                val reached = start < FirstGoal.TARGET && (goalReachedHere || cards >= FirstGoal.TARGET)
+                val value = if (reached) PriceSelection.total(db.copyDao().all(), all, source) else CollectionValue.empty(source)
+                FirstGoal.state(start, cards, goalReachedHere, value).also { state ->
+                    if (state is FirstGoal.State.Reached) goalReachedHere = true
+                    if (state !is FirstGoal.State.Progress && !settings.firstGoalDone) settings.firstGoalDone = true
+                }
+            }
+            // Already past the goal when the screen opened: one null, then stop watching the collection for it.
+            .transformWhile { state ->
+                emit(state)
+                state != null
+            }
+            .flowOn(Dispatchers.IO)
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    }
 
     /** Whether the user has scanned before; until then the tray explains how scanning works (#162). */
     val introSeen: StateFlow<Boolean> = settings.scanIntroSeenFlow

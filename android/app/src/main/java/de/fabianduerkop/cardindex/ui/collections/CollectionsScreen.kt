@@ -89,6 +89,7 @@ fun CollectionsScreen(
     onOpenScan: () -> Unit = {},
     onOpenWishlist: () -> Unit = {},
     onOpenCard: (cardId: String, language: String) -> Unit = { _, _ -> },
+    onOpenSearch: () -> Unit = {},
     viewModel: CollectionsViewModel = viewModel(
         factory = containerViewModelFactory { container, _ ->
             val settings = container.settings
@@ -184,6 +185,7 @@ fun CollectionsScreen(
                         wantedEntries,
                         onOpenCard = onOpenCard,
                         onRemove = wishlist::remove,
+                        onFindCard = onOpenSearch,
                     )
                 }
                 item { Box(Modifier.height(Spacing.xl)) }
@@ -312,9 +314,10 @@ private fun LazyListScope.wishlistItems(
     entries: List<WantedWithCard>?,
     onOpenCard: (cardId: String, language: String) -> Unit,
     onRemove: (WantedWithCard) -> Unit,
+    onFindCard: () -> Unit,
 ) {
     if (entries == null) return
-    item { WishlistIntro(empty = entries.isEmpty()) }
+    item { WishlistIntro(empty = entries.isEmpty(), onFindCard = onFindCard) }
     items(entries, key = { "wanted-" + it.wanted.id }) { entry ->
         WantedRow(
             entry,
