@@ -15,6 +15,7 @@ Product ids are not listed anywhere, so they are walked: number 001 upwards unti
 are empty.
 
   python ko_names.py crawl --out <data>/ko-names --products BS2026006
+  python ko_names.py crawl --out <data>/ko-names --years 2008-2026 --ja-metadata <work>/ja/metadata.json
   python ko_names.py export --out <data>/ko-names --ja-metadata <work>/ja/metadata.json   # -> names.json
 
 Pages are cached in <out>/pages.jsonl (also the misses), so a rerun only fetches what is new. Standard library only.
@@ -122,7 +123,8 @@ def ja_last_numbers(ja_metadata: Path | None) -> dict[str, int]:
 
 
 def crawl(out: Path, products: list[str], *, interval: float, max_misses: int, limit: int | None,
-          retry_errors: bool = False, ja_metadata: Path | None = None) -> None:
+          retry_errors: bool = False, ja_metadata: Path | None = None, years: list[int] = (),
+          max_empty_products: int = 4) -> None:
     """Walks each product from 001. The site answers 500 instead of 404 for a number it has no card for, and also
     for a few numbers inside a product (M6a on 2026-11-20: 119, 128, 129, 131 of 135, the same on every retry).
     So a 5xx is cached as an error, fetched again only with --retry-errors, and a product ends after `max_misses`
@@ -134,9 +136,11 @@ def crawl(out: Path, products: list[str], *, interval: float, max_misses: int, l
         pages = {k: e for k, e in pages.items() if e["status"] < 500}
     ja_last = ja_last_numbers(ja_metadata)
     fetcher = Fetcher(interval)
-    fetched = 0
+    state = {"fetched": 0}
     with pages_path.open("a", encoding="utf-8") as log:
-        for product in products:
+
+        def walk(product: str) -> int | None:
+            """Cards found in `product`; None when --limit stopped the crawl."""
             if not re.fullmatch(r"BS\d{7}", product):
                 raise SystemExit(f"{product}: expected BS<year><product>, e.g. BS2026006")
             misses, found, errors, last = 0, 0, 0, 0
@@ -144,11 +148,11 @@ def crawl(out: Path, products: list[str], *, interval: float, max_misses: int, l
                 card_num = f"{product}{n:03d}"
                 entry = pages.get(card_num)
                 if entry is None:
-                    if limit is not None and fetched >= limit:
+                    if limit is not None and state["fetched"] >= limit:
                         print(f"stopped after --limit {limit} requests")
-                        return
+                        return None
                     status, page = fetcher.get(f"{SITE}/cards/detail/{card_num}")
-                    fetched += 1
+                    state["fetched"] += 1
                     card = parse_card(page) if status == 200 else None
                     entry = {"cardNum": card_num, "status": status, **(card or {})}
                     log.write(json.dumps(entry, ensure_ascii=False) + "\n")
@@ -162,7 +166,24 @@ def crawl(out: Path, products: list[str], *, interval: float, max_misses: int, l
                     misses += 1
                     if misses >= max_misses and n > last:
                         break
-            print(f"{product}: {found} cards, {errors} pages answered 5xx ({fetched} requests so far)", flush=True)
+            if found:
+                print(f"{product}: {found} cards, {errors} pages answered 5xx ({state['fetched']} requests so far)",
+                      flush=True)
+            return found
+
+        for product in products:
+            if walk(product) is None:
+                return
+        for year in years:
+            empty = 0
+            for n in range(1, 1000):
+                found = walk(f"BS{year}{n:03d}")
+                if found is None:
+                    return
+                empty = 0 if found else empty + 1
+                if empty >= max_empty_products:
+                    print(f"{year}: ends after product {n - empty:03d} ({state['fetched']} requests so far)", flush=True)
+                    break
 
 
 def export(out: Path, ja_metadata: Path | None) -> None:
@@ -187,7 +208,9 @@ def main(argv: list[str] | None = None) -> None:
     sub = ap.add_subparsers(dest="cmd", required=True)
     c = sub.add_parser("crawl", help="fetch card pages into <out>/pages.jsonl")
     c.add_argument("--out", type=Path, required=True)
-    c.add_argument("--products", required=True, help="comma-separated product ids, e.g. BS2026006")
+    c.add_argument("--products", default="", help="comma-separated product ids, e.g. BS2026006")
+    c.add_argument("--years", default="", help="walk every product of these years, e.g. 2008-2026 or 2025,2026")
+    c.add_argument("--max-empty-products", type=int, default=4, help="empty products in a row that end a year")
     c.add_argument("--interval", type=float, default=1.5, help="seconds between requests (minimum 1)")
     c.add_argument("--max-misses", type=int, default=3, help="empty pages in a row that end a product")
     c.add_argument("--limit", type=int, default=None, help="stop after this many requests")
@@ -201,7 +224,14 @@ def main(argv: list[str] | None = None) -> None:
     if args.cmd == "crawl":
         if args.interval < 1:
             sys.exit("--interval below 1 s is not polite")
-        crawl(args.out, [p for p in args.products.split(",") if p], interval=args.interval,
+        years: list[int] = []
+        for part in filter(None, args.years.split(",")):
+            lo, _, hi = part.partition("-")
+            years += range(int(lo), int(hi or lo) + 1)
+        if not args.products and not years:
+            sys.exit("pass --products or --years")
+        crawl(args.out, [p for p in args.products.split(",") if p], years=years,
+              max_empty_products=args.max_empty_products, interval=args.interval,
               max_misses=args.max_misses, limit=args.limit, retry_errors=args.retry_errors, ja_metadata=args.ja_metadata)
     else:
         export(args.out, args.ja_metadata)
