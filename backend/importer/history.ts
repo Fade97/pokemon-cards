@@ -38,7 +38,7 @@ export function parseSnapshot(gzipped: Uint8Array): Snapshot {
 }
 
 /** Reads columns by name, so a snapshot that gained columns still works. */
-function columns<const K extends string>(table: Table, names: readonly K[]): Record<K, number> {
+export function columns<const K extends string>(table: Table, names: readonly K[]): Record<K, number> {
   const result = {} as Record<K, number>;
   for (const name of names) {
     const index = table.columns.indexOf(name);

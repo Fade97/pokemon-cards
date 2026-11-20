@@ -7,6 +7,7 @@ import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
 import java.io.IOException
 import java.time.Instant
+import java.time.LocalDate
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import okhttp3.Call
@@ -82,18 +83,27 @@ object PriceJson {
             val date = market.optInstant("priceDate")
             val normal = market.optJSONObject("normal")
             val holo = market.optJSONObject("holo")
-            add(row(id, PriceSource.CARDMARKET, PriceVariant.NORMAL, "EUR", productId, normal, "trend", "low", "avg", date, fetchedAt))
+            val week = WeekAgo.of(market)
+            add(
+                row(id, PriceSource.CARDMARKET, PriceVariant.NORMAL, "EUR", productId, normal, "trend", "low", "avg", date, fetchedAt)
+                    .withWeekAgo(week, "normal"),
+            )
             if (holo != null) {
-                add(row(id, PriceSource.CARDMARKET, PriceVariant.REVERSE_HOLO, "EUR", productId, holo, "trend", "low", "avg", date, fetchedAt))
+                add(
+                    row(id, PriceSource.CARDMARKET, PriceVariant.REVERSE_HOLO, "EUR", productId, holo, "trend", "low", "avg", date, fetchedAt)
+                        .withWeekAgo(week, "holo"),
+                )
             }
         }
         card.optJSONObject("tcgplayer")?.let { market ->
             val productId = market.optLongOrNull("productId")
             val date = market.optInstant("priceDate")
             val variants = market.optJSONObject("variants") ?: JSONObject()
+            val week = WeekAgo.of(market)
             val rows = variants.keys().asSequence().mapNotNull { subType ->
                 val variant = PriceVariant.fromTcgplayerSubType(subType) ?: return@mapNotNull null
                 row(id, PriceSource.TCGPLAYER, variant, "USD", productId, variants.getJSONObject(subType), "market", "low", "mid", date, fetchedAt)
+                    .withWeekAgo(week, subType)
             }.distinctBy { it.variant }.toList()
             if (rows.isEmpty()) {
                 add(row(id, PriceSource.TCGPLAYER, PriceVariant.NORMAL, "USD", productId, null, "market", "low", "mid", date, fetchedAt))
@@ -128,6 +138,25 @@ object PriceJson {
         fetchedAt = fetchedAt,
         productId = productId,
     )
+
+    /**
+     * A market's `weekAgo` (#186): each printing's price a week before the file, keyed like the backend's history files
+     * (Cardmarket `normal` / `holo`, TCGplayer sub types). Files from before #186 have none.
+     */
+    private class WeekAgo(val date: LocalDate, val prices: JSONObject) {
+        companion object {
+            fun of(market: JSONObject): WeekAgo? {
+                val week = market.optJSONObject("weekAgo") ?: return null
+                val date = runCatching { LocalDate.parse(week.getString("date")) }.getOrNull() ?: return null
+                return WeekAgo(date, week.optJSONObject("prices") ?: return null)
+            }
+        }
+    }
+
+    private fun CachedPriceEntity.withWeekAgo(week: WeekAgo?, key: String): CachedPriceEntity {
+        val amount = week?.prices?.optMinor(key) ?: return this
+        return copy(weekAgoMinor = amount, weekAgoDate = week.date)
+    }
 
     /** A `0` in the price guide means no price, as on the backend. */
     private fun JSONObject.optMinor(key: String): Long? =

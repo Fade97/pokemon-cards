@@ -35,7 +35,7 @@ skipped, so one broken set or group never costs the whole night.
 | 2 | `tcgdex-set` → `tcgdex-cards` | Splits a set into chunks of 25 cards; each chunk fetches the full card records and stores the card and its Cardmarket/TCGplayer IDs from `variants_detailed[].thirdParty` (the plain standard print, not stamped or special-foil ones). |
 | 3 | `cardmarket` | Streams the ~16 MB `price_guide_6.json` item by item and upserts the rows of mapped products. A `0` in the guide counts as no price. |
 | 3 | `tcgcsv-groups` → `tcgcsv-group` | One job per TCGplayer group (EN Pokémon, category 3): fills missing TCGplayer IDs by set code + collector number (the name decides ties), then upserts the prices of mapped products. |
-| 4 | publish | Writes `current/<set>.json` per set, the daily snapshot and `current/meta.json` (last) to every sink: the local `files/` directory always, R2 when credentials are set. |
+| 4 | publish | Reads the week-ago prices from the local snapshots of 7–10 days back (skipped with a log line when there are none or they fail), then writes `current/<set>.json` per set, the daily snapshot and `current/meta.json` (last) to every sink: the local `files/` directory always, R2 when credentials are set. |
 | 5 | history | Rebuilds `history/<set>/YYYY-MM.json` for the current month (and the previous one on the 1st–3rd) from the snapshots in `files/snapshots/`, to the same sinks. See [Price history](#price-history-pro). |
 
 Mapping priority per market: a row in `mapping_overrides`, then TCGdex's own ID, then a set + number match. A match
@@ -93,16 +93,24 @@ cards only), and `holo` is `null` when the guide has no foil price.
   },
   "tcgplayer": {
     "productId": 501234, "currency": "USD", "priceDate": "2026-11-15T20:00:00Z",
-    "variants": { "Normal": { "low": 0.4, "mid": 0.9, "high": 5.0, "market": 0.8, "directLow": null } }
+    "variants": { "Normal": { "low": 0.4, "mid": 0.9, "high": 5.0, "market": 0.8, "directLow": null } },
+    "weekAgo": { "date": "2026-11-09", "prices": { "Normal": 0.75 } }
   }
 }
 ```
+
+`weekAgo` (#186, free weekly direction) is each printing's headline price (Cardmarket `trend` as `normal` / `holo`,
+TCGplayer `market` per sub type) a week before the file was written, read from the daily snapshots of 7 to 10 days
+back (`importer/week-ago.ts`): a printing without a price on `date` takes the last one at most 3 days earlier. It is
+missing when no such snapshot prices the market, and older apps ignore it. The app compares it with today's price and
+shows only the direction to free users; amounts over time stay Pro (history files below, ADR 0010 and 0012).
 
 ### Limits
 
 - Every route is rate-limited to 120 requests per minute per client IP (Workers Rate Limiting binding).
 - `GET /v1/prices/:id` answers are kept in Cloudflare's edge cache for an hour (Cache API).
-- A request reads one R2 file per set it touches; a set file is up to ~120 KB. That keeps a 100-card batch well
+- A request reads one R2 file per set it touches; a set file is up to ~120 KB (plus ~50–80 bytes per card for
+  `weekAgo`). That keeps a 100-card batch well
   inside the free plan's CPU budget when the cards come from a few sets.
 
 ## Price history (Pro)

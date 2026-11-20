@@ -185,6 +185,20 @@ describe("POST /v1/prices", () => {
     expect(body.missing).toEqual(["sv99-001"]);
   });
 
+  it("passes the week-ago prices of the free weekly direction (#186) through as the importer wrote them", async () => {
+    const weekAgo = { date: "2026-11-09", prices: { normal: 1.0, holo: 2.6 } };
+    const charizard = cardmarketOnly("base1-4", 273699, 1.2);
+    await putJson("current/base1.json", {
+      version: 1,
+      generatedAt: new Date().toISOString(),
+      cards: { "base1-4": { ...charizard, cardmarket: { ...charizard.cardmarket, weekAgo } } },
+    });
+    const body = (await (await postIds(["base1-4", "sv03.5-025"])).json()) as any;
+    expect(body.prices["base1-4"].cardmarket.weekAgo).toEqual(weekAgo);
+    // Files without it stay as they were.
+    expect("weekAgo" in body.prices["sv03.5-025"].cardmarket).toBe(false);
+  });
+
   it("accepts 100 ids and rejects 101", async () => {
     const ids = Array.from({ length: 101 }, (_, i) => `sv03.5-${String(i).padStart(3, "0")}`);
     expect((await postIds(ids.slice(0, 100))).status).toBe(200);

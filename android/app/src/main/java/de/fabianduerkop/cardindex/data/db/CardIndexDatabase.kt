@@ -44,7 +44,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 8
+        const val VERSION = 9
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -140,9 +140,21 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v9 (#186): each cached price's week-ago price for the free weekly direction. New nullable columns: cached rows
+         * get them on their next refresh (at most 12 hours), until then they show no direction.
+         */
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `cached_prices` ADD COLUMN `weekAgoMinor` INTEGER")
+                db.execSQL("ALTER TABLE `cached_prices` ADD COLUMN `weekAgoDate` TEXT")
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
         val MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
+            MIGRATION_8_9,
         )
 
         private const val NAME = "cardindex.db"

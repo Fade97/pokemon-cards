@@ -1,7 +1,8 @@
 // The price files in R2: written nightly by the importer on Vulcan (importer/), read by the Worker (ADR 0004).
 //
 //   current/meta.json         PriceMeta: when the files were written and the source dates
-//   current/<shard>.json      PriceShard: the prices of every card whose ID maps to that shard (one TCGdex set)
+//   current/<shard>.json      PriceShard: the prices of every card whose ID maps to that shard (one TCGdex set), with
+//                             each printing's price of a week ago for the free weekly direction (WeekAgoPrices)
 //   snapshots/YYYY/MM/DD.json.gz   the day's full mapping and prices, kept from day one for Pro history
 //   history/<shard>/YYYY-MM.json   PriceHistoryFile: one month of daily prices per set, derived from the snapshots
 //
@@ -46,6 +47,21 @@ export interface PricePoints {
   avg30: number | null;
 }
 
+/**
+ * The free weekly direction (#186): each printing's headline price (Cardmarket `trend`, TCGplayer `market`) a week
+ * before the file was written, in the market's currency like the current prices. Printings are keyed as in the history
+ * files: Cardmarket `normal` and `holo`, TCGplayer sub types (`Normal`, `Reverse Holofoil`, …). A printing without a
+ * price on `date` takes the last one at most 3 days before it, and is left out when there is none.
+ *
+ * Optional and additive: files from before #186 lack it, and older apps ignore it. No series: the amounts per day
+ * stay in the Pro history files (ADR 0012).
+ */
+export interface WeekAgoPrices {
+  /** The day the prices are for, `YYYY-MM-DD`: 7 days before the day the file was written (UTC). */
+  date: string;
+  prices: Record<string, number>;
+}
+
 export interface CardmarketPrice {
   productId: number;
   currency: "EUR";
@@ -55,6 +71,8 @@ export interface CardmarketPrice {
   normal: PricePoints | null;
   /** The guide's foil ("-holo") price, reverse holo for most Pokémon cards. */
   holo: PricePoints | null;
+  /** Missing when no snapshot of a week ago prices the card here. */
+  weekAgo?: WeekAgoPrices;
 }
 
 export interface TcgplayerVariantPrice {
@@ -71,6 +89,8 @@ export interface TcgplayerPrice {
   priceDate: string | null;
   /** Keyed by TCGplayer printing, e.g. "Normal", "Holofoil", "Reverse Holofoil". */
   variants: Record<string, TcgplayerVariantPrice>;
+  /** Missing when no snapshot of a week ago prices the card here. */
+  weekAgo?: WeekAgoPrices;
 }
 
 export interface CardPrice {

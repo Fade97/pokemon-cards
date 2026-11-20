@@ -22,6 +22,8 @@ import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.prices.PriceDirection
 import de.fabianduerkop.cardindex.data.prices.WeeklyChange
+import de.fabianduerkop.cardindex.data.prices.WeeklyDirection
+import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import kotlin.math.abs
@@ -32,9 +34,37 @@ private fun WeeklyChange.magnitude(): String {
     return percentChange(startMinor, endMinor)?.let { "$amount ($it)" } ?: amount
 }
 
-/** "+1,20 € (+12 %) in 7 days" or "No change in 7 days", then "3 of 4 copies" when the change doesn't cover all. */
+/**
+ * Pro: "+1,20 € (+12 %) in 7 days" or "No change in 7 days", then "3 of 4 copies" when the change doesn't cover all.
+ * Free (#186): only "Up in 7 days", "Down in 7 days" or "No change in 7 days", never an amount or a percentage.
+ */
 @Composable
-internal fun weeklyChangeText(change: WeeklyChange): String {
+internal fun weeklyChangeText(trend: WeeklyTrend): String = when (trend) {
+    is WeeklyChange -> amountText(trend)
+    is WeeklyDirection -> stringResource(
+        when (trend.direction) {
+            PriceDirection.UP -> R.string.weekly_direction_up
+            PriceDirection.DOWN -> R.string.weekly_direction_down
+            PriceDirection.FLAT -> R.string.weekly_change_flat
+        },
+    )
+}
+
+/** What TalkBack says: Pro the amounts ([amountDescription]), free only the direction (#186). */
+@Composable
+internal fun weeklyChangeDescription(trend: WeeklyTrend): String = when (trend) {
+    is WeeklyChange -> amountDescription(trend)
+    is WeeklyDirection -> stringResource(
+        when (trend.direction) {
+            PriceDirection.UP -> R.string.weekly_direction_up_description
+            PriceDirection.DOWN -> R.string.weekly_direction_down_description
+            PriceDirection.FLAT -> R.string.weekly_change_flat_description
+        },
+    )
+}
+
+@Composable
+private fun amountText(change: WeeklyChange): String {
     val sign = if (change.direction == PriceDirection.UP) "+" else "−"
     val main = when (change.direction) {
         PriceDirection.FLAT -> stringResource(R.string.weekly_change_flat)
@@ -56,10 +86,12 @@ internal fun weeklyChangeText(change: WeeklyChange): String {
 
 /**
  * "+12 % · 7 days" for a narrow price column (a copy row's 128 dp): the percentage, or the amount when there is none.
- * The full amount and coverage stay in [weeklyChangeDescription] for TalkBack.
+ * The full amount and coverage stay in [weeklyChangeDescription] for TalkBack. Free (#186) keeps "Up in 7 days",
+ * which already fits.
  */
 @Composable
-internal fun weeklyChangeShortText(change: WeeklyChange): String {
+internal fun weeklyChangeShortText(trend: WeeklyTrend): String {
+    val change = trend as? WeeklyChange ?: return weeklyChangeText(trend)
     if (change.direction == PriceDirection.FLAT) return stringResource(R.string.weekly_change_short_flat)
     val sign = if (change.direction == PriceDirection.UP) "+" else "−"
     val size = percentChange(change.startMinor, change.endMinor) ?: Money.format(abs(change.deltaMinor), change.currency)
@@ -68,7 +100,7 @@ internal fun weeklyChangeShortText(change: WeeklyChange): String {
 
 /** What TalkBack says (#173): "Up 1,20 € (12 %) over the last 7 days, for 3 of 4 copies". */
 @Composable
-internal fun weeklyChangeDescription(change: WeeklyChange): String {
+private fun amountDescription(change: WeeklyChange): String {
     val main = when (change.direction) {
         PriceDirection.UP -> stringResource(R.string.weekly_change_up_description, change.magnitude())
         PriceDirection.DOWN -> stringResource(R.string.weekly_change_down_description, change.magnitude())
@@ -85,13 +117,14 @@ internal fun weeklyChangeDescription(change: WeeklyChange): String {
 }
 
 /**
- * The weekly price change (#173) as one quiet line: an arrow, the signed amount and percentage, and "in 7 days".
- * Muted like the other secondary text, never red or green: a quiet line on every row, not a ticker. The arrow, the
- * sign and the words carry the direction, and TalkBack hears [weeklyChangeDescription] instead of "minus" and symbols.
+ * The weekly price change (#173) as one quiet line: an arrow, the signed amount and percentage, and "in 7 days"; for
+ * free users (#186) the arrow and the direction in words only. Muted like the other secondary text, never red or
+ * green: a quiet line on every row, not a ticker. The arrow, the sign and the words carry the direction, and TalkBack
+ * hears [weeklyChangeDescription] instead of "minus" and symbols.
  */
 @Composable
 internal fun WeeklyChangeLine(
-    change: WeeklyChange,
+    change: WeeklyTrend,
     modifier: Modifier = Modifier,
     textAlign: TextAlign? = null,
     short: Boolean = false,

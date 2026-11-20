@@ -7,6 +7,9 @@
 // everything published. With R2_ENDPOINT, R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY and R2_BUCKET set, the files
 // also go to R2, where the Worker reads them.
 //
+// The price files carry each printing's price of a week ago (free weekly direction, #186), read from the snapshots
+// in `files/` of 7 to 10 days back.
+//
 // After the prices, the history files of the current month (Pro, #17) are rebuilt from the snapshots in `files/`.
 // `--rebuild-history` rebuilds every month instead, e.g. after a format change; with `--no-import --no-publish` it
 // does only that.
@@ -22,6 +25,7 @@ import { SqliteDb } from "./db";
 import { monthsToRebuild, publishHistory, snapshotMonths } from "./history";
 import { IMPORT_LANGS, LocalQueue, startNightly } from "./jobs/nightly";
 import { DirSink, publish, R2Sink, type Sink } from "./publish";
+import { readWeekAgo, type WeekAgo } from "./week-ago";
 
 const { values: args } = parseArgs({
   options: {
@@ -89,8 +93,16 @@ async function main(): Promise<number> {
   let published = false;
   const publishedAt = new Date();
   if (!args["no-publish"]) {
+    // The free weekly direction (#186) is optional: without the week-ago snapshots the prices still go out.
+    let weekAgo: WeekAgo | null = null;
     try {
-      log(`publish: ${await publish(db, sinks, publishedAt)}`);
+      weekAgo = await readWeekAgo(filesDir, publishedAt);
+      log(weekAgo ? `week ago: ${weekAgo.size} cards priced on ${weekAgo.date}` : "week ago: no snapshots, prices go out without");
+    } catch (e) {
+      log(`week ago failed, prices go out without: ${e instanceof Error ? e.message : String(e)}`);
+    }
+    try {
+      log(`publish: ${await publish(db, sinks, publishedAt, weekAgo)}`);
       published = true;
     } catch (e) {
       log(`publish failed: ${e instanceof Error ? e.message : String(e)}`);

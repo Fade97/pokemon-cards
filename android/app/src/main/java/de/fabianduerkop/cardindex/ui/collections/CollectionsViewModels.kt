@@ -42,14 +42,15 @@ import de.fabianduerkop.cardindex.data.prices.forLanguage
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
 import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
-import de.fabianduerkop.cardindex.data.prices.WeeklyChange
 import de.fabianduerkop.cardindex.data.prices.WeeklyPriceChange
+import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId
+import java.time.ZoneOffset
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -316,13 +317,22 @@ class CollectionsViewModel(
     fun setPortfolioRange(range: HistoryRange) { portfolioChart.range.value = range }
 
     /**
-     * Pro (#173): each set's value change over the last 7 days, by set id, for the same copies and market as the set
-     * row's value (the language filter applies). Sets without a week of history are missing; empty without Pro. The
-     * portfolio chart's refresh above fetches the history: every range is longer than a week.
+     * Each set's value change over the last 7 days, by set id, for the same copies and market as the set row's value
+     * (the language filter applies). Pro (#173) gets the amounts from the history, which the portfolio chart's refresh
+     * above fetches (every range is longer than a week); free users (#186) only the direction, from the week-ago prices
+     * in the cached price files. Sets without a week of prices are missing.
      */
-    val weeklyChanges: StateFlow<Map<String, WeeklyChange>> = isPro.distinctUntilChanged().flatMapLatest { pro ->
+    val weeklyChanges: StateFlow<Map<String, WeeklyTrend>> = isPro.distinctUntilChanged().flatMapLatest { pro ->
         if (!pro) {
-            flowOf(emptyMap())
+            combine(base, prices.observeAll(), primarySource) { b, priceMap, source ->
+                val today = history.today()
+                b.copies.filter { b.chosen.isEmpty() || it.card.language in b.chosen }
+                    .groupBy { it.set.id }
+                    .mapNotNull { (setId, copies) ->
+                        WeeklyPriceChange.directionOfCopies(copies.map { it.copy }, priceMap, source, today)?.let { setId to it }
+                    }
+                    .toMap()
+            }.flowOn(Dispatchers.Default)
         } else {
             // The history window is fixed when Pro turns on; "today" is read on every update, so a screen left open
             // past midnight (UTC) still judges staleness by the real date.
@@ -782,17 +792,24 @@ class CollectionDetailViewModel(
     }
 
     /**
-     * Pro (#173): the weekly change of each copy's price as its row shows it (per card, that market and printing), by
-     * copy id. Copies without a week of history are missing; empty without Pro.
+     * The weekly change of each copy's price as its row shows it (per card, that market and printing), by copy id: Pro
+     * (#173) with the amounts from the history, free users (#186) only the direction, from the week-ago prices in the
+     * cached price files. Copies without a week of prices are missing. "Today" is read on every update, so a screen
+     * left open past midnight (UTC) still judges staleness by the real date.
      */
-    val weeklyChanges: StateFlow<Map<Long, WeeklyChange>> =
-        if (history == null) {
-            MutableStateFlow(emptyMap())
-        } else {
-            isPro.distinctUntilChanged().flatMapLatest { pro ->
-                if (!pro) {
-                    flowOf(emptyMap())
-                } else {
+    val weeklyChanges: StateFlow<Map<Long, WeeklyTrend>> =
+        isPro.distinctUntilChanged().flatMapLatest { pro ->
+            when {
+                !pro -> combine(state, prices.observeAll()) { s, priceMap ->
+                    val today = history?.today() ?: LocalDate.now(ZoneOffset.UTC)
+                    s.copies.mapNotNull { item ->
+                        val quote = s.quotes[item.copy.id] ?: return@mapNotNull null
+                        WeeklyPriceChange.directionOfQuote(priceMap[item.card.id].orEmpty(), quote, today)
+                            ?.let { item.copy.id to it }
+                    }.toMap()
+                }.flowOn(Dispatchers.Default)
+                history == null -> flowOf(emptyMap())
+                else -> {
                     combine(state, history.observeAll(WeeklyPriceChange.from(history.today()))) { s, rows ->
                         val today = history.today()
                         s.copies.mapNotNull { item ->
@@ -801,8 +818,8 @@ class CollectionDetailViewModel(
                         }.toMap()
                     }.flowOn(Dispatchers.Default)
                 }
-            }.stateIn(this, emptyMap())
-        }
+            }
+        }.stateIn(this, emptyMap())
 
     init {
         // Usually cached by the Collections screen's portfolio chart already; this fills what it lacks (a card added
