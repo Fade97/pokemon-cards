@@ -277,6 +277,7 @@ private fun viewerImages(detail: CardDetail, images: DetailImages): List<CardVie
                 model = image.model,
                 label = stringResource(R.string.viewer_official),
                 description = stringResource(R.string.viewer_official_description, title),
+                foil = image.foil,
             )
             is DetailImage.OwnPhoto -> {
                 val copy = listOf(

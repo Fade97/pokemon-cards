@@ -7,7 +7,9 @@ import de.fabianduerkop.cardindex.data.db.CardSetEntity
 import de.fabianduerkop.cardindex.data.db.CopyWithCard
 import de.fabianduerkop.cardindex.data.db.OwnedCopyEntity
 import de.fabianduerkop.cardindex.data.images.OwnPhotos
+import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Region
+import de.fabianduerkop.cardindex.ui.components.FoilFinish
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -23,8 +25,14 @@ class CardDetailImagesTest {
     private fun card(language: String = "en", imageUrl: String? = base) =
         CardEntity("sv03.5-025-$language", "sv03.5", "025", "Pikachu", language, null, null, imageUrl)
 
-    private fun copy(uuid: String, language: String = "en") = CopyWithCard(
-        copy = OwnedCopyEntity(uuid = uuid, cardId = "sv03.5-025-$language", cardLanguage = language, createdAt = Instant.EPOCH),
+    private fun copy(uuid: String, language: String = "en", finish: Finish = Finish.NORMAL) = CopyWithCard(
+        copy = OwnedCopyEntity(
+            uuid = uuid,
+            cardId = "sv03.5-025-$language",
+            cardLanguage = language,
+            finish = finish,
+            createdAt = Instant.EPOCH,
+        ),
         card = card(language),
         set = set,
     )
@@ -80,6 +88,32 @@ class CardDetailImagesTest {
 
         assertTrue(images.images.isEmpty())
         assertEquals(0, images.heroIndex)
+    }
+
+    @Test
+    fun `the official art gets the tilt light only for a print owned as holo or reverse holo`() {
+        assertNull(officialFoil(detail()))
+        assertNull(officialFoil(detail(copy("a"), copy("b", finish = Finish.OTHER))))
+        assertEquals(FoilFinish.REVERSE_HOLO, officialFoil(detail(copy("a"), copy("b", finish = Finish.REVERSE_HOLO))))
+        // Holo wins when both are owned.
+        assertEquals(
+            FoilFinish.HOLO,
+            officialFoil(detail(copy("a", finish = Finish.REVERSE_HOLO), copy("b", finish = Finish.HOLO))),
+        )
+    }
+
+    @Test
+    fun `a holo copy in another language does not light the shown print`() {
+        assertNull(officialFoil(detail(copy("de1", "de", Finish.HOLO))))
+    }
+
+    @Test
+    fun `the light goes on the official art and never on an own photo`() {
+        val images = detailImages(detail(copy("a", finish = Finish.HOLO)), photos("a"))
+
+        assertEquals(DetailImage.Official("$base/high.webp", FoilFinish.HOLO), images.images[0])
+        // Own photos carry no light: DetailImage.OwnPhoto has no foil, and the viewer gets none for it.
+        assertTrue(images.images[1] is DetailImage.OwnPhoto)
     }
 
     @Test

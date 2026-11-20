@@ -135,7 +135,8 @@ The UI direction is **Pearl** ([ADR 0014](adr/0014-ui-direction-pearl.md)): porc
 Schibsted Grotesk in `sp`, a companion night scheme, and one thin foil edge on the featured set cover. From Index
 ([ADR 0010](adr/0010-ui-direction-index.md)) it keeps the collector number as the main type, one slot per card with
 owned slots solid and missing ones hollow, and the value header with its weekly change. The design study is in
-`design/mockups/lumifoil/`.
+`design/mockups/lumifoil/`. The one moving foil is a simulated, tilt-driven light in the card viewer, over the official
+art of a print the user owns as Holo or Reverse Holo ([ADR 0015](adr/0015-foil-light-in-card-viewer.md)).
 
 The shared Compose pieces live in `ui/theme` (colour roles, type, shapes, spacing) and `ui/components` (app bars,
 buttons, chips, focus ring, foil cover, rows, notices, wordmark). Screens use these roles, never raw colours. The

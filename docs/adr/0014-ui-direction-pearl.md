@@ -41,7 +41,8 @@ it does not say which screens already follow them (see "Implementation status").
   foil sweep, filled in sea-glass; it replaced the faceted prism and is also the launcher icon (porcelain card on
   sea-glass). Masters and rules: `design/logo/`. No Poké Ball, no card back.
 - **Foil**: one still, thin horizontal band of four pale stops, only on the **featured set cover**. No gradients,
-  shimmer or animation on buttons, chips, bars or backgrounds.
+  shimmer or animation on buttons, chips, bars or backgrounds. Amended by ADR 0015: the card viewer may draw a
+  simulated, tilt-driven foil light over the official art of a print the user owns as Holo or Reverse Holo.
 - **Focus and states**: a 2 dp focus ring in its own blue, separate from sea-glass, so focus never looks like
   selection. Disabled controls use Material's dimmed roles. Errors and warnings show text in a tinted box and are
   announced; colour is never the only signal.
