@@ -182,12 +182,13 @@ def standin_images(cards: list[dict], base_cards: list[dict]) -> dict[str, str]:
 OWN_SET_FIELDS = ("name", "serieName", "releaseDate", "abbreviation", "logo", "symbol")
 
 
-def merge_card_list(own_sets: list[dict], own_cards: list[dict], base_sets: list[dict],
-                    base_cards: list[dict]) -> tuple[list[dict], list[dict]]:
+def merge_card_list(own_sets: list[dict], own_cards: list[dict], base_sets: list[dict], base_cards: list[dict],
+                    names: dict[str, str] | None = None) -> tuple[list[dict], list[dict]]:
     """The sets and cards of a language that borrows the card list of another (CARD_LIST_LANGS).
 
     Every base set and card, with the own language's names, set fields and printings where TCGdex has them, plus
-    the own cards and sets the base lacks. `image` is always the own language's (null for a borrowed card): the
+    the own cards and sets the base lacks. A card name comes from TCGdex in the own language, else from `names`
+    (card id -> name from another source, e.g. ko_names.py), else from the base. `image` is always the own language's (null for a borrowed card): the
     base's image is only ever a stand-in to embed (standin_images), never one the app shows.
     """
     own_set = {s["id"]: s for s in own_sets}
@@ -197,16 +198,17 @@ def merge_card_list(own_sets: list[dict], own_cards: list[dict], base_sets: list
         own = own_set.get(s["id"], {})
         sets.append({**s, **{k: own[k] for k in OWN_SET_FIELDS if own.get(k)}})
     sets += [s for s in own_sets if s["id"] not in {b["id"] for b in base_sets}]
+    names = names or {}
     cards = []
     for c in base_cards:
         own = own_card.get(c["id"])
         if own is None:
-            cards.append({**c, "image": None, "printings": c.get("printings")})
+            cards.append({**c, "image": None, "printings": c.get("printings"), "name": names.get(c["id"]) or c["name"]})
         else:
-            cards.append({**own, "name": own["name"] or c["name"],
+            cards.append({**own, "name": own["name"] or names.get(c["id"]) or c["name"],
                           "printings": own["printings"] or c.get("printings")})
     base_ids = {c["id"] for c in base_cards}
-    cards += [c for c in own_cards if c["id"] not in base_ids]
+    cards += [{**c, "name": c["name"] or names.get(c["id"], "")} for c in own_cards if c["id"] not in base_ids]
     return sort_sets(sets), sort_cards(cards)
 
 

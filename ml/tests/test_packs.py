@@ -726,3 +726,26 @@ def test_merge_card_list_takes_the_base_list_with_own_names_and_never_the_base_i
     assert all(c["image"] is None for c in cards)
     # The Japanese images still stand in for embedding.
     assert set(packs.standin_images(cards, ja_cards)) == {"SV4K-001", "SV4K-002"}
+
+
+def test_merge_card_list_names_come_from_tcgdex_then_the_extra_source_then_the_base():
+    ja_sets, ja_cards = ja_fixture()
+    ko_cards = [{"id": "SV4K-001", "setId": "SV4K", "localId": "001", "name": "야나프", "image": None,
+                 "printings": None}]
+    extra = {"SV4K-001": "다른 이름", "SV4K-002": "야나키", "M6a-001": "아라리"}
+    _, cards = packs.merge_card_list([], ko_cards, ja_sets, ja_cards, extra)
+    assert {c["id"]: c["name"] for c in cards} == {"SV4K-001": "야나프", "SV4K-002": "야나키", "M6a-001": "아라리"}
+    _, cards = packs.merge_card_list([], ko_cards, ja_sets, ja_cards)
+    assert {c["id"]: c["name"] for c in cards}["SV4K-002"] == "ヤナッキー"
+
+
+def test_ko_names_parses_a_card_page_and_maps_it_to_the_japanese_id():
+    import ko_names
+    page = ('<img src="/public-assets/home/data/cards.image_www/data/wmimages/MEGA/M6a/M6a_001.webp?w=512" '
+            'class="feature_image"><span class="p_num">001/103<span id="x"> </span></span>'
+            '<span class="card-hp title">아라리</span>')
+    card = ko_names.parse_card(page)
+    assert card == {"name": "아라리", "series": "MEGA", "set": "M6a", "localId": "001", "printed": "001/103"}
+    assert ko_names.tcgdex_id(card) == "M6a-001"
+    assert ko_names.parse_card("<html>error</html>") is None
+    assert ko_names.parse_card(page.replace("아라리", " ")) is None

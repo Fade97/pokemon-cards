@@ -185,7 +185,7 @@ def bases_first(langs: list[str]) -> list[str]:
 
 
 def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_days: float, workers: int,
-               cdn_gap: bool = True) -> dict:
+               cdn_gap: bool = True, names_file: Path | None = None) -> dict:
     """Card metadata of one language. Set answers are cached in <work>/tcgdex/<lang>/ and fetched again when the
     set list reports a different card count or the cache is older than `max_age_days`."""
     listing = get_json(f"{API}/{lang}/sets")
@@ -220,8 +220,11 @@ def fetch_lang(lang: str, work: Path, *, only_sets: set[str] | None, max_age_day
     if base_lang := packs.CARD_LIST_LANGS.get(lang):
         base = read_metadata(work, base_lang)
         own = sum(1 for c in cards if c["name"])
-        sets, cards = packs.merge_card_list(sets, cards, base["sets"], base["cards"])
-        print(f"{lang}: card list of {base_lang} ({len(cards)} cards), own names for {own}")
+        extra = json.loads(names_file.read_text(encoding="utf-8")) if names_file else {}
+        sets, cards = packs.merge_card_list(sets, cards, base["sets"], base["cards"], extra)
+        print(f"{lang}: card list of {base_lang} ({len(cards)} cards), names from TCGdex for {own}"
+              + (f", from {names_file.name} for {sum(1 for cid in extra if cid in {c['id'] for c in cards})}"
+                 if extra else ""))
     known = sum(1 for c in cards if c["printings"])
     print(f"{lang}: printings known for {known} of {len(cards)} cards")
     meta ={"lang": lang, "fetchedAt": now_iso(), "sets": packs.sort_sets(sets), "cards": packs.sort_cards(cards)}
@@ -613,6 +616,8 @@ def main(argv: list[str] | None = None) -> None:
         p.add_argument("--workers", type=int, default=4)
         p.add_argument("--no-cdn-gap", action="store_true",
                        help="do not probe the CDN for images the API leaves out (tcgdex/cards-database#2477)")
+        p.add_argument("--ko-names", type=Path, default=None,
+                       help="names.json from ko_names.py export: Korean names where TCGdex has none")
 
     def embed_args(p):
         p.add_argument("--model", default="export/mnv3_256_real_w8.tflite", help="relative to CARDINDEX_DATA")
@@ -656,7 +661,7 @@ def main(argv: list[str] | None = None) -> None:
         only = {s for s in args.sets.split(",") if s} or None
         for lang in args.langs:
             fetch_lang(lang, args.work, only_sets=only, max_age_days=args.max_age_days, workers=args.workers,
-                       cdn_gap=not args.no_cdn_gap)
+                       cdn_gap=not args.no_cdn_gap, names_file=args.ko_names if lang == "ko" else None)
     if args.cmd == "embed" or (args.cmd == "all" and not args.no_embeddings):
         embed(args.work, args.langs, model_rel=args.model, corners_rel=args.corners,
               download_images=args.download_images, threads=args.threads, drop_images=args.drop_images,

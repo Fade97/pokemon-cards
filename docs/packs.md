@@ -29,7 +29,10 @@ R2 bucket PACKS                         served as
     it is never saved in the language's own cache: once TCGdex adds the card's own image, the card is embedded from
     that. The pack's `image` stays the language's own (null), so the app never shows a Japanese card (ADR 0009).
   - `ko`'s card list is the Japanese one (`packs.CARD_LIST_LANGS`; TCGdex `ko` had 239 cards in 3 of 95 sets on
-    2026-11-18), with the Korean card and set names where TCGdex has them, else the Japanese ones.
+    2026-11-18), with the Korean card and set names where TCGdex has them, then names from the official Korean card
+    database (`ml/ko_names.py`, `fetch --ko-names <data>/ko-names/names.json`), else the Japanese ones. The crawl
+    reads only name, set and number from plain card pages, at most one request every 1.5 s, cached and resumable;
+    its output stays in the data dir.
   - `fetch` needs `ja` first (`--langs` is reordered so it comes first) and skips the CDN gap probe for both: 21 of
     21 probed files were 404.
   - On 2026-11-20: `zh-tw` 7,436 cards, 4,665 indexed (2,146 own images, 2,519 Japanese), `ko` 13,156 cards, 7,359
