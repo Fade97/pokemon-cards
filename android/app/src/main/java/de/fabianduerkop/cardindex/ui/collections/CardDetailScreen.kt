@@ -365,11 +365,13 @@ private fun CardHeader(
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
-    // The collector number and the card's name have to show under the art without scrolling, at any font and display
-    // size and in landscape: the name is what the screen is about, and the bar only names the set (#218).
+    // The collector number, the card's name and its print line have to show under the art without scrolling, at any
+    // font and display size and in landscape: the name is what the screen is about, and the bar only names the set.
+    // Reserving the print line too keeps the name clear of the Add bar, descenders and all (#218).
     val typography = MaterialTheme.typography
     val textHeight = with(LocalDensity.current) {
-        typography.displayLarge.lineHeight.toDp() + typography.headlineMedium.lineHeight.toDp()
+        typography.displayLarge.lineHeight.toDp() + typography.headlineMedium.lineHeight.toDp() +
+            typography.bodyMedium.lineHeight.toDp()
     }
     val artHeight = (viewport - textHeight - HeroNumberGap).coerceAtLeast(HeroMinHeight)
     val artWidth = min(HeroMaxWidth, artHeight * CARD_ASPECT)
@@ -433,8 +435,8 @@ private fun CardHeader(
 /** The hero never gets wider than this (tablets, foldables) … */
 private val HeroMaxWidth = 400.dp
 
-/** … nor taller than the list's visible height minus the number, the name and these gaps around and between them … */
-private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.sm + Spacing.md
+/** … nor taller than the list's visible height minus the text under it and these gaps around and between them … */
+private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.sm + Spacing.xs + Spacing.md
 
 /** … but never smaller than this, on a very short window. */
 private val HeroMinHeight = 160.dp

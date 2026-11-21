@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
@@ -52,6 +53,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -283,6 +285,9 @@ private fun SetGrid(
     }
 }
 
+/** An icon button's space around its 24 dp icon: (48 − 24) / 2. */
+private val IconInset = 12.dp
+
 /** Smallest compact slot: five across on a 360 dp phone, and never under the 48 dp touch height. */
 private val CompactSlotMin = 56.dp
 private val CardSlotMin = 76.dp
@@ -311,7 +316,15 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        val description = progressDescription(progress)
+        // Secret rares counted apart (#169): "Secret rares 12/42" when the catalog knows them, else "+12 secret".
+        val secretTotal = detail.slots.count { isSecretNumber(it.localId, progress.printedTotal) }
+        // TalkBack hears the secret count too, even at 0 of 42, since the line showing it is left out below (#218).
+        val description = if (secretTotal > 0) {
+            stringResource(R.string.collections_progress_description, progress.base, progress.printedTotal) + ", " +
+                stringResource(R.string.collections_secret_of_description, progress.secret, secretTotal)
+        } else {
+            progressDescription(progress)
+        }
         Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = Spacing.xs)) {
             Text(
                 text = progressText(progress.base, progress.printedTotal),
@@ -322,10 +335,15 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             value?.takeIf { it.amountMinor > 0 }?.let {
                 Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.md)) {
                     Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
-                    // Market and date, as everywhere a value shows (#176).
+                    // Market and date, as everywhere a value shows (#176), and how many copies it covers when not all.
                     val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()) }
+                    val coverage = if (it.unpricedCopies > 0) {
+                        pluralStringResource(R.plurals.collections_set_value_coverage, it.totalCopies, it.pricedCopies, it.totalCopies)
+                    } else {
+                        null
+                    }
                     Text(
-                        listOfNotNull(stringResource(it.source.label()), date).joinToString("\n"),
+                        listOfNotNull(stringResource(it.source.label()), date, coverage).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -333,8 +351,6 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                 }
             }
         }
-        // Secret rares counted apart (#169): "Secret rares 12/42" when the catalog knows them, else "+12 secret".
-        val secretTotal = detail.slots.count { isSecretNumber(it.localId, progress.printedTotal) }
         val secretLine = if (secretTotal > 0) stringResource(R.string.collections_secret_of, progress.secret, secretTotal) else secretText(progress)
         secretLine?.let {
             // Part of the count's spoken description above.
@@ -353,8 +369,8 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
  * The control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
  * languages, and at the end the view toggle and the legend's info button. Everything wraps rather than scrolls, so no
  * chip is ever cut off or hidden past the edge at a large font (council review, #218); on a phone at 1x the filters
- * and buttons fit one line, the language chip may take a second. Missing counts the printed numbers, like the 7/165
- * header above it; the header's "Secret rares 0/42" line counts the rest (#161), and the Missing filter shows both.
+ * and buttons fit one line, the language chip may take a second. Missing counts every slot the Missing filter shows,
+ * secret rares included, so it adds up with the header's 7/165 and "Secret rares 0/42" lines together (#161, #218).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -379,11 +395,10 @@ private fun FilterRow(
             { onFilter(SlotFilter.OWNED) },
             stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
         )
-        val splitSecret = missing.secret > 0 && detail.set.printedTotal > 0
         ChoiceChip(
             state.filter == SlotFilter.MISSING,
             { onFilter(SlotFilter.MISSING) },
-            stringResource(R.string.collections_filter_missing, if (splitSecret) missing.base else missing.total),
+            stringResource(R.string.collections_filter_missing, missing.total),
         )
         if (detail.languages.size >= 2) {
             val label = languageChipLabel(detail.languages, state.selectedLanguages)
@@ -399,7 +414,12 @@ private fun FilterRow(
         }
         // The view toggle and the legend's info button end whichever line they land on: the filters' line when
         // they fit, else the language chip's.
-        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+        // Moved out by the icon buttons' inner padding, so the info icon ends on the screen's gutter like the value above.
+        Row(
+            Modifier.weight(1f).offset(x = IconInset),
+            horizontalArrangement = Arrangement.End,
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
             IconButton(
                 onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
                 modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),

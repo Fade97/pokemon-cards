@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
 import androidx.compose.foundation.layout.size
@@ -47,6 +48,7 @@ import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.settings.ConfirmDialog
@@ -267,10 +269,13 @@ private fun InstalledLanguageRow(row: LanguageRow, mobileData: Boolean, onRemove
                     color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // Ends on the right edge like the switches below it, in the error colour: it removes recognition (#218).
             TextAction(
                 stringResource(R.string.packs_remove),
                 onClick = onRemove,
+                modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.packs_remove_language, name),
+                destructive = true,
             )
         }
         (row.progress as? LanguageProgress.Downloading)?.let { p ->

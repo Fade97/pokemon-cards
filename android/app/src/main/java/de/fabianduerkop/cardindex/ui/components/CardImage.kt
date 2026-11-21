@@ -21,6 +21,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -67,6 +68,8 @@ fun CardImage(
 ) {
     val model = cardImageModel(card, ownPhoto, preferOwnPhoto, quality)
     var loaded by remember(model) { mutableStateOf(false) }
+    // Fainter on a dark page, where a grey card at the light theme's strength outshone the owned art (ADR 0014, #218).
+    val missingAlpha = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.35f else 0.55f
     Box(modifier.aspectRatio(CARD_ASPECT).clip(MaterialTheme.shapes.small)) {
         // Once the image is in, the placeholder goes: under a faded missing card its number showed through the art
         // (#218). The plain card colour stays behind the faded image.
@@ -83,7 +86,7 @@ fun CardImage(
                 contentScale = ContentScale.Crop,
                 colorFilter = if (missing) Grayscale else null,
                 onSuccess = { loaded = true },
-                modifier = Modifier.fillMaxSize().then(if (missing) Modifier.alpha(0.55f) else Modifier),
+                modifier = Modifier.fillMaxSize().then(if (missing) Modifier.alpha(missingAlpha) else Modifier),
             )
         }
     }

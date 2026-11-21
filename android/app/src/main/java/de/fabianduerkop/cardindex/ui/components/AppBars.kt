@@ -26,8 +26,10 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,6 +51,7 @@ fun LumifoilTopAppBar(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     TopAppBar(
@@ -56,6 +59,7 @@ fun LumifoilTopAppBar(
         modifier = modifier,
         navigationIcon = navigationIcon,
         actions = actions,
+        scrollBehavior = scrollBehavior,
         colors = TopAppBarDefaults.topAppBarColors(
             containerColor = colors.background,
             scrolledContainerColor = colors.surfaceContainerLow,
@@ -84,6 +88,7 @@ fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentDescri
  * Scaffold of a top-level destination (a bottom-bar tab). With [wordmark] the bar shows the Lumifoil wordmark instead
  * of [title]; screen readers still get [title] as the pane title.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopLevelScaffold(
     title: String,
@@ -95,7 +100,7 @@ fun TopLevelScaffold(
     PearlScaffold(
         title = title,
         modifier = modifier,
-        topBar = {
+        topBar = { scrollBehavior ->
             LumifoilTopAppBar(
                 // Material starts a bar title without a back arrow 16 dp in; the screen's content starts at the gutter.
                 // The extra inset puts both on one left edge (#218).
@@ -105,6 +110,7 @@ fun TopLevelScaffold(
                     }
                 },
                 actions = actions,
+                scrollBehavior = scrollBehavior,
             )
         },
         content = content,
@@ -115,6 +121,7 @@ fun TopLevelScaffold(
 private val BarTitleInset = 16.dp
 
 /** Scaffold of a screen below a tab or a task (set, card, review): back arrow, title, optional actions. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScaffold(
     title: String,
@@ -128,11 +135,12 @@ fun DetailScaffold(
     PearlScaffold(
         title = title,
         modifier = modifier,
-        topBar = {
+        topBar = { scrollBehavior ->
             LumifoilTopAppBar(
                 title = { AppBarTitle(title) },
                 navigationIcon = { BackButton(onBack, contentDescription = backDescription) },
                 actions = actions,
+                scrollBehavior = scrollBehavior,
             )
         },
         bottomBar = bottomBar,
@@ -148,23 +156,28 @@ fun DetailScaffold(
  *
  * [content] gets the same padding as from Scaffold, minus the top: the bar pads for the status bar itself and the
  * content starts below it. The bar's part of the top insets counts as consumed, as it did in the `topBar` slot.
+ *
+ * The bar stays pinned and takes its raised tint while content scrolls under it, so a half-hidden row never seems to
+ * touch the title (#218).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PearlScaffold(
     title: String,
     modifier: Modifier,
-    topBar: @Composable () -> Unit,
+    topBar: @Composable (TopAppBarScrollBehavior) -> Unit,
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
-        modifier = modifier.semantics { paneTitle = title },
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection).semantics { paneTitle = title },
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = bottomBar,
     ) { padding ->
         val direction = LocalLayoutDirection.current
         Column(Modifier.fillMaxSize()) {
-            topBar()
+            topBar(scrollBehavior)
             Box(Modifier.weight(1f).fillMaxWidth().consumeWindowInsets(PaddingValues(top = padding.calculateTopPadding()))) {
                 content(
                     PaddingValues(

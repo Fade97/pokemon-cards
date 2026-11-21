@@ -92,7 +92,10 @@ fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier, marks: 
     ) {
         val radius = CornerRadius(size.height / 2)
         drawRoundRect(track, cornerRadius = radius)
-        if (fraction > 0f) drawRoundRect(fill, size = Size(size.width * fraction, size.height), cornerRadius = radius)
+        // At least a dot of fill once anything is owned: 1 of 191 on a short bar was under a pixel and read as none.
+        if (fraction > 0f) {
+            drawRoundRect(fill, size = Size((size.width * fraction).coerceAtLeast(size.height), size.height), cornerRadius = radius)
+        }
         // Milestones (#169) as small gaps in the bar, so 25, 50 and 75 % read as steps.
         val gapWidth = 2.dp.toPx()
         marks.forEach { mark ->

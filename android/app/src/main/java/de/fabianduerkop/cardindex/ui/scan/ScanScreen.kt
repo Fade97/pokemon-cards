@@ -353,21 +353,26 @@ private fun LiveScan(
                     onResume = { viewModel.setPaused(false) },
                     modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = Spacing.lg, end = Spacing.lg),
                 )
-                Row(
-                    Modifier.align(Alignment.BottomCenter).padding(Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    CameraButton(
-                        stringResource(if (paused) R.string.scan_resume else R.string.scan_pause),
-                        icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
-                        onClick = { viewModel.setPaused(!paused) },
-                    )
-                    CameraButton(
-                        stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
-                        onClick = { torch = !torch; controller.enableTorch(torch) },
-                    )
-                    if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
-                }
+            }
+            // Under the picture, not over it: over it, the buttons covered the guide's lower edge, where the collector
+            // number sits (#218).
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(LumifoilTheme.colors.camera.background)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+            ) {
+                CameraButton(
+                    stringResource(if (paused) R.string.scan_resume else R.string.scan_pause),
+                    icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
+                    onClick = { viewModel.setPaused(!paused) },
+                )
+                CameraButton(
+                    stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
+                    onClick = { torch = !torch; controller.enableTorch(torch) },
+                )
+                if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
             }
             Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
         }

@@ -54,6 +54,11 @@
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
+    <!-- Under a set's value when some owned copies have no price in that market (#218). -->
+    <plurals name="collections_set_value_coverage">
+        <item quantity="one">%1$d of %2$d copy priced</item>
+        <item quantity="other">%1$d of %2$d copies priced</item>
+    </plurals>
     <plurals name="collections_value_coverage">
         <item quantity="one">%1$d of %2$d copy has a %3$s price</item>
         <item quantity="other">%1$d of %2$d copies have a %3$s price</item>
@@ -168,7 +173,6 @@
     <string name="price_title">Price</string>
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
-    <string name="price_for_print">For %1$s</string>
     <string name="price_as_of">Prices from %1$s</string>
     <!-- One market's price date when both markets are shown, e.g. "Cardmarket prices from 17 Nov 2026" (#133). -->
     <string name="price_market_as_of">%1$s prices from %2$s</string>
@@ -311,7 +315,7 @@
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
-    <string name="search_hint">Type a card name such as Pikachu, a set such as 151, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
+    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
@@ -490,6 +494,7 @@
     <string name="milestone_dismiss">OK</string>
     <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
     <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="collections_secret_of_description">%1$d of %2$d secret rares collected</string>
     <string name="scan_refocus">Refocus the camera</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
@@ -662,6 +667,7 @@
     <!-- Scan target collection (#139) -->
     <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
     <string name="review_confirm_adds">Confirm adds %1$s.</string>
+    <string name="review_change_description">Change finish, edition, condition and quantity</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>

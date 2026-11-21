@@ -16,9 +16,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -35,6 +38,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -80,11 +84,13 @@ import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.collections.label
 import de.fabianduerkop.cardindex.ui.scan.languageName
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 /**
  * Review queue (#9, Pearl review in `design/mockups/lumifoil`, #98): one unsure scan at a time with the crop, the
@@ -102,6 +108,9 @@ fun ReviewScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val undo by viewModel.undo.collectAsStateWithLifecycle()
     val target by viewModel.target.collectAsStateWithLifecycle()
+    // The footer's Change scrolls the form to the finish, edition, condition and quantity choices (#218).
+    val choices = remember { BringIntoViewRequester() }
+    val scope = rememberCoroutineScope()
     DetailScaffold(
         title = stringResource(R.string.review_title),
         onBack = onBack,
@@ -128,6 +137,7 @@ fun ReviewScreen(
                             Footer(
                                 state.draft,
                                 target = target?.name,
+                                onChange = { scope.launch { choices.bringIntoView() } },
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
                             )
@@ -143,14 +153,20 @@ fun ReviewScreen(
                 state.loading -> Unit
                 item == null -> Done(state, onBack, viewModel::reviewSkippedAgain, viewModel::addSampleItems)
                 // Each item starts at the top; its own scroll state, not the previous card's.
-                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, onFindCard = { onFindCard(item) }) }
+                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, choices, onFindCard = { onFindCard(item) }) }
             }
         }
     }
 }
 
 @Composable
-private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewViewModel, onFindCard: () -> Unit) {
+private fun ItemForm(
+    item: ReviewItem,
+    draft: ReviewDraft,
+    viewModel: ReviewViewModel,
+    choices: BringIntoViewRequester,
+    onFindCard: () -> Unit,
+) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
     val differences = remember(item.candidates) { candidateDifferences(item.candidates) }
     var comparing by remember { mutableStateOf(false) }
@@ -207,25 +223,27 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below.
         TextAction(stringResource(R.string.review_find_card), onClick = onFindCard, alignToText = true)
 
-        SectionHeader(stringResource(R.string.variant_your_choice))
-        Text(
-            stringResource(R.string.variant_not_detected),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        VariantChoices(
-            finishes = finishOrder(item.candidates.firstOrNull { it.rank == draft.rank }?.card?.printings),
-            finish = draft.finish,
-            edition = draft.edition,
-            condition = draft.condition,
-            finishChosen = draft.finishChosen,
-            editionChosen = draft.editionChosen,
-            conditionChosen = draft.conditionChosen,
-            onFinish = viewModel::setFinish,
-            onEdition = viewModel::setEdition,
-            onCondition = viewModel::setCondition,
-        )
-        QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm))
+        Column(Modifier.bringIntoViewRequester(choices), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SectionHeader(stringResource(R.string.variant_your_choice))
+            Text(
+                stringResource(R.string.variant_not_detected),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            VariantChoices(
+                finishes = finishOrder(item.candidates.firstOrNull { it.rank == draft.rank }?.card?.printings),
+                finish = draft.finish,
+                edition = draft.edition,
+                condition = draft.condition,
+                finishChosen = draft.finishChosen,
+                editionChosen = draft.editionChosen,
+                conditionChosen = draft.conditionChosen,
+                onFinish = viewModel::setFinish,
+                onEdition = viewModel::setEdition,
+                onCondition = viewModel::setCondition,
+            )
+            QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm))
+        }
 
         TextAction(
             stringResource(R.string.review_discard),
@@ -446,13 +464,14 @@ private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modi
 }
 
 /**
- * Skip and Confirm, with one line above them saying what Confirm saves ("Confirm adds 1× Holo, NM."), so the choices
- * further down the form are never accepted unseen (#218).
+ * Skip and Confirm, with one line above them saying what Confirm saves ("Confirm adds 1× Holo, NM.") and a Change
+ * that scrolls to the choices, so they are never accepted unseen (#218).
  */
 @Composable
 private fun Footer(
     draft: ReviewDraft,
     target: String?,
+    onChange: () -> Unit,
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
 ) {
@@ -462,21 +481,31 @@ private fun Footer(
     ) {
         val finish = draft.finish
         val edition = draft.edition
-        if (finish == null || edition == null) {
-            Text(
-                stringResource(R.string.review_pick_variant),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.tertiary,
-            )
-        } else {
-            val print = stringResource(finish.label()).let {
-                if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (finish == null || edition == null) {
+                Text(
+                    stringResource(R.string.review_pick_variant),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.tertiary,
+                )
+            } else {
+                val print = stringResource(finish.label()).let {
+                    if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
+                }
+                val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(draft.condition.label())}")
+                Text(
+                    stringResource(R.string.review_confirm_adds, saved),
+                    Modifier.weight(1f),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
-            val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(draft.condition.label())}")
-            Text(
-                stringResource(R.string.review_confirm_adds, saved),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            TextAction(
+                stringResource(R.string.scan_variant_change),
+                onClick = onChange,
+                modifier = Modifier.offset(x = TextActionInset),
+                contentDescription = stringResource(R.string.review_change_description),
             )
         }
         // The scan target chosen on the Scan screen (#139); only said when it is more than All Cards.

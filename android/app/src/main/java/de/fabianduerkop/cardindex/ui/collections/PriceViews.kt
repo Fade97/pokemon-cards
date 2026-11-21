@@ -199,7 +199,12 @@ internal fun PriceBox(
         } else {
             val second = secondary.takeIf { main != null }
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                Text(stringResource(first.source.label()), style = MaterialTheme.typography.bodySmall, color = muted)
+                // The printing it prices goes with the label, not in a note under the other market's row (#218).
+                Text(
+                    stringResource(first.source.label()) + " · " + stringResource(first.variant.label()),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted,
+                )
                 Text(
                     Money.format(first.amountMinor, first.currency),
                     style = MaterialTheme.typography.displayMedium,
@@ -208,22 +213,17 @@ internal fun PriceBox(
             }
             HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
             second?.let { DataRow(stringResource(it.source.label()), Money.format(it.amountMinor, it.currency)) }
-            // One date per market shown (#133): with two, each names its market.
+            // One date per market shown (#133): with two on different days, each names its market; on the same day, one.
             val dates = listOfNotNull(first, second).map { PriceFreshness.of(it, now) }
-            val datesText = if (dates.size == 1) {
-                stringResource(R.string.price_as_of, formatDate(dates.single().date.toLocalDate()))
+            val datesText = if (dates.map { it.date.toLocalDate() }.distinct().size == 1) {
+                stringResource(R.string.price_as_of, formatDate(dates.first().date.toLocalDate()))
             } else {
                 dates.map {
                     stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate()))
                 }.joinToString(" · ")
             }
             val notes = buildList {
-                if (dates.size == 1) {
-                    add(stringResource(R.string.price_for_print, stringResource(first.variant.label())) + " · " + datesText)
-                } else {
-                    add(stringResource(R.string.price_for_print, stringResource(first.variant.label())))
-                    add(datesText)
-                }
+                add(datesText)
                 if (second != null && second.currency != first.currency) add(stringResource(R.string.price_currencies))
                 dates.filter { it.stale }.forEach {
                     add(stringResource(R.string.price_stale, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate())))
