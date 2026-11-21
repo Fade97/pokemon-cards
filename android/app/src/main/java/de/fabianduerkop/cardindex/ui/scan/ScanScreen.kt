@@ -29,6 +29,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -327,9 +328,12 @@ private fun LiveScan(
         val trayMax = maxHeight * 0.5f
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(LumifoilTheme.colors.camera.background)) {
+                val cameraGround = LumifoilTheme.colors.camera.background.toArgb()
                 AndroidView(
                     factory = {
                         PreviewView(it).apply {
+                            // The letterbox in the camera's ground, not black: no bands against the strips (#218).
+                            setBackgroundColor(cameraGround)
                             // TextureView: a SurfaceView would draw outside the clipped box over the tray.
                             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                             // Fit: the whole analysed frame is visible, so guide and outline line up with it.

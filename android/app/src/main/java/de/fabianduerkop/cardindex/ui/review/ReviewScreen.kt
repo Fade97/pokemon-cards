@@ -233,8 +233,9 @@ private fun ItemForm(
             }
         }
 
-        Column(Modifier.bringIntoViewRequester(choices), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SectionHeader(stringResource(R.string.variant_your_choice))
+        // The heading sits right on its explanation, so both clear the footer on the first screen (#218).
+        Column(Modifier.bringIntoViewRequester(choices), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            SectionHeader(stringResource(R.string.variant_your_choice), dense = true)
             Text(
                 stringResource(R.string.variant_not_detected),
                 style = MaterialTheme.typography.bodyMedium,
@@ -505,8 +506,10 @@ private fun Footer(
                     if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
                 }
                 val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(draft.condition.label())}")
+                // Values nobody picked are the defaults, and say so: the camera did not read them (#218).
+                val defaults = !draft.finishChosen && !draft.editionChosen && !draft.conditionChosen
                 Text(
-                    stringResource(R.string.review_confirm_adds, saved),
+                    stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved),
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

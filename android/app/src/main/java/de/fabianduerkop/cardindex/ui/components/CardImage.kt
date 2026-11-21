@@ -69,7 +69,7 @@ fun CardImage(
     val model = cardImageModel(card, ownPhoto, preferOwnPhoto, quality)
     var loaded by remember(model) { mutableStateOf(false) }
     // Fainter on a dark page, where a grey card at the light theme's strength outshone the owned art (ADR 0014, #218).
-    val missingAlpha = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.35f else 0.55f
+    val missingAlpha = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.4f else 0.55f
     Box(modifier.aspectRatio(CARD_ASPECT).clip(MaterialTheme.shapes.small)) {
         // Once the image is in, the placeholder goes: under a faded missing card its number showed through the art
         // (#218). The plain card colour stays behind the faded image.

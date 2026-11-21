@@ -23,6 +23,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -249,28 +250,26 @@ private fun SetGrid(
         horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.md),
     ) {
-        milestone?.let { reached ->
-            header { MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
-        }
+        // One header with its own spacing: the grid's row gap differs between Compact and Cards, and as separate grid
+        // items the filters moved under the thumb when the view toggle was tapped (#218).
         header {
-            SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
-        }
-        header {
-            FilterRow(
-                state = state,
-                detail = detail,
-                onFilter = onFilter,
-                onLanguages = { languageSheet = true },
-                onMode = onMode,
-                onToggleLegend = onToggleLegend,
-            )
-        }
-        if (state.legendShown) {
-            header {
-                ChecklistLegend(
-                    stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
-                    Modifier.padding(bottom = Spacing.sm),
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                milestone?.let { reached -> MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
+                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
+                FilterRow(
+                    state = state,
+                    detail = detail,
+                    onFilter = onFilter,
+                    onLanguages = { languageSheet = true },
+                    onMode = onMode,
+                    onToggleLegend = onToggleLegend,
                 )
+                if (state.legendShown) {
+                    ChecklistLegend(
+                        stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
+                        Modifier.padding(bottom = Spacing.sm),
+                    )
+                }
             }
         }
         items(shown, key = { it.localId }) { slot ->
@@ -287,6 +286,9 @@ private fun SetGrid(
         }
     }
 }
+
+/** The widest the set header's value column gets: "TCGplayer market · Nov 20, 2026" at 1x. */
+private val ValueColumnMax = 220.dp
 
 /** An icon button's space around its 24 dp icon: (48 − 24) / 2. */
 private val IconInset = 12.dp
@@ -329,17 +331,19 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             progressDescription(progress)
         }
         // The count with its secret-rare line on the left, the value at the top right: the count stays right under the
-        // series line, however many lines the value takes (#218). The count keeps its width; the value wraps.
+        // series line, however many lines the value takes (#218). The value column is capped, so a long secret line
+        // or a large font never squeezes it into a sliver; the count side takes the rest.
         Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = Spacing.xs)) {
-            Column {
+            Column(Modifier.weight(1f)) {
                 Text(
                     text = progressText(progress.base, progress.printedTotal),
                     style = MaterialTheme.typography.displayMedium,
                     maxLines = 1,
                     modifier = Modifier.semantics { contentDescription = description },
                 )
+                // "Base set" says what 7/165 counts, next to the secret rares it leaves out (#218).
                 val secretLine = if (secretTotal > 0) {
-                    stringResource(R.string.collections_secret_of, progress.secret, secretTotal)
+                    stringResource(R.string.collections_base_and_secret, progress.secret, secretTotal)
                 } else {
                     secretText(progress)
                 }
@@ -356,7 +360,7 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             value?.takeIf { it.amountMinor > 0 }?.let {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
+                    modifier = Modifier.widthIn(max = ValueColumnMax).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
                     Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
                     // Market and date on one line, as on Collections (#176), and how many copies it covers when not all.

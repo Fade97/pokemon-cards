@@ -496,6 +496,7 @@
     <string name="milestone_dismiss">OK</string>
     <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
     <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="collections_base_and_secret">Base set\nSecret rares %1$d/%2$d</string>
     <string name="collections_secret_of_description">%1$d of %2$d secret rares collected</string>
     <string name="scan_refocus">Refocus the camera</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
@@ -670,6 +671,7 @@
     <!-- Scan target collection (#139) -->
     <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
     <string name="review_confirm_adds">Confirm adds %1$s.</string>
+    <string name="review_confirm_adds_defaults">Confirm adds %1$s, the defaults.</string>
     <string name="review_change_description">Change finish, edition, condition and quantity</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>

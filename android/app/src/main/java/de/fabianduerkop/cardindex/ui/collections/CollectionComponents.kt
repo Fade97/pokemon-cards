@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -150,7 +151,8 @@ internal fun ValueSummary(
         }
         if (details.isNotEmpty()) {
             Text(
-                details.joinToString(" · "),
+                // One line at 1x; at a large font each part on its own line, never a lone "·" at a line end (#218).
+                details.joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),

@@ -63,6 +63,16 @@ object PriceSelection {
     }
 
     /**
+     * The oldest price date among the quotes [total] sums for [copies], so a total never reads fresher than its
+     * oldest price (#218); null when none of them has a date.
+     */
+    fun totalDate(
+        copies: List<OwnedCopyEntity>,
+        pricesByCard: Map<String, List<CachedPriceEntity>>,
+        source: PriceSource,
+    ): Instant? = copies.mapNotNull { quote(pricesByCard[it.cardId].orEmpty(), source, it)?.priceDate }.minOrNull()
+
+    /**
      * Sum of [quote] × quantity over copies with a price from [source], and how many copies had none. Copies
      * TCGplayer doesn't price count as unpriced in a TCGplayer total: their Cardmarket price is in another currency.
      */

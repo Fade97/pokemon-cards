@@ -30,19 +30,22 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /**
  * A section heading with an optional quiet note at the end, e.g. "Recently added · Today", or an [action] there (a
- * [TextAction]); its 48 dp touch height then stands in for part of the padding.
+ * [TextAction]); its 48 dp touch height then stands in for part of the padding. [dense] uses that tighter padding
+ * without an action, for a heading that sits right on its own explanation.
  */
 @Composable
 fun SectionHeader(
     title: String,
     modifier: Modifier = Modifier,
     trailing: String? = null,
+    dense: Boolean = false,
     action: (@Composable RowScope.() -> Unit)? = null,
 ) {
+    val tight = dense || action != null
     Row(
         modifier.fillMaxWidth().padding(
-            top = if (action != null) Spacing.md else Spacing.xl,
-            bottom = if (action != null) Spacing.xs else Spacing.md,
+            top = if (tight) Spacing.md else Spacing.xl,
+            bottom = if (tight) Spacing.xs else Spacing.md,
         ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),

@@ -291,8 +291,7 @@ class CollectionsViewModel(
             collections = b.collections,
             value = PriceSelection.total(b.copies.map { it.copy }, priceMap, source),
             source = source,
-            priceDate = b.copies.flatMap { priceMap[it.card.id].orEmpty() }
-                .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
+            priceDate = PriceSelection.totalDate(b.copies.map { it.copy }, priceMap, source),
             covers = covers,
             allCardsCover = binderCover(b.copies, null, quotes, source.currency),
             photos = photos,
@@ -513,8 +512,7 @@ class SetDetailViewModel(
             loading = false,
             detail = detail,
             value = PriceSelection.total(owned, priceMap, source),
-            priceDate = ownedCopies.flatMap { priceMap[it.card.id].orEmpty() }
-                .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
+            priceDate = PriceSelection.totalDate(owned, priceMap, source),
             legendShown = legendShown,
         )
     }.stateIn(this, SetDetailUiState())
