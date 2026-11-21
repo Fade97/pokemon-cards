@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -494,6 +495,17 @@ class SetDetailViewModel(
     private val selected = MutableStateFlow(
         savedState.get<String>(CollectionsRoutes.ARG_LANGUAGES)?.split(',')?.filter { it.isNotBlank() }?.toSet().orEmpty(),
     )
+
+    init {
+        // Only the languages this set has: a language chosen on Collections that the set lacks would be an
+        // invisible filter, which the language chip can't show or clear, and owned slots would read as missing.
+        if (selected.value.isNotEmpty()) {
+            viewModelScope.launch {
+                val available = repository.observeSetDetail(setId, null).first()?.languages?.toSet() ?: return@launch
+                selected.update { chosen -> chosen intersect available }
+            }
+        }
+    }
     private val mode = MutableStateFlow(SetViewMode.COMPACT)
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
