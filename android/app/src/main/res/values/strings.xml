@@ -252,7 +252,7 @@
     <string name="copy_quantity_decrease">Fewer</string>
     <string name="copy_quantity_increase">More</string>
     <string name="copy_language">Card language</string>
-    <string name="copy_finish">Variant</string>
+    <string name="copy_finish">Finish</string>
     <string name="copy_edition">Edition</string>
     <string name="copy_graded">Graded</string>
     <string name="copy_graded_hint">In a case from PSA, CGC, BGS or another grader</string>
@@ -583,6 +583,7 @@
     <string name="set_share_map">Slot map</string>
     <string name="set_share_missing">Missing list</string>
     <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
+    <string name="set_share_map_no_art">Numbers only, no card pictures.</string>
     <string name="set_share_image">Share image</string>
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>

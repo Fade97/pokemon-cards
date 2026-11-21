@@ -99,7 +99,8 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             if (mapTab) SlotMapImage(data) else MissingListImage(data)
         }
         Text(
-            stringResource(R.string.set_share_no_art),
+            // The slot map has numbers only; the missing list has names too (#218).
+            stringResource(if (mapTab) R.string.set_share_map_no_art else R.string.set_share_no_art),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

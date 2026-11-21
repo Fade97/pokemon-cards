@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.ui.review
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,6 +15,7 @@ import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
@@ -43,6 +45,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -155,6 +158,17 @@ fun ReviewScreen(
                 // Each item starts at the top; its own scroll state, not the previous card's.
                 else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, choices, onFindCard = { onFindCard(item) }) }
             }
+            // The form fades out into the footer, so a line the footer cuts reads as "more below", not as a glitch (#218).
+            if (item != null) {
+                val page = MaterialTheme.colorScheme.background
+                Box(
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .height(FooterFade)
+                        .background(Brush.verticalGradient(listOf(page.copy(alpha = 0f), page))),
+                )
+            }
         }
     }
 }
@@ -203,7 +217,12 @@ private fun ItemForm(
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                 }
-                item.entity.numberRead?.let { read ->
+                // Only when it says something the big number above doesn't: the read number differs from the card's.
+                val shown = chosen?.let { c ->
+                    val total = c.set.printedTotal.takeIf { it > 0 }
+                    padCollectorNumber(c.card.localId, total) + (total?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
+                }
+                item.entity.numberRead?.takeIf { it != shown }?.let { read ->
                     Text(
                         stringResource(R.string.review_number_read, read),
                         style = MaterialTheme.typography.bodySmall,
@@ -372,7 +391,8 @@ private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, 
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = colors.onSurfaceVariant,
-                    maxLines = 1,
+                    // Two lines, so a long set name never pushes the language, often the deciding clue, out of view.
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
             }
@@ -455,6 +475,9 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
         )
     }
 }
+
+/** Height of the fade where the form scrolls under the footer. */
+private val FooterFade = 24.dp
 
 /** How many of the card to add; in the form under the choices, so the footer keeps only what Confirm saves. */
 @Composable

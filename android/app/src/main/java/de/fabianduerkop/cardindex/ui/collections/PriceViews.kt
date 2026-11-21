@@ -248,7 +248,9 @@ internal fun PriceBox(
         val tcgplayerId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.TCGPLAYER } }
         if (cardmarketId != null || tcgplayerId != null) {
             // Moved back by the buttons' inner padding, so the first link starts on the text column above.
-            FlowRow(Modifier.padding(top = Spacing.xs).offset(x = -TextActionInset)) {
+            // In the order the prices show above: the leading market's link first (#218).
+            val tcgplayerFirst = ((main ?: secondary)?.source ?: primary) == PriceSource.TCGPLAYER
+            val cardmarketLink: @Composable () -> Unit = {
                 if (cardmarketId != null) {
                     TextAction(
                         if (MarketLinks.filtersLanguage(cardLanguage)) {
@@ -259,11 +261,23 @@ internal fun PriceBox(
                         onClick = { uriHandler.openUri(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
                     )
                 }
+            }
+            val tcgplayerLink: @Composable () -> Unit = {
                 if (tcgplayerId != null) {
                     TextAction(
                         stringResource(R.string.price_open_tcgplayer),
                         onClick = { uriHandler.openUri(MarketLinks.tcgplayer(tcgplayerId)) },
                     )
+                }
+            }
+            // Moved back by the buttons' inner padding, so the first link starts on the text column above.
+            FlowRow(Modifier.padding(top = Spacing.xs).offset(x = -TextActionInset)) {
+                if (tcgplayerFirst) {
+                    tcgplayerLink()
+                    cardmarketLink()
+                } else {
+                    cardmarketLink()
+                    tcgplayerLink()
                 }
             }
         }
