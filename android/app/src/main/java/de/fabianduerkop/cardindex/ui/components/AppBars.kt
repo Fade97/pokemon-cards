@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -30,6 +31,7 @@ import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
@@ -55,20 +57,25 @@ fun LumifoilTopAppBar(
     scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    TopAppBar(
-        title = title,
-        modifier = modifier,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        scrollBehavior = scrollBehavior,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = colors.background,
-            scrolledContainerColor = colors.surfaceContainerLow,
-            titleContentColor = colors.onSurface,
-            navigationIconContentColor = colors.onSurface,
-            actionIconContentColor = colors.onSurfaceVariant,
-        ),
-    )
+    Column(modifier) {
+        TopAppBar(
+            title = title,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = colors.background,
+                scrolledContainerColor = colors.surfaceContainer,
+                titleContentColor = colors.onSurface,
+                navigationIconContentColor = colors.onSurface,
+                actionIconContentColor = colors.onSurfaceVariant,
+            ),
+        )
+        // A hairline once content runs under the bar, like the bottom bars have, so a half-hidden row has an edge to
+        // pass under (#218). Always laid out, only coloured, so nothing below moves when it shows.
+        val scrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > 0.01f
+        HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
+    }
 }
 
 /** The title of a bar: one line, ellipsized, so a long set name never pushes the actions off screen. */

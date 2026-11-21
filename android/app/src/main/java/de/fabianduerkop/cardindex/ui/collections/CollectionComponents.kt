@@ -143,7 +143,10 @@ internal fun ValueSummary(
                     ),
                 )
             }
-            priceDate?.let { add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()))) }
+            // "Prices from Nov 20, 2026" wraps as a whole, never with the date split over two lines (#218).
+            priceDate?.let {
+                add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0'))
+            }
         }
         if (details.isNotEmpty()) {
             Text(

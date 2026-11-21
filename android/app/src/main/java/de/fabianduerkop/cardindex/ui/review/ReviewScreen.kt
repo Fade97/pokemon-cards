@@ -214,14 +214,24 @@ private fun ItemForm(
         }
         StatusNotice(stringResource(reasonExplanation(item.entity.reason)))
 
-        SectionHeader(stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card))
+        // None of the matches is right (#129): search for the card, keeping this scan and the choices below. Next to
+        // the heading, so the way out shows on the first screen at any font size (#218).
+        SectionHeader(
+            stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card),
+            action = {
+                TextAction(
+                    stringResource(R.string.review_find_card_short),
+                    onClick = onFindCard,
+                    modifier = Modifier.offset(x = TextActionInset),
+                    contentDescription = stringResource(R.string.review_find_card_description),
+                )
+            },
+        )
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             item.candidates.forEach { c ->
                 CandidateRow(c, differences, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
             }
         }
-        // None of the matches is right (#129): search for the card, keeping this scan and the choices below.
-        TextAction(stringResource(R.string.review_find_card), onClick = onFindCard, alignToText = true)
 
         Column(Modifier.bringIntoViewRequester(choices), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             SectionHeader(stringResource(R.string.variant_your_choice))

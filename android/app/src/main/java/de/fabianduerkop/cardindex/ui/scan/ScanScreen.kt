@@ -2,7 +2,9 @@
 package de.fabianduerkop.cardindex.ui.scan
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -84,6 +86,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -98,6 +101,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
@@ -172,7 +176,12 @@ fun ScanScreen(
     // The lab is a test bench for the models; release builds don't offer it.
     val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+    // With the camera on, its dark ground runs up behind the status bar, whose icons turn light, as in the card
+    // viewer: a porcelain strip above the black picture looked like a seam (#218).
+    val live = granted && engine !is ScanEngineState.Failed && engine !is ScanEngineState.NoLanguages
+    if (live) LightStatusBarIcons()
+    val ground = if (live) LumifoilTheme.colors.camera.background else MaterialTheme.colorScheme.background
+    Box(modifier.fillMaxSize().background(ground).statusBarsPadding()) {
         when {
             engine is ScanEngineState.Failed -> ScanMessage {
                 StatusNotice(
@@ -215,6 +224,25 @@ fun ScanScreen(
             else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections, onOpenSet)
         }
     }
+}
+
+/** Light status bar icons while this is shown, then back to what they were. */
+@Composable
+private fun LightStatusBarIcons() {
+    val view = LocalView.current
+    val window = view.context.findActivity()?.window
+    DisposableEffect(window, view) {
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val before = controller?.isAppearanceLightStatusBars
+        controller?.isAppearanceLightStatusBars = false
+        onDispose { if (before != null) controller.isAppearanceLightStatusBars = before }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun hasCameraPermission(context: Context): Boolean =
@@ -350,7 +378,7 @@ private fun LiveScan(
                     Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    LiveStatus(paused, Modifier.align(Alignment.Start))
+                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, Modifier.align(Alignment.Start))
                     CameraReading(
                         engine,
                         viewfinder,
@@ -503,7 +531,7 @@ private fun problemOf(code: Int): CameraProblem = when (code) {
  * outline, so it reads on a bright photo and on the black letterbox alike.
  */
 @Composable
-private fun LiveStatus(paused: Boolean, modifier: Modifier) {
+private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
     val camera = LumifoilTheme.colors.camera
     Row(
         modifier
@@ -513,9 +541,16 @@ private fun LiveStatus(paused: Boolean, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(Modifier.size(8.dp).background(if (paused) camera.muted else camera.live, CircleShape))
+        // Green and "Live" only once recognition is loaded: before that a card can't be added yet (#218).
+        Box(Modifier.size(8.dp).background(if (paused || !ready) camera.muted else camera.live, CircleShape))
         Text(
-            stringResource(if (paused) R.string.scan_paused else R.string.scan_live),
+            stringResource(
+                when {
+                    paused -> R.string.scan_paused
+                    !ready -> R.string.scan_starting
+                    else -> R.string.scan_live
+                },
+            ),
             color = camera.content,
             style = MaterialTheme.typography.labelMedium,
         )
@@ -1038,7 +1073,8 @@ private fun LatestScan(tray: ScanTray, introSeen: Boolean, onUndo: () -> Unit, o
     val rowModifier = Modifier
         .fillMaxWidth()
         .heightIn(min = 72.dp)
-        .background(colors.surfaceContainerLow, MaterialTheme.shapes.large)
+        // The same container as notices elsewhere; the lower one nearly vanished on the dark tray (#218).
+        .background(colors.surfaceContainer, MaterialTheme.shapes.large)
         .padding(Spacing.md)
         // Spoken when a card is added, queued or taken back, without moving focus off the camera.
         .semantics { liveRegion = LiveRegionMode.Polite }

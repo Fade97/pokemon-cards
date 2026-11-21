@@ -145,6 +145,8 @@ fun CollectionsScreen(
             TextAction(
                 stringResource(R.string.collections_new),
                 onClick = { creating = true },
+                // The bar pads its actions by 4 dp; this puts the word's end on the 20 dp gutter (#218).
+                modifier = Modifier.padding(end = Spacing.xs),
                 contentDescription = stringResource(R.string.collections_new_description),
             )
         },

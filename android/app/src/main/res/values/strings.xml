@@ -126,7 +126,7 @@
     <string name="collections_languages_title">Languages</string>
     <!-- Spoken form of the language chip, e.g. "Languages: All languages". -->
     <string name="collections_languages_chip_description">Languages: %1$s</string>
-    <string name="collections_filter_all">All</string>
+    <string name="collections_filter_all_count">All %1$d</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
     <string name="collections_slot_missing">Missing</string>
@@ -503,6 +503,7 @@
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
     <string name="scan_live">Live · on device</string>
+    <string name="scan_starting">Starting · on device</string>
     <string name="scan_hint_reading">Reading the number…</string>
     <string name="scan_hint_added">Added. Take the next card.</string>
     <!-- A scan added a card that was on the wishlist and not owned yet (#162). -->
@@ -695,7 +696,8 @@
     <string name="review_skip">Skip</string>
     <string name="review_confirm">Confirm</string>
     <string name="review_discard">Remove this scan</string>
-    <string name="review_find_card">None of these? Find the card</string>
+    <string name="review_find_card_short">Find the card</string>
+    <string name="review_find_card_description">Find the card, none of these is right</string>
     <!-- Shown instead of the similarity for a card the user found in search -->
     <string name="review_picked_by_hand">Your pick</string>
     <string name="review_find_title">Find the card</string>

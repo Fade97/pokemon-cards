@@ -52,6 +52,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -148,6 +149,8 @@ fun SetDetailScreen(
                 TextAction(
                     text = stringResource(if (state.pinned) R.string.collections_unpin_set else R.string.collections_pin_set),
                     onClick = viewModel::togglePinned,
+                    // The bar pads its actions by 4 dp; this puts the word's end on the 20 dp gutter (#218).
+                    modifier = Modifier.padding(end = Spacing.xs),
                     contentDescription = stringResource(
                         if (state.pinned) R.string.collections_unpin_set_description else R.string.collections_pin_set_description,
                     ),
@@ -366,7 +369,9 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     }
                     Text(
                         listOfNotNull(
-                            listOfNotNull(stringResource(it.source.label()), date).joinToString(" · "),
+                            // One line at 1x; at a large font market and date go under each other, never "market ·" alone.
+                            listOfNotNull(stringResource(it.source.label()), date)
+                                .joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
                             coverage,
                         ).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
@@ -404,7 +409,12 @@ private fun FilterRow(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         itemVerticalAlignment = Alignment.CenterVertically,
     ) {
-        ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
+        // All, Owned and Missing all count slots, so the three add up (200 + 7 = 207, #218).
+        ChoiceChip(
+            state.filter == SlotFilter.ALL,
+            { onFilter(SlotFilter.ALL) },
+            stringResource(R.string.collections_filter_all_count, detail.slots.size),
+        )
         ChoiceChip(
             state.filter == SlotFilter.OWNED,
             { onFilter(SlotFilter.OWNED) },

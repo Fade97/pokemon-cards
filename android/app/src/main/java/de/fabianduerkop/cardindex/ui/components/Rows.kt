@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -27,11 +28,22 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
-/** A section heading with an optional quiet note at the end, e.g. "Recently added · Today". */
+/**
+ * A section heading with an optional quiet note at the end, e.g. "Recently added · Today", or an [action] there (a
+ * [TextAction]); its 48 dp touch height then stands in for part of the padding.
+ */
 @Composable
-fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: String? = null) {
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: String? = null,
+    action: (@Composable RowScope.() -> Unit)? = null,
+) {
     Row(
-        modifier.fillMaxWidth().padding(top = Spacing.xl, bottom = Spacing.md),
+        modifier.fillMaxWidth().padding(
+            top = if (action != null) Spacing.md else Spacing.xl,
+            bottom = if (action != null) Spacing.xs else Spacing.md,
+        ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -44,6 +56,7 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: String
         if (trailing != null) {
             Text(trailing, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        action?.invoke(this)
     }
 }
 

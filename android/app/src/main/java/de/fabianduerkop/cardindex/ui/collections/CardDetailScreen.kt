@@ -277,7 +277,7 @@ private fun viewerImages(detail: CardDetail, images: DetailImages): List<CardVie
         when (image) {
             is DetailImage.Official -> CardViewerImage(
                 model = image.model,
-                label = title,
+                label = viewerTitle(detail),
                 description = stringResource(R.string.viewer_official_description, title),
                 foil = image.foil,
             )
@@ -338,6 +338,15 @@ private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifie
             icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
         )
     }
+}
+
+/** "003/165 Venusaur ex, 151": the number as everywhere else on screen, for the viewer's header. */
+@Composable
+private fun viewerTitle(detail: CardDetail): String {
+    val set = detail.set
+    val total = set?.printedTotal?.takeIf { it > 0 }
+    val number = padCollectorNumber(detail.card.localId, total) + (total?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
+    return listOfNotNull("$number ${detail.card.name}", set?.name).joinToString(", ")
 }
 
 @Composable
