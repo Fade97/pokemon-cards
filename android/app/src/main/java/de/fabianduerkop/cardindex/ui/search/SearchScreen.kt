@@ -39,6 +39,8 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
@@ -60,6 +62,7 @@ import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
+import de.fabianduerkop.cardindex.ui.components.collectorNumberDescription
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
@@ -258,12 +261,20 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
 @Composable
 private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
     val card = hit.card
+    // One label for the whole row: merged, the number's own description would replace the name, set and language.
+    val spoken = listOfNotNull(
+        collectorNumberDescription(card.localId, hit.printedTotal),
+        card.name,
+        hit.setName,
+        languageName(card.language),
+        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.search_owned, it, it) },
+    ).joinToString(", ")
     Column(
         Modifier
             .fillMaxWidth()
             .focusRing(MaterialTheme.shapes.small, gap = (-2).dp)
             .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {},
+            .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = Spacing.md),

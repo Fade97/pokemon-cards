@@ -71,6 +71,7 @@ import de.fabianduerkop.cardindex.ui.components.CardViewer
 import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.FooterFade
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -222,6 +223,8 @@ fun CardDetailScreen(
                     }
                     item { Spacer(Modifier.height(Spacing.lg)) }
                 }
+                // As on Review: the list fades into the Add bar instead of a line being cut at it (#218).
+                FooterFade(Modifier.align(Alignment.BottomCenter).padding(bottom = padding.calculateBottomPadding()))
             }
         }
     }

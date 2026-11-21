@@ -52,9 +52,11 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -82,12 +84,14 @@ import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.FooterFade
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.TextActionInset
+import de.fabianduerkop.cardindex.ui.components.collectorNumberDescription
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.collections.label
@@ -123,7 +127,8 @@ fun ReviewScreen(
             if (state.current != null) {
                 Text(
                     stringResource(R.string.review_position, state.position, state.total),
-                    Modifier.padding(end = Spacing.gutter),
+                    // The bar pads its actions by 4 dp: this ends the counter on the 20 dp gutter (#218).
+                    Modifier.padding(end = Spacing.lg),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
@@ -158,17 +163,7 @@ fun ReviewScreen(
                 // Each item starts at the top; its own scroll state, not the previous card's.
                 else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, choices, onFindCard = { onFindCard(item) }) }
             }
-            // The form fades out into the footer, so a line the footer cuts reads as "more below", not as a glitch (#218).
-            if (item != null) {
-                val page = MaterialTheme.colorScheme.background
-                Box(
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .height(FooterFade)
-                        .background(Brush.verticalGradient(listOf(page.copy(alpha = 0f), page))),
-                )
-            }
+            if (item != null) FooterFade(Modifier.align(Alignment.BottomCenter))
         }
     }
 }
@@ -344,12 +339,23 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
 private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, selected: Boolean, onClick: () -> Unit) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.medium
+    val spoken = listOf(
+        collectorNumberDescription(c.card.localId, c.set.printedTotal),
+        c.card.name,
+        c.set.name,
+        languageName(c.card.language),
+    ).joinToString(", ")
     Surface(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .focusRing(shape)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton),
+            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            // One label: merged, the number's own description would replace the name, set and language (#218).
+            .clearAndSetSemantics {
+                contentDescription = spoken
+                this.selected = selected
+            },
         shape = shape,
         color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant),
@@ -475,9 +481,6 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
         )
     }
 }
-
-/** Height of the fade where the form scrolls under the footer. */
-private val FooterFade = 24.dp
 
 /** How many of the card to add; in the form under the choices, so the footer keeps only what Confirm saves. */
 @Composable

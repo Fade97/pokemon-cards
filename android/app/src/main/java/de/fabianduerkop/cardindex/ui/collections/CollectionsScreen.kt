@@ -473,11 +473,22 @@ private fun FeaturedSet(
                     modifier = Modifier.weight(1f),
                 )
                 row.value?.takeIf { it.amountMinor > 0 }?.let { value ->
-                    Text(
-                        Money.format(value.amountMinor, value.currency),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(start = Spacing.sm),
-                    )
+                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
+                        Text(Money.format(value.amountMinor, value.currency), style = MaterialTheme.typography.labelLarge)
+                        // A partial value says so, as on the set screen: alone, $18.33 read as all copies' worth (#218).
+                        if (value.unpricedCopies > 0) {
+                            Text(
+                                pluralStringResource(
+                                    R.plurals.collections_set_value_coverage,
+                                    value.totalCopies,
+                                    value.pricedCopies,
+                                    value.totalCopies,
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
             change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }

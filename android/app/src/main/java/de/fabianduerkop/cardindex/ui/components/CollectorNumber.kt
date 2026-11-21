@@ -34,11 +34,11 @@ fun CollectorNumber(
     color: Color = Color.Unspecified,
     totalColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
+    val description = collectorNumberDescription(localId, printedTotal)
     // A printed total of 0 (promos) means none: "022", not "022/000".
     val printed = printedTotal?.takeIf { it > 0 }
     val number = padCollectorNumber(localId, printed)
     val total = printed?.let { padCollectorNumber(it.toString(), it) }
-    val description = if (total != null) stringResource(R.string.collector_number_description, number, total) else number
     Text(
         text = numberOverTotal(number, total, totalColor),
         modifier = modifier.semantics { contentDescription = description },
@@ -46,6 +46,19 @@ fun CollectorNumber(
         color = color,
         maxLines = 1,
     )
+}
+
+/**
+ * What TalkBack says for a collector number: "Number 006 of 165", or just the number without a total. A row that
+ * merges its texts for TalkBack must speak this as part of its own label: merged, a child's description replaces the
+ * row's other texts (#218).
+ */
+@Composable
+fun collectorNumberDescription(localId: String, printedTotal: Int?): String {
+    val printed = printedTotal?.takeIf { it > 0 }
+    val number = padCollectorNumber(localId, printed)
+    val total = printed?.let { padCollectorNumber(it.toString(), it) }
+    return if (total != null) stringResource(R.string.collector_number_description, number, total) else number
 }
 
 /** "87/165" with the total muted; shared by [CollectorNumber] and count displays like set completion. */
