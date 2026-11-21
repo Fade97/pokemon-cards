@@ -66,6 +66,7 @@ import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.toSize
@@ -240,7 +241,7 @@ private fun ViewerBar(
             Icon(painterResource(R.drawable.ic_close), stringResource(R.string.action_close))
         }
         Column(Modifier.padding(start = Spacing.xs, end = Spacing.lg)) {
-            Text(label, style = MaterialTheme.typography.titleSmall, color = camera.content, maxLines = 2)
+            Text(label, style = MaterialTheme.typography.titleSmall, color = camera.content, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (position != null) {
                 Text(position, style = MaterialTheme.typography.bodySmall, color = camera.muted)
             }

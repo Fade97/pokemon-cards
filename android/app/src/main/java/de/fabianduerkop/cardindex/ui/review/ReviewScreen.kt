@@ -193,8 +193,9 @@ private fun ItemForm(
                 modifier = Modifier
                     .width(88.dp)
                     .aspectRatio(63f / 88f)
+                    .focusRing(MaterialTheme.shapes.small)
                     .clip(MaterialTheme.shapes.small)
-                    .clickable(onClickLabel = enlargeLabel, role = Role.Image) { comparing = true },
+                    .clickable(onClickLabel = enlargeLabel, role = Role.Button) { comparing = true },
                 contentScale = ContentScale.Crop,
             )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
@@ -531,7 +532,8 @@ private fun Footer(
                 val print = stringResource(finish.label()).let {
                     if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
                 }
-                val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(draft.condition.label())}")
+                // The condition in the form's words ("Near mint"), so the summary matches the chips below (#218).
+                val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(conditionLabel(draft.condition))}")
                 // Values nobody picked are the defaults, and say so: the camera did not read them (#218).
                 val defaults = !draft.finishChosen && !draft.editionChosen && !draft.conditionChosen
                 Text(

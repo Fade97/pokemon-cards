@@ -235,6 +235,7 @@ internal fun PriceBox(
             }
             val notes = buildList {
                 add(datesText)
+                add(stringResource(R.string.price_not_condition))
                 if (second != null && second.currency != first.currency) add(stringResource(R.string.price_currencies))
                 dates.filter { it.stale }.forEach {
                     add(stringResource(R.string.price_stale, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate())))

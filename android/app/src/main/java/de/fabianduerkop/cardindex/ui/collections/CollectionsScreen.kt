@@ -397,6 +397,22 @@ private fun ValueHeader(
     }
 }
 
+/**
+ * How much of a set's value is known, when not all of it: "5 of 10 copies priced", or "No price" when none of its
+ * copies has one. Null when every copy is priced. Shown and spoken next to the value, so a partial sum never passes
+ * for the whole set (#218).
+ */
+@Composable
+private fun valueCoverage(row: SetRowUi): String? {
+    val value = row.value
+    return when {
+        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) -> stringResource(R.string.collections_not_priced)
+        value != null && value.unpricedCopies > 0 ->
+            pluralStringResource(R.plurals.collections_set_value_coverage, value.totalCopies, value.pricedCopies, value.totalCopies)
+        else -> null
+    }
+}
+
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
 private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyTrend? = null): String {
@@ -407,6 +423,7 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueCoverage(row),
         change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
@@ -460,7 +477,8 @@ private fun FeaturedSet(
                 )
             }
             CardFan(row.art, set.printedTotal, Modifier.padding(vertical = Spacing.md))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Top-aligned: the count lines up with the value, not between it and its coverage line (#218).
+            Row(verticalAlignment = Alignment.Top) {
                 Text(
                     progressText(
                         row.progress.base,
@@ -539,6 +557,7 @@ private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val subtitle = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueCoverage(row),
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
     ).joinToString(" · ")

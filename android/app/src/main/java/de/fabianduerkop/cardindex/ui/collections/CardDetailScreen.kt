@@ -221,7 +221,8 @@ fun CardDetailScreen(
                             onClick = { editing = item.copy },
                         )
                     }
-                    item { Spacer(Modifier.height(Spacing.lg)) }
+                    // At least the fade's height, so the last row rests clear of it.
+                    item { Spacer(Modifier.height(Spacing.xl)) }
                 }
                 // As on Review: the list fades into the Add bar instead of a line being cut at it (#218).
                 FooterFade(Modifier.align(Alignment.BottomCenter).padding(bottom = padding.calculateBottomPadding()))

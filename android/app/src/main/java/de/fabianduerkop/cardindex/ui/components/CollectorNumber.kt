@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -39,19 +40,21 @@ fun CollectorNumber(
     val printed = printedTotal?.takeIf { it > 0 }
     val number = padCollectorNumber(localId, printed)
     val total = printed?.let { padCollectorNumber(it.toString(), it) }
-    Text(
-        text = numberOverTotal(number, total, totalColor),
-        modifier = modifier.semantics { contentDescription = description },
-        style = style.merge(TextStyle(fontFeatureSettings = TabularFigures)),
-        color = color,
-        maxLines = 1,
-    )
+    // Spoken as text, not as a content description: in a row that merges its texts for TalkBack, a child's description
+    // replaced all the other texts, so only "Number 006 of 165" was read, not the name, set or price (#218).
+    Box(modifier.clearAndSetSemantics { text = AnnotatedString(description) }) {
+        Text(
+            text = numberOverTotal(number, total, totalColor),
+            style = style.merge(TextStyle(fontFeatureSettings = TabularFigures)),
+            color = color,
+            maxLines = 1,
+        )
+    }
 }
 
 /**
- * What TalkBack says for a collector number: "Number 006 of 165", or just the number without a total. A row that
- * merges its texts for TalkBack must speak this as part of its own label: merged, a child's description replaces the
- * row's other texts (#218).
+ * What TalkBack says for a collector number: "Number 006 of 165", or just the number without a total. Also for rows
+ * that build one spoken label of their own.
  */
 @Composable
 fun collectorNumberDescription(localId: String, printedTotal: Int?): String {

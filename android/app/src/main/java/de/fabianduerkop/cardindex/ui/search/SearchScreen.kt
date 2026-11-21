@@ -38,10 +38,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -203,7 +205,10 @@ private fun LazyListScope.results(
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xl, bottom = Spacing.sm),
+                    // Announced as it changes, so TalkBack users typing in the field hear what the query found (#218).
+                    modifier = Modifier
+                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xl, bottom = Spacing.sm)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
             }
@@ -239,7 +244,11 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
         Text(
             stringResource(R.string.search_none_title),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = Spacing.md).semantics { heading() },
+            // Heard while typing, like the result count.
+            modifier = Modifier.padding(top = Spacing.md).semantics {
+                heading()
+                liveRegion = LiveRegionMode.Polite
+            },
         )
         Text(
             stringResource(R.string.search_none_hint),

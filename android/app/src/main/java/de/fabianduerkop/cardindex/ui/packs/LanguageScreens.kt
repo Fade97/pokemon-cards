@@ -5,8 +5,10 @@ import android.text.format.Formatter
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
@@ -235,6 +237,8 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
         enabled = state.addable.any { it.available },
         icon = R.drawable.ic_add,
     )
+    // Room between the button and the switch, as between the other settings groups (#218).
+    Spacer(Modifier.height(Spacing.sm))
     MobileDataSwitch(state.mobileData, viewModel::setMobileData)
 
     if (adding) AddLanguagesDialog(state, onDismiss = { adding = false }) { picked ->

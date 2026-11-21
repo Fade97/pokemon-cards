@@ -55,6 +55,7 @@
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
+    <string name="collections_not_priced">No price</string>
     <plurals name="collections_set_value_coverage">
         <item quantity="one">%1$d of %2$d copy priced</item>
         <item quantity="other">%1$d of %2$d copies priced</item>
@@ -171,7 +172,9 @@
     <string name="collections_all_empty_scan">Scan a card</string>
     <string name="collections_card_unknown">This card is not on this device.</string>
 
-    <string name="price_title">Price</string>
+    <string name="price_title">Market price</string>
+    <!-- Under a card's prices: they are for the printing, whatever the owned copy's state (#218). -->
+    <string name="price_not_condition">For the printing; not adjusted for condition or grade.</string>
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
     <string name="price_as_of">Prices from %1$s</string>

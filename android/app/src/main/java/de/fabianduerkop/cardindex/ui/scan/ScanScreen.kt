@@ -594,33 +594,42 @@ private fun CameraReading(
             )
             engine is ScanEngineState.Loading -> HintPill(stringResource(R.string.scan_loading))
             card != null && identified -> {
-                CollectorNumber(
-                    localId = card.localId,
-                    printedTotal = card.official,
-                    style = MaterialTheme.typography.displayMedium,
-                    color = camera.content,
-                    totalColor = camera.muted,
-                )
-                Text(
-                    stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
-                    color = camera.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 val done = hit?.takeIf { viewfinder.hint == ScanHint.DONE }
                 // Said in words too, so the reveal doesn't depend on the halo or the haptic (#168).
                 val valuable = done?.isValuable(priceSource) == true
                 val threshold = HitReveal.threshold(priceSource).let { Money.formatWhole(it.amountMinor, it.currency) }
-                // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
-                done?.ownQuote(priceSource)?.let { quote ->
-                    Text(
-                        stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency)),
+                // On the camera scrim, like the hints: light text straight on the picture vanished over a white table
+                // or a bright card (#218).
+                Column(
+                    Modifier
+                        .background(camera.scrim, RoundedCornerShape(HintCorner))
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CollectorNumber(
+                        localId = card.localId,
+                        printedTotal = card.official,
+                        style = MaterialTheme.typography.displayMedium,
                         color = camera.content,
-                        style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center,
+                        totalColor = camera.muted,
                     )
+                    Text(
+                        stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
+                        color = camera.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
+                    done?.ownQuote(priceSource)?.let { quote ->
+                        Text(
+                            stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency)),
+                            color = camera.content,
+                            style = MaterialTheme.typography.titleSmall,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
                 HintPill(
                     when {
