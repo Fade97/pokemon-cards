@@ -11,8 +11,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.unit.dp
 
-/** Height of [FooterFade]. */
-private val FadeHeight = 24.dp
+/** Height of [FooterFade]; text that must stay readable above the footer keeps at least this much room under it. */
+val FooterFadeHeight = 32.dp
 
 /**
  * A short fade from the page into a sticky footer (Review's Confirm bar, card detail's Add bar), so a line the footer
@@ -25,7 +25,15 @@ fun FooterFade(modifier: Modifier = Modifier) {
     Box(
         modifier
             .fillMaxWidth()
-            .height(FadeHeight)
-            .background(Brush.verticalGradient(listOf(page.copy(alpha = 0f), page))),
+            .height(FooterFadeHeight)
+            // Eased, solid for its last few dp, so no half-cut glyph shows right on the footer's edge.
+            .background(
+                Brush.verticalGradient(
+                    0f to page.copy(alpha = 0f),
+                    0.6f to page.copy(alpha = 0.8f),
+                    0.85f to page,
+                    1f to page,
+                ),
+            ),
     )
 }

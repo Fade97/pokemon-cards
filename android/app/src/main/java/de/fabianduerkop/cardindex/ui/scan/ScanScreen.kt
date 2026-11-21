@@ -121,6 +121,7 @@ import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
+import de.fabianduerkop.cardindex.ui.collections.formatDate
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.CountBadge
@@ -130,6 +131,7 @@ import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.components.numberWithTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.review.VariantChoices
@@ -140,6 +142,7 @@ import de.fabianduerkop.cardindex.ui.theme.CameraColors
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import coil3.compose.AsyncImage
+import java.time.ZoneId
 import kotlin.coroutines.resume
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -602,7 +605,9 @@ private fun CameraReading(
                 // or a bright card (#218).
                 Column(
                     Modifier
+                        .widthIn(max = HintMaxWidth)
                         .background(camera.scrim, RoundedCornerShape(HintCorner))
+                        .border(1.dp, camera.faint, RoundedCornerShape(HintCorner))
                         .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
                     horizontalAlignment = Alignment.CenterHorizontally,
                 ) {
@@ -623,8 +628,11 @@ private fun CameraReading(
                     )
                     // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
                     done?.ownQuote(priceSource)?.let { quote ->
+                        // With its date, like every other price: a cached quote must not pass for today's (#218).
+                        val line = stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency))
+                        val date = quote.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()) }
                         Text(
-                            stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency)),
+                            if (date != null) stringResource(R.string.scan_price_dated, line, date) else line,
                             color = camera.content,
                             style = MaterialTheme.typography.titleSmall,
                             textAlign = TextAlign.Center,
@@ -1217,7 +1225,7 @@ private fun VariantSheet(added: LastScan.Added, onChoose: (CopyVariant) -> Unit,
 }
 
 /** "006/165 Charizard ex" for messages and TalkBack. */
-private fun cardTitle(card: RefCard): String = "${padCollectorNumber(card.localId, card.official)}/${card.official} ${card.name}"
+private fun cardTitle(card: RefCard): String = "${numberWithTotal(card.localId, card.official)} ${card.name}"
 
 /** Short reason for the tray ("Saved for review: …"). */
 fun reasonText(reason: ReviewReason): Int = when (reason) {

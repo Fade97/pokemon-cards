@@ -357,32 +357,38 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     )
                 }
             }
-            value?.takeIf { it.amountMinor > 0 }?.let {
+            val priced = value?.takeIf { it.amountMinor > 0 }
+            if (priced != null) {
                 Column(
                     horizontalAlignment = Alignment.End,
                     modifier = Modifier.widthIn(max = ValueColumnMax).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
-                    Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
-                    // Market and date on one line, as on Collections (#176), and how many copies it covers when not all.
-                    // The date wraps as a whole, never "Nov" on one line and "20, 2026" on the next.
-                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
-                    val coverage = if (it.unpricedCopies > 0) {
-                        pluralStringResource(R.plurals.collections_set_value_coverage, it.totalCopies, it.pricedCopies, it.totalCopies)
+                    Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
+                    // Market, "Prices from Nov 20, 2026" (the words Collections and card detail use; the date never
+                    // splits) and how many copies it covers when not all, each on its own line (#176, #218).
+                    val date = priceDate?.let { d ->
+                        stringResource(R.string.price_as_of, formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0')
+                    }
+                    val coverage = if (priced.unpricedCopies > 0) {
+                        pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
                     } else {
                         null
                     }
                     Text(
-                        listOfNotNull(
-                            // One line at 1x; at a large font market and date go under each other, never "market ·" alone.
-                            listOfNotNull(stringResource(it.source.label()), date)
-                                .joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
-                            coverage,
-                        ).joinToString("\n"),
+                        listOfNotNull(stringResource(priced.source.label()), date, coverage).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                     )
                 }
+            } else if (detail.copies.isNotEmpty()) {
+                // Owned copies but no price in this market: say so, as the set's row on Collections does (#218).
+                Text(
+                    stringResource(R.string.collections_not_priced),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.md, top = Spacing.xs),
+                )
             }
         }
         CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md), marks = MilestoneMarks)
@@ -534,7 +540,8 @@ private fun CompactSlot(slot: SetSlot, printedTotal: Int, selected: Boolean, onC
             .clip(shape)
             .then(if (slot.owned) Modifier.background(extra.ownedSlot) else Modifier)
             .then(if (border != null) Modifier.border(border, shape) else Modifier)
-            .clickable(onClick = onClick)
+            // A missing slot opens the bar below, and TalkBack says so before the tap (#218).
+            .clickable(onClickLabel = if (slot.owned) null else stringResource(R.string.collections_missing_slot_open), onClick = onClick)
             .semantics {
                 contentDescription = description
                 this.selected = selected
@@ -569,7 +576,8 @@ private fun CardSlot(slot: SetSlot, printedTotal: Int, photos: OwnPhotos, select
     Column(
         Modifier
             .focusRing(shape)
-            .clickable(onClick = onClick)
+            // A missing slot opens the bar below, and TalkBack says so before the tap (#218).
+            .clickable(onClickLabel = if (slot.owned) null else stringResource(R.string.collections_missing_slot_open), onClick = onClick)
             .semantics {
                 contentDescription = description
                 this.selected = selected
@@ -618,13 +626,15 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
                     .padding(start = ScreenPadding, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
+                // Announced when it opens, so a TalkBack user hears which card it is and that "Open card" is here (#218).
+                Column(Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }) {
                     Text(
                         text = buildAnnotatedString {
+                            val total = printedTotal.takeIf { it > 0 }
                             append(
                                 numberOverTotal(
-                                    padCollectorNumber(slot.localId, printedTotal),
-                                    padCollectorNumber(printedTotal.toString(), printedTotal),
+                                    padCollectorNumber(slot.localId, total),
+                                    total?.let { padCollectorNumber(it.toString(), it) },
                                     MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                             )

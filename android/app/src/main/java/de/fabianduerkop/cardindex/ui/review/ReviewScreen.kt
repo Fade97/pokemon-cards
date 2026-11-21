@@ -93,6 +93,7 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.TextActionInset
 import de.fabianduerkop.cardindex.ui.components.collectorNumberDescription
 import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.components.numberWithTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.collections.label
 import de.fabianduerkop.cardindex.ui.scan.languageName
@@ -214,10 +215,7 @@ private fun ItemForm(
                     )
                 }
                 // Only when it says something the big number above doesn't: the read number differs from the card's.
-                val shown = chosen?.let { c ->
-                    val total = c.set.printedTotal.takeIf { it > 0 }
-                    padCollectorNumber(c.card.localId, total) + (total?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
-                }
+                val shown = chosen?.let { c -> numberWithTotal(c.card.localId, c.set.printedTotal) }
                 item.entity.numberRead?.takeIf { it != shown }?.let { read ->
                     Text(
                         stringResource(R.string.review_number_read, read),
@@ -432,7 +430,7 @@ private fun CompareDialog(item: ReviewItem, chosen: ReviewCandidate?, onDismiss:
             Row(Modifier.padding(Spacing.md), horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 ComparePicture(item.cropFile, stringResource(R.string.review_crop), stringResource(R.string.review_compare_scan))
                 if (chosen != null) {
-                    val label = "${padCollectorNumber(chosen.card.localId, chosen.set.printedTotal)}/${chosen.set.printedTotal}"
+                    val label = numberWithTotal(chosen.card.localId, chosen.set.printedTotal)
                     ComparePicture(
                         cardImageUrl(chosen.card.imageUrl, ImageQuality.HIGH),
                         stringResource(R.string.review_compare_card_description, chosen.card.name, label),
@@ -461,7 +459,7 @@ private fun RowScope.ComparePicture(model: Any?, description: String, caption: S
 @Composable
 private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
     val card = undo.candidate
-    val title = "${padCollectorNumber(card.card.localId, card.set.printedTotal)}/${card.set.printedTotal ?: "?"} ${card.card.name}"
+    val title = "${numberWithTotal(card.card.localId, card.set.printedTotal)} ${card.card.name}"
     Row(
         Modifier
             .fillMaxWidth()

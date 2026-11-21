@@ -64,6 +64,12 @@ fun collectorNumberDescription(localId: String, printedTotal: Int?): String {
     return if (total != null) stringResource(R.string.collector_number_description, number, total) else number
 }
 
+/** "006/165" as plain text, or just "022" for a promo without a printed total. */
+fun numberWithTotal(localId: String, printedTotal: Int?): String {
+    val printed = printedTotal?.takeIf { it > 0 }
+    return padCollectorNumber(localId, printed) + (printed?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
+}
+
 /** "87/165" with the total muted; shared by [CollectorNumber] and count displays like set completion. */
 fun numberOverTotal(number: String, total: String?, totalColor: Color): AnnotatedString = buildAnnotatedString {
     append(number)

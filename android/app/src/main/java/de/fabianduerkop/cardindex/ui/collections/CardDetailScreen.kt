@@ -72,12 +72,14 @@ import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.FooterFade
+import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.components.numberWithTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
@@ -348,8 +350,7 @@ private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifie
 @Composable
 private fun viewerTitle(detail: CardDetail): String {
     val set = detail.set
-    val total = set?.printedTotal?.takeIf { it > 0 }
-    val number = padCollectorNumber(detail.card.localId, total) + (total?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
+    val number = numberWithTotal(detail.card.localId, set?.printedTotal)
     return listOfNotNull("$number ${detail.card.name}", set?.name).joinToString(", ")
 }
 
@@ -420,7 +421,8 @@ private fun CardHeader(
             Column(
                 Modifier
                     .padding(horizontal = ScreenPadding)
-                    .padding(top = Spacing.xl, bottom = Spacing.md),
+                    // Room for the fade above the Add bar, so the print line stays clear of it (#218).
+                    .padding(top = Spacing.xl, bottom = FooterFadeHeight),
             ) {
                 CollectorNumber(
                     localId = detail.card.localId,

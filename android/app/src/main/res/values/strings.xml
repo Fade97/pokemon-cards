@@ -56,6 +56,7 @@
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
     <string name="collections_not_priced">No price</string>
+    <string name="collections_missing_slot_open">Show this missing card</string>
     <plurals name="collections_set_value_coverage">
         <item quantity="one">%1$d of %2$d copy priced</item>
         <item quantity="other">%1$d of %2$d copies priced</item>
@@ -305,16 +306,11 @@
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
     <string name="finish_reverse_holo">Reverse holo</string>
-    <string name="finish_other">Other foil</string>
+    <string name="finish_other">Other finish</string>
     <string name="edition_unlimited">Unlimited</string>
     <string name="edition_first">1st edition</string>
     <string name="edition_first_holo">1st edition holo</string>
     <string name="edition_shadowless">Shadowless</string>
-    <string name="condition_nm">NM</string>
-    <string name="condition_lp">LP</string>
-    <string name="condition_mp">MP</string>
-    <string name="condition_hp">HP</string>
-    <string name="condition_poor">Poor</string>
     <string name="grader_other">Other</string>
     <string name="search_title">Find a card</string>
     <string name="search_field">Name, set or number</string>
@@ -517,6 +513,8 @@
     <string name="scan_hint_wishlist_valuable">On your wishlist, worth %1$s or more. Added.</string>
     <!-- Price of the card just added, e.g. "€8.40 · Cardmarket trend" (#162). -->
     <string name="scan_price_cardmarket">%1$s · Cardmarket trend</string>
+    <!-- The scan's price with its market and date, e.g. "$0.91 · TCGplayer market · Nov 20, 2026" (#218). -->
+    <string name="scan_price_dated">%1$s · %2$s</string>
     <string name="scan_price_tcgplayer">%1$s · TCGplayer market</string>
     <string name="scan_hint_queued">Not sure, saved for review. Take the next card.</string>
     <string name="scan_paused_notice">Scanning is paused. Cards in the frame are not added.</string>
