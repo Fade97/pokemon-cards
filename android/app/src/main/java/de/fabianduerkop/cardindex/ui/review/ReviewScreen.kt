@@ -212,7 +212,7 @@ private fun ItemForm(
                 }
             }
         }
-        StatusNotice(stringResource(reasonExplanation(item.entity.reason)), Modifier.padding(top = Spacing.sm))
+        StatusNotice(stringResource(reasonExplanation(item.entity.reason)))
 
         SectionHeader(stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card))
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -475,8 +475,9 @@ private fun Footer(
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
 ) {
+    // Little top padding: the Change button's 48 dp touch height already spaces the summary line (#218).
     Column(
-        Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.md),
+        Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xs, bottom = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         val finish = draft.finish

@@ -60,8 +60,8 @@
         <item quantity="other">%1$d of %2$d copies priced</item>
     </plurals>
     <plurals name="collections_value_coverage">
-        <item quantity="one">%1$d of %2$d copy has a %3$s price</item>
-        <item quantity="other">%1$d of %2$d copies have a %3$s price</item>
+        <item quantity="one">%1$d of %2$d copy priced in %3$s</item>
+        <item quantity="other">%1$d of %2$d copies priced in %3$s</item>
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
@@ -114,7 +114,8 @@
     </plurals>
     <string name="collections_legend_compact">Filled slots are owned. Outlined slots are missing.</string>
     <string name="collections_legend_cards">Missing cards are grey, with an outline and the word Missing.</string>
-    <string name="collections_region_jp">JP</string>
+    <!-- The same code as the language chips (JA), so one screen never says both. -->
+    <string name="collections_region_jp">JA</string>
     <string name="collections_region_jp_description">Japanese set</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
@@ -304,6 +305,7 @@
     <string name="finish_other">Other foil</string>
     <string name="edition_unlimited">Unlimited</string>
     <string name="edition_first">1st edition</string>
+    <string name="edition_first_holo">1st edition holo</string>
     <string name="edition_shadowless">Shadowless</string>
     <string name="condition_nm">NM</string>
     <string name="condition_lp">LP</string>

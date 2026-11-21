@@ -52,7 +52,6 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.min
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
@@ -365,81 +364,86 @@ private fun CardHeader(
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
-    // The collector number, the card's name and its print line have to show under the art without scrolling, at any
-    // font and display size and in landscape: the name is what the screen is about, and the bar only names the set.
-    // Reserving the print line too keeps the name clear of the Add bar, descenders and all (#218).
-    val typography = MaterialTheme.typography
-    val textHeight = with(LocalDensity.current) {
-        typography.displayLarge.lineHeight.toDp() + typography.headlineMedium.lineHeight.toDp() +
-            typography.bodyMedium.lineHeight.toDp()
-    }
-    val artHeight = (viewport - textHeight - HeroNumberGap).coerceAtLeast(HeroMinHeight)
-    val artWidth = min(HeroMaxWidth, artHeight * CARD_ASPECT)
     val shape = MaterialTheme.shapes.small
     val openLabel = stringResource(R.string.viewer_open)
     Column {
-        Box(
-            Modifier.fillMaxWidth().padding(horizontal = ScreenPadding).padding(top = Spacing.sm),
-            contentAlignment = Alignment.Center,
-        ) {
-            CardImage(
-                card = detail.card,
-                localId = detail.card.localId,
-                printedTotal = detail.set?.printedTotal,
-                modifier = Modifier
-                    .widthIn(max = artWidth)
+        // The collector number, the card's name and its print line show under the art without scrolling, at any font
+        // and display size and in landscape: the name is what the screen is about, and the bar only names the set.
+        // The block is at most the visible height, the text takes what it needs as laid out (a name may wrap), and
+        // the art gets the rest (#218); estimating the text from line heights left it a few dp short at 1.3x.
+        Column(Modifier.heightIn(max = viewport.coerceAtLeast(HeroBlockMin))) {
+            Box(
+                Modifier
+                    .weight(1f, fill = false)
                     .fillMaxWidth()
-                    .then(
-                        if (heroDescription != null) {
-                            Modifier
-                                .focusRing(shape)
-                                .clip(shape)
-                                .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
-                                .clearAndSetSemantics { contentDescription = heroDescription }
-                        } else {
-                            Modifier
-                        },
+                    .padding(horizontal = ScreenPadding)
+                    .padding(top = Spacing.sm),
+                contentAlignment = Alignment.Center,
+            ) {
+                CardImage(
+                    card = detail.card,
+                    localId = detail.card.localId,
+                    printedTotal = detail.set?.printedTotal,
+                    // No fillMaxWidth: the card's aspect ratio then fits the widest card the height allows.
+                    modifier = Modifier
+                        .widthIn(max = HeroMaxWidth)
+                        .then(
+                            if (heroDescription != null) {
+                                Modifier
+                                    .focusRing(shape)
+                                    .clip(shape)
+                                    .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
+                                    .clearAndSetSemantics { contentDescription = heroDescription }
+                            } else {
+                                Modifier
+                            },
+                        ),
+                    // The newest photo of a copy in the shown language, else of any copy of the card.
+                    ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
+                    preferOwnPhoto = photos.preferOwn,
+                    quality = ImageQuality.HIGH,
+                )
+            }
+            Column(
+                Modifier
+                    .padding(horizontal = ScreenPadding)
+                    .padding(top = Spacing.xl, bottom = Spacing.md),
+            ) {
+                CollectorNumber(
+                    localId = detail.card.localId,
+                    printedTotal = detail.set?.printedTotal,
+                    style = MaterialTheme.typography.displayLarge,
+                )
+                Text(
+                    detail.card.name,
+                    style = MaterialTheme.typography.headlineMedium,
+                    modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+                )
+                Text(
+                    stringResource(
+                        R.string.collections_print,
+                        detail.set?.name.orEmpty(),
+                        languageName(detail.card.language),
                     ),
-                // The newest photo of a copy in the shown language, else of any copy of the card.
-                ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
-                preferOwnPhoto = photos.preferOwn,
-                quality = ImageQuality.HIGH,
-            )
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.xs),
+                )
+            }
         }
-        Column(Modifier.padding(horizontal = ScreenPadding).padding(top = Spacing.xl)) {
-            CollectorNumber(
-                localId = detail.card.localId,
-                printedTotal = detail.set?.printedTotal,
-                style = MaterialTheme.typography.displayLarge,
-            )
-            Text(
-                detail.card.name,
-                style = MaterialTheme.typography.headlineMedium,
-                modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
-            )
-            Text(
-                stringResource(
-                    R.string.collections_print,
-                    detail.set?.name.orEmpty(),
-                    languageName(detail.card.language),
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.xs),
-            )
-            WishlistToggle(wanted, onChange = onWanted, modifier = Modifier.padding(top = Spacing.md, bottom = Spacing.sm))
-        }
+        WishlistToggle(
+            wanted,
+            onChange = onWanted,
+            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.sm),
+        )
     }
 }
 
 /** The hero never gets wider than this (tablets, foldables) … */
 private val HeroMaxWidth = 400.dp
 
-/** … nor taller than the list's visible height minus the text under it and these gaps around and between them … */
-private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.sm + Spacing.xs + Spacing.md
-
-/** … but never smaller than this, on a very short window. */
-private val HeroMinHeight = 160.dp
+/** … and the art and its text get at least this much height, on a very short window, so the art never vanishes. */
+private val HeroBlockMin = 320.dp
 
 /** The own-photo row of the copy sheet: thumbnail (tap to view it full screen, #166), pick or replace, remove. */
 @Composable

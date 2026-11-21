@@ -62,7 +62,18 @@ internal fun PriceVariant.label(): Int = when (this) {
     PriceVariant.HOLO -> R.string.finish_holo
     PriceVariant.REVERSE_HOLO -> R.string.finish_reverse_holo
     PriceVariant.FIRST_EDITION -> R.string.edition_first
-    PriceVariant.FIRST_EDITION_HOLO -> R.string.edition_first
+    PriceVariant.FIRST_EDITION_HOLO -> R.string.edition_first_holo
+}
+
+/**
+ * "TCGplayer market · Holo": a market's label with the printing its price is for. Cardmarket's plain trend is the
+ * card's price across its printings, not a "Normal" one, so it gets no printing; its reverse holo trend does (#218).
+ */
+@Composable
+internal fun quoteLabel(quote: PriceQuote): String {
+    val market = stringResource(quote.source.label())
+    val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
+    return if (plainTrend) market else market + " · " + stringResource(quote.variant.label())
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
@@ -201,7 +212,7 @@ internal fun PriceBox(
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                 // The printing it prices goes with the label, not in a note under the other market's row (#218).
                 Text(
-                    stringResource(first.source.label()) + " · " + stringResource(first.variant.label()),
+                    quoteLabel(first),
                     style = MaterialTheme.typography.bodySmall,
                     color = muted,
                 )
@@ -212,7 +223,7 @@ internal fun PriceBox(
                 )
             }
             HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
-            second?.let { DataRow(stringResource(it.source.label()), Money.format(it.amountMinor, it.currency)) }
+            second?.let { DataRow(quoteLabel(it), Money.format(it.amountMinor, it.currency)) }
             // One date per market shown (#133): with two on different days, each names its market; on the same day, one.
             val dates = listOfNotNull(first, second).map { PriceFreshness.of(it, now) }
             val datesText = if (dates.map { it.date.toLocalDate() }.distinct().size == 1) {

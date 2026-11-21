@@ -24,6 +24,8 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableIntStateOf
@@ -342,17 +344,24 @@ private fun LiveScan(
                         },
                 )
                 FocusCue(focusTaps, Modifier.align(Alignment.Center))
-                LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
-                CameraReading(
-                    engine,
-                    viewfinder,
-                    hit = hit,
-                    priceSource = priceSource,
-                    paused = paused,
-                    problem = problem,
-                    onResume = { viewModel.setPaused(false) },
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = Spacing.lg, end = Spacing.lg),
-                )
+                // The status chip, then the reading under it: stacked, so a larger font moves the reading down instead
+                // of under the chip (#218).
+                Column(
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                ) {
+                    LiveStatus(paused, Modifier.align(Alignment.Start))
+                    CameraReading(
+                        engine,
+                        viewfinder,
+                        hit = hit,
+                        priceSource = priceSource,
+                        paused = paused,
+                        problem = problem,
+                        onResume = { viewModel.setPaused(false) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(horizontal = Spacing.xs),
+                    )
+                }
             }
             // Under the picture, not over it: over it, the buttons covered the guide's lower edge, where the collector
             // number sits (#218).
@@ -374,7 +383,10 @@ private fun LiveScan(
                 )
                 if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
             }
-            Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
+            // On the camera's dark ground, so the tray's rounded top corners show under the button strip (#218).
+            Box(Modifier.background(LumifoilTheme.colors.camera.background)) {
+                Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
+            }
         }
     }
 }
@@ -614,8 +626,14 @@ private fun problemText(problem: CameraProblem): Int = when (problem) {
 @Composable
 private fun HintPill(text: String, dot: Color? = null) {
     val camera = LumifoilTheme.colors.camera
+    // A pill on one line, a rounded box on two: a full circle shape made a two-line hint a huge capsule (#218).
+    val shape = RoundedCornerShape(HintCorner)
     Row(
-        Modifier.background(camera.scrim, CircleShape).border(1.dp, camera.faint, CircleShape).padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        Modifier
+            .widthIn(max = HintMaxWidth)
+            .background(camera.scrim, shape)
+            .border(1.dp, camera.faint, shape)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -623,6 +641,12 @@ private fun HintPill(text: String, dot: Color? = null) {
         Text(text, color = camera.content, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
     }
 }
+
+/** A hint's corner: half the height of a one-line hint, so one line is still a pill. */
+private val HintCorner = 20.dp
+
+/** Hints wrap before they reach across the whole picture. */
+private val HintMaxWidth = 320.dp
 
 /**
  * A control over the camera: light text on the dark camera scrim with a faint outline (visible on the black

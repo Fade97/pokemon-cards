@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -204,6 +205,8 @@ fun ScanShortcut(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier.padding(horizontal = Spacing.xs).focusRing(shape).heightIn(min = Spacing.touchTarget),
         shape = shape,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        // Sea-glass like the other header actions (#218).
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(start = 12.dp, end = 16.dp),
     ) {
         Icon(painterResource(R.drawable.ic_nav_scan), contentDescription = null, modifier = Modifier.size(20.dp))

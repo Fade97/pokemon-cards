@@ -325,41 +325,56 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
         } else {
             progressDescription(progress)
         }
-        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = Spacing.xs)) {
-            Text(
-                text = progressText(progress.base, progress.printedTotal),
-                style = MaterialTheme.typography.displayMedium,
-                maxLines = 1,
-                modifier = Modifier.weight(1f).semantics { contentDescription = description },
-            )
+        // The count with its secret-rare line on the left, the value at the top right: the count stays right under the
+        // series line, however many lines the value takes (#218). The count keeps its width; the value wraps.
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = Spacing.xs)) {
+            Column {
+                Text(
+                    text = progressText(progress.base, progress.printedTotal),
+                    style = MaterialTheme.typography.displayMedium,
+                    maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = description },
+                )
+                val secretLine = if (secretTotal > 0) {
+                    stringResource(R.string.collections_secret_of, progress.secret, secretTotal)
+                } else {
+                    secretText(progress)
+                }
+                secretLine?.let {
+                    // Part of the count's spoken description above.
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                }
+            }
             value?.takeIf { it.amountMinor > 0 }?.let {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.md)) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
+                ) {
                     Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
-                    // Market and date, as everywhere a value shows (#176), and how many copies it covers when not all.
-                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()) }
+                    // Market and date on one line, as on Collections (#176), and how many copies it covers when not all.
+                    // The date wraps as a whole, never "Nov" on one line and "20, 2026" on the next.
+                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
                     val coverage = if (it.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, it.totalCopies, it.pricedCopies, it.totalCopies)
                     } else {
                         null
                     }
                     Text(
-                        listOfNotNull(stringResource(it.source.label()), date, coverage).joinToString("\n"),
+                        listOfNotNull(
+                            listOfNotNull(stringResource(it.source.label()), date).joinToString(" · "),
+                            coverage,
+                        ).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                     )
                 }
             }
-        }
-        val secretLine = if (secretTotal > 0) stringResource(R.string.collections_secret_of, progress.secret, secretTotal) else secretText(progress)
-        secretLine?.let {
-            // Part of the count's spoken description above.
-            Text(
-                it,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
         }
         CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md), marks = MilestoneMarks)
     }

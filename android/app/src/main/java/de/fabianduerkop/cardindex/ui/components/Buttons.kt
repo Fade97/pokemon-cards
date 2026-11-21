@@ -71,6 +71,8 @@ fun SecondaryButton(
         shape = shape,
         contentPadding = ButtonPadding,
         border = BorderStroke(1.dp, if (enabled) colors.outlineVariant else colors.onSurface.copy(alpha = 0.12f)),
+        // Material's outlined label is grey now; Pearl's is sea-glass, or an enabled action reads as dimmed (#218).
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primary),
     ) { ButtonContent(text, icon) }
 }
 
