@@ -19,11 +19,13 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,6 +41,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -275,7 +278,7 @@ private fun viewerImages(detail: CardDetail, images: DetailImages): List<CardVie
         when (image) {
             is DetailImage.Official -> CardViewerImage(
                 model = image.model,
-                label = stringResource(R.string.viewer_official),
+                label = title,
                 description = stringResource(R.string.viewer_official_description, title),
                 foil = image.foil,
             )
@@ -362,9 +365,13 @@ private fun CardHeader(
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
-    // The collector number has to show under the art without scrolling, at any font and display size and in landscape.
-    val numberHeight = with(LocalDensity.current) { MaterialTheme.typography.displayLarge.lineHeight.toDp() }
-    val artHeight = (viewport - numberHeight - HeroNumberGap).coerceAtLeast(HeroMinHeight)
+    // The collector number and the card's name have to show under the art without scrolling, at any font and display
+    // size and in landscape: the name is what the screen is about, and the bar only names the set (#218).
+    val typography = MaterialTheme.typography
+    val textHeight = with(LocalDensity.current) {
+        typography.displayLarge.lineHeight.toDp() + typography.headlineMedium.lineHeight.toDp()
+    }
+    val artHeight = (viewport - textHeight - HeroNumberGap).coerceAtLeast(HeroMinHeight)
     val artWidth = min(HeroMaxWidth, artHeight * CARD_ASPECT)
     val shape = MaterialTheme.shapes.small
     val openLabel = stringResource(R.string.viewer_open)
@@ -426,8 +433,8 @@ private fun CardHeader(
 /** The hero never gets wider than this (tablets, foldables) … */
 private val HeroMaxWidth = 400.dp
 
-/** … nor taller than the list's visible height minus the collector number and these gaps above and below it … */
-private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.md
+/** … nor taller than the list's visible height minus the number, the name and these gaps around and between them … */
+private val HeroNumberGap = Spacing.sm + Spacing.xl + Spacing.sm + Spacing.md
 
 /** … but never smaller than this, on a very short window. */
 private val HeroMinHeight = 160.dp
@@ -519,7 +526,7 @@ internal fun CopyRow(
                             add(item.set.name)
                             add(stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)))
                         } else {
-                            add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_only_all_cards) })
+                            add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_in_no_binder) })
                         }
                         add(languageName(item.card.language))
                         copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
@@ -535,6 +542,13 @@ internal fun CopyRow(
                     }
                 }
                 if (!stacked) CopyRowPrice(copy, trailing, stacked = false)
+                // The row opens the copy sheet; the chevron says so, as on the other list rows.
+                Icon(
+                    painterResource(R.drawable.ic_chevron_right),
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = Spacing.xs).size(20.dp),
+                )
             }
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }

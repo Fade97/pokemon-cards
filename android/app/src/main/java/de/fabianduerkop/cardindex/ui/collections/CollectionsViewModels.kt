@@ -463,6 +463,8 @@ data class SetDetailUiState(
     val photos: OwnPhotos = OwnPhotos(),
     /** Value of the owned copies in the chosen languages. */
     val value: CollectionValue? = null,
+    /** Newest price date behind [value], shown with it (#176). */
+    val priceDate: Instant? = null,
     /** Whether the user pinned this set to the Collections foil cover (#156). */
     val pinned: Boolean = false,
     /** Whether the slot legend shows under the filter row: on the first visits, then by the info button (#165). */
@@ -504,13 +506,15 @@ class SetDetailViewModel(
         primarySource,
         legend,
     ) { detail, view, priceMap, source, legendShown ->
-        val owned = detail?.copies.orEmpty()
+        val ownedCopies = detail?.copies.orEmpty()
             .filter { view.selectedLanguages.isEmpty() || it.card.language in view.selectedLanguages }
-            .map { it.copy }
+        val owned = ownedCopies.map { it.copy }
         view.copy(
             loading = false,
             detail = detail,
             value = PriceSelection.total(owned, priceMap, source),
+            priceDate = ownedCopies.flatMap { priceMap[it.card.id].orEmpty() }
+                .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
             legendShown = legendShown,
         )
     }.stateIn(this, SetDetailUiState())

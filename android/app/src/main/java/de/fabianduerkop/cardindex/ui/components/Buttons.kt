@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Button
@@ -77,6 +78,8 @@ fun SecondaryButton(
  * A small inline action such as Undo or Show all. [contentDescription] gives TalkBack a fuller name when the visible
  * word is short (it must start with the visible text, so voice control still finds it). [destructive] shows the
  * text in the error colour, for actions like "Delete collection"; the word itself must still say what happens.
+ * [alignToText] shifts the button by its inner padding, so a link under a text column starts on that column's edge
+ * instead of 12 dp inside it; the touch area and ripple reach into the gutter.
  */
 @Composable
 fun TextAction(
@@ -86,11 +89,13 @@ fun TextAction(
     enabled: Boolean = true,
     contentDescription: String? = null,
     destructive: Boolean = false,
+    alignToText: Boolean = false,
 ) {
     val shape = MaterialTheme.shapes.medium
     TextButton(
         onClick = onClick,
         modifier = modifier
+            .then(if (alignToText) Modifier.offset(x = -TextActionInset) else Modifier)
             .focusRing(shape)
             .heightIn(min = Spacing.touchTarget)
             .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
@@ -103,6 +108,9 @@ fun TextAction(
         },
     ) { Text(text) }
 }
+
+/** A text button's own start padding (Material's 12 dp); [TextAction] with alignToText, or a row of them, moves back by it. */
+val TextActionInset = 12.dp
 
 @Composable
 private fun RowScope.ButtonContent(text: String, @DrawableRes icon: Int?) {

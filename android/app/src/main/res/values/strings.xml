@@ -55,8 +55,8 @@
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <plurals name="collections_value_coverage">
-        <item quantity="one">For %1$d of %2$d copy, the rest have no %3$s price</item>
-        <item quantity="other">For %1$d of %2$d copies, the rest have no %3$s price</item>
+        <item quantity="one">%1$d of %2$d copy has a %3$s price</item>
+        <item quantity="other">%1$d of %2$d copies have a %3$s price</item>
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
@@ -71,8 +71,8 @@
     <string name="collections_binders_empty">No collections of your own yet. Tap New to start one, for example a trade binder.</string>
     <string name="collections_all_cards">All cards</string>
     <plurals name="collections_cards_count">
-        <item quantity="one">%1$d card</item>
-        <item quantity="other">%1$d cards</item>
+        <item quantity="one">%1$d copy</item>
+        <item quantity="other">%1$d copies</item>
     </plurals>
     <string name="collections_empty_title">Start with 10 cards</string>
     <string name="collections_empty_body">Scan your first 10 cards and see what they are worth. Every set you own a card from gets its own checklist, with each number as a slot.</string>
@@ -123,8 +123,6 @@
     <string name="collections_filter_all">All</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
-    <!-- Missing base numbers, then missing secret rares beyond the printed total (#161). -->
-    <string name="collections_filter_missing_secret">Missing %1$d · +%2$d secret</string>
     <string name="collections_slot_missing">Missing</string>
     <string name="collections_slot_unknown">Not in your installed cards yet</string>
     <string name="collections_slot_close">Close</string>
@@ -152,6 +150,8 @@
     <string name="collections_open_card">Open card</string>
     <string name="collections_copy_line">%1$d× %2$s</string>
     <string name="collections_only_all_cards">All cards only</string>
+    <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
+    <string name="collections_in_no_binder">Not in a binder</string>
     <string name="collections_bought_on">bought %1$s</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
@@ -275,7 +275,6 @@
     <string name="viewer_title">Card viewer</string>
     <!-- Click label TalkBack reads as "double-tap to view full screen", for the card art and a copy's photo. -->
     <string name="viewer_open">view full screen</string>
-    <string name="viewer_official">Card image</string>
     <!-- %1$s: the card, e.g. "025/165 Pikachu, Surging Sparks". -->
     <string name="viewer_official_description">Card image of %1$s</string>
     <!-- %1$s: the copy, e.g. "1× Holo, NM, English". -->
@@ -362,8 +361,7 @@
     <string name="settings_price_eur">Prices in euros (EUR)</string>
     <string name="settings_price_usd">Prices in US dollars (USD)</string>
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_theme">Light or dark</string>
-    <string name="settings_theme_system">Same as your phone</string>
+    <string name="settings_theme_follows">Light or dark follows your phone\'s setting.</string>
     <string name="settings_debug_title">Debug tools (debug build)</string>
     <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
     <string name="settings_price_refresh">Update prices now</string>
@@ -374,7 +372,7 @@
     <string name="settings_debug_check_alerts">Check price alerts now</string>
     <string name="settings_debug_pro_hint">Shows price history, portfolio charts and price alerts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
-    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included, and Android\'s backup does not keep them either.</string>
+    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores your copies and collections, but not your own photos (Android\'s backup does not keep them either). CSV opens in a spreadsheet. Importing a file twice adds nothing twice.</string>
     <string name="settings_export_json">Export JSON</string>
     <string name="settings_export_csv">Export CSV</string>
     <string name="settings_import">Import</string>
@@ -492,6 +490,7 @@
     <string name="milestone_dismiss">OK</string>
     <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
     <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="scan_refocus">Refocus the camera</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
@@ -661,6 +660,8 @@
     <string name="review_number_read">Number read: %1$s</string>
     <string name="review_added">Added %1$s.</string>
     <!-- Scan target collection (#139) -->
+    <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
+    <string name="review_confirm_adds">Confirm adds %1$s.</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>

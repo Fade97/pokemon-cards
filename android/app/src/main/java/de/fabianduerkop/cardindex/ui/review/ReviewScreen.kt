@@ -82,6 +82,7 @@ import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
+import de.fabianduerkop.cardindex.ui.collections.label
 import de.fabianduerkop.cardindex.ui.scan.languageName
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
@@ -127,7 +128,6 @@ fun ReviewScreen(
                             Footer(
                                 state.draft,
                                 target = target?.name,
-                                onQuantity = viewModel::changeQuantity,
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
                             )
@@ -205,7 +205,7 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
             }
         }
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below.
-        TextAction(stringResource(R.string.review_find_card), onClick = onFindCard)
+        TextAction(stringResource(R.string.review_find_card), onClick = onFindCard, alignToText = true)
 
         SectionHeader(stringResource(R.string.variant_your_choice))
         Text(
@@ -225,11 +225,13 @@ private fun ItemForm(item: ReviewItem, draft: ReviewDraft, viewModel: ReviewView
             onEdition = viewModel::setEdition,
             onCondition = viewModel::setCondition,
         )
+        QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm))
 
         TextAction(
             stringResource(R.string.review_discard),
             onClick = viewModel::discard,
             modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
+            alignToText = true,
         )
     }
 }
@@ -425,36 +427,56 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
     }
 }
 
+/** How many of the card to add; in the form under the choices, so the footer keeps only what Confirm saves. */
+@Composable
+private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modifier = Modifier) {
+    Row(modifier, verticalAlignment = Alignment.CenterVertically) {
+        Text(stringResource(R.string.review_quantity), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
+        QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = quantity > 1) {
+            onQuantity(-1)
+        }
+        Text(
+            quantity.toString(),
+            Modifier.width(56.dp),
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+        )
+        QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more)) { onQuantity(1) }
+    }
+}
+
+/**
+ * Skip and Confirm, with one line above them saying what Confirm saves ("Confirm adds 1× Holo, NM."), so the choices
+ * further down the form are never accepted unseen (#218).
+ */
 @Composable
 private fun Footer(
     draft: ReviewDraft,
     target: String?,
-    onQuantity: (Int) -> Unit,
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
 ) {
     Column(
         Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(stringResource(R.string.review_quantity), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-            QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = draft.quantity > 1) {
-                onQuantity(-1)
-            }
-            Text(
-                draft.quantity.toString(),
-                Modifier.width(56.dp),
-                style = MaterialTheme.typography.titleLarge,
-                textAlign = TextAlign.Center,
-            )
-            QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more)) { onQuantity(1) }
-        }
-        if (draft.variantMissing) {
+        val finish = draft.finish
+        val edition = draft.edition
+        if (finish == null || edition == null) {
             Text(
                 stringResource(R.string.review_pick_variant),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.tertiary,
+            )
+        } else {
+            val print = stringResource(finish.label()).let {
+                if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
+            }
+            val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(draft.condition.label())}")
+            Text(
+                stringResource(R.string.review_confirm_adds, saved),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
         // The scan target chosen on the Scan screen (#139); only said when it is more than All Cards.

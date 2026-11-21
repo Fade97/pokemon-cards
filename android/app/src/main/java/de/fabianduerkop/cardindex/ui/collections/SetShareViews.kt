@@ -307,13 +307,20 @@ internal fun MissingListImage(data: SetShareData) {
     }
 }
 
-/** "87 of 165 · 3 secret rares". */
+/**
+ * "87 of 165 · Secret rares 3/42", as the set screen's header: the secret count shows even at 0, so a slot map that
+ * runs past 165 adds up for whoever sees it (#218). "· 3 secret rares" when the catalog does not know the secret total.
+ */
 @Composable
 private fun progressText(data: SetShareData): String {
     val progress = data.progress
     val base = stringResource(R.string.set_share_progress, progress.base, progress.printedTotal)
-    if (progress.secret == 0) return base
-    return base + " · " + pluralStringResource(R.plurals.set_share_secret, progress.secret, progress.secret)
+    val secretTotal = progress.secret + data.missing.secret
+    return when {
+        data.missing.secret > 0 -> base + " · " + stringResource(R.string.collections_secret_of, progress.secret, secretTotal)
+        progress.secret > 0 -> base + " · " + pluralStringResource(R.plurals.set_share_secret, progress.secret, progress.secret)
+        else -> base
+    }
 }
 
 /** The plain-text checklist (#170): a heading line, every missing card, the star's meaning, and where it came from. */

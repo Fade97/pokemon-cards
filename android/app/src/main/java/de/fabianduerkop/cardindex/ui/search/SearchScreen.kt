@@ -108,12 +108,8 @@ fun SearchScreen(
             contentPadding = padding,
         ) {
             item {
+                // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
                 Column(Modifier.padding(horizontal = Spacing.gutter)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
                     SearchField(
                         value = text,
                         onValueChange = {
@@ -121,7 +117,7 @@ fun SearchScreen(
                             viewModel.setQuery(it)
                         },
                         onSearch = { keyboard?.hide() },
-                        modifier = Modifier.padding(top = Spacing.lg),
+                        modifier = Modifier.padding(top = Spacing.sm),
                     )
                     val languages = state.languages
                     if (!languages.isNullOrEmpty()) {

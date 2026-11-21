@@ -34,8 +34,10 @@ fun CollectorNumber(
     color: Color = Color.Unspecified,
     totalColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    val number = padCollectorNumber(localId, printedTotal)
-    val total = printedTotal?.let { padCollectorNumber(it.toString(), printedTotal) }
+    // A printed total of 0 (promos) means none: "022", not "022/000".
+    val printed = printedTotal?.takeIf { it > 0 }
+    val number = padCollectorNumber(localId, printed)
+    val total = printed?.let { padCollectorNumber(it.toString(), it) }
     val description = if (total != null) stringResource(R.string.collector_number_description, number, total) else number
     Text(
         text = numberOverTotal(number, total, totalColor),

@@ -47,7 +47,6 @@ import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.ui.collections.NotificationsOffHint
 import de.fabianduerkop.cardindex.ui.collections.PriceAlertRow
-import de.fabianduerkop.cardindex.ui.components.DataRow
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
@@ -58,6 +57,8 @@ import de.fabianduerkop.cardindex.ui.packs.LanguagesSection
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.time.LocalDate
 import kotlinx.coroutines.launch
+import androidx.compose.foundation.layout.offset
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 
 /**
  * Settings in Pearl (#100): one section per topic on the page, as in the study's settings, built from the shared
@@ -128,7 +129,8 @@ fun SettingsScreen(
                 }
             }
             SettingsSection(stringResource(R.string.settings_appearance)) {
-                DataRow(stringResource(R.string.settings_theme), stringResource(R.string.settings_theme_system))
+                // Read-only, so plain text: a row with a value looked like something to tap (#218).
+                SettingsHint(stringResource(R.string.settings_theme_follows))
             }
             SettingsSection(stringResource(R.string.settings_images)) {
                 SwitchRow(
@@ -209,7 +211,8 @@ fun SettingsScreen(
                 val context = LocalContext.current
                 val scope = rememberCoroutineScope()
                 SettingsSection(stringResource(R.string.settings_debug_title)) {
-                    Column {
+                    // Links start on the text column, not 12 dp inside it.
+                    Column(Modifier.offset(x = -TextActionInset)) {
                         TextAction(
                             stringResource(R.string.collections_debug_sample),
                             onClick = { scope.launch { DebugTools.addSampleData(context.appContainer) } },
@@ -225,7 +228,11 @@ fun SettingsScreen(
                         checked = debugPro,
                         onCheckedChange = viewModel::setDebugPro,
                     )
-                    TextAction(stringResource(R.string.settings_debug_check_alerts), onClick = { PriceAlertWorker.runNow(context) })
+                    TextAction(
+                        stringResource(R.string.settings_debug_check_alerts),
+                        onClick = { PriceAlertWorker.runNow(context) },
+                        alignToText = true,
+                    )
                 }
             }
             SettingsSection(stringResource(R.string.settings_about)) {
@@ -233,7 +240,7 @@ fun SettingsScreen(
                 Column {
                     PrivacyPolicyLink()
                     SourceCodeLink()
-                    TextAction(stringResource(R.string.settings_licenses), onClick = onOpenLicenses)
+                    TextAction(stringResource(R.string.settings_licenses), onClick = onOpenLicenses, alignToText = true)
                     TesterFeedbackLink()
                 }
                 val appName = stringResource(R.string.app_name)
@@ -279,6 +286,7 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
         label = stringResource(R.string.settings_privacy_policy),
         noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url),
         modifier = modifier,
+        alignToText = true,
     )
 }
 
@@ -289,6 +297,7 @@ private fun SourceCodeLink() {
         url = SOURCE_CODE_URL,
         label = stringResource(R.string.settings_source_code),
         noBrowser = stringResource(R.string.settings_source_code_no_browser, SOURCE_CODE_URL),
+        alignToText = true,
     )
 }
 
@@ -306,15 +315,16 @@ private fun TesterFeedbackLink() {
         url = url,
         label = stringResource(R.string.settings_feedback),
         noBrowser = stringResource(R.string.settings_feedback_no_browser, TesterFeedback.NEW_ISSUE_URL),
+        alignToText = true,
     )
     SettingsHint(stringResource(R.string.settings_feedback_hint))
 }
 
 @Composable
-internal fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier) {
+internal fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier, alignToText: Boolean = false) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    TextAction(label, modifier = modifier, onClick = {
+    TextAction(label, modifier = modifier, alignToText = alignToText, onClick = {
         // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
         // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
         val opened = try {

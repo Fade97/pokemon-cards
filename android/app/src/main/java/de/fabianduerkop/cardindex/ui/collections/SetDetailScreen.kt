@@ -6,11 +6,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -27,7 +27,6 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,13 +50,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -72,7 +64,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -99,6 +90,8 @@ import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Set detail (ADR 0010, Pearl in ADR 0014): the set as a grid with one slot per number. Compact shows numbered
@@ -255,7 +248,7 @@ private fun SetGrid(
             header { MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
         }
         header {
-            SetHeader(detail, state.selectedLanguages, state.value)
+            SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
         }
         header {
             FilterRow(
@@ -304,7 +297,7 @@ private fun LazyGridScope.header(content: @Composable () -> Unit) {
  * owned secret rares beyond it show apart as "+N secret" (#132).
  */
 @Composable
-private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?) {
+private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?, priceDate: Instant?) {
     val languages = selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted()
     val progress = detail.progress
     val languageLabel = if (selectedLanguages.isEmpty() && languages.size != 1) {
@@ -329,8 +322,10 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             value?.takeIf { it.amountMinor > 0 }?.let {
                 Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.md)) {
                     Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
+                    // Market and date, as everywhere a value shows (#176).
+                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()) }
                     Text(
-                        stringResource(it.source.label()),
+                        listOfNotNull(stringResource(it.source.label()), date).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -355,11 +350,13 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
 }
 
 /**
- * The one control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
- * languages, and at the end the view toggle and the legend's info button. The chips scroll sideways instead of
- * wrapping, so the row stays one line at 2x font size and the grid starts in the first screen height. The Missing
- * chip splits like the header, so "Missing 158 · +42 secret" adds up with a 7/165 header (#161).
+ * The control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
+ * languages, and at the end the view toggle and the legend's info button. Everything wraps rather than scrolls, so no
+ * chip is ever cut off or hidden past the edge at a large font (council review, #218); on a phone at 1x the filters
+ * and buttons fit one line, the language chip may take a second. Missing counts the printed numbers, like the 7/165
+ * header above it; the header's "Secret rares 0/42" line counts the rest (#161), and the Missing filter shows both.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterRow(
     state: SetDetailUiState,
@@ -371,67 +368,65 @@ private fun FilterRow(
 ) {
     val missing = detail.missing
     val compact = state.mode == SetViewMode.COMPACT
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        val chipScroll = rememberScrollState()
-        Row(
-            Modifier.weight(1f).fadeHiddenEnd(chipScroll).horizontalScroll(chipScroll),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
-            ChoiceChip(
-                state.filter == SlotFilter.OWNED,
-                { onFilter(SlotFilter.OWNED) },
-                stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
+        ChoiceChip(
+            state.filter == SlotFilter.OWNED,
+            { onFilter(SlotFilter.OWNED) },
+            stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
+        )
+        val splitSecret = missing.secret > 0 && detail.set.printedTotal > 0
+        ChoiceChip(
+            state.filter == SlotFilter.MISSING,
+            { onFilter(SlotFilter.MISSING) },
+            stringResource(R.string.collections_filter_missing, if (splitSecret) missing.base else missing.total),
+        )
+        if (detail.languages.size >= 2) {
+            val label = languageChipLabel(detail.languages, state.selectedLanguages)
+                ?: stringResource(R.string.collections_all_languages)
+            val description = stringResource(R.string.collections_languages_chip_description, label)
+            // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
+            MenuChip(
+                active = state.selectedLanguages.isNotEmpty(),
+                onClick = onLanguages,
+                label = label,
+                modifier = Modifier.semantics { contentDescription = description },
             )
-            ChoiceChip(
-                state.filter == SlotFilter.MISSING,
-                { onFilter(SlotFilter.MISSING) },
-                if (missing.secret > 0 && detail.set.printedTotal > 0) {
-                    stringResource(R.string.collections_filter_missing_secret, missing.base, missing.secret)
-                } else {
-                    stringResource(R.string.collections_filter_missing, missing.total)
-                },
-            )
-            if (detail.languages.size >= 2) {
-                val label = languageChipLabel(detail.languages, state.selectedLanguages)
-                    ?: stringResource(R.string.collections_all_languages)
-                val description = stringResource(R.string.collections_languages_chip_description, label)
-                // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
-                MenuChip(
-                    active = state.selectedLanguages.isNotEmpty(),
-                    onClick = onLanguages,
-                    label = label,
-                    modifier = Modifier.semantics { contentDescription = description },
+        }
+        // The view toggle and the legend's info button end whichever line they land on: the filters' line when
+        // they fit, else the language chip's.
+        Row(Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            IconButton(
+                onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
+                modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),
+            ) {
+                Icon(
+                    painterResource(if (compact) R.drawable.ic_view_cards else R.drawable.ic_view_compact),
+                    contentDescription = stringResource(
+                        if (compact) R.string.collections_view_show_cards else R.string.collections_view_show_compact,
+                    ),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        IconButton(
-            onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
-            modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),
-        ) {
-            Icon(
-                painterResource(if (compact) R.drawable.ic_view_cards else R.drawable.ic_view_compact),
-                contentDescription = stringResource(
-                    if (compact) R.string.collections_view_show_cards else R.string.collections_view_show_compact,
+            IconToggleButton(
+                checked = state.legendShown,
+                onCheckedChange = { onToggleLegend() },
+                modifier = Modifier.focusRing(CircleShape),
+                // Pearl's selection tint behind the icon while the legend is open, as on a selected chip (ADR 0014).
+                colors = IconButtonDefaults.iconToggleButtonColors(
+                    checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                 ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconToggleButton(
-            checked = state.legendShown,
-            onCheckedChange = { onToggleLegend() },
-            modifier = Modifier.focusRing(CircleShape),
-            // Pearl's selection tint behind the icon while the legend is open, as on a selected chip (ADR 0014).
-            colors = IconButtonDefaults.iconToggleButtonColors(
-                checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_info),
-                contentDescription = stringResource(R.string.collections_legend_toggle),
-                tint = if (state.legendShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_info),
+                    contentDescription = stringResource(R.string.collections_legend_toggle),
+                    tint = if (state.legendShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -610,34 +605,6 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
         }
     }
 }
-
-/** Width of the fade at the end of the filter row. */
-private val ChipRowFade = 24.dp
-
-/**
- * Fades the end of a sideways-scrolling row while more of it is hidden there (#165), so the language chip off the
- * edge of a narrow screen or at a large font is visibly still to come. Mirrored for right-to-left layouts.
- */
-private fun Modifier.fadeHiddenEnd(scroll: ScrollState): Modifier =
-    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-        .drawWithContent {
-            drawContent()
-            if (scroll.canScrollForward) {
-                val fade = ChipRowFade.toPx().coerceAtMost(size.width)
-                val rtl = layoutDirection == LayoutDirection.Rtl
-                val start = if (rtl) 0f else size.width - fade
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = if (rtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent),
-                        startX = start,
-                        endX = start + fade,
-                    ),
-                    topLeft = Offset(start, 0f),
-                    size = Size(fade, size.height),
-                    blendMode = BlendMode.DstIn,
-                )
-            }
-        }
 
 /** Scale a newly filled slot starts from before it springs to full size (#169). */
 private const val PulseFrom = 0.7f

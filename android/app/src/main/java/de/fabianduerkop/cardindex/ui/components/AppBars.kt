@@ -97,13 +97,22 @@ fun TopLevelScaffold(
         modifier = modifier,
         topBar = {
             LumifoilTopAppBar(
-                title = { if (wordmark) LumifoilWordmark() else AppBarTitle(title) },
+                // Material starts a bar title without a back arrow 16 dp in; the screen's content starts at the gutter.
+                // The extra inset puts both on one left edge (#218).
+                title = {
+                    Box(Modifier.padding(start = Spacing.gutter - BarTitleInset)) {
+                        if (wordmark) LumifoilWordmark() else AppBarTitle(title)
+                    }
+                },
                 actions = actions,
             )
         },
         content = content,
     )
 }
+
+/** Where Material's top app bar starts its title when there is no navigation icon. */
+private val BarTitleInset = 16.dp
 
 /** Scaffold of a screen below a tab or a task (set, card, review): back arrow, title, optional actions. */
 @Composable

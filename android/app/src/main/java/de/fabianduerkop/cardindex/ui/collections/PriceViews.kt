@@ -39,6 +39,8 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
+import androidx.compose.foundation.layout.offset
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 
 @StringRes
 internal fun PriceSource.label(): Int =
@@ -234,7 +236,8 @@ internal fun PriceBox(
         val cardmarketId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.CARDMARKET } }
         val tcgplayerId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.TCGPLAYER } }
         if (cardmarketId != null || tcgplayerId != null) {
-            FlowRow(Modifier.padding(top = Spacing.xs)) {
+            // Moved back by the buttons' inner padding, so the first link starts on the text column above.
+            FlowRow(Modifier.padding(top = Spacing.xs).offset(x = -TextActionInset)) {
                 if (cardmarketId != null) {
                     TextAction(
                         if (MarketLinks.filtersLanguage(cardLanguage)) {

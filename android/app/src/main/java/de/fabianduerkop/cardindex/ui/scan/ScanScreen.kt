@@ -89,6 +89,7 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -319,14 +320,26 @@ private fun LiveScan(
                         halo = { halo.value },
                     )
                 }
-                // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197).
+                // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197). TalkBack gets the
+                // same as a named action, since the hint under the picture tells everyone to tap it (#218).
+                val refocusLabel = stringResource(R.string.scan_refocus)
                 Box(
-                    Modifier.fillMaxSize().pointerInput(controller) {
-                        detectTapGestures {
-                            controller.focusOnGuide()
-                            focusTaps++
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(controller) {
+                            detectTapGestures {
+                                controller.focusOnGuide()
+                                focusTaps++
+                            }
                         }
-                    },
+                        .semantics {
+                            contentDescription = refocusLabel
+                            onClick(label = refocusLabel) {
+                                controller.focusOnGuide()
+                                focusTaps++
+                                true
+                            }
+                        },
                 )
                 FocusCue(focusTaps, Modifier.align(Alignment.Center))
                 LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
