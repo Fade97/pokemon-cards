@@ -147,7 +147,13 @@ fun SearchScreen(
                         modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
                     )
                 }
-                else -> results(state.results, onOpenCard = onOpenCard, onRetry = viewModel::retry, onOpenScan = onOpenScan)
+                else -> results(
+                    state.results,
+                    onOpenCard = onOpenCard,
+                    onRetry = viewModel::retry,
+                    onOpenScan = onOpenScan,
+                    onShowMore = viewModel::showMore,
+                )
             }
         }
     }
@@ -180,6 +186,7 @@ private fun LazyListScope.results(
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
     onOpenScan: (() -> Unit)?,
+    onShowMore: () -> Unit,
 ) {
     when (results) {
         SearchResults.Idle -> item { Note(stringResource(R.string.search_hint)) }
@@ -214,6 +221,16 @@ private fun LazyListScope.results(
             }
             items(results.hits, key = { it.card.id + "/" + it.card.language }) { hit ->
                 SearchResultRow(hit, onClick = { onOpenCard(hit.card.id, hit.card.language) })
+            }
+            // The list is cut at a page: the next page of the same query, so a broad query never hides a match (#218).
+            if (results.more) {
+                item {
+                    SecondaryButton(
+                        stringResource(R.string.search_show_more),
+                        onClick = onShowMore,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+                    )
+                }
             }
         }
     }

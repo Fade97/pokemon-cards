@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -249,6 +251,12 @@ internal fun PriceBox(
         val tcgplayerId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.TCGPLAYER } }
         if (cardmarketId != null || tcgplayerId != null) {
             // Moved back by the buttons' inner padding, so the first link starts on the text column above.
+            // With no app for web links, openUri throws instead of opening nothing; say so instead of crashing (#218).
+            val context = LocalContext.current
+            val noBrowser = stringResource(R.string.price_no_browser)
+            val open: (String) -> Unit = { url ->
+                if (runCatching { uriHandler.openUri(url) }.isFailure) Toast.makeText(context, noBrowser, Toast.LENGTH_LONG).show()
+            }
             // In the order the prices show above: the leading market's link first (#218).
             val tcgplayerFirst = ((main ?: secondary)?.source ?: primary) == PriceSource.TCGPLAYER
             val cardmarketLink: @Composable () -> Unit = {
@@ -259,7 +267,7 @@ internal fun PriceBox(
                         } else {
                             stringResource(R.string.price_open_cardmarket)
                         },
-                        onClick = { uriHandler.openUri(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
+                        onClick = { open(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
                     )
                 }
             }
@@ -267,7 +275,7 @@ internal fun PriceBox(
                 if (tcgplayerId != null) {
                     TextAction(
                         stringResource(R.string.price_open_tcgplayer),
-                        onClick = { uriHandler.openUri(MarketLinks.tcgplayer(tcgplayerId)) },
+                        onClick = { open(MarketLinks.tcgplayer(tcgplayerId)) },
                     )
                 }
             }

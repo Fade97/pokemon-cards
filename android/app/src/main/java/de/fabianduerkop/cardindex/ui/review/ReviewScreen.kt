@@ -534,7 +534,8 @@ private fun Footer(
                     if (defaults || chosen) text else stringResource(R.string.review_default_mark, text)
                 }
                 val finishText = mark(stringResource(finish.label()), draft.finishChosen)
-                val print = if (edition == Edition.UNLIMITED) {
+                // Unlimited is the quiet default and left out, unless the user picked it: then it is part of the copy.
+                val print = if (edition == Edition.UNLIMITED && !draft.editionChosen) {
                     finishText
                 } else {
                     mark(stringResource(edition.label()), draft.editionChosen) + " " + finishText

@@ -90,7 +90,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
-    onOpenSet: (String) -> Unit,
+    onOpenSet: (setId: String, languages: Set<String>) -> Unit,
     onOpenCollection: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOpenScan: () -> Unit = {},
@@ -196,7 +196,8 @@ fun CollectionsScreen(
                         state,
                         weekly = weekly,
                         onToggleLanguage = viewModel::toggleLanguage,
-                        onOpenSet = onOpenSet,
+                        // The set opens in the languages chosen here, so its count and value match the row (#218).
+                        onOpenSet = { onOpenSet(it, state.selectedLanguages) },
                     )
                     CollectionsView.BINDERS -> binderItems(state, onOpenCollection = onOpenCollection)
                     CollectionsView.WISHLIST -> wishlistItems(
@@ -420,11 +421,12 @@ private fun valueCoverage(row: SetRowUi): String? {
  * basis stays in view once the collection header has scrolled away (#218). Null without a price.
  */
 @Composable
-private fun valueSource(row: SetRowUi): String? {
+private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
     val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
     val date = row.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
-    // A comma, not "·": when the line wraps it breaks after "TCGplayer," instead of leaving a lone dot at the end.
-    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(", ")
+    // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
+    // cover's narrow value column it may break after the comma, or the year would split.
+    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(if (keepTogether) ",\u00A0" else ", ")
 }
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
@@ -512,19 +514,20 @@ private fun FeaturedSet(
                         // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
                         // worth, from no market in particular (#218).
                         Text(
-                            listOfNotNull(valueSource(row), valueCoverage(row)).joinToString("\n"),
+                            listOfNotNull(valueSource(row, keepTogether = false), valueCoverage(row)).joinToString("\n"),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.End,
                         )
                     }
                 } else if (set.copies > 0) {
-                    // Owned but unpriced: said here too, as in the rows and on the set screen.
+                    // Owned but unpriced: said here too, as in the rows and on the set screen, where a price would be.
                     Text(
                         stringResource(R.string.collections_not_priced),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(start = Spacing.sm),
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f).padding(start = Spacing.sm),
                     )
                 }
             }

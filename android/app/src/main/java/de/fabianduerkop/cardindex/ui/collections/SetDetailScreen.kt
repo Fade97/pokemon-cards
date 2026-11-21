@@ -361,20 +361,19 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
-                    // Market, "Prices from Nov 20, 2026" (the words Collections and card detail use; the date never
-                    // splits) and how many copies it covers when not all, each on its own line (#176, #218).
-                    val date = priceDate?.let { d ->
-                        // Only the date is unbreakable: "Prices from" may wrap above it, so the column stays narrow
-                        // and never squeezes the count on a small phone at a large font (#218).
-                        stringResource(R.string.price_as_of, formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0'))
-                    }
+                    // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
+                    // many copies it covers when not all (#176, #218). The date never splits.
+                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
                     val coverage = if (priced.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
                     } else {
                         null
                     }
                     Text(
-                        listOfNotNull(stringResource(priced.source.label()), date, coverage).joinToString("\n"),
+                        listOfNotNull(
+                            listOfNotNull(stringResource(priced.source.marketName()), date).joinToString(", "),
+                            coverage,
+                        ).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -386,7 +385,8 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     stringResource(R.string.collections_not_priced),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.md, top = Spacing.xs),
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
                 )
             }
         }

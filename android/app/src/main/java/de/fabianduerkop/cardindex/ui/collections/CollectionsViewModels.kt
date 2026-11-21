@@ -490,7 +490,10 @@ class SetDetailViewModel(
     now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
-    private val selected = MutableStateFlow(emptySet<String>())
+    // Starts in the languages Collections was filtered to, so the set's count and value match the row tapped (#218).
+    private val selected = MutableStateFlow(
+        savedState.get<String>(CollectionsRoutes.ARG_LANGUAGES)?.split(',')?.filter { it.isNotBlank() }?.toSet().orEmpty(),
+    )
     private val mode = MutableStateFlow(SetViewMode.COMPACT)
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
