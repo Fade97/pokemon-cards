@@ -23,7 +23,6 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
@@ -287,9 +286,6 @@ private fun SetGrid(
     }
 }
 
-/** The widest the set header's value column gets: "TCGplayer market · Nov 20, 2026" at 1x. */
-private val ValueColumnMax = 220.dp
-
 /** An icon button's space around its 24 dp icon: (48 − 24) / 2. */
 private val IconInset = 12.dp
 
@@ -333,8 +329,9 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
         // The count with its secret-rare line on the left, the value at the top right: the count stays right under the
         // series line, however many lines the value takes (#218). The value column is capped, so a long secret line
         // or a large font never squeezes it into a sliver; the count side takes the rest.
+        // The count side keeps its natural width (it never breaks); the value takes the rest and wraps in it.
         Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = Spacing.xs)) {
-            Column(Modifier.weight(1f)) {
+            Column {
                 Text(
                     text = progressText(progress.base, progress.printedTotal),
                     style = MaterialTheme.typography.displayMedium,
@@ -361,13 +358,15 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             if (priced != null) {
                 Column(
                     horizontalAlignment = Alignment.End,
-                    modifier = Modifier.widthIn(max = ValueColumnMax).padding(start = Spacing.md, top = Spacing.xs),
+                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
                     // Market, "Prices from Nov 20, 2026" (the words Collections and card detail use; the date never
                     // splits) and how many copies it covers when not all, each on its own line (#176, #218).
                     val date = priceDate?.let { d ->
-                        stringResource(R.string.price_as_of, formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0')
+                        // Only the date is unbreakable: "Prices from" may wrap above it, so the column stays narrow
+                        // and never squeezes the count on a small phone at a large font (#218).
+                        stringResource(R.string.price_as_of, formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0'))
                     }
                     val coverage = if (priced.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)

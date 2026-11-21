@@ -527,13 +527,21 @@ private fun Footer(
                     color = MaterialTheme.colorScheme.tertiary,
                 )
             } else {
-                val print = stringResource(finish.label()).let {
-                    if (edition == Edition.UNLIMITED) it else stringResource(edition.label()) + " " + it
+                // Values nobody picked are the defaults, and say so: the camera did not read them (#218). With some
+                // picked, each untouched one is marked on its own, so a default never passes for a checked value.
+                val defaults = !draft.finishChosen && !draft.editionChosen && !draft.conditionChosen
+                val mark: @Composable (String, Boolean) -> String = { text, chosen ->
+                    if (defaults || chosen) text else stringResource(R.string.review_default_mark, text)
+                }
+                val finishText = mark(stringResource(finish.label()), draft.finishChosen)
+                val print = if (edition == Edition.UNLIMITED) {
+                    finishText
+                } else {
+                    mark(stringResource(edition.label()), draft.editionChosen) + " " + finishText
                 }
                 // The condition in the form's words ("Near mint"), so the summary matches the chips below (#218).
-                val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, ${stringResource(conditionLabel(draft.condition))}")
-                // Values nobody picked are the defaults, and say so: the camera did not read them (#218).
-                val defaults = !draft.finishChosen && !draft.editionChosen && !draft.conditionChosen
+                val condition = mark(stringResource(conditionLabel(draft.condition)), draft.conditionChosen)
+                val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, $condition")
                 Text(
                     stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved),
                     Modifier.weight(1f),

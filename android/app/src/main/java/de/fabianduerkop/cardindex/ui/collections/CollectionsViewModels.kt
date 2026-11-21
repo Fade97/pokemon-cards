@@ -140,6 +140,8 @@ data class SetRowUi(
     /** Owned slots as [numberKey]s, the same keys the set detail's checklist uses. */
     val ownedSlots: Set<String>,
     val value: CollectionValue? = null,
+    /** Oldest date among the prices [value] sums, shown with it so a set's value keeps its basis in view (#218). */
+    val priceDate: Instant? = null,
     val series: String? = null,
     val art: List<CardEntity> = emptyList(),
 ) {
@@ -266,6 +268,7 @@ class CollectionsViewModel(
                 completion = completion,
                 ownedSlots = copies.mapTo(HashSet()) { numberKey(it.card.localId) },
                 value = PriceSelection.total(copies.map { it.copy }, priceMap, source),
+                priceDate = PriceSelection.totalDate(copies.map { it.copy }, priceMap, source),
                 series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
                 art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
             )

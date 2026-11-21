@@ -382,7 +382,8 @@ private fun LiveScan(
                 // The status chip, then the reading under it: stacked, so a larger font moves the reading down instead
                 // of under the chip (#218).
                 Column(
-                    Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(Spacing.md),
+                    // On the screen's 20 dp gutter, like the tray below.
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
                     LiveStatus(paused, ready = engine !is ScanEngineState.Loading, Modifier.align(Alignment.Start))
@@ -630,7 +631,7 @@ private fun CameraReading(
                     done?.ownQuote(priceSource)?.let { quote ->
                         // With its date, like every other price: a cached quote must not pass for today's (#218).
                         val line = stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency))
-                        val date = quote.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()) }
+                        val date = quote.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
                         Text(
                             if (date != null) stringResource(R.string.scan_price_dated, line, date) else line,
                             color = camera.content,

@@ -44,6 +44,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -73,6 +74,7 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /**
@@ -413,6 +415,18 @@ private fun valueCoverage(row: SetRowUi): String? {
     }
 }
 
+/**
+ * Where a set's value comes from: "TCGplayer, Nov 20, 2026". Next to the value on the cover and in each row, so the
+ * basis stays in view once the collection header has scrolled away (#218). Null without a price.
+ */
+@Composable
+private fun valueSource(row: SetRowUi): String? {
+    val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
+    val date = row.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    // A comma, not "·": when the line wraps it breaks after "TCGplayer," instead of leaving a lone dot at the end.
+    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(", ")
+}
+
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
 private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyTrend? = null): String {
@@ -423,6 +437,7 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueSource(row),
         valueCoverage(row),
         change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
@@ -488,25 +503,29 @@ private fun FeaturedSet(
                             .joinToString(" · "),
                     ),
                     style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f),
+                    // Its natural width (measured first, unweighted): the count never breaks; the value takes the rest.
                 )
-                row.value?.takeIf { it.amountMinor > 0 }?.let { value ->
-                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.sm)) {
-                        Text(Money.format(value.amountMinor, value.currency), style = MaterialTheme.typography.labelLarge)
-                        // A partial value says so, as on the set screen: alone, $18.33 read as all copies' worth (#218).
-                        if (value.unpricedCopies > 0) {
-                            Text(
-                                pluralStringResource(
-                                    R.plurals.collections_set_value_coverage,
-                                    value.totalCopies,
-                                    value.pricedCopies,
-                                    value.totalCopies,
-                                ),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
+                val priced = row.value?.takeIf { it.amountMinor > 0 }
+                if (priced != null) {
+                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
+                        Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.labelLarge)
+                        // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
+                        // worth, from no market in particular (#218).
+                        Text(
+                            listOfNotNull(valueSource(row), valueCoverage(row)).joinToString("\n"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                        )
                     }
+                } else if (set.copies > 0) {
+                    // Owned but unpriced: said here too, as in the rows and on the set screen.
+                    Text(
+                        stringResource(R.string.collections_not_priced),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = Spacing.sm),
+                    )
                 }
             }
             change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
@@ -557,6 +576,7 @@ private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val subtitle = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueSource(row),
         valueCoverage(row),
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
