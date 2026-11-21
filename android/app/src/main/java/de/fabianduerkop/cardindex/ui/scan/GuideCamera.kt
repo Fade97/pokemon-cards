@@ -17,10 +17,15 @@ import androidx.camera.core.SurfaceOrientedMeteringPointFactory
 import androidx.camera.view.LifecycleCameraController
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
 import de.fabianduerkop.cardindex.recognition.ScanGuide
+import kotlinx.coroutines.delay
 import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 
@@ -120,6 +125,23 @@ internal fun GuideCamera(controller: LifecycleCameraController, info: CameraInfo
         info.cameraState.observe(lifecycleOwner, observer)
         onDispose { info.cameraState.removeObserver(observer) }
     }
+}
+
+/**
+ * The bound camera's info, once [controller] has opened a camera; null until then or if it never does. For screens
+ * that don't watch camera problems themselves (the Lab, #199).
+ */
+@Composable
+internal fun rememberCameraInfo(controller: LifecycleCameraController): CameraInfo? {
+    var info by remember(controller) { mutableStateOf<CameraInfo?>(null) }
+    LaunchedEffect(controller) {
+        // The camera info appears once the controller has bound the camera.
+        repeat(50) {
+            controller.cameraInfo?.let { info = it; return@LaunchedEffect }
+            delay(100)
+        }
+    }
+    return info
 }
 
 /** One autofocus run on the guide's centre, then back to continuous focus: what a tap on the camera does. */
