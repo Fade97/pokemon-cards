@@ -279,7 +279,8 @@ class PackStore(val root: File) {
         if (!stateFile.isFile) return State(null, emptyMap(), emptySet(), false, emptyMap())
         val o = JSONObject(stateFile.readText())
         val packs = o.optJSONObject("packs") ?: JSONObject()
-        val filled = o.optJSONObject("catalogFilled") ?: JSONObject()
+        // A catalog filled by an older import lacks what the import writes now: fill it again from the installed packs.
+        val filled = o.optJSONObject("catalogFilled")?.takeIf { o.optInt("catalogFormat", 1) >= CATALOG_FORMAT } ?: JSONObject()
         val broken = o.optJSONArray("broken") ?: JSONArray()
         return State(
             modelDir = o.optStringOrNull("model"),
@@ -297,6 +298,7 @@ class PackStore(val root: File) {
             .put("broken", JSONArray(s.broken.sorted()))
             .put("modelBroken", s.modelBroken)
             .put("catalogFilled", JSONObject(s.catalogFilled as Map<*, *>))
+            .put("catalogFormat", CATALOG_FORMAT)
         root.mkdirs()
         atomicWrite(stateFile, o.toString())
     }
@@ -321,5 +323,13 @@ class PackStore(val root: File) {
         if (from.renameTo(to)) return
         from.copyTo(to, overwrite = true)
         if (!from.delete()) throw IOException("Cannot remove ${from.name} after copying")
+    }
+
+    companion object {
+        /**
+         * What a catalog import writes. Raise it when [de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter]
+         * starts to store more of a pack, so every installed pack is imported again once. 2: set codes (#241).
+         */
+        const val CATALOG_FORMAT = 2
     }
 }

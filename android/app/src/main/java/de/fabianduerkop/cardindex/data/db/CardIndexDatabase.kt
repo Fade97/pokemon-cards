@@ -44,7 +44,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 9
+        const val VERSION = 10
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -151,10 +151,21 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v10 (#241): the set code printed on the cards, for search. A new nullable column; the pack store imports
+         * every installed pack again once ([de.fabianduerkop.cardindex.data.packs.PackStore.CATALOG_FORMAT]), which
+         * fills it.
+         */
+        val MIGRATION_9_10 = object : Migration(9, 10) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `card_sets` ADD COLUMN `code` TEXT")
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
         val MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-            MIGRATION_8_9,
+            MIGRATION_8_9, MIGRATION_9_10,
         )
 
         private const val NAME = "cardindex.db"

@@ -352,6 +352,32 @@ class SchemaMigrationTest {
         }
     }
 
+    /** v9 → v10 (#241): sets stay and have no code until the next pack import writes one. */
+    @Test
+    fun migration9To10_keepsSets_withoutACode() {
+        val name = databasePath("migration-9-10.db")
+        helper.createDatabase(name, 9).apply {
+            execSQL("INSERT INTO card_sets (id, name, series, language, printedTotal, region, retired) VALUES ('30th', '30th Celebration', 'MEG', 'en', 128, 'INTERNATIONAL', 0)")
+            close()
+        }
+        helper.runMigrationsAndValidate(name, 10, true, CardIndexDatabase.MIGRATION_9_10).close()
+
+        val db = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), CardIndexDatabase::class.java, name)
+            .addMigrations(*CardIndexDatabase.MIGRATIONS)
+            .allowMainThreadQueries()
+            .build()
+        try {
+            runBlocking {
+                val set = db.catalogDao().observeSet("30th").first()!!
+                assertEquals("30th Celebration" to null, set.name to set.code)
+                db.catalogDao().upsertSets(listOf(set.copy(code = "30C")))
+                assertEquals("30C", db.catalogDao().observeSet("30th").first()!!.code)
+            }
+        } finally {
+            db.close()
+        }
+    }
+
     /** Absolute: with a bare name, Room's driver check fails on Windows hosts (backslash paths). */
     private fun databasePath(name: String): String =
         ApplicationProvider.getApplicationContext<Context>().getDatabasePath(name).absolutePath

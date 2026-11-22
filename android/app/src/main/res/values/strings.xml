@@ -317,7 +317,7 @@
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
-    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
+    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, a set code such as 30C, or a collector number such as 25 or 025/165. Put a number after a name or set code to narrow it down: Pikachu 25, 30C 25.</string>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import okhttp3.OkHttpClient
 import okhttp3.mockwebserver.MockWebServer
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Assert.assertArrayEquals
 import org.junit.Assert.assertEquals
@@ -553,6 +554,32 @@ class PackSyncTest {
         // English comes after German in the preference: it doesn't take the name back.
         importer.import("en", listOf(set("sv1").copy(name = "Scarlet")), listOf(card("sv1-001")))
         assertEquals("Karmesin", db.catalogDao().observeSet("sv1").first()!!.name)
+    }
+
+    /** #241: set codes reach the catalog, and a catalog an older app filled without them is imported again once. */
+    @Test
+    fun setCodesReachTheCatalog_andAnOlderCatalogIsFilledAgain() = runTest {
+        val model = fake.publishModel("mnv3", modelBytes)
+        fake.publish(content("en", 1, listOf(set("sv1").copy(abbreviation = "SVI"), set("sv2")), en1.cards), model)
+        manager.addLanguages(setOf("en"))
+        assertEquals(SyncOutcome.Done, manager.sync(poll = false))
+        suspend fun code(setId: String) = db.catalogDao().observeSet(setId).first()!!.code
+        assertEquals("SVI" to null, code("sv1") to code("sv2"))
+
+        // An older app filled the catalog: no codes in Room, no catalog format in state.json.
+        db.openHelper.writableDatabase.execSQL("UPDATE card_sets SET code = NULL")
+        val state = File(root, "state.json")
+        state.writeText(JSONObject(state.readText()).apply { remove("catalogFormat") }.toString())
+        store = PackStore(root)
+        assertEquals(emptyMap<String, String>(), store.installed.value.catalogFilled)
+        manager = newManager()
+        manager.sync(poll = false)
+        assertEquals("SVI", code("sv1"))
+        assertEquals(setOf("en"), store.installed.value.catalogFilled.keys)
+
+        // Japanese sets have no abbreviation; their id is the printed code.
+        PackCatalogImporter(db) { listOf("en") }.import("ja", listOf(set("SV2a")), listOf(card("SV2a-001")))
+        assertEquals("SV2a", code("SV2a"))
     }
 
     private fun ref(id: String) = RefCard("en/$id", id, "en", id.substringBefore('-'), "s", id.substringAfter('-'), 10, "n", "u", false)
