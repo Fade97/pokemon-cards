@@ -91,6 +91,22 @@ class CardSearchTest {
     private suspend fun find(input: String, languages: Set<String> = setOf("en", "de"), limit: Int = CardSearch.PAGE) =
         search.observe(SearchTerms.parse(input)!!, languages, limit).first()
 
+    /** #220: a set whose name ends in a number is found as the set, not as that card number. */
+    @Test
+    fun aSetNameEndingInANumberFindsTheWholeSet() = runTest {
+        seed()
+        db.catalogDao().insertSetsIfMissing(listOf(CardSetEntity("pop5", "POP Series 5", "POP", "en", 17, Region.INTERNATIONAL)))
+        db.catalogDao().upsertCards(
+            listOf(named(card("pop5-1", "pop5", "1", "en"), "Ho-Oh"), named(card("pop5-5", "pop5", "5", "en"), "Pikachu")),
+        )
+        val query = "pop  series 5"
+        val set = search.observe(SearchTerms.parse(query)!!, setOf("en"), query = query).first()
+        assertEquals(setOf("pop5-1", "pop5-5"), set.hits.map { it.card.id }.toSet())
+        // A name with a number is still both: Pikachu number 25 only.
+        val pika = search.observe(SearchTerms.parse("Pikachu 25")!!, setOf("en"), query = "Pikachu 25").first()
+        assertEquals(listOf("sv03.5-025"), pika.hits.map { it.card.id })
+    }
+
     @Test
     fun byName_caseInsensitive_onlyInTheGivenLanguages() = runTest {
         seed()

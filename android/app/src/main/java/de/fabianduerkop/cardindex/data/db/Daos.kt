@@ -175,6 +175,10 @@ interface CatalogDao {
     @Query("SELECT * FROM cards WHERE id = :cardId ORDER BY language")
     fun observeCardPrints(cardId: String): Flow<List<CardEntity>>
 
+    /** A set in [languages] named exactly [name], ignoring case: "POP Series 5" is a set, not card 5 (#220). */
+    @Query("SELECT EXISTS(SELECT 1 FROM card_sets WHERE name = :name COLLATE NOCASE AND language IN (:languages))")
+    suspend fun hasSetNamed(name: String, languages: List<String>): Boolean
+
     /**
      * Search (#99) over the current cards in [languages]: cards whose name or set name matches [text] (a LIKE
      * pattern). Matches are ordered by names that start with [prefix], then card name, set name, language and

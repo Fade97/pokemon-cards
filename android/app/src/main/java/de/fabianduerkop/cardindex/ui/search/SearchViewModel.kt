@@ -74,7 +74,7 @@ class SearchViewModel(
                 _state.update { if (it.results is SearchResults.Found) it else it.copy(results = SearchResults.Loading) }
                 delay(DEBOUNCE_MS)
                 try {
-                    search.observe(terms, languages, limit = CardSearch.PAGE * shown).collect { page ->
+                    search.observe(terms, languages, limit = CardSearch.PAGE * shown, query = q).collect { page ->
                         _state.update { it.copy(results = SearchResults.Found(page.hits, page.more)) }
                     }
                 } catch (e: CancellationException) {
