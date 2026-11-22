@@ -83,12 +83,14 @@ internal fun ChoiceRow(title: String, subtitle: String?, selected: Boolean, onCl
             .focusRing(shape)
             .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
             .heightIn(min = Spacing.touchTarget)
-            .padding(vertical = Spacing.xxs),
+            // Room between two-line options at a large font, as the switch rows have (#218).
+            .padding(vertical = Spacing.xs),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RadioButton(selected = selected, onClick = null, modifier = Modifier.padding(end = Spacing.md))
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.bodyLarge)
+            // The same title size as the switch rows, below the section heading (#218).
+            Text(title, style = MaterialTheme.typography.titleSmall)
             if (subtitle != null) SettingsHint(subtitle)
         }
     }

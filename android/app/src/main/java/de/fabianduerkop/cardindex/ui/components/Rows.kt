@@ -5,6 +5,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -27,11 +28,25 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
-/** A section heading with an optional quiet note at the end, e.g. "Recently added · Today". */
+/**
+ * A section heading with an optional quiet note at the end, e.g. "Recently added · Today", or an [action] there (a
+ * [TextAction]); its 48 dp touch height then stands in for part of the padding. [dense] uses that tighter padding
+ * without an action, for a heading that sits right on its own explanation.
+ */
 @Composable
-fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: String? = null) {
+fun SectionHeader(
+    title: String,
+    modifier: Modifier = Modifier,
+    trailing: String? = null,
+    dense: Boolean = false,
+    action: (@Composable RowScope.() -> Unit)? = null,
+) {
+    val tight = dense || action != null
     Row(
-        modifier.fillMaxWidth().padding(top = Spacing.xl, bottom = Spacing.md),
+        modifier.fillMaxWidth().padding(
+            top = if (tight) Spacing.md else Spacing.xl,
+            bottom = if (tight) Spacing.xs else Spacing.md,
+        ),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.md),
     ) {
@@ -44,6 +59,7 @@ fun SectionHeader(title: String, modifier: Modifier = Modifier, trailing: String
         if (trailing != null) {
             Text(trailing, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
+        action?.invoke(this)
     }
 }
 
@@ -92,7 +108,10 @@ fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier, marks: 
     ) {
         val radius = CornerRadius(size.height / 2)
         drawRoundRect(track, cornerRadius = radius)
-        if (fraction > 0f) drawRoundRect(fill, size = Size(size.width * fraction, size.height), cornerRadius = radius)
+        // At least a dot of fill once anything is owned: 1 of 191 on a short bar was under a pixel and read as none.
+        if (fraction > 0f) {
+            drawRoundRect(fill, size = Size((size.width * fraction).coerceAtLeast(size.height), size.height), cornerRadius = radius)
+        }
         // Milestones (#169) as small gaps in the bar, so 25, 50 and 75 % read as steps.
         val gapWidth = 2.dp.toPx()
         marks.forEach { mark ->

@@ -6,11 +6,11 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -21,13 +21,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -51,15 +51,10 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawWithContent
-import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.BlendMode
-import androidx.compose.ui.graphics.Brush
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -72,7 +67,6 @@ import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -99,6 +93,8 @@ import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import java.time.Instant
+import java.time.ZoneId
 
 /**
  * Set detail (ADR 0010, Pearl in ADR 0014): the set as a grid with one slot per number. Compact shows numbered
@@ -153,6 +149,8 @@ fun SetDetailScreen(
                 TextAction(
                     text = stringResource(if (state.pinned) R.string.collections_unpin_set else R.string.collections_pin_set),
                     onClick = viewModel::togglePinned,
+                    // The bar pads its actions by 4 dp; this puts the word's end on the 20 dp gutter (#218).
+                    modifier = Modifier.padding(end = Spacing.xs),
                     contentDescription = stringResource(
                         if (state.pinned) R.string.collections_unpin_set_description else R.string.collections_pin_set_description,
                     ),
@@ -251,28 +249,26 @@ private fun SetGrid(
         horizontalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(if (compact) Spacing.xs else Spacing.md),
     ) {
-        milestone?.let { reached ->
-            header { MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
-        }
+        // One header with its own spacing: the grid's row gap differs between Compact and Cards, and as separate grid
+        // items the filters moved under the thumb when the view toggle was tapped (#218).
         header {
-            SetHeader(detail, state.selectedLanguages, state.value)
-        }
-        header {
-            FilterRow(
-                state = state,
-                detail = detail,
-                onFilter = onFilter,
-                onLanguages = { languageSheet = true },
-                onMode = onMode,
-                onToggleLegend = onToggleLegend,
-            )
-        }
-        if (state.legendShown) {
-            header {
-                ChecklistLegend(
-                    stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
-                    Modifier.padding(bottom = Spacing.sm),
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                milestone?.let { reached -> MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
+                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
+                FilterRow(
+                    state = state,
+                    detail = detail,
+                    onFilter = onFilter,
+                    onLanguages = { languageSheet = true },
+                    onMode = onMode,
+                    onToggleLegend = onToggleLegend,
                 )
+                if (state.legendShown) {
+                    ChecklistLegend(
+                        stringResource(if (compact) R.string.collections_legend_compact else R.string.collections_legend_cards),
+                        Modifier.padding(bottom = Spacing.sm),
+                    )
+                }
             }
         }
         items(shown, key = { it.localId }) { slot ->
@@ -290,6 +286,9 @@ private fun SetGrid(
     }
 }
 
+/** An icon button's space around its 24 dp icon: (48 − 24) / 2. */
+private val IconInset = 12.dp
+
 /** Smallest compact slot: five across on a 360 dp phone, and never under the 48 dp touch height. */
 private val CompactSlotMin = 56.dp
 private val CardSlotMin = 76.dp
@@ -304,7 +303,7 @@ private fun LazyGridScope.header(content: @Composable () -> Unit) {
  * owned secret rares beyond it show apart as "+N secret" (#132).
  */
 @Composable
-private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?) {
+private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?, priceDate: Instant?) {
     val languages = selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted()
     val progress = detail.progress
     val languageLabel = if (selectedLanguages.isEmpty() && languages.size != 1) {
@@ -318,48 +317,91 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        val description = progressDescription(progress)
-        Row(verticalAlignment = Alignment.Bottom, modifier = Modifier.padding(top = Spacing.xs)) {
-            Text(
-                text = progressText(progress.base, progress.printedTotal),
-                style = MaterialTheme.typography.displayMedium,
-                maxLines = 1,
-                modifier = Modifier.weight(1f).semantics { contentDescription = description },
-            )
-            value?.takeIf { it.amountMinor > 0 }?.let {
-                Column(horizontalAlignment = Alignment.End, modifier = Modifier.padding(start = Spacing.md)) {
-                    Text(Money.format(it.amountMinor, it.currency), style = MaterialTheme.typography.titleMedium)
+        // Secret rares counted apart (#169): "Secret rares 12/42" when the catalog knows them, else "+12 secret".
+        val secretTotal = detail.slots.count { isSecretNumber(it.localId, progress.printedTotal) }
+        // TalkBack hears the secret count too, even at 0 of 42, since the line showing it is left out below (#218).
+        val description = if (secretTotal > 0) {
+            stringResource(R.string.collections_progress_description, progress.base, progress.printedTotal) + ", " +
+                stringResource(R.string.collections_secret_of_description, progress.secret, secretTotal)
+        } else {
+            progressDescription(progress)
+        }
+        // The count with its secret-rare line on the left, the value at the top right: the count stays right under the
+        // series line, however many lines the value takes (#218). The value column is capped, so a long secret line
+        // or a large font never squeezes it into a sliver; the count side takes the rest.
+        // The count side keeps its natural width (it never breaks); the value takes the rest and wraps in it.
+        Row(verticalAlignment = Alignment.Top, modifier = Modifier.padding(top = Spacing.xs)) {
+            Column {
+                Text(
+                    text = progressText(progress.base, progress.printedTotal),
+                    style = MaterialTheme.typography.displayMedium,
+                    maxLines = 1,
+                    modifier = Modifier.semantics { contentDescription = description },
+                )
+                // "Base set" says what 7/165 counts, next to the secret rares it leaves out (#218).
+                val secretLine = if (secretTotal > 0) {
+                    stringResource(R.string.collections_base_and_secret, progress.secret, secretTotal)
+                } else {
+                    secretText(progress)
+                }
+                secretLine?.let {
+                    // Part of the count's spoken description above.
                     Text(
-                        stringResource(it.source.label()),
+                        it,
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.clearAndSetSemantics {},
+                    )
+                }
+            }
+            val priced = value?.takeIf { it.amountMinor > 0 }
+            if (priced != null) {
+                Column(
+                    horizontalAlignment = Alignment.End,
+                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
+                ) {
+                    Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
+                    // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
+                    // many copies it covers when not all (#176, #218). The date never splits.
+                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+                    val coverage = if (priced.unpricedCopies > 0) {
+                        pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
+                    } else {
+                        null
+                    }
+                    Text(
+                        listOfNotNull(
+                            listOfNotNull(stringResource(priced.source.marketName()), date).joinToString(", "),
+                            coverage,
+                        ).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
                     )
                 }
+            } else if (detail.copies.isNotEmpty()) {
+                // Owned copies but no price in this market: say so, as the set's row on Collections does (#218).
+                Text(
+                    stringResource(R.string.collections_not_priced),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.End,
+                    modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
+                )
             }
-        }
-        // Secret rares counted apart (#169): "Secret rares 12/42" when the catalog knows them, else "+12 secret".
-        val secretTotal = detail.slots.count { isSecretNumber(it.localId, progress.printedTotal) }
-        val secretLine = if (secretTotal > 0) stringResource(R.string.collections_secret_of, progress.secret, secretTotal) else secretText(progress)
-        secretLine?.let {
-            // Part of the count's spoken description above.
-            Text(
-                it,
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
         }
         CompletionBar(progress.base, progress.printedTotal, Modifier.padding(top = Spacing.md), marks = MilestoneMarks)
     }
 }
 
 /**
- * The one control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
- * languages, and at the end the view toggle and the legend's info button. The chips scroll sideways instead of
- * wrapping, so the row stays one line at 2x font size and the grid starts in the first screen height. The Missing
- * chip splits like the header, so "Missing 158 · +42 secret" adds up with a 7/165 header (#161).
+ * The control row above the grid (#165): All, Owned and Missing, the language chip for sets in two or more
+ * languages, and at the end the view toggle and the legend's info button. Everything wraps rather than scrolls, so no
+ * chip is ever cut off or hidden past the edge at a large font (council review, #218); on a phone at 1x the filters
+ * and buttons fit one line, the language chip may take a second. Missing counts every slot the Missing filter shows,
+ * secret rares included, so it adds up with the header's 7/165 and "Secret rares 0/42" lines together (#161, #218).
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun FilterRow(
     state: SetDetailUiState,
@@ -371,67 +413,74 @@ private fun FilterRow(
 ) {
     val missing = detail.missing
     val compact = state.mode == SetViewMode.COMPACT
-    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        val chipScroll = rememberScrollState()
+    FlowRow(
+        Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        itemVerticalAlignment = Alignment.CenterVertically,
+    ) {
+        // All, Owned and Missing all count slots, so the three add up (200 + 7 = 207, #218).
+        ChoiceChip(
+            state.filter == SlotFilter.ALL,
+            { onFilter(SlotFilter.ALL) },
+            stringResource(R.string.collections_filter_all_count, detail.slots.size),
+        )
+        ChoiceChip(
+            state.filter == SlotFilter.OWNED,
+            { onFilter(SlotFilter.OWNED) },
+            stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
+        )
+        ChoiceChip(
+            state.filter == SlotFilter.MISSING,
+            { onFilter(SlotFilter.MISSING) },
+            stringResource(R.string.collections_filter_missing, missing.total),
+        )
+        if (detail.languages.size >= 2) {
+            val label = languageChipLabel(detail.languages, state.selectedLanguages)
+                ?: stringResource(R.string.collections_all_languages)
+            val description = stringResource(R.string.collections_languages_chip_description, label)
+            // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
+            MenuChip(
+                active = state.selectedLanguages.isNotEmpty(),
+                onClick = onLanguages,
+                label = label,
+                modifier = Modifier.semantics { contentDescription = description },
+            )
+        }
+        // The view toggle and the legend's info button end whichever line they land on: the filters' line when
+        // they fit, else the language chip's.
+        // Moved out by the icon buttons' inner padding, so the info icon ends on the screen's gutter like the value above.
         Row(
-            Modifier.weight(1f).fadeHiddenEnd(chipScroll).horizontalScroll(chipScroll),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            Modifier.weight(1f).offset(x = IconInset),
+            horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            ChoiceChip(state.filter == SlotFilter.ALL, { onFilter(SlotFilter.ALL) }, stringResource(R.string.collections_filter_all))
-            ChoiceChip(
-                state.filter == SlotFilter.OWNED,
-                { onFilter(SlotFilter.OWNED) },
-                stringResource(R.string.collections_filter_owned, detail.ownedNumbers),
-            )
-            ChoiceChip(
-                state.filter == SlotFilter.MISSING,
-                { onFilter(SlotFilter.MISSING) },
-                if (missing.secret > 0 && detail.set.printedTotal > 0) {
-                    stringResource(R.string.collections_filter_missing_secret, missing.base, missing.secret)
-                } else {
-                    stringResource(R.string.collections_filter_missing, missing.total)
-                },
-            )
-            if (detail.languages.size >= 2) {
-                val label = languageChipLabel(detail.languages, state.selectedLanguages)
-                    ?: stringResource(R.string.collections_all_languages)
-                val description = stringResource(R.string.collections_languages_chip_description, label)
-                // Tinted while a language is chosen, so a narrowed grid never passes for the whole set.
-                MenuChip(
-                    active = state.selectedLanguages.isNotEmpty(),
-                    onClick = onLanguages,
-                    label = label,
-                    modifier = Modifier.semantics { contentDescription = description },
+            IconButton(
+                onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
+                modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),
+            ) {
+                Icon(
+                    painterResource(if (compact) R.drawable.ic_view_cards else R.drawable.ic_view_compact),
+                    contentDescription = stringResource(
+                        if (compact) R.string.collections_view_show_cards else R.string.collections_view_show_compact,
+                    ),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-        }
-        IconButton(
-            onClick = { onMode(if (compact) SetViewMode.CARDS else SetViewMode.COMPACT) },
-            modifier = Modifier.padding(start = Spacing.xs).focusRing(CircleShape),
-        ) {
-            Icon(
-                painterResource(if (compact) R.drawable.ic_view_cards else R.drawable.ic_view_compact),
-                contentDescription = stringResource(
-                    if (compact) R.string.collections_view_show_cards else R.string.collections_view_show_compact,
+            IconToggleButton(
+                checked = state.legendShown,
+                onCheckedChange = { onToggleLegend() },
+                modifier = Modifier.focusRing(CircleShape),
+                // Pearl's selection tint behind the icon while the legend is open, as on a selected chip (ADR 0014).
+                colors = IconButtonDefaults.iconToggleButtonColors(
+                    checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
                 ),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        IconToggleButton(
-            checked = state.legendShown,
-            onCheckedChange = { onToggleLegend() },
-            modifier = Modifier.focusRing(CircleShape),
-            // Pearl's selection tint behind the icon while the legend is open, as on a selected chip (ADR 0014).
-            colors = IconButtonDefaults.iconToggleButtonColors(
-                checkedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
-            ),
-        ) {
-            Icon(
-                painterResource(R.drawable.ic_info),
-                contentDescription = stringResource(R.string.collections_legend_toggle),
-                tint = if (state.legendShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            ) {
+                Icon(
+                    painterResource(R.drawable.ic_info),
+                    contentDescription = stringResource(R.string.collections_legend_toggle),
+                    tint = if (state.legendShown) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
         }
     }
 }
@@ -490,7 +539,8 @@ private fun CompactSlot(slot: SetSlot, printedTotal: Int, selected: Boolean, onC
             .clip(shape)
             .then(if (slot.owned) Modifier.background(extra.ownedSlot) else Modifier)
             .then(if (border != null) Modifier.border(border, shape) else Modifier)
-            .clickable(onClick = onClick)
+            // A missing slot opens the bar below, and TalkBack says so before the tap (#218).
+            .clickable(onClickLabel = if (slot.owned) null else stringResource(R.string.collections_missing_slot_open), onClick = onClick)
             .semantics {
                 contentDescription = description
                 this.selected = selected
@@ -525,7 +575,8 @@ private fun CardSlot(slot: SetSlot, printedTotal: Int, photos: OwnPhotos, select
     Column(
         Modifier
             .focusRing(shape)
-            .clickable(onClick = onClick)
+            // A missing slot opens the bar below, and TalkBack says so before the tap (#218).
+            .clickable(onClickLabel = if (slot.owned) null else stringResource(R.string.collections_missing_slot_open), onClick = onClick)
             .semantics {
                 contentDescription = description
                 this.selected = selected
@@ -574,13 +625,15 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
                     .padding(start = ScreenPadding, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                Column(Modifier.weight(1f)) {
+                // Announced when it opens, so a TalkBack user hears which card it is and that "Open card" is here (#218).
+                Column(Modifier.weight(1f).semantics { liveRegion = LiveRegionMode.Polite }) {
                     Text(
                         text = buildAnnotatedString {
+                            val total = printedTotal.takeIf { it > 0 }
                             append(
                                 numberOverTotal(
-                                    padCollectorNumber(slot.localId, printedTotal),
-                                    padCollectorNumber(printedTotal.toString(), printedTotal),
+                                    padCollectorNumber(slot.localId, total),
+                                    total?.let { padCollectorNumber(it.toString(), it) },
                                     MaterialTheme.colorScheme.onSurfaceVariant,
                                 ),
                             )
@@ -610,34 +663,6 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
         }
     }
 }
-
-/** Width of the fade at the end of the filter row. */
-private val ChipRowFade = 24.dp
-
-/**
- * Fades the end of a sideways-scrolling row while more of it is hidden there (#165), so the language chip off the
- * edge of a narrow screen or at a large font is visibly still to come. Mirrored for right-to-left layouts.
- */
-private fun Modifier.fadeHiddenEnd(scroll: ScrollState): Modifier =
-    graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
-        .drawWithContent {
-            drawContent()
-            if (scroll.canScrollForward) {
-                val fade = ChipRowFade.toPx().coerceAtMost(size.width)
-                val rtl = layoutDirection == LayoutDirection.Rtl
-                val start = if (rtl) 0f else size.width - fade
-                drawRect(
-                    brush = Brush.horizontalGradient(
-                        colors = if (rtl) listOf(Color.Transparent, Color.Black) else listOf(Color.Black, Color.Transparent),
-                        startX = start,
-                        endX = start + fade,
-                    ),
-                    topLeft = Offset(start, 0f),
-                    size = Size(fade, size.height),
-                    blendMode = BlendMode.DstIn,
-                )
-            }
-        }
 
 /** Scale a newly filled slot starts from before it springs to full size (#169). */
 private const val PulseFrom = 0.7f

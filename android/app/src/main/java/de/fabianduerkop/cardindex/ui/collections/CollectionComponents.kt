@@ -38,6 +38,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -143,11 +144,15 @@ internal fun ValueSummary(
                     ),
                 )
             }
-            priceDate?.let { add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()))) }
+            // "Prices from Nov 20, 2026" wraps as a whole, never with the date split over two lines (#218).
+            priceDate?.let {
+                add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0'))
+            }
         }
         if (details.isNotEmpty()) {
             Text(
-                details.joinToString(" · "),
+                // One line at 1x; at a large font each part on its own line, never a lone "·" at a line end (#218).
+                details.joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
@@ -354,7 +359,8 @@ internal fun ViewSwitch(
                     .heightIn(min = Spacing.touchTarget)
                     .focusRing(shape)
                     .clip(shape)
-                    .background(if (selected) colors.secondaryContainer else colors.background)
+                    // Unselected segments show the surface beneath, the page or a sheet, instead of painting the page colour.
+                    .background(if (selected) colors.secondaryContainer else Color.Transparent)
                     .border(1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),

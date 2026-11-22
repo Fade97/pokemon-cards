@@ -35,7 +35,8 @@ data class CameraColors(
     val content: Color = Color(0xFFE8EEEF),
     val muted: Color = Color(0xFFA7B4B8),
     /** Behind hint text, so it stays readable on a bright photo. */
-    val scrim: Color = Color(0x99000000),
+    // 75 % black: the muted collector-number total keeps about 4.9:1 even over a white table (#218).
+    val scrim: Color = Color(0xBF000000),
     /** Behind small status pills. */
     val chip: Color = Color(0x1FFFFFFF),
     /** The dashed guide where the card should go. */

@@ -30,6 +30,7 @@ import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.layer.GraphicsLayer
 import androidx.compose.ui.graphics.layer.drawLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -55,6 +56,9 @@ import kotlinx.coroutines.withContext
  * Every share image (session receipt #163, set slot map and missing list #170) is 360 × 640 dp laid out at 3x:
  * exactly 1080 × 1920 px, 9:16, the size story and short-video apps expect, and sharp on any phone.
  */
+/** Share of the window height a [ShareImagePreview] may take. */
+private const val PreviewHeightShare = 0.5f
+
 object ShareImageSize {
     val Width = 360.dp
     val Height = 640.dp
@@ -86,12 +90,14 @@ fun ShareCanvas(content: @Composable () -> Unit) {
 /**
  * The image as it will be posted, scaled down to the available width, and recorded into [layer] for [ShareImageButton].
  * It is laid out at its own pixel size and only drawn smaller, so the PNG depends on neither the phone's width nor its
- * density. TalkBack reads [description] instead of the picture.
+ * density. TalkBack reads [description] instead of the picture. At most [PreviewHeightShare] of the window high, so
+ * the share button under it is in view when the sheet opens (#218).
  */
 @Composable
 fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
-        val shown = minOf(maxWidth, ShareImageSize.Width)
+        val shown = minOf(maxWidth, ShareImageSize.Width, maxHeight * (ShareImageSize.Width / ShareImageSize.Height))
         val density = LocalDensity.current
         val pixels = with(density) { DpSize(ShareImageSize.PIXEL_WIDTH.toDp(), ShareImageSize.PIXEL_HEIGHT.toDp()) }
         val scale = with(density) { shown.toPx() } / ShareImageSize.PIXEL_WIDTH

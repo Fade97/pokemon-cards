@@ -54,9 +54,16 @@
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
+    <!-- Under a set's value when some owned copies have no price in that market (#218). -->
+    <string name="collections_not_priced">No price</string>
+    <string name="collections_missing_slot_open">Show this missing card</string>
+    <plurals name="collections_set_value_coverage">
+        <item quantity="one">%1$d of %2$d copy priced</item>
+        <item quantity="other">%1$d of %2$d copies priced</item>
+    </plurals>
     <plurals name="collections_value_coverage">
-        <item quantity="one">For %1$d of %2$d copy, the rest have no %3$s price</item>
-        <item quantity="other">For %1$d of %2$d copies, the rest have no %3$s price</item>
+        <item quantity="one">%1$d of %2$d copy priced in %3$s</item>
+        <item quantity="other">%1$d of %2$d copies priced in %3$s</item>
     </plurals>
     <string name="collections_no_prices">No prices yet</string>
     <string name="collections_new">New</string>
@@ -71,8 +78,8 @@
     <string name="collections_binders_empty">No collections of your own yet. Tap New to start one, for example a trade binder.</string>
     <string name="collections_all_cards">All cards</string>
     <plurals name="collections_cards_count">
-        <item quantity="one">%1$d card</item>
-        <item quantity="other">%1$d cards</item>
+        <item quantity="one">%1$d copy</item>
+        <item quantity="other">%1$d copies</item>
     </plurals>
     <string name="collections_empty_title">Start with 10 cards</string>
     <string name="collections_empty_body">Scan your first 10 cards and see what they are worth. Every set you own a card from gets its own checklist, with each number as a slot.</string>
@@ -109,7 +116,8 @@
     </plurals>
     <string name="collections_legend_compact">Filled slots are owned. Outlined slots are missing.</string>
     <string name="collections_legend_cards">Missing cards are grey, with an outline and the word Missing.</string>
-    <string name="collections_region_jp">JP</string>
+    <!-- The same code as the language chips (JA), so one screen never says both. -->
+    <string name="collections_region_jp">JA</string>
     <string name="collections_region_jp_description">Japanese set</string>
     <string name="collections_languages_label">%1$s cards</string>
     <string name="collections_and">and</string>
@@ -120,11 +128,9 @@
     <string name="collections_languages_title">Languages</string>
     <!-- Spoken form of the language chip, e.g. "Languages: All languages". -->
     <string name="collections_languages_chip_description">Languages: %1$s</string>
-    <string name="collections_filter_all">All</string>
+    <string name="collections_filter_all_count">All %1$d</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
-    <!-- Missing base numbers, then missing secret rares beyond the printed total (#161). -->
-    <string name="collections_filter_missing_secret">Missing %1$d · +%2$d secret</string>
     <string name="collections_slot_missing">Missing</string>
     <string name="collections_slot_unknown">Not in your installed cards yet</string>
     <string name="collections_slot_close">Close</string>
@@ -152,6 +158,8 @@
     <string name="collections_open_card">Open card</string>
     <string name="collections_copy_line">%1$d× %2$s</string>
     <string name="collections_only_all_cards">All cards only</string>
+    <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
+    <string name="collections_in_no_binder">Not in a binder</string>
     <string name="collections_bought_on">bought %1$s</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
@@ -165,10 +173,12 @@
     <string name="collections_all_empty_scan">Scan a card</string>
     <string name="collections_card_unknown">This card is not on this device.</string>
 
-    <string name="price_title">Price</string>
+    <string name="price_title">Market price</string>
+    <string name="price_no_browser">No app here opens web links.</string>
+    <!-- Under a card's prices: they are for the printing, whatever the owned copy's state (#218). -->
+    <string name="price_not_condition">For the printing; not adjusted for condition or grade.</string>
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
-    <string name="price_for_print">For %1$s</string>
     <string name="price_as_of">Prices from %1$s</string>
     <!-- One market's price date when both markets are shown, e.g. "Cardmarket prices from 17 Nov 2026" (#133). -->
     <string name="price_market_as_of">%1$s prices from %2$s</string>
@@ -247,7 +257,7 @@
     <string name="copy_quantity_decrease">Fewer</string>
     <string name="copy_quantity_increase">More</string>
     <string name="copy_language">Card language</string>
-    <string name="copy_finish">Variant</string>
+    <string name="copy_finish">Finish</string>
     <string name="copy_edition">Edition</string>
     <string name="copy_graded">Graded</string>
     <string name="copy_graded_hint">In a case from PSA, CGC, BGS or another grader</string>
@@ -275,7 +285,6 @@
     <string name="viewer_title">Card viewer</string>
     <!-- Click label TalkBack reads as "double-tap to view full screen", for the card art and a copy's photo. -->
     <string name="viewer_open">view full screen</string>
-    <string name="viewer_official">Card image</string>
     <!-- %1$s: the card, e.g. "025/165 Pikachu, Surging Sparks". -->
     <string name="viewer_official_description">Card image of %1$s</string>
     <!-- %1$s: the copy, e.g. "1× Holo, NM, English". -->
@@ -298,21 +307,17 @@
     <string name="finish_normal">Normal</string>
     <string name="finish_holo">Holo</string>
     <string name="finish_reverse_holo">Reverse holo</string>
-    <string name="finish_other">Other foil</string>
+    <string name="finish_other">Other finish</string>
     <string name="edition_unlimited">Unlimited</string>
     <string name="edition_first">1st edition</string>
+    <string name="edition_first_holo">1st edition holo</string>
     <string name="edition_shadowless">Shadowless</string>
-    <string name="condition_nm">NM</string>
-    <string name="condition_lp">LP</string>
-    <string name="condition_mp">MP</string>
-    <string name="condition_hp">HP</string>
-    <string name="condition_poor">Poor</string>
     <string name="grader_other">Other</string>
     <string name="search_title">Find a card</string>
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
-    <string name="search_hint">Type a card name such as Pikachu, a set such as 151, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
+    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, or a collector number such as 25 or 025/165. Put a number after a name to narrow it down: Pikachu 25.</string>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
@@ -324,9 +329,10 @@
         <item quantity="one">%1$d card</item>
         <item quantity="other">%1$d cards</item>
     </plurals>
+    <string name="search_show_more">Show more cards</string>
     <plurals name="search_more">
-        <item quantity="one">The first %1$d card. Type more to narrow it down.</item>
-        <item quantity="other">The first %1$d cards. Type more to narrow it down.</item>
+        <item quantity="one">The first %1$d card. Type more to narrow it down, or show more below.</item>
+        <item quantity="other">The first %1$d cards. Type more to narrow it down, or show more below.</item>
     </plurals>
     <plurals name="search_owned">
         <item quantity="one">%1$d owned</item>
@@ -362,8 +368,7 @@
     <string name="settings_price_eur">Prices in euros (EUR)</string>
     <string name="settings_price_usd">Prices in US dollars (USD)</string>
     <string name="settings_appearance">Appearance</string>
-    <string name="settings_theme">Light or dark</string>
-    <string name="settings_theme_system">Same as your phone</string>
+    <string name="settings_theme_follows">Light or dark follows your phone\'s setting.</string>
     <string name="settings_debug_title">Debug tools (debug build)</string>
     <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
     <string name="settings_price_refresh">Update prices now</string>
@@ -374,7 +379,7 @@
     <string name="settings_debug_check_alerts">Check price alerts now</string>
     <string name="settings_debug_pro_hint">Shows price history, portfolio charts and price alerts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
-    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores everything; CSV opens in a spreadsheet. Importing a file twice adds nothing twice. Your own photos are not included, and Android\'s backup does not keep them either.</string>
+    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores your copies and collections, but not your own photos (Android\'s backup does not keep them either). CSV opens in a spreadsheet. Importing a file twice adds nothing twice.</string>
     <string name="settings_export_json">Export JSON</string>
     <string name="settings_export_csv">Export CSV</string>
     <string name="settings_import">Import</string>
@@ -491,12 +496,16 @@
     <string name="milestone_share_certificate">Share certificate</string>
     <string name="milestone_dismiss">OK</string>
     <!-- Set header (#169): owned secret rares of those the catalog knows, e.g. "Secret rares 12/42" -->
-    <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="collections_secret_of">Secret rares %1$d/%2$d</string>
+    <string name="collections_base_and_secret">Main set\nSecret rares %1$d/%2$d</string>
+    <string name="collections_secret_of_description">%1$d of %2$d secret rares collected</string>
+    <string name="scan_refocus">Refocus the camera</string>
     <string name="scan_tray_ready">Cards you add show up here, with Undo.</string>
     <string name="scan_tray_nothing_left">Nothing left to undo from this session. Keep scanning.</string>
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
     <string name="scan_live">Live · on device</string>
+    <string name="scan_starting">Starting · on device</string>
     <string name="scan_hint_reading">Reading the number…</string>
     <string name="scan_hint_added">Added. Take the next card.</string>
     <!-- A scan added a card that was on the wishlist and not owned yet (#162). -->
@@ -506,6 +515,8 @@
     <string name="scan_hint_wishlist_valuable">On your wishlist, worth %1$s or more. Added.</string>
     <!-- Price of the card just added, e.g. "€8.40 · Cardmarket trend" (#162). -->
     <string name="scan_price_cardmarket">%1$s · Cardmarket trend</string>
+    <!-- The scan's price with its market and date, e.g. "$0.91 · TCGplayer market · Nov 20, 2026" (#218). -->
+    <string name="scan_price_dated">%1$s · %2$s</string>
     <string name="scan_price_tcgplayer">%1$s · TCGplayer market</string>
     <string name="scan_hint_queued">Not sure, saved for review. Take the next card.</string>
     <string name="scan_paused_notice">Scanning is paused. Cards in the frame are not added.</string>
@@ -575,6 +586,7 @@
     <string name="set_share_map">Slot map</string>
     <string name="set_share_missing">Missing list</string>
     <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
+    <string name="set_share_map_no_art">Numbers only, no card pictures.</string>
     <string name="set_share_image">Share image</string>
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>
@@ -606,7 +618,7 @@
     <string name="set_share_completed_on">Completed %1$s</string>
     <string name="set_share_missing_overline">Still missing</string>
     <!-- e.g. "87 of 165" -->
-    <string name="set_share_progress">%1$d of %2$d</string>
+    <string name="set_share_progress">%1$d/%2$d</string>
     <plurals name="set_share_secret">
         <item quantity="one">%1$d secret rare</item>
         <item quantity="other">%1$d secret rares</item>
@@ -661,6 +673,12 @@
     <string name="review_number_read">Number read: %1$s</string>
     <string name="review_added">Added %1$s.</string>
     <!-- Scan target collection (#139) -->
+    <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
+    <string name="review_confirm_adds">Confirm adds %1$s.</string>
+    <string name="review_confirm_adds_defaults">Confirm adds %1$s, the defaults.</string>
+    <!-- A value in the Confirm summary that is still the default while others were picked, e.g. "Normal (default)". -->
+    <string name="review_default_mark">%1$s (default)</string>
+    <string name="review_change_description">Change finish, edition, condition and quantity</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
@@ -686,7 +704,8 @@
     <string name="review_skip">Skip</string>
     <string name="review_confirm">Confirm</string>
     <string name="review_discard">Remove this scan</string>
-    <string name="review_find_card">None of these? Find the card</string>
+    <string name="review_find_card_short">Find the card</string>
+    <string name="review_find_card_description">Find the card, none of these is right</string>
     <!-- Shown instead of the similarity for a card the user found in search -->
     <string name="review_picked_by_hand">Your pick</string>
     <string name="review_find_title">Find the card</string>

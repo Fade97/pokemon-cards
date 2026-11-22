@@ -30,13 +30,14 @@ fun Edition.label(): Int = when (this) {
     Edition.SHADOWLESS -> R.string.edition_shadowless
 }
 
+/** In full words everywhere ("Lightly played"), as Review has them: "LP" was read out as letters (#218). */
 @StringRes
 fun Condition.label(): Int = when (this) {
-    Condition.NEAR_MINT -> R.string.condition_nm
-    Condition.LIGHTLY_PLAYED -> R.string.condition_lp
-    Condition.MODERATELY_PLAYED -> R.string.condition_mp
-    Condition.HEAVILY_PLAYED -> R.string.condition_hp
-    Condition.POOR -> R.string.condition_poor
+    Condition.NEAR_MINT -> R.string.review_condition_nm
+    Condition.LIGHTLY_PLAYED -> R.string.review_condition_lp
+    Condition.MODERATELY_PLAYED -> R.string.review_condition_mp
+    Condition.HEAVILY_PLAYED -> R.string.review_condition_hp
+    Condition.POOR -> R.string.review_condition_poor
 }
 
 @Composable

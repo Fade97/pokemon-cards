@@ -38,8 +38,12 @@ import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
@@ -60,6 +64,7 @@ import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
+import de.fabianduerkop.cardindex.ui.components.collectorNumberDescription
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
@@ -108,12 +113,8 @@ fun SearchScreen(
             contentPadding = padding,
         ) {
             item {
+                // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
                 Column(Modifier.padding(horizontal = Spacing.gutter)) {
-                    Text(
-                        title,
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.semantics { heading() },
-                    )
                     SearchField(
                         value = text,
                         onValueChange = {
@@ -121,7 +122,7 @@ fun SearchScreen(
                             viewModel.setQuery(it)
                         },
                         onSearch = { keyboard?.hide() },
-                        modifier = Modifier.padding(top = Spacing.lg),
+                        modifier = Modifier.padding(top = Spacing.sm),
                     )
                     val languages = state.languages
                     if (!languages.isNullOrEmpty()) {
@@ -146,7 +147,13 @@ fun SearchScreen(
                         modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
                     )
                 }
-                else -> results(state.results, onOpenCard = onOpenCard, onRetry = viewModel::retry, onOpenScan = onOpenScan)
+                else -> results(
+                    state.results,
+                    onOpenCard = onOpenCard,
+                    onRetry = viewModel::retry,
+                    onOpenScan = onOpenScan,
+                    onShowMore = viewModel::showMore,
+                )
             }
         }
     }
@@ -179,6 +186,7 @@ private fun LazyListScope.results(
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
     onOpenScan: (() -> Unit)?,
+    onShowMore: () -> Unit,
 ) {
     when (results) {
         SearchResults.Idle -> item { Note(stringResource(R.string.search_hint)) }
@@ -204,12 +212,25 @@ private fun LazyListScope.results(
                     },
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xl, bottom = Spacing.xs),
+                    // Announced as it changes, so TalkBack users typing in the field hear what the query found (#218).
+                    modifier = Modifier
+                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xl, bottom = Spacing.sm)
+                        .semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
             }
             items(results.hits, key = { it.card.id + "/" + it.card.language }) { hit ->
                 SearchResultRow(hit, onClick = { onOpenCard(hit.card.id, hit.card.language) })
+            }
+            // The list is cut at a page: the next page of the same query, so a broad query never hides a match (#218).
+            if (results.more) {
+                item {
+                    SecondaryButton(
+                        stringResource(R.string.search_show_more),
+                        onClick = onShowMore,
+                        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+                    )
+                }
             }
         }
     }
@@ -240,7 +261,11 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
         Text(
             stringResource(R.string.search_none_title),
             style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(top = Spacing.md).semantics { heading() },
+            // Heard while typing, like the result count.
+            modifier = Modifier.padding(top = Spacing.md).semantics {
+                heading()
+                liveRegion = LiveRegionMode.Polite
+            },
         )
         Text(
             stringResource(R.string.search_none_hint),
@@ -262,12 +287,20 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
 @Composable
 private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
     val card = hit.card
+    // One label for the whole row: merged, the number's own description would replace the name, set and language.
+    val spoken = listOfNotNull(
+        collectorNumberDescription(card.localId, hit.printedTotal),
+        card.name,
+        hit.setName,
+        languageName(card.language),
+        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.search_owned, it, it) },
+    ).joinToString(", ")
     Column(
         Modifier
             .fillMaxWidth()
             .focusRing(MaterialTheme.shapes.small, gap = (-2).dp)
             .clickable(role = Role.Button, onClick = onClick)
-            .semantics(mergeDescendants = true) {},
+            .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = Spacing.md),

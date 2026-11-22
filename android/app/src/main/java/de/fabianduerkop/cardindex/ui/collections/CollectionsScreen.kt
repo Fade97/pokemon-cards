@@ -44,6 +44,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -73,6 +74,7 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.TopLevelScaffold
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
+import java.time.ZoneId
 import kotlinx.coroutines.launch
 
 /**
@@ -88,7 +90,7 @@ import kotlinx.coroutines.launch
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CollectionsScreen(
-    onOpenSet: (String) -> Unit,
+    onOpenSet: (setId: String, languages: Set<String>) -> Unit,
     onOpenCollection: (Long) -> Unit,
     modifier: Modifier = Modifier,
     onOpenScan: () -> Unit = {},
@@ -145,6 +147,8 @@ fun CollectionsScreen(
             TextAction(
                 stringResource(R.string.collections_new),
                 onClick = { creating = true },
+                // The bar pads its actions by 4 dp; this puts the word's end on the 20 dp gutter (#218).
+                modifier = Modifier.padding(end = Spacing.xs),
                 contentDescription = stringResource(R.string.collections_new_description),
             )
         },
@@ -192,7 +196,8 @@ fun CollectionsScreen(
                         state,
                         weekly = weekly,
                         onToggleLanguage = viewModel::toggleLanguage,
-                        onOpenSet = onOpenSet,
+                        // The set opens in the languages chosen here, so its count and value match the row (#218).
+                        onOpenSet = { onOpenSet(it, state.selectedLanguages) },
                     )
                     CollectionsView.BINDERS -> binderItems(state, onOpenCollection = onOpenCollection)
                     CollectionsView.WISHLIST -> wishlistItems(
@@ -395,6 +400,35 @@ private fun ValueHeader(
     }
 }
 
+/**
+ * How much of a set's value is known, when not all of it: "5 of 10 copies priced", or "No price" when none of its
+ * copies has one. Null when every copy is priced. Shown and spoken next to the value, so a partial sum never passes
+ * for the whole set (#218).
+ */
+@Composable
+private fun valueCoverage(row: SetRowUi): String? {
+    val value = row.value
+    return when {
+        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) -> stringResource(R.string.collections_not_priced)
+        value != null && value.unpricedCopies > 0 ->
+            pluralStringResource(R.plurals.collections_set_value_coverage, value.totalCopies, value.pricedCopies, value.totalCopies)
+        else -> null
+    }
+}
+
+/**
+ * Where a set's value comes from: "TCGplayer, Nov 20, 2026". Next to the value on the cover and in each row, so the
+ * basis stays in view once the collection header has scrolled away (#218). Null without a price.
+ */
+@Composable
+private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
+    val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
+    val date = row.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
+    // cover's narrow value column it may break after the comma, or the year would split.
+    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(if (keepTogether) ",\u00A0" else ", ")
+}
+
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
 @Composable
 private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: WeeklyTrend? = null): String {
@@ -405,6 +439,8 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueSource(row),
+        valueCoverage(row),
         change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
@@ -458,7 +494,8 @@ private fun FeaturedSet(
                 )
             }
             CardFan(row.art, set.printedTotal, Modifier.padding(vertical = Spacing.md))
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            // Top-aligned: the count lines up with the value, not between it and its coverage line (#218).
+            Row(verticalAlignment = Alignment.Top) {
                 Text(
                     progressText(
                         row.progress.base,
@@ -468,13 +505,29 @@ private fun FeaturedSet(
                             .joinToString(" · "),
                     ),
                     style = MaterialTheme.typography.labelLarge,
-                    modifier = Modifier.weight(1f),
+                    // Its natural width (measured first, unweighted): the count never breaks; the value takes the rest.
                 )
-                row.value?.takeIf { it.amountMinor > 0 }?.let { value ->
+                val priced = row.value?.takeIf { it.amountMinor > 0 }
+                if (priced != null) {
+                    Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
+                        Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.labelLarge)
+                        // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
+                        // worth, from no market in particular (#218).
+                        Text(
+                            listOfNotNull(valueSource(row, keepTogether = false), valueCoverage(row)).joinToString("\n"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                        )
+                    }
+                } else if (set.copies > 0) {
+                    // Owned but unpriced: said here too, as in the rows and on the set screen, where a price would be.
                     Text(
-                        Money.format(value.amountMinor, value.currency),
-                        style = MaterialTheme.typography.labelLarge,
-                        modifier = Modifier.padding(start = Spacing.sm),
+                        stringResource(R.string.collections_not_priced),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                        modifier = Modifier.weight(1f).padding(start = Spacing.sm),
                     )
                 }
             }
@@ -526,6 +579,8 @@ private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val subtitle = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        valueSource(row),
+        valueCoverage(row),
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
     ).joinToString(" · ")

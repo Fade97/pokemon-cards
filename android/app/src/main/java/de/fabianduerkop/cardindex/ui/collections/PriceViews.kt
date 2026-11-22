@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import android.widget.Toast
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -14,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -39,6 +41,8 @@ import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
+import androidx.compose.foundation.layout.offset
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 
 @StringRes
 internal fun PriceSource.label(): Int =
@@ -60,7 +64,18 @@ internal fun PriceVariant.label(): Int = when (this) {
     PriceVariant.HOLO -> R.string.finish_holo
     PriceVariant.REVERSE_HOLO -> R.string.finish_reverse_holo
     PriceVariant.FIRST_EDITION -> R.string.edition_first
-    PriceVariant.FIRST_EDITION_HOLO -> R.string.edition_first
+    PriceVariant.FIRST_EDITION_HOLO -> R.string.edition_first_holo
+}
+
+/**
+ * "TCGplayer market · Holo": a market's label with the printing its price is for. Cardmarket's plain trend is the
+ * card's price across its printings, not a "Normal" one, so it gets no printing; its reverse holo trend does (#218).
+ */
+@Composable
+internal fun quoteLabel(quote: PriceQuote): String {
+    val market = stringResource(quote.source.label())
+    val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
+    return if (plainTrend) market else market + " · " + stringResource(quote.variant.label())
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
@@ -197,7 +212,12 @@ internal fun PriceBox(
         } else {
             val second = secondary.takeIf { main != null }
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
-                Text(stringResource(first.source.label()), style = MaterialTheme.typography.bodySmall, color = muted)
+                // The printing it prices goes with the label, not in a note under the other market's row (#218).
+                Text(
+                    quoteLabel(first),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = muted,
+                )
                 Text(
                     Money.format(first.amountMinor, first.currency),
                     style = MaterialTheme.typography.displayMedium,
@@ -205,23 +225,19 @@ internal fun PriceBox(
                 )
             }
             HorizontalDivider(Modifier.padding(top = Spacing.md), color = MaterialTheme.colorScheme.outlineVariant)
-            second?.let { DataRow(stringResource(it.source.label()), Money.format(it.amountMinor, it.currency)) }
-            // One date per market shown (#133): with two, each names its market.
+            second?.let { DataRow(quoteLabel(it), Money.format(it.amountMinor, it.currency)) }
+            // One date per market shown (#133): with two on different days, each names its market; on the same day, one.
             val dates = listOfNotNull(first, second).map { PriceFreshness.of(it, now) }
-            val datesText = if (dates.size == 1) {
-                stringResource(R.string.price_as_of, formatDate(dates.single().date.toLocalDate()))
+            val datesText = if (dates.map { it.date.toLocalDate() }.distinct().size == 1) {
+                stringResource(R.string.price_as_of, formatDate(dates.first().date.toLocalDate()))
             } else {
                 dates.map {
                     stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate()))
                 }.joinToString(" · ")
             }
             val notes = buildList {
-                if (dates.size == 1) {
-                    add(stringResource(R.string.price_for_print, stringResource(first.variant.label())) + " · " + datesText)
-                } else {
-                    add(stringResource(R.string.price_for_print, stringResource(first.variant.label())))
-                    add(datesText)
-                }
+                add(datesText)
+                add(stringResource(R.string.price_not_condition))
                 if (second != null && second.currency != first.currency) add(stringResource(R.string.price_currencies))
                 dates.filter { it.stale }.forEach {
                     add(stringResource(R.string.price_stale, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate())))
@@ -234,7 +250,16 @@ internal fun PriceBox(
         val cardmarketId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.CARDMARKET } }
         val tcgplayerId = prices.firstNotNullOfOrNull { it.productId.takeIf { _ -> it.source == PriceSource.TCGPLAYER } }
         if (cardmarketId != null || tcgplayerId != null) {
-            FlowRow(Modifier.padding(top = Spacing.xs)) {
+            // Moved back by the buttons' inner padding, so the first link starts on the text column above.
+            // With no app for web links, openUri throws instead of opening nothing; say so instead of crashing (#218).
+            val context = LocalContext.current
+            val noBrowser = stringResource(R.string.price_no_browser)
+            val open: (String) -> Unit = { url ->
+                if (runCatching { uriHandler.openUri(url) }.isFailure) Toast.makeText(context, noBrowser, Toast.LENGTH_LONG).show()
+            }
+            // In the order the prices show above: the leading market's link first (#218).
+            val tcgplayerFirst = ((main ?: secondary)?.source ?: primary) == PriceSource.TCGPLAYER
+            val cardmarketLink: @Composable () -> Unit = {
                 if (cardmarketId != null) {
                     TextAction(
                         if (MarketLinks.filtersLanguage(cardLanguage)) {
@@ -242,14 +267,26 @@ internal fun PriceBox(
                         } else {
                             stringResource(R.string.price_open_cardmarket)
                         },
-                        onClick = { uriHandler.openUri(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
+                        onClick = { open(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
                     )
                 }
+            }
+            val tcgplayerLink: @Composable () -> Unit = {
                 if (tcgplayerId != null) {
                     TextAction(
                         stringResource(R.string.price_open_tcgplayer),
-                        onClick = { uriHandler.openUri(MarketLinks.tcgplayer(tcgplayerId)) },
+                        onClick = { open(MarketLinks.tcgplayer(tcgplayerId)) },
                     )
+                }
+            }
+            // Moved back by the buttons' inner padding, so the first link starts on the text column above.
+            FlowRow(Modifier.padding(top = Spacing.xs).offset(x = -TextActionInset)) {
+                if (tcgplayerFirst) {
+                    tcgplayerLink()
+                    cardmarketLink()
+                } else {
+                    cardmarketLink()
+                    tcgplayerLink()
                 }
             }
         }

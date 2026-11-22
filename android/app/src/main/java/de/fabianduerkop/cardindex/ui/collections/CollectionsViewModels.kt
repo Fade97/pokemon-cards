@@ -67,6 +67,7 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
@@ -140,6 +141,8 @@ data class SetRowUi(
     /** Owned slots as [numberKey]s, the same keys the set detail's checklist uses. */
     val ownedSlots: Set<String>,
     val value: CollectionValue? = null,
+    /** Oldest date among the prices [value] sums, shown with it so a set's value keeps its basis in view (#218). */
+    val priceDate: Instant? = null,
     val series: String? = null,
     val art: List<CardEntity> = emptyList(),
 ) {
@@ -266,6 +269,7 @@ class CollectionsViewModel(
                 completion = completion,
                 ownedSlots = copies.mapTo(HashSet()) { numberKey(it.card.localId) },
                 value = PriceSelection.total(copies.map { it.copy }, priceMap, source),
+                priceDate = PriceSelection.totalDate(copies.map { it.copy }, priceMap, source),
                 series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
                 art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
             )
@@ -291,8 +295,7 @@ class CollectionsViewModel(
             collections = b.collections,
             value = PriceSelection.total(b.copies.map { it.copy }, priceMap, source),
             source = source,
-            priceDate = b.copies.flatMap { priceMap[it.card.id].orEmpty() }
-                .filter { it.source == source }.mapNotNull { it.priceDate }.maxOrNull(),
+            priceDate = PriceSelection.totalDate(b.copies.map { it.copy }, priceMap, source),
             covers = covers,
             allCardsCover = binderCover(b.copies, null, quotes, source.currency),
             photos = photos,
@@ -463,6 +466,8 @@ data class SetDetailUiState(
     val photos: OwnPhotos = OwnPhotos(),
     /** Value of the owned copies in the chosen languages. */
     val value: CollectionValue? = null,
+    /** Newest price date behind [value], shown with it (#176). */
+    val priceDate: Instant? = null,
     /** Whether the user pinned this set to the Collections foil cover (#156). */
     val pinned: Boolean = false,
     /** Whether the slot legend shows under the filter row: on the first visits, then by the info button (#165). */
@@ -486,7 +491,21 @@ class SetDetailViewModel(
     now: () -> Long = System::currentTimeMillis,
 ) : ViewModel() {
     private val setId: String = checkNotNull(savedState[CollectionsRoutes.ARG_SET_ID])
-    private val selected = MutableStateFlow(emptySet<String>())
+    // Starts in the languages Collections was filtered to, so the set's count and value match the row tapped (#218).
+    private val selected = MutableStateFlow(
+        savedState.get<String>(CollectionsRoutes.ARG_LANGUAGES)?.split(',')?.filter { it.isNotBlank() }?.toSet().orEmpty(),
+    )
+
+    init {
+        // Only the languages this set has: a language chosen on Collections that the set lacks would be an
+        // invisible filter, which the language chip can't show or clear, and owned slots would read as missing.
+        if (selected.value.isNotEmpty()) {
+            viewModelScope.launch {
+                val available = repository.observeSetDetail(setId, null).first()?.languages?.toSet() ?: return@launch
+                selected.update { chosen -> chosen intersect available }
+            }
+        }
+    }
     private val mode = MutableStateFlow(SetViewMode.COMPACT)
     private val filter = MutableStateFlow(SlotFilter.ALL)
 
@@ -504,13 +523,14 @@ class SetDetailViewModel(
         primarySource,
         legend,
     ) { detail, view, priceMap, source, legendShown ->
-        val owned = detail?.copies.orEmpty()
+        val ownedCopies = detail?.copies.orEmpty()
             .filter { view.selectedLanguages.isEmpty() || it.card.language in view.selectedLanguages }
-            .map { it.copy }
+        val owned = ownedCopies.map { it.copy }
         view.copy(
             loading = false,
             detail = detail,
             value = PriceSelection.total(owned, priceMap, source),
+            priceDate = PriceSelection.totalDate(owned, priceMap, source),
             legendShown = legendShown,
         )
     }.stateIn(this, SetDetailUiState())

@@ -2,7 +2,9 @@
 package de.fabianduerkop.cardindex.ui.scan
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
+import android.content.ContextWrapper
 import android.content.Intent
 import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
@@ -24,7 +26,10 @@ import androidx.camera.view.PreviewView
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.foundation.gestures.detectTapGestures
@@ -82,6 +87,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -89,12 +95,14 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.onClick
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.content.ContextCompat
+import androidx.core.view.WindowCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.Observer
@@ -113,6 +121,7 @@ import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.finishOrder
 import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
+import de.fabianduerkop.cardindex.ui.collections.formatDate
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.CountBadge
@@ -122,6 +131,7 @@ import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.components.focusRing
+import de.fabianduerkop.cardindex.ui.components.numberWithTotal
 import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.components.rememberReducedMotion
 import de.fabianduerkop.cardindex.ui.review.VariantChoices
@@ -132,6 +142,7 @@ import de.fabianduerkop.cardindex.ui.theme.CameraColors
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import coil3.compose.AsyncImage
+import java.time.ZoneId
 import kotlin.coroutines.resume
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
@@ -169,7 +180,12 @@ fun ScanScreen(
     // The lab is a test bench for the models; release builds don't offer it.
     val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
-    Box(modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).statusBarsPadding()) {
+    // With the camera on, its dark ground runs up behind the status bar, whose icons turn light, as in the card
+    // viewer: a porcelain strip above the black picture looked like a seam (#218).
+    val live = granted && engine !is ScanEngineState.Failed && engine !is ScanEngineState.NoLanguages
+    if (live) LightStatusBarIcons()
+    val ground = if (live) LumifoilTheme.colors.camera.background else MaterialTheme.colorScheme.background
+    Box(modifier.fillMaxSize().background(ground).statusBarsPadding()) {
         when {
             engine is ScanEngineState.Failed -> ScanMessage {
                 StatusNotice(
@@ -212,6 +228,25 @@ fun ScanScreen(
             else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections, onOpenSet)
         }
     }
+}
+
+/** Light status bar icons while this is shown, then back to what they were. */
+@Composable
+private fun LightStatusBarIcons() {
+    val view = LocalView.current
+    val window = view.context.findActivity()?.window
+    DisposableEffect(window, view) {
+        val controller = window?.let { WindowCompat.getInsetsController(it, view) }
+        val before = controller?.isAppearanceLightStatusBars
+        controller?.isAppearanceLightStatusBars = false
+        onDispose { if (before != null) controller.isAppearanceLightStatusBars = before }
+    }
+}
+
+private tailrec fun Context.findActivity(): Activity? = when (this) {
+    is Activity -> this
+    is ContextWrapper -> baseContext.findActivity()
+    else -> null
 }
 
 private fun hasCameraPermission(context: Context): Boolean =
@@ -296,9 +331,12 @@ private fun LiveScan(
         val trayMax = maxHeight * 0.5f
         Column(Modifier.fillMaxSize()) {
             Box(Modifier.weight(1f).fillMaxWidth().clipToBounds().background(LumifoilTheme.colors.camera.background)) {
+                val cameraGround = LumifoilTheme.colors.camera.background.toArgb()
                 AndroidView(
                     factory = {
                         PreviewView(it).apply {
+                            // The letterbox in the camera's ground, not black: no bands against the strips (#218).
+                            setBackgroundColor(cameraGround)
                             // TextureView: a SurfaceView would draw outside the clipped box over the tray.
                             implementationMode = PreviewView.ImplementationMode.COMPATIBLE
                             // Fit: the whole analysed frame is visible, so guide and outline line up with it.
@@ -319,44 +357,72 @@ private fun LiveScan(
                         halo = { halo.value },
                     )
                 }
-                // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197).
+                // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197). TalkBack gets the
+                // same as a named action, since the hint under the picture tells everyone to tap it (#218).
+                val refocusLabel = stringResource(R.string.scan_refocus)
                 Box(
-                    Modifier.fillMaxSize().pointerInput(controller) {
-                        detectTapGestures {
-                            controller.focusOnGuide()
-                            focusTaps++
+                    Modifier
+                        .fillMaxSize()
+                        .pointerInput(controller) {
+                            detectTapGestures {
+                                controller.focusOnGuide()
+                                focusTaps++
+                            }
                         }
-                    },
+                        .semantics {
+                            contentDescription = refocusLabel
+                            onClick(label = refocusLabel) {
+                                controller.focusOnGuide()
+                                focusTaps++
+                                true
+                            }
+                        },
                 )
                 FocusCue(focusTaps, Modifier.align(Alignment.Center))
-                LiveStatus(paused, Modifier.align(Alignment.TopStart).padding(Spacing.md))
-                CameraReading(
-                    engine,
-                    viewfinder,
-                    hit = hit,
-                    priceSource = priceSource,
-                    paused = paused,
-                    problem = problem,
-                    onResume = { viewModel.setPaused(false) },
-                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 60.dp, start = Spacing.lg, end = Spacing.lg),
-                )
-                Row(
-                    Modifier.align(Alignment.BottomCenter).padding(Spacing.md),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                // The status chip, then the reading under it: stacked, so a larger font moves the reading down instead
+                // of under the chip (#218).
+                Column(
+                    // On the screen's 20 dp gutter, like the tray below.
+                    Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.md),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    CameraButton(
-                        stringResource(if (paused) R.string.scan_resume else R.string.scan_pause),
-                        icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
-                        onClick = { viewModel.setPaused(!paused) },
+                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, Modifier.align(Alignment.Start))
+                    CameraReading(
+                        engine,
+                        viewfinder,
+                        hit = hit,
+                        priceSource = priceSource,
+                        paused = paused,
+                        problem = problem,
+                        onResume = { viewModel.setPaused(false) },
+                        modifier = Modifier.align(Alignment.CenterHorizontally).padding(horizontal = Spacing.xs),
                     )
-                    CameraButton(
-                        stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
-                        onClick = { torch = !torch; controller.enableTorch(torch) },
-                    )
-                    if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
                 }
             }
-            Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
+            // Under the picture, not over it: over it, the buttons covered the guide's lower edge, where the collector
+            // number sits (#218).
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .background(LumifoilTheme.colors.camera.background)
+                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
+            ) {
+                CameraButton(
+                    stringResource(if (paused) R.string.scan_resume else R.string.scan_pause),
+                    icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
+                    onClick = { viewModel.setPaused(!paused) },
+                )
+                CameraButton(
+                    stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
+                    onClick = { torch = !torch; controller.enableTorch(torch) },
+                )
+                if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
+            }
+            // On the camera's dark ground, so the tray's rounded top corners show under the button strip (#218).
+            Box(Modifier.background(LumifoilTheme.colors.camera.background)) {
+                Tray(viewModel, onOpenReview, onOpenCollections, onOpenSet, Modifier.heightIn(max = trayMax))
+            }
         }
     }
 }
@@ -473,7 +539,7 @@ private fun problemOf(code: Int): CameraProblem = when (code) {
  * outline, so it reads on a bright photo and on the black letterbox alike.
  */
 @Composable
-private fun LiveStatus(paused: Boolean, modifier: Modifier) {
+private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
     val camera = LumifoilTheme.colors.camera
     Row(
         modifier
@@ -483,9 +549,16 @@ private fun LiveStatus(paused: Boolean, modifier: Modifier) {
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        Box(Modifier.size(8.dp).background(if (paused) camera.muted else camera.live, CircleShape))
+        // Green and "Live" only once recognition is loaded: before that a card can't be added yet (#218).
+        Box(Modifier.size(8.dp).background(if (paused || !ready) camera.muted else camera.live, CircleShape))
         Text(
-            stringResource(if (paused) R.string.scan_paused else R.string.scan_live),
+            stringResource(
+                when {
+                    paused -> R.string.scan_paused
+                    !ready -> R.string.scan_starting
+                    else -> R.string.scan_live
+                },
+            ),
             color = camera.content,
             style = MaterialTheme.typography.labelMedium,
         )
@@ -525,33 +598,47 @@ private fun CameraReading(
             )
             engine is ScanEngineState.Loading -> HintPill(stringResource(R.string.scan_loading))
             card != null && identified -> {
-                CollectorNumber(
-                    localId = card.localId,
-                    printedTotal = card.official,
-                    style = MaterialTheme.typography.displayMedium,
-                    color = camera.content,
-                    totalColor = camera.muted,
-                )
-                Text(
-                    stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
-                    color = camera.content,
-                    style = MaterialTheme.typography.bodyMedium,
-                    textAlign = TextAlign.Center,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
                 val done = hit?.takeIf { viewfinder.hint == ScanHint.DONE }
                 // Said in words too, so the reveal doesn't depend on the halo or the haptic (#168).
                 val valuable = done?.isValuable(priceSource) == true
                 val threshold = HitReveal.threshold(priceSource).let { Money.formatWhole(it.amountMinor, it.currency) }
-                // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
-                done?.ownQuote(priceSource)?.let { quote ->
-                    Text(
-                        stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency)),
+                // On the camera scrim, like the hints: light text straight on the picture vanished over a white table
+                // or a bright card (#218).
+                Column(
+                    Modifier
+                        .widthIn(max = HintMaxWidth)
+                        .background(camera.scrim, RoundedCornerShape(HintCorner))
+                        .border(1.dp, camera.faint, RoundedCornerShape(HintCorner))
+                        .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                ) {
+                    CollectorNumber(
+                        localId = card.localId,
+                        printedTotal = card.official,
+                        style = MaterialTheme.typography.displayMedium,
                         color = camera.content,
-                        style = MaterialTheme.typography.titleSmall,
-                        textAlign = TextAlign.Center,
+                        totalColor = camera.muted,
                     )
+                    Text(
+                        stringResource(R.string.scan_card_line, card.name, card.setName, languageName(card.lang)),
+                        color = camera.content,
+                        style = MaterialTheme.typography.bodyMedium,
+                        textAlign = TextAlign.Center,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    // Its price under the name, quiet type: the number stays the result (#162, ADR 0014).
+                    done?.ownQuote(priceSource)?.let { quote ->
+                        // With its date, like every other price: a cached quote must not pass for today's (#218).
+                        val line = stringResource(priceLine(quote.source), Money.format(quote.amountMinor, quote.currency))
+                        val date = quote.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+                        Text(
+                            if (date != null) stringResource(R.string.scan_price_dated, line, date) else line,
+                            color = camera.content,
+                            style = MaterialTheme.typography.titleSmall,
+                            textAlign = TextAlign.Center,
+                        )
+                    }
                 }
                 HintPill(
                     when {
@@ -596,8 +683,14 @@ private fun problemText(problem: CameraProblem): Int = when (problem) {
 @Composable
 private fun HintPill(text: String, dot: Color? = null) {
     val camera = LumifoilTheme.colors.camera
+    // A pill on one line, a rounded box on two: a full circle shape made a two-line hint a huge capsule (#218).
+    val shape = RoundedCornerShape(HintCorner)
     Row(
-        Modifier.background(camera.scrim, CircleShape).border(1.dp, camera.faint, CircleShape).padding(horizontal = Spacing.lg, vertical = Spacing.sm),
+        Modifier
+            .widthIn(max = HintMaxWidth)
+            .background(camera.scrim, shape)
+            .border(1.dp, camera.faint, shape)
+            .padding(horizontal = Spacing.lg, vertical = Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
@@ -605,6 +698,12 @@ private fun HintPill(text: String, dot: Color? = null) {
         Text(text, color = camera.content, style = MaterialTheme.typography.bodyMedium, textAlign = TextAlign.Center)
     }
 }
+
+/** A hint's corner: half the height of a one-line hint, so one line is still a pill. */
+private val HintCorner = 20.dp
+
+/** Hints wrap before they reach across the whole picture. */
+private val HintMaxWidth = 320.dp
 
 /**
  * A control over the camera: light text on the dark camera scrim with a faint outline (visible on the black
@@ -996,7 +1095,8 @@ private fun LatestScan(tray: ScanTray, introSeen: Boolean, onUndo: () -> Unit, o
     val rowModifier = Modifier
         .fillMaxWidth()
         .heightIn(min = 72.dp)
-        .background(colors.surfaceContainerLow, MaterialTheme.shapes.large)
+        // The same container as notices elsewhere; the lower one nearly vanished on the dark tray (#218).
+        .background(colors.surfaceContainer, MaterialTheme.shapes.large)
         .padding(Spacing.md)
         // Spoken when a card is added, queued or taken back, without moving focus off the camera.
         .semantics { liveRegion = LiveRegionMode.Polite }
@@ -1126,7 +1226,7 @@ private fun VariantSheet(added: LastScan.Added, onChoose: (CopyVariant) -> Unit,
 }
 
 /** "006/165 Charizard ex" for messages and TalkBack. */
-private fun cardTitle(card: RefCard): String = "${padCollectorNumber(card.localId, card.official)}/${card.official} ${card.name}"
+private fun cardTitle(card: RefCard): String = "${numberWithTotal(card.localId, card.official)} ${card.name}"
 
 /** Short reason for the tray ("Saved for review: …"). */
 fun reasonText(reason: ReviewReason): Int = when (reason) {

@@ -53,14 +53,17 @@ class SearchViewModel(
     val query: StateFlow<String> = saved.getStateFlow(KEY_QUERY, "")
 
     private val retries = MutableStateFlow(0)
+
+    /** Pages of [CardSearch.PAGE] shown for the current query; "Show more" adds one, a new query starts at one (#218). */
+    private val pages = MutableStateFlow(1)
     private val _state = MutableStateFlow(SearchUiState())
     val state: StateFlow<SearchUiState> = _state.asStateFlow()
 
     init {
         viewModelScope.launch {
-            combine(query, installedLanguages.distinctUntilChanged(), retries) { q, languages, _ ->
-                q to languages.sorted()
-            }.collectLatest { (q, languages) ->
+            combine(query, installedLanguages.distinctUntilChanged(), retries, pages) { q, languages, _, shown ->
+                Triple(q, languages.sorted(), shown)
+            }.collectLatest { (q, languages, shown) ->
                 _state.update { it.copy(languages = languages) }
                 val terms = SearchTerms.parse(q)
                 if (terms == null || languages.isEmpty()) {
@@ -71,7 +74,7 @@ class SearchViewModel(
                 _state.update { if (it.results is SearchResults.Found) it else it.copy(results = SearchResults.Loading) }
                 delay(DEBOUNCE_MS)
                 try {
-                    search.observe(terms, languages).collect { page ->
+                    search.observe(terms, languages, limit = CardSearch.PAGE * shown).collect { page ->
                         _state.update { it.copy(results = SearchResults.Found(page.hits, page.more)) }
                     }
                 } catch (e: CancellationException) {
@@ -84,7 +87,14 @@ class SearchViewModel(
     }
 
     fun setQuery(text: String) {
-        saved[KEY_QUERY] = text.take(MAX_QUERY)
+        val next = text.take(MAX_QUERY)
+        if (next != query.value) pages.value = 1
+        saved[KEY_QUERY] = next
+    }
+
+    /** The next [CardSearch.PAGE] results of the same query, so no match is out of reach (#218). */
+    fun showMore() {
+        pages.value++
     }
 
     fun retry() {

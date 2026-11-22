@@ -11,12 +11,17 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ColorFilter
 import androidx.compose.ui.graphics.ColorMatrix
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
@@ -62,8 +67,17 @@ fun CardImage(
     missing: Boolean = false,
 ) {
     val model = cardImageModel(card, ownPhoto, preferOwnPhoto, quality)
+    var loaded by remember(model) { mutableStateOf(false) }
+    // Fainter on a dark page, where a grey card at the light theme's strength outshone the owned art (ADR 0014, #218).
+    val missingAlpha = if (MaterialTheme.colorScheme.background.luminance() < 0.5f) 0.4f else 0.55f
     Box(modifier.aspectRatio(CARD_ASPECT).clip(MaterialTheme.shapes.small)) {
-        CardPlaceholder(card?.localId ?: localId, printedTotal, Modifier.fillMaxSize())
+        // Once the image is in, the placeholder goes: under a faded missing card its number showed through the art
+        // (#218). The plain card colour stays behind the faded image.
+        if (!loaded) {
+            CardPlaceholder(card?.localId ?: localId, printedTotal, Modifier.fillMaxSize())
+        } else if (missing) {
+            Box(Modifier.fillMaxSize().background(MaterialTheme.colorScheme.surfaceVariant))
+        }
         if (model != null) {
             AsyncImage(
                 model = model,
@@ -71,7 +85,8 @@ fun CardImage(
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
                 colorFilter = if (missing) Grayscale else null,
-                modifier = Modifier.fillMaxSize().then(if (missing) Modifier.alpha(0.55f) else Modifier),
+                onSuccess = { loaded = true },
+                modifier = Modifier.fillMaxSize().then(if (missing) Modifier.alpha(missingAlpha) else Modifier),
             )
         }
     }

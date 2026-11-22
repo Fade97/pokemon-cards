@@ -1,14 +1,15 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.text
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -34,16 +35,39 @@ fun CollectorNumber(
     color: Color = Color.Unspecified,
     totalColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
 ) {
-    val number = padCollectorNumber(localId, printedTotal)
-    val total = printedTotal?.let { padCollectorNumber(it.toString(), printedTotal) }
-    val description = if (total != null) stringResource(R.string.collector_number_description, number, total) else number
-    Text(
-        text = numberOverTotal(number, total, totalColor),
-        modifier = modifier.semantics { contentDescription = description },
-        style = style.merge(TextStyle(fontFeatureSettings = TabularFigures)),
-        color = color,
-        maxLines = 1,
-    )
+    val description = collectorNumberDescription(localId, printedTotal)
+    // A printed total of 0 (promos) means none: "022", not "022/000".
+    val printed = printedTotal?.takeIf { it > 0 }
+    val number = padCollectorNumber(localId, printed)
+    val total = printed?.let { padCollectorNumber(it.toString(), it) }
+    // Spoken as text, not as a content description: in a row that merges its texts for TalkBack, a child's description
+    // replaced all the other texts, so only "Number 006 of 165" was read, not the name, set or price (#218).
+    Box(modifier.clearAndSetSemantics { text = AnnotatedString(description) }) {
+        Text(
+            text = numberOverTotal(number, total, totalColor),
+            style = style.merge(TextStyle(fontFeatureSettings = TabularFigures)),
+            color = color,
+            maxLines = 1,
+        )
+    }
+}
+
+/**
+ * What TalkBack says for a collector number: "Number 006 of 165", or just the number without a total. Also for rows
+ * that build one spoken label of their own.
+ */
+@Composable
+fun collectorNumberDescription(localId: String, printedTotal: Int?): String {
+    val printed = printedTotal?.takeIf { it > 0 }
+    val number = padCollectorNumber(localId, printed)
+    val total = printed?.let { padCollectorNumber(it.toString(), it) }
+    return if (total != null) stringResource(R.string.collector_number_description, number, total) else number
+}
+
+/** "006/165" as plain text, or just "022" for a promo without a printed total. */
+fun numberWithTotal(localId: String, printedTotal: Int?): String {
+    val printed = printedTotal?.takeIf { it > 0 }
+    return padCollectorNumber(localId, printed) + (printed?.let { "/" + padCollectorNumber(it.toString(), it) } ?: "")
 }
 
 /** "87/165" with the total muted; shared by [CollectorNumber] and count displays like set completion. */

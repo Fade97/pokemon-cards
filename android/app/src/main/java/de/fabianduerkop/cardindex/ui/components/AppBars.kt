@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -26,8 +28,11 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -49,21 +54,28 @@ fun LumifoilTopAppBar(
     modifier: Modifier = Modifier,
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
+    scrollBehavior: TopAppBarScrollBehavior? = null,
 ) {
     val colors = MaterialTheme.colorScheme
-    TopAppBar(
-        title = title,
-        modifier = modifier,
-        navigationIcon = navigationIcon,
-        actions = actions,
-        colors = TopAppBarDefaults.topAppBarColors(
-            containerColor = colors.background,
-            scrolledContainerColor = colors.surfaceContainerLow,
-            titleContentColor = colors.onSurface,
-            navigationIconContentColor = colors.onSurface,
-            actionIconContentColor = colors.onSurfaceVariant,
-        ),
-    )
+    Column(modifier) {
+        TopAppBar(
+            title = title,
+            navigationIcon = navigationIcon,
+            actions = actions,
+            scrollBehavior = scrollBehavior,
+            colors = TopAppBarDefaults.topAppBarColors(
+                containerColor = colors.background,
+                scrolledContainerColor = colors.surfaceContainer,
+                titleContentColor = colors.onSurface,
+                navigationIconContentColor = colors.onSurface,
+                actionIconContentColor = colors.onSurfaceVariant,
+            ),
+        )
+        // A hairline once content runs under the bar, like the bottom bars have, so a half-hidden row has an edge to
+        // pass under (#218). Always laid out, only coloured, so nothing below moves when it shows.
+        val scrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > 0.01f
+        HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
+    }
 }
 
 /** The title of a bar: one line, ellipsized, so a long set name never pushes the actions off screen. */
@@ -84,6 +96,7 @@ fun BackButton(onClick: () -> Unit, modifier: Modifier = Modifier, contentDescri
  * Scaffold of a top-level destination (a bottom-bar tab). With [wordmark] the bar shows the Lumifoil wordmark instead
  * of [title]; screen readers still get [title] as the pane title.
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TopLevelScaffold(
     title: String,
@@ -95,17 +108,28 @@ fun TopLevelScaffold(
     PearlScaffold(
         title = title,
         modifier = modifier,
-        topBar = {
+        topBar = { scrollBehavior ->
             LumifoilTopAppBar(
-                title = { if (wordmark) LumifoilWordmark() else AppBarTitle(title) },
+                // Material starts a bar title without a back arrow 16 dp in; the screen's content starts at the gutter.
+                // The extra inset puts both on one left edge (#218).
+                title = {
+                    Box(Modifier.padding(start = Spacing.gutter - BarTitleInset)) {
+                        if (wordmark) LumifoilWordmark() else AppBarTitle(title)
+                    }
+                },
                 actions = actions,
+                scrollBehavior = scrollBehavior,
             )
         },
         content = content,
     )
 }
 
+/** Where Material's top app bar starts its title when there is no navigation icon. */
+private val BarTitleInset = 16.dp
+
 /** Scaffold of a screen below a tab or a task (set, card, review): back arrow, title, optional actions. */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun DetailScaffold(
     title: String,
@@ -119,11 +143,12 @@ fun DetailScaffold(
     PearlScaffold(
         title = title,
         modifier = modifier,
-        topBar = {
+        topBar = { scrollBehavior ->
             LumifoilTopAppBar(
                 title = { AppBarTitle(title) },
                 navigationIcon = { BackButton(onBack, contentDescription = backDescription) },
                 actions = actions,
+                scrollBehavior = scrollBehavior,
             )
         },
         bottomBar = bottomBar,
@@ -139,23 +164,28 @@ fun DetailScaffold(
  *
  * [content] gets the same padding as from Scaffold, minus the top: the bar pads for the status bar itself and the
  * content starts below it. The bar's part of the top insets counts as consumed, as it did in the `topBar` slot.
+ *
+ * The bar stays pinned and takes its raised tint while content scrolls under it, so a half-hidden row never seems to
+ * touch the title (#218).
  */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun PearlScaffold(
     title: String,
     modifier: Modifier,
-    topBar: @Composable () -> Unit,
+    topBar: @Composable (TopAppBarScrollBehavior) -> Unit,
     bottomBar: @Composable () -> Unit = {},
     content: @Composable (PaddingValues) -> Unit,
 ) {
+    val scrollBehavior = TopAppBarDefaults.pinnedScrollBehavior()
     Scaffold(
-        modifier = modifier.semantics { paneTitle = title },
+        modifier = modifier.nestedScroll(scrollBehavior.nestedScrollConnection).semantics { paneTitle = title },
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = bottomBar,
     ) { padding ->
         val direction = LocalLayoutDirection.current
         Column(Modifier.fillMaxSize()) {
-            topBar()
+            topBar(scrollBehavior)
             Box(Modifier.weight(1f).fillMaxWidth().consumeWindowInsets(PaddingValues(top = padding.calculateTopPadding()))) {
                 content(
                     PaddingValues(
@@ -182,6 +212,8 @@ fun ScanShortcut(onClick: () -> Unit, modifier: Modifier = Modifier) {
         modifier = modifier.padding(horizontal = Spacing.xs).focusRing(shape).heightIn(min = Spacing.touchTarget),
         shape = shape,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        // Sea-glass like the other header actions (#218).
+        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(start = 12.dp, end = 16.dp),
     ) {
         Icon(painterResource(R.drawable.ic_nav_scan), contentDescription = null, modifier = Modifier.size(20.dp))
