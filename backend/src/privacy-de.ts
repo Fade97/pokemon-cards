@@ -55,8 +55,11 @@ IP-Adresse begrenzt, um Missbrauch zu verhindern.</li>
 bereitzustellen, die du nutzt, und den Server vor Überlastung und Missbrauch zu schützen.</li>
 <li><strong>Speicherdauer:</strong> Unser Servercode speichert nichts davon. Die IP-Adresse dient etwa eine Minute lang
 als Schlüssel für die Begrenzung der Anfragen. Die Karten-IDs einer Preisanfrage werden nur zur Beantwortung
-verwendet. Unser Hosting-Anbieter Cloudflare speichert technische Anfrage-Protokolle (sie können die IP-Adresse
-und die abgerufene Adresse enthalten) höchstens 7 Tage und löscht sie dann automatisch.</li>
+verwendet. Unser Hosting-Anbieter Cloudflare
+protokolliert eine Anfrage nur, wenn unser Servercode einen Fehler meldet; ein solcher Eintrag enthält die
+IP-Adresse, den daraus abgeleiteten Ort (Land, Region, Stadt), die Kennung des Programms, die abgerufene Adresse und
+die Header der Anfrage. Cloudflare löscht diese Protokolle automatisch nach höchstens 7 Tagen (in unserem aktuellen
+Tarif nach 3 Tagen).</li>
 </ul>
 <p>Dasselbe gilt, wenn du diese Seite aufrufst.</p>
 

@@ -318,7 +318,7 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 | Device or other IDs, Diagnostics | No | ML Kit's telemetry (per-installation ID, diagnostics; [ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)) is stripped: the app removes datatransport's only upload backend (CCT) in `AndroidManifest.xml`, so the SDK deletes its events on the phone. Checked on the S25 on 2026-11-22 (`Unknown backend … deleting event batch`). |
 | **App activity → Other user-generated content** (card ids of the collection) | **Yes, ephemeral** | Price requests (`POST /v1/prices`, `PriceApi.kt`) send the card ids of the collection, processed in memory and not stored. Ephemeral processing is an answer per declared type, not a reason to leave it out (#15, council launch review 2026-11-22). The collection itself stays on the phone. |
 | Card images from TCGdex | No | The app loads public image URLs; no user data in the request. |
-| IP address | No data type | Play has none for IP. Mention Cloudflare (`observability` is on in `wrangler.jsonc`) and TCGdex in the privacy policy. |
+| IP address | No data type | Play has none for IP. Mention Cloudflare (error logs only: `invocation_logs: false` in `wrangler.jsonc`) and TCGdex in the privacy policy. |
 | Android Backup | No | Google's backup, not the app's. |
 | Android vitals | No | Collected by Google Play, not by the app. |
 
