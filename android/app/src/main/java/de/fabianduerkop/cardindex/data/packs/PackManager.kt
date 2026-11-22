@@ -132,7 +132,7 @@ class PackManager(
     }
 
     /** The worker stopped retrying after network errors: nothing is waiting any more until the next app start. */
-    fun gaveUp() = _state.update { it.copy(failed = true) }
+    fun gaveUp() = _state.update { it.copy(failed = true, progress = settled(it.progress, it.error ?: "network error")) }
 
     /**
      * Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. Only for
@@ -185,10 +185,24 @@ class PackManager(
                     is SyncOutcome.Failed -> outcome.reason
                 },
                 failed = outcome is SyncOutcome.Failed,
+                progress = settled(it.progress, (outcome as? SyncOutcome.Failed)?.reason),
             )
         }
         outcome
     }
+
+    /**
+     * The progress a stopped sync leaves (#225): nothing downloads or installs any more. A language it left halfway is
+     * failed with [failedReason] when the sync failed for good, and otherwise drops back to waiting; failed ones stay.
+     */
+    private fun settled(progress: Map<String, LanguageProgress>, failedReason: String?): Map<String, LanguageProgress> =
+        progress.mapNotNull { (lang, p) ->
+            when {
+                p is LanguageProgress.Failed -> lang to p
+                failedReason != null -> lang to LanguageProgress.Failed(failedReason)
+                else -> null
+            }
+        }.toMap()
 
     private suspend fun run(catalog: PackCatalog): SyncOutcome {
         val now = store.installed.value
