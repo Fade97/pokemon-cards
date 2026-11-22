@@ -18,6 +18,12 @@ export const CARDS_PER_CHUNK = 25;
 const CARD_FETCH_CONCURRENCY = 4;
 /** A set is synced again after this long, which picks up corrected IDs and newly listed products. */
 const RESYNC_AFTER_DAYS = 30;
+/**
+ * A set none of whose cards has a Cardmarket ID yet, though TCGplayer IDs exist, is read again after this long: TCGdex
+ * adds the Cardmarket IDs days after a release (me06, 2026-11-22), and until then the set has no EUR prices. Japanese
+ * sets never get TCGplayer IDs, so they don't come back every night.
+ */
+const AWAITING_CARDMARKET_AFTER_HOURS = 20;
 
 interface SetBrief {
   id: string;
@@ -46,6 +52,11 @@ interface CardDetail {
   name: string;
   set: { id: string };
   variants_detailed?: TcgdexVariant[];
+  /** Card-level prices; for a new set they carry the marketplace IDs before `variants_detailed` does. */
+  pricing?: {
+    cardmarket?: { idProduct?: number } | null;
+    tcgplayer?: Record<string, unknown> | null;
+  };
 }
 
 /** Picks the sets of one language that need a sync tonight and queues a job for each. */
@@ -64,12 +75,27 @@ export async function queueDueSets(ctx: ImportContext, lang: string): Promise<st
     .all<{ set_id: string; card_count: number; synced_at: string }>();
   const byId = new Map(known.map((r) => [r.set_id, r]));
   const staleBefore = new Date(ctx.now().getTime() - RESYNC_AFTER_DAYS * 86_400_000).toISOString();
+  const awaitingBefore = new Date(ctx.now().getTime() - AWAITING_CARDMARKET_AFTER_HOURS * 3_600_000).toISOString();
+  const { results: awaiting } = await ctx.db
+    .prepare(
+      `SELECT c.set_id FROM cards c JOIN card_mapping m ON m.tcgdex_id = c.tcgdex_id
+       GROUP BY c.set_id HAVING COUNT(m.cardmarket_id) = 0 AND COUNT(m.tcgplayer_id) > 0`,
+    )
+    .all<{ set_id: string }>();
+  const awaitingCardmarket = new Set(awaiting.map((r) => r.set_id));
 
-  // New sets first, then sets whose card count changed, then the longest-unsynced ones.
+  // New sets first, then sets whose card count changed or that still wait for Cardmarket IDs, then the
+  // longest-unsynced ones.
   const due = sets
     .map((s) => {
       const row = byId.get(s.id);
-      const rank = !row ? 0 : row.card_count !== s.cardCount!.total ? 1 : row.synced_at < staleBefore ? 2 : -1;
+      const rank = !row
+        ? 0
+        : row.card_count !== s.cardCount!.total || (awaitingCardmarket.has(s.id) && row.synced_at < awaitingBefore)
+          ? 1
+          : row.synced_at < staleBefore
+            ? 2
+            : -1;
       return { id: s.id, rank, syncedAt: row?.synced_at ?? "" };
     })
     .filter((s) => s.rank >= 0)
@@ -135,8 +161,8 @@ export async function syncCards(ctx: ImportContext, lang: string, cardIds: strin
     statements.push(
       mapping.bind(
         c.id,
-        pickProduct(c.variants_detailed, "cardmarket"),
-        lang === "ja" ? null : pickProduct(c.variants_detailed, "tcgplayer"),
+        pickProduct(c.variants_detailed, "cardmarket") ?? pricingProduct(c, "cardmarket"),
+        lang === "ja" ? null : (pickProduct(c.variants_detailed, "tcgplayer") ?? pricingProduct(c, "tcgplayer")),
         at,
       ),
     );
@@ -155,6 +181,23 @@ function keep(market: "cardmarket" | "tcgplayer"): string {
  * no stamp, no special foil, unlimited, and normal before holo before reverse. Normal and reverse share one
  * product on both markets, which carry the reverse price as a sub-price.
  */
+/**
+ * The marketplace ID from the card's `pricing` block. For a new set TCGdex first lists only a generated variant
+ * without `thirdParty` IDs, while `pricing` already names the products (me06, 2026-11-22).
+ */
+export function pricingProduct(card: Pick<CardDetail, "pricing">, market: "cardmarket" | "tcgplayer"): number | null {
+  if (market === "cardmarket") {
+    const id = card.pricing?.cardmarket?.idProduct;
+    return typeof id === "number" ? id : null;
+  }
+  const tp = card.pricing?.tcgplayer ?? {};
+  for (const key of ["normal", "holofoil", "reverse-holofoil", ...Object.keys(tp)]) {
+    const id = (tp[key] as { productId?: unknown } | undefined)?.productId;
+    if (typeof id === "number") return id;
+  }
+  return null;
+}
+
 export function pickProduct(variants: TcgdexVariant[] | undefined, market: "cardmarket" | "tcgplayer"): number | null {
   const withId = (variants ?? []).filter((v) => typeof v.thirdParty?.[market] === "number");
   if (withId.length === 0) return null;
