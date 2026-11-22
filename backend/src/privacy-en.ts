@@ -50,8 +50,9 @@ IP address to prevent abuse.</li>
 protect the server from overload and abuse.</li>
 <li><strong>Retention:</strong> our server code stores none of this. The IP address is used as a key for rate limiting
 for about a minute. The card IDs of a price request are only used to answer it. Our hosting provider Cloudflare
-keeps technical request logs (which can include the IP address and the requested address) for at most 7 days and
-then deletes them automatically.</li>
+logs a request only when our server code reports an error; such a log entry contains the IP address, the location
+Cloudflare derives from it (country, region, city), the user agent, the requested address and the request headers.
+Cloudflare deletes these logs automatically after at most 7 days (3 days on our current plan).</li>
 </ul>
 <p>The same applies when you open this page.</p>
 

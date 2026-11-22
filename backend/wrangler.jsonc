@@ -6,7 +6,10 @@
   "name": "pokemon-cards-api",
   "main": "src/index.ts",
   "compatibility_date": "2026-11-01",
-  "observability": { "enabled": true },
+  // Only errors are logged (console.error), not every request: an invocation log keeps the client IP, user agent and
+  // IP-based location of each request, and Authorization headers (withdraw tokens) may be in it (launch review,
+  // 2026-11-22). Errors still carry that request's metadata; Workers Free keeps logs 3 days.
+  "observability": { "enabled": true, "logs": { "invocation_logs": false } },
 
   // The app talks to a neutral custom domain; the account's workers.dev subdomain is unrelated to this project.
   // foilark.app is the website (start page, privacy, imprint; #226); the other Foilark domains redirect to it.
