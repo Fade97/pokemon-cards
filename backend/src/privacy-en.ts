@@ -71,7 +71,7 @@ anywhere. On its own, the ML Kit SDK would send diagnostic and usage data with a
 the part of the SDK that sends this data: the SDK deletes it on the phone, and nothing reaches Google or us.</p>
 
 <h2>6. Contributing scans (optional)</h2>
-<p>You can help train open card recognition by turning on <strong>Settings → Open dataset → Contribute my scans</strong>.
+<p>You can help train the card recognition by turning on <strong>Settings → Improve recognition → Contribute my scans</strong>.
 It is off by default, and it starts only after you accept the consent text in the app.</p>
 <h3>What is sent</h3>
 <ul>
@@ -88,35 +88,35 @@ for the upload and is used only for rate limiting (see section 3); it is not sto
 <p>A card picture usually says nothing about you. We still treat contributions as personal data: the upload comes
 from your connection, and a picture could show something by accident, such as a finger. Please make sure only the
 card is visible.</p>
-<h3>Purpose, legal basis and licence</h3>
-<p>The pictures are used to build an open dataset for training and testing card recognition models, published for
-anyone to use. The legal basis is your consent, Art. 6(1)(a) GDPR. By agreeing, you also release the pictures into
-the public domain under <a href="https://creativecommons.org/publicdomain/zero/1.0/">CC0 1.0</a>: anyone may use them
-for any purpose without credit.</p>
+<h3>Purpose and legal basis</h3>
+<p>The pictures are used only to train and test the app’s card recognition models. They are not published: the card
+artwork in them belongs to The Pokémon Company. What is published as open source is what the models learn from the
+pictures (the model weights and the reference index), not the pictures. The legal basis is your consent, Art. 6(1)(a)
+GDPR. Consent under 16 needs a parent or guardian (Art. 8 GDPR); the app asks you to confirm that you are 16 or older,
+or that a parent or guardian agreed.</p>
 <h3>Recipients</h3>
-<p>The pictures are stored privately with our hosting provider Cloudflare (section 7). When we publish a dataset
-release, the pictures it contains are public and can be downloaded and copied by anyone. Before that we look at
-every picture: only approved pictures go into the dataset. A rejected picture (no card, the wrong card, more than the
-card visible) is deleted, and we keep only the record without the picture, as after a withdrawal.</p>
+<p>The pictures are stored privately with our hosting provider Cloudflare (section 7) and used only by us, on our own
+computers, for training and testing. Before a picture is used we look at it: a rejected picture (no card, the wrong
+card, more than the card visible) is deleted, and we keep only the record without the picture, as after a
+withdrawal.</p>
 <h3>Withdrawal and retention</h3>
 <ul>
 <li>You can withdraw your consent at any time, for one picture or for all, under <strong>Settings → My
-contributions</strong>. A withdrawn picture is deleted from our server at once and left out of every future dataset
-release. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
-<li><strong>Dataset releases already published keep the picture.</strong> Copies of a public release cannot be called
-back.</li>
+contributions</strong>. A withdrawn picture is deleted from our server at once and not used for training again. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
+<li><strong>Models trained before the withdrawal keep what they learned from the picture.</strong> The picture itself
+cannot be recovered from a model.</li>
 <li>Turning the switch off deletes the pictures that are still waiting to be sent. Pictures already sent stay until
 you withdraw them.</li>
-<li>Otherwise a picture is kept as long as the dataset is maintained. After a withdrawal we keep only a record without
+<li>Otherwise a picture is kept as long as we train and test the recognition with it. After a withdrawal we keep only a record without
 the picture (ID, hash of the withdrawal key, card ID, language, consent version, file type, size and dimensions,
 checksum and times), so that a picture that
-was withdrawn is never released and an upload still on its way is refused.</li>
+was withdrawn is never used again and an upload still on its way is refused.</li>
 <li><strong>Important:</strong> only the app on your phone knows which pictures are yours. If you uninstall the app
 (or clear its data) without restoring it from a backup, we can no longer tell which pictures you sent, because we
 store no account, IP address or device data with them (Art. 11 GDPR). Withdraw the pictures in the app before you
 uninstall it.</li>
 </ul>
-<p>If you are under 16, please ask a parent or guardian before you turn on contributing.</p>
+
 
 <h2>7. Hosting: Cloudflare</h2>
 <p>Our server runs on Cloudflare Workers, with storage in Cloudflare R2 and D1. The provider is Cloudflare, Inc.,

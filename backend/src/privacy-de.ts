@@ -78,7 +78,7 @@ entfernt den Teil des SDK, der diese Daten sendet: Das SDK löscht sie auf dem H
 sie.</p>
 
 <h2>6. Scans beitragen (freiwillig)</h2>
-<p>Du kannst beim Training einer offenen Kartenerkennung helfen, indem du <strong>Settings → Open dataset → Contribute
+<p>Du kannst beim Training der Kartenerkennung helfen, indem du <strong>Settings → Improve recognition → Contribute
 my scans</strong> einschaltest. Das ist standardmäßig aus und beginnt erst, wenn du dem Einwilligungstext in der App
 zustimmst.</p>
 <h3>Was gesendet wird</h3>
@@ -97,39 +97,37 @@ Abschnitt 3); sie wird nicht mit dem Bild gespeichert.</p>
 <p>Ein Kartenbild sagt in der Regel nichts über dich aus. Wir behandeln Beiträge trotzdem als personenbezogene Daten:
 Das Hochladen kommt von deinem Anschluss, und auf einem Bild könnte versehentlich etwas zu sehen sein, etwa ein
 Finger. Achte bitte darauf, dass nur die Karte zu sehen ist.</p>
-<h3>Zweck, Rechtsgrundlage und Lizenz</h3>
-<p>Die Bilder dienen dazu, einen offenen Datensatz zum Trainieren und Testen von Modellen zur Kartenerkennung
-aufzubauen, der für alle veröffentlicht wird. Rechtsgrundlage ist deine Einwilligung, Art. 6 Abs. 1 lit. a DSGVO. Mit
-deiner Zustimmung gibst du die Bilder außerdem unter <a href="https://creativecommons.org/publicdomain/zero/1.0/deed.de">CC0 1.0</a>
-frei (Verzicht auf Urheber- und Leistungsschutzrechte, soweit gesetzlich möglich): Jeder darf sie für jeden Zweck
-ohne Namensnennung nutzen.</p>
+<h3>Zweck und Rechtsgrundlage</h3>
+<p>Die Bilder dienen nur dazu, die Modelle der Kartenerkennung der App zu trainieren und zu testen. Sie werden nicht
+veröffentlicht: Die Kartenmotive darauf gehören The Pokémon Company. Als Open Source veröffentlicht wird, was die
+Modelle aus den Bildern lernen (die Modellgewichte und der Referenzindex), nicht die Bilder. Rechtsgrundlage ist deine
+Einwilligung, Art. 6 Abs. 1 lit. a DSGVO. Unter 16 braucht die Einwilligung deine Eltern oder Erziehungsberechtigten
+(Art. 8 DSGVO); die App lässt dich bestätigen, dass du mindestens 16 bist oder sie zugestimmt haben.</p>
 <h3>Empfänger</h3>
-<p>Die Bilder werden nicht öffentlich bei unserem Hosting-Anbieter Cloudflare gespeichert (Abschnitt 7). Wenn wir eine
-Version des Datensatzes veröffentlichen, sind die darin enthaltenen Bilder öffentlich und können von allen
-heruntergeladen und kopiert werden. Vorher sehen wir uns jedes Bild an: Nur freigegebene Bilder kommen in den
-Datensatz, ein abgelehntes Bild (keine Karte, falsche Karte, mehr als die Karte zu sehen) löschen wir und behalten nur
-den Eintrag ohne Bild wie nach einem Widerruf.</p>
+<p>Die Bilder werden nicht öffentlich bei unserem Hosting-Anbieter Cloudflare gespeichert (Abschnitt 7) und nur von
+uns auf eigenen Rechnern zum Trainieren und Testen genutzt. Bevor ein Bild genutzt wird, sehen wir es uns an: Ein
+abgelehntes Bild (keine Karte, falsche Karte, mehr als die Karte zu sehen) löschen wir und behalten nur den Eintrag
+ohne Bild wie nach einem Widerruf.</p>
 <h3>Widerruf und Speicherdauer</h3>
 <ul>
 <li>Du kannst deine Einwilligung jederzeit widerrufen, für ein Bild oder für alle, unter <strong>Settings → My
-contributions</strong>. Ein widerrufenes Bild wird sofort von unserem Server gelöscht und in keine künftige Version
-des Datensatzes aufgenommen. Der Widerruf berührt nicht die Rechtmäßigkeit der Verarbeitung bis dahin (Art. 7 Abs. 3
+contributions</strong>. Ein widerrufenes Bild wird sofort von unserem Server gelöscht und nicht mehr zum Training
+genutzt. Der Widerruf berührt nicht die Rechtmäßigkeit der Verarbeitung bis dahin (Art. 7 Abs. 3
 DSGVO).</li>
-<li><strong>Bereits veröffentlichte Versionen des Datensatzes behalten das Bild.</strong> Kopien einer öffentlichen
-Version lassen sich nicht zurückholen.</li>
+<li><strong>Modelle, die vor dem Widerruf trainiert wurden, behalten, was sie aus dem Bild gelernt haben.</strong> Das
+Bild selbst lässt sich aus einem Modell nicht zurückgewinnen.</li>
 <li>Schaltest du die Funktion aus, werden die Bilder gelöscht, die noch auf das Senden warten. Bereits gesendete Bilder
 bleiben, bis du sie widerrufst.</li>
-<li>Ansonsten wird ein Bild gespeichert, solange der Datensatz gepflegt wird. Nach einem Widerruf behalten wir nur
+<li>Ansonsten wird ein Bild gespeichert, solange wir die Erkennung damit trainieren und testen. Nach einem Widerruf behalten wir nur
 einen Eintrag ohne Bild (ID, Hash des Widerrufsschlüssels, Karten-ID, Sprache, Version der Einwilligung, Dateityp,
 -größe und Bildmaße, Prüfsumme und Zeitpunkte),
-damit ein widerrufenes Bild nie veröffentlicht und ein noch laufendes Hochladen abgewiesen wird.</li>
+damit ein widerrufenes Bild nie wieder genutzt und ein noch laufendes Hochladen abgewiesen wird.</li>
 <li><strong>Wichtig:</strong> Nur die App auf deinem Handy weiß, welche Bilder von dir sind. Deinstallierst du die App
 (oder löschst ihre Daten), ohne sie aus einer Sicherung wiederherzustellen, können wir nicht mehr erkennen, welche
 Bilder du gesendet hast, weil wir kein Konto, keine IP-Adresse und keine Gerätedaten dazu speichern (Art. 11 DSGVO).
 Widerrufe die Bilder in der App, bevor du sie deinstallierst.</li>
 </ul>
-<p>Wenn du jünger als 16 bist, frag bitte deine Eltern oder Erziehungsberechtigten, bevor du das Beitragen
-einschaltest.</p>
+
 
 <h2>7. Hosting: Cloudflare</h2>
 <p>Unser Server läuft auf Cloudflare Workers, die Daten liegen in Cloudflare R2 und D1. Anbieter ist Cloudflare, Inc.,

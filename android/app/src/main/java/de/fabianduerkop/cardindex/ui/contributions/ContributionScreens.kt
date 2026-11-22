@@ -2,6 +2,11 @@
 package de.fabianduerkop.cardindex.ui.contributions
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.ui.semantics.Role
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.material3.Checkbox
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -36,6 +41,7 @@ import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
+import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.components.TextAction
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.packs.languageName
@@ -72,8 +78,8 @@ private fun contributionsViewModel(): ContributionsViewModel =
     viewModel(factory = containerViewModelFactory { container, _ -> ContributionsViewModel(container) })
 
 /**
- * The consent screen (issue #14, ADR 0008): what is shared, under which license, and what withdrawing can and can't
- * undo. Only "I agree" turns contributing on; Back and "Not now" leave it off. The version shown is the one sent with
+ * The consent screen (issue #14, ADR 0016): what is sent, what it is used for, and what withdrawing can and can't
+ * undo; contributors confirm they are 16 or have a parent's OK. Only "I agree" turns contributing on; Back and "Not now" leave it off. The version shown is the one sent with
  * every upload.
  */
 @Composable
@@ -92,12 +98,27 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
             SettingsHint(stringResource(R.string.contribute_consent_version, ContributionConsent.VERSION))
             // Who processes the uploads, legal basis, retention and rights (#70).
             PrivacyPolicyLink()
+            // Consent under 16 needs a parent's (Art. 8 GDPR, 16 in Germany); "I agree" waits for this box.
+            var ageConfirmed by rememberSaveable { mutableStateOf(false) }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .focusRing(MaterialTheme.shapes.small)
+                    .toggleable(value = ageConfirmed, role = Role.Checkbox, onValueChange = { ageConfirmed = it })
+                    .heightIn(min = Spacing.touchTarget)
+                    .padding(vertical = Spacing.xxs),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Checkbox(checked = ageConfirmed, onCheckedChange = null, modifier = Modifier.padding(end = Spacing.md))
+                Text(stringResource(R.string.contribute_age_confirm), style = MaterialTheme.typography.bodyLarge)
+            }
             PrimaryButton(
                 stringResource(R.string.contribute_agree),
                 onClick = {
                     viewModel.accept()
                     onBack()
                 },
+                enabled = ageConfirmed,
                 modifier = Modifier.fillMaxWidth(),
             )
             SecondaryButton(stringResource(R.string.contribute_decline), onClick = onBack, modifier = Modifier.fillMaxWidth())

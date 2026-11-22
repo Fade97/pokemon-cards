@@ -126,8 +126,8 @@ exist, the phone checks them once a day against the free current prices, a soft 
 - The **dataset** is published as a manifest (card IDs, source URLs, crop boxes, labels) plus a download script.
   Card art from TPC is not re-hosted.
 - **User scans** are opt-in and off by default. Only the rectified card crop is uploaded, with no EXIF,
-  location or device data. Contributors explicitly consent to release it under **CC0**, and a withdrawn scan is
-  dropped from future dataset releases.
+  location or device data. They train and test the models and are **never published** (ADR 0016: the artwork is
+  TPC's); contributors confirm they are 16 or have a parent's OK, and a withdrawn scan is not used again.
 
 ## Interface
 

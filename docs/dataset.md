@@ -11,7 +11,7 @@ a manual step (see [Publishing](#publishing)).
 | Reference cards (`cards.csv`) | Card id, language, set, number, name, image URL + fallback URL, source, split, optional SHA-256 of the image | MIT (the data is from TCGdex); our added columns CC0 |
 | Source notes (`sources.json`) | Per source: owner, terms, credit, minimum request interval (our own text) | CC0 1.0 |
 | Reference images | **Not included.** `download.py` rebuilds them from the URLs (ADR 0009: the card art is not re-hosted) | owners' terms, per source |
-| User scans (`scans/`, `scans.csv`) | Contributed card crops (#14) | CC0 1.0 |
+| User scans (`scans/`, `scans.csv`) | **Not published since [ADR 0016](adr/0016-contributions-training-only.md)** (2026-11-22): contributed crops train the models only. The builder below still has the scan part for `cc0-1` rows from debug builds; #20 removes it | — |
 
 Layout of one release directory, written once and never changed:
 
