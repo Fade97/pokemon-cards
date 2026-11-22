@@ -573,7 +573,9 @@ class PackSyncTest {
         store = PackStore(root)
         assertEquals(emptyMap<String, String>(), store.installed.value.catalogFilled)
         manager = newManager()
-        manager.sync(poll = false)
+        // At app start, from the files on disk: the next sync can be a day away (the daily poll).
+        server.shutdown()
+        manager.fillCatalogFromInstalled()
         assertEquals("SVI", code("sv1"))
         assertEquals(setOf("en"), store.installed.value.catalogFilled.keys)
 

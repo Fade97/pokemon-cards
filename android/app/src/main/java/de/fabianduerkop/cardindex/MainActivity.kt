@@ -24,12 +24,14 @@ class MainActivity : ComponentActivity() {
     }
 
     /**
-     * The daily catalog poll, plus a sync now when the wanted languages are not all installed (a download that was
-     * interrupted, or packs to fetch again after a restore from backup, which leaves them out).
+     * The installed packs into the catalog where it lacks them (after an update, #241), the daily catalog poll, plus a
+     * sync now when the wanted languages are not all installed (a download that was interrupted, or packs to fetch
+     * again after a restore from backup, which leaves them out).
      */
     private fun schedulePackWork() {
         val packs = appContainer.packs
         PackSyncWorker.schedulePolling(this)
+        lifecycleScope.launch { packs.fillCatalogFromInstalled() }
         val installed = packs.installed.value
         if (packs.wanted != installed.packs.keys || installed.broken.isNotEmpty() || installed.modelBroken) {
             PackSyncWorker.enqueue(this)

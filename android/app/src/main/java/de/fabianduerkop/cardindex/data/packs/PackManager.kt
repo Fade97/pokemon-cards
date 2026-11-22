@@ -6,12 +6,14 @@ import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.recognition.PackIntegrityException
 import de.fabianduerkop.cardindex.recognition.sha256Hex
 import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.IOException
 import java.time.Duration
@@ -387,6 +389,20 @@ class PackManager(
             throw e
         }
         return dir
+    }
+
+    /**
+     * Puts installed packs that aren't in Room yet into the catalog, from the files on disk: no network, so an app
+     * update that stores more of a pack ([PackStore.CATALOG_FORMAT], set codes #241) takes effect at the next start
+     * instead of the next sync, which with every pack installed is only the daily poll.
+     */
+    suspend fun fillCatalogFromInstalled() = mutex.withLock {
+        withContext(Dispatchers.IO) {
+            runCatching { fillCatalog() }.onFailure {
+                if (it is CancellationException) throw it
+                Log.e(TAG, "filling the card catalog failed", it)
+            }
+        }
     }
 
     /** Puts the cards of every installed pack that isn't in Room yet into the catalog (idempotent, crash-safe). */
