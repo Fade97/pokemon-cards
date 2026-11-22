@@ -348,11 +348,11 @@ removes the argument.
 
 **Gaps before the form can be submitted:**
 
-- A **privacy policy URL** is required. It is deployed at `https://cards-api.fdu.gg/privacy` (DE/EN, PR #75, #70) and
-  goes into the Console. It must cover: no account, local-only collection,
+- A **privacy policy URL** is required: `https://foilark.app/privacy` (DE/EN, PR #75, #70; the same page as
+  `https://cards-api.fdu.gg/privacy`). Website for the listing: `https://foilark.app`. It must cover: no account, local-only collection,
   the opt-in contribution (what, CC0, withdrawal, retention), ML Kit telemetry, Cloudflare (IP in request logs,
-  `observability` retention) and TCGdex image requests. An Impressum (§ 5 DDG) is needed at the latest when Pro
-  makes it a commercial offer. Host both on the product domain or GitHub Pages.
+  `observability` retention) and TCGdex image requests. As a trader, Fabian also needs the Impressum (§ 5 DDG):
+  `https://foilark.app/imprint` (#226).
 - Store **contact email** (public).
 
 ### Graphics and screenshots
@@ -382,14 +382,14 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
 
 ### Only Fabian can do this
 
-- [ ] Create the personal developer account: legal name, address, phone, email; pay the USD 25 fee.
-- [ ] Identity verification (government ID) and phone/email verification; verify an Android device with the
-      Play Console app. Allow a few days.
-- [ ] Decide the EU **trader status** (DSA). Free app without Pro: usually "not a trader". With Pro (#16) it
-      becomes a trader, and address and phone become public in the listing.
+- [x] Personal developer account exists (Fabian, 2026-11-22).
+- [x] EU **trader status** (DSA): **trader**. Fabian is a sole trader (2026-11-22), so Play shows name, address,
+      phone and email in the listing; the imprint at `https://foilark.app/imprint` names the same provider
+      (Fabian Dürkop, Kleinunternehmer § 19 UStG; #226).
 - [ ] Payments profile, only when Pro / Play Billing comes.
 - [x] Choose the name (section 1b): Foilark. applicationId `de.fabianduerkop.foilark` (section 2) is applied.
-- [ ] Register `foilark.com` / `foilark.de` / `foilark.app` (all free on 2026-11-18).
+- [x] Register `foilark.com` / `foilark.de` / `foilark.app` (Strato, 2026-11-18; DNS Cloudflare). foilark.app is
+      the website; the other two redirect to it (#226).
 - [ ] Recruit testers and approve the Google Group.
 - [ ] Sign the declarations in the Console (content rating, data safety, target audience, ads: no ads).
 
@@ -399,8 +399,8 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
 - [x] signed release AAB with Play App Signing (upload key outside the repo,
       signing config only from env or a git-ignored file), smoke-tested on talos via bundletool (#88).
       Steps in `android/README.md`, "Signed release". The S25 follows in #83.
-- [x] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled: `https://cards-api.fdu.gg/privacy`.
-      Impressum still open for Fabian (#15).
+- [x] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled: `https://foilark.app/privacy`.
+- [x] Imprint (§ 5 DDG) at `https://foilark.app/imprint`, linked from Settings → About (#226).
 - [x] In-app "About" with the disclaimer, licenses and the privacy link (Settings → About; licenses #136).
 - [ ] Screenshots and feature graphic (section 3).
 - [x] A feedback channel for testers: the GitHub issue form `tester-feedback.yml`, linked from Settings → About (#88),

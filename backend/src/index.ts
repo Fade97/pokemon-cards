@@ -8,6 +8,7 @@
 //   POST /v1/contributions, DELETE /v1/contributions/:id   opt-in scan uploads (src/contributions.ts)
 //   GET  /v1/history/<YYYY-MM>?sets=…   Pro: daily price history per set (src/history.ts)
 //   GET  /privacy, /privacy/de, /privacy/en   privacy policy pages for the Play listing (src/privacy.ts)
+//   foilark.app start page, /imprint, and redirects from foilark.de / foilark.com (src/site.ts)
 //
 // Every route is rate-limited per client IP (#30).
 
@@ -17,6 +18,7 @@ import { handleHistory } from "./history";
 import { packKey, servePack } from "./packs";
 import { handlePrivacy } from "./privacy";
 import { getMeta, getPrices, isCardId, MAX_BATCH } from "./prices";
+import { handleSite } from "./site";
 
 /** Prices change once a day: clients and Cloudflare's edge cache both keep a single-card answer for an hour. */
 const CACHE_ONE_CARD = "public, max-age=3600";
@@ -43,12 +45,17 @@ export default {
 } satisfies ExportedHandler<Env>;
 
 async function route(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
-  const { pathname } = new URL(request.url);
+  const url = new URL(request.url);
+  const { pathname } = url;
 
   // Cloudflare sets CF-Connecting-IP on every request that reaches the Worker from the internet.
   const client = request.headers.get("CF-Connecting-IP") ?? "unknown";
   const { success } = await env.API_RATE_LIMIT.limit({ key: client });
   if (!success) return json({ error: "too many requests" }, { "Retry-After": "60" }, 429);
+
+  // Before the API routes, so foilark.de/privacy redirects like every other path on the other Foilark domains.
+  const site = handleSite(request, url);
+  if (site) return site;
 
   if (pathname === "/health") {
     if (request.method !== "GET") return methodNotAllowed("GET");

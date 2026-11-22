@@ -17,6 +17,8 @@ export const CONTROLLER = {
   name: "Fabian Dürkop",
   address: "Vor dem Berge 40\n38524 Sassenburg\nGermany",
   email: "fabian@karelo.de",
+  /** International format; the imprint shows it (§ 5 DDG), the privacy pages don't. */
+  phone: "+49 152 33933821",
 };
 
 /** The app's name in the text (final name, #15). */
@@ -48,6 +50,21 @@ export interface Contact {
 }
 
 const TEXTS: Record<PrivacyLang, PrivacyText> = { de: privacyDe, en: privacyEn };
+
+/** The look of the legal pages (privacy, imprint): plain, readable, light and dark. */
+export const PAGE_STYLE = `:root { color-scheme: light dark; --fg: #1c1b1f; --muted: #5f5c66; --bg: #fdfcff; --line: #d9d6e0; --link: #3a5bc7; }
+@media (prefers-color-scheme: dark) { :root { --fg: #e6e1e9; --muted: #aaa6b2; --bg: #141218; --line: #3a3741; --link: #9db4ff; } }
+body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
+main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
+h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .25rem; }
+h2 { font-size: 1.2rem; margin: 2rem 0 .5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+h3 { font-size: 1.02rem; margin: 1.25rem 0 .25rem; }
+p, ul { margin: .5rem 0; }
+li { margin: .2rem 0; }
+a { color: var(--link); overflow-wrap: anywhere; }
+.meta { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
+address { font-style: normal; }
+`;
 
 /** Pages change rarely; an hour keeps a corrected text from lingering long. */
 const CACHE = "public, max-age=3600";
@@ -113,19 +130,7 @@ export function renderPrivacy(lang: PrivacyLang): string {
 <title>${escapeHtml(t.title)} – ${contact.app}</title>
 <link rel="alternate" hreflang="${other}" href="/privacy/${other}">
 <style>
-:root { color-scheme: light dark; --fg: #1c1b1f; --muted: #5f5c66; --bg: #fdfcff; --line: #d9d6e0; --link: #3a5bc7; }
-@media (prefers-color-scheme: dark) { :root { --fg: #e6e1e9; --muted: #aaa6b2; --bg: #141218; --line: #3a3741; --link: #9db4ff; } }
-body { margin: 0; background: var(--bg); color: var(--fg); font: 16px/1.6 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif; }
-main { max-width: 46rem; margin: 0 auto; padding: 1.5rem 1rem 3rem; }
-h1 { font-size: 1.7rem; line-height: 1.25; margin: 0 0 .25rem; }
-h2 { font-size: 1.2rem; margin: 2rem 0 .5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
-h3 { font-size: 1.02rem; margin: 1.25rem 0 .25rem; }
-p, ul { margin: .5rem 0; }
-li { margin: .2rem 0; }
-a { color: var(--link); overflow-wrap: anywhere; }
-.meta { color: var(--muted); font-size: .9rem; margin: 0 0 1rem; }
-address { font-style: normal; }
-</style>
+${PAGE_STYLE}</style>
 </head>
 <body>
 <main>
@@ -139,7 +144,7 @@ ${t.body(contact).trim()}
 `;
 }
 
-function escapeHtml(s: string): string {
+export function escapeHtml(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#39;");
 }
 
