@@ -7,7 +7,7 @@ import type { ImportContext, ImportMessage } from "../jobs/context";
 import { JsonArrayStream } from "../jobs/json-stream";
 import { LocalQueue, runJob, startNightly } from "../jobs/nightly";
 import { normalizeNumber, TCGCSV } from "../jobs/tcgcsv";
-import { pickProduct, TCGDEX_API } from "../jobs/tcgdex";
+import { pickProduct, pricingProduct, TCGDEX_API } from "../jobs/tcgdex";
 import { publish, readAllPrices, type Sink } from "../publish";
 
 const NOW = new Date("2026-11-17T04:30:00.000Z");
@@ -135,6 +135,19 @@ describe("helpers", () => {
     ).toBe(42382);
     expect(pickProduct(undefined, "cardmarket")).toBeNull();
     expect(pickProduct([{ type: "normal" }], "tcgplayer")).toBeNull();
+  });
+
+  it("falls back to the pricing block for a new set without thirdParty IDs (me06)", () => {
+    const card = {
+      pricing: {
+        cardmarket: { idProduct: 918833 },
+        tcgplayer: { unit: "USD", "reverse-holofoil": { productId: 726517 }, holofoil: { productId: 726518 } },
+      },
+    };
+    expect(pricingProduct(card, "cardmarket")).toBe(918833);
+    expect(pricingProduct(card, "tcgplayer")).toBe(726518);
+    expect(pricingProduct({}, "cardmarket")).toBeNull();
+    expect(pricingProduct({ pricing: { tcgplayer: { unit: "USD" } } }, "tcgplayer")).toBeNull();
   });
 
   it("normalizes collector numbers", () => {
@@ -345,6 +358,33 @@ describe("nightly import", () => {
     ctx.maxSetsPerNight = 5;
     await runJob({ type: "tcgdex-sets", lang: "en" }, ctx);
     expect(sent.map((m) => m.body)).toEqual([{ type: "tcgdex-set", lang: "en", setId: "base1" }]);
+  });
+
+  it("reads a set again the next night while none of its cards has a Cardmarket ID", async () => {
+    const { ctx, sent } = makeContext(ROUTES);
+    await db.prepare(
+      `INSERT INTO tcgdex_sets (lang, set_id, card_count, synced_at) VALUES
+         ('en', 'sv03.5', 3, '2026-11-16T00:00:00Z'), ('en', 'base1', 1, '2026-11-16T00:00:00Z')`,
+    ).run();
+    // sv03.5: TCGplayer IDs but no Cardmarket ID yet (a new release); base1: fully mapped.
+    await db.prepare(
+      `INSERT INTO cards (tcgdex_id, lang, set_id, local_id, name, updated_at) VALUES
+         ('sv03.5-025', 'en', 'sv03.5', '025', 'Pikachu', '2026-11-16T00:00:00Z'),
+         ('base1-4', 'en', 'base1', '4', 'Charizard', '2026-11-16T00:00:00Z')`,
+    ).run();
+    await db.prepare(
+      `INSERT INTO card_mapping (tcgdex_id, cardmarket_id, tcgplayer_id, cardmarket_source, tcgplayer_source, updated_at) VALUES
+         ('sv03.5-025', NULL, 517033, NULL, 'match', '2026-11-16T00:00:00Z'),
+         ('base1-4', 273699, 42382, 'tcgdex', 'tcgdex', '2026-11-16T00:00:00Z')`,
+    ).run();
+    await runJob({ type: "tcgdex-sets", lang: "en" }, ctx);
+    expect(sent.map((m) => m.body)).toEqual([{ type: "tcgdex-set", lang: "en", setId: "sv03.5" }]);
+
+    // Synced within the last 20 hours: not again tonight.
+    await db.prepare(`UPDATE tcgdex_sets SET synced_at = ? WHERE set_id = 'sv03.5'`).bind(ctx.now().toISOString()).run();
+    sent.length = 0;
+    await runJob({ type: "tcgdex-sets", lang: "en" }, ctx);
+    expect(sent).toEqual([]);
   });
 
   it("lets overrides win over TCGdex and matches, and releases them when removed", async () => {
