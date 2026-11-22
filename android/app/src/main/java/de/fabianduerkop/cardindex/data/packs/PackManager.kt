@@ -110,6 +110,8 @@ class PackManager(
     fun addLanguages(languages: Collection<String>) {
         prefs.wanted = prefs.wanted + languages
         _wanted.value = prefs.wanted
+        // A new request: an earlier sync's failure must not hide that this one is waiting for a network.
+        _state.update { it.copy(failed = false) }
         requestSync()
     }
 
@@ -125,8 +127,12 @@ class PackManager(
     fun repair(lang: String) {
         // Outside the sync lock, so no garbage collection here: the next sync cleans up.
         store.commit(collectGarbage = false) { addBroken += lang }
+        _state.update { it.copy(failed = false) }
         requestSync()
     }
+
+    /** The worker stopped retrying after network errors: nothing is waiting any more until the next app start. */
+    fun gaveUp() = _state.update { it.copy(failed = true) }
 
     /**
      * Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. Only for
@@ -153,8 +159,9 @@ class PackManager(
             val catalog = if (poll || _catalog.value == null) refreshCatalog() else _catalog.value!!
             run(catalog)
         } catch (e: CancellationException) {
-            // WorkManager stopped the job (the network went away, the mobile data switch changed): not running any more.
-            _state.update { it.copy(running = false) }
+            // WorkManager stopped the job (the network went away, the mobile data switch changed): not running any
+            // more, and no frozen progress bars; the next sync starts its own.
+            _state.update { it.copy(running = false, progress = emptyMap()) }
             throw e
         } catch (e: UnsupportedPackFormatException) {
             SyncOutcome.Failed(e.message.orEmpty())
@@ -162,8 +169,9 @@ class PackManager(
             SyncOutcome.Retry(e.message ?: "network error")
         } catch (e: PackIntegrityException) {
             SyncOutcome.Failed(e.message.orEmpty())
-        } catch (e: RuntimeException) {
-            // A malformed catalog or pack file (bad JSON, missing field): retrying the same bytes won't help.
+        } catch (e: Exception) {
+            // A malformed catalog or pack file (bad JSON, missing field): retrying the same bytes won't help. Not only
+            // RuntimeException: Android's JSONException is a checked exception and would leave the sync "running".
             Log.e(TAG, "pack sync failed", e)
             SyncOutcome.Failed(e.message ?: e.javaClass.simpleName)
         }
