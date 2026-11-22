@@ -65,13 +65,10 @@ shown instead wherever you added one.</p>
 
 <h2>5. Text recognition by Google ML Kit</h2>
 <p>To read the collector number, the app uses Google’s ML Kit text recognition. The recognition models are part of the
-app and run on the phone; the camera images and the recognised text are processed on the device. According to
-Google, the ML Kit SDK sends diagnostic and usage data to Google, such as device and app information, performance
-metrics and a per-installation identifier
-(<a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>). The recipient is
-Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Ireland, under the
-<a href="https://policies.google.com/privacy">Google Privacy Policy</a>; Google may process the data in the USA.
-The legal basis is Art. 6(1)(f) GDPR (reliable text recognition). We do not receive this data.</p>
+app and run on the phone; the camera images and the recognised text are processed on the device and are not sent
+anywhere. On its own, the ML Kit SDK would send diagnostic and usage data with a per-installation identifier to Google
+(<a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>). The app removes
+the part of the SDK that sends this data: the SDK deletes it on the phone, and nothing reaches Google or us.</p>
 
 <h2>6. Contributing scans (optional)</h2>
 <p>You can help train open card recognition by turning on <strong>Settings → Open dataset → Contribute my scans</strong>.
