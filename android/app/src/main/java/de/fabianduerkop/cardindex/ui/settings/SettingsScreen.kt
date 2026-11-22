@@ -239,6 +239,7 @@ fun SettingsScreen(
                 SettingsHint(stringResource(R.string.settings_version, BuildConfig.VERSION_NAME, BuildConfig.VERSION_CODE))
                 Column {
                     PrivacyPolicyLink()
+                    ImprintLink()
                     SourceCodeLink()
                     TextAction(stringResource(R.string.settings_licenses), onClick = onOpenLicenses, alignToText = true)
                     TesterFeedbackLink()
@@ -290,6 +291,17 @@ internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
     )
 }
 
+/** The provider's imprint (§ 5 DDG, #226) on the app's website. */
+@Composable
+private fun ImprintLink() {
+    ExternalLink(
+        url = IMPRINT_URL,
+        label = stringResource(R.string.settings_imprint),
+        noBrowser = stringResource(R.string.settings_imprint_no_browser, IMPRINT_URL),
+        alignToText = true,
+    )
+}
+
 /** The app's source, which GPLv3 asks to offer (#130). */
 @Composable
 private fun SourceCodeLink() {
@@ -302,6 +314,7 @@ private fun SourceCodeLink() {
 }
 
 private const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
+private const val IMPRINT_URL = "https://foilark.app/imprint"
 
 /** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */
 @Composable
