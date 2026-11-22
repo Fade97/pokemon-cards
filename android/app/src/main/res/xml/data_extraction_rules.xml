@@ -1,12 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 12 and higher. The collection database goes into the user's own Android backup, never to an app server (ADR 0006). -->
+<!-- Android 12 and higher. The collection goes into the user's own Android backup, never to an app server (ADR 0006),
+     as the JSON snapshot FoilarkBackupAgent writes (data/backup/AndroidBackup.kt): the database is mostly the card
+     catalog, which the language packs rebuild, and would push the backup over Android's 25 MB quota. -->
 <data-extraction-rules>
     <cloud-backup>
-        <include domain="database" path="." />
+        <include domain="file" path="android-backup/" />
         <include domain="sharedpref" path="." />
     </cloud-backup>
     <device-transfer>
-        <include domain="database" path="." />
+        <include domain="file" path="android-backup/" />
         <include domain="sharedpref" path="." />
     </device-transfer>
 </data-extraction-rules>
