@@ -162,6 +162,8 @@ published. The app shows the consent text, the backend only accepts versions it 
 |---|---|
 | `POST /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>` with the crop as body, `Content-Type: image/jpeg` or `image/webp` | `201 { "id", "withdrawToken" }` |
 | The same POST plus `&id=<uuid>` and `Authorization: Bearer <43-char token>` chosen by the app | `201 { "id", "withdrawToken" }` with those values; a retry with the same id and token answers `200` with the same values instead of storing a second copy; `409` if the id belongs to another token. The app uses this form, so a lost response never leaves a copy it can't withdraw. |
+| Either POST plus `&predicted=<tcgdex id>&predictedLang=<code>` (#244) | the scanner's top match, stored when it was wrong (the user confirmed another card): a hard negative for training |
+| `POST /v1/contributions?kind=not_card&consent=debug-1[&predicted=…&predictedLang=…]` (#244) | a scan the user marked as not a card, stored with `card_id` and `lang` empty. Only consent `debug-1` (`NOT_CARD_CONSENT_VERSIONS`), which only debug builds send: such a crop may show anything in a home, and `train-1` doesn't cover that. `cardId`/`lang` here, or `debug-1` on a card scan, are a `400`. |
 | `DELETE /v1/contributions/:id` with `Authorization: Bearer <withdrawToken>` | `200 { "id", "withdrawnAt" }`, the same again on repeat; `404` for an unknown id or a wrong token, `401` without a token |
 
 - **Validation**: body at most 256 KiB (`413`; the app's 252 × 352 JPEG crops are 20–60 KB); declared type and
@@ -171,8 +173,8 @@ published. The app shows the consent text, the backend only accepts versions it 
 - **No metadata**: the file is walked, not re-encoded. JPEG: every APPn segment (EXIF, XMP, JFIF, ICC, …) except
   APP14 in its fixed 12-byte Adobe form, comments and bytes after the end marker are dropped. WebP: `ICCP`, `EXIF`, `XMP ` and
   unknown chunks are dropped and the VP8X flags cleared. Metadata segments between progressive scans → `422`.
-- **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, card id, language,
-  consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at`, `withdrawn_at` and the
+- **No client data**: D1 `contributions` holds the id, the SHA-256 of the withdraw token, `kind` (`card` or
+  `not_card`), card id, language, the wrong prediction if any (`predicted_card_id`, `predicted_lang`), consent version, R2 key, type, size, dimensions, SHA-256 of the image, `created_at`, `withdrawn_at` and the
   review state (`review`, `reviewed_at`). No IP
   address, user agent or device data. The client IP is only the in-memory rate-limit key.
 - **Order of writes**: an upload first claims its id in D1, then writes the image, then checks again; so of two
@@ -203,7 +205,7 @@ Admin-only routes, in [`src/contribution-review.ts`](src/contribution-review.ts)
 
 | Request | Answer |
 |---|---|
-| `GET /v1/admin/contributions[?review=pending\|approved\|rejected][&limit=1-200][&offset=n]` | `200 { "contributions": [{ "id", "cardId", "lang", "contentType", "size", "width", "height", "createdAt", "review", "reviewedAt" }] }`, stored and not withdrawn rows, oldest first; `review` defaults to `pending` |
+| `GET /v1/admin/contributions[?review=pending\|approved\|rejected][&kind=card\|not_card][&limit=1-200][&offset=n]` | `200 { "contributions": [{ "id", "kind", "cardId", "lang", "predictedCardId", "predictedLang", "consent", "contentType", "size", "width", "height", "createdAt", "review", "reviewedAt" }] }`, stored and not withdrawn rows, oldest first; `review` defaults to `pending` |
 | `GET /v1/admin/contributions/:id/image` | the stored crop (`404` once rejected: the image is gone) |
 | `POST /v1/admin/contributions/:id/approve` | `200 { "id", "review": "approved", "reviewedAt" }`, the same on repeat |
 | `POST /v1/admin/contributions/:id/reject` | `200 { "id", "review": "rejected", "reviewedAt" }`, image deleted; also for an approved scan (later releases drop it) |

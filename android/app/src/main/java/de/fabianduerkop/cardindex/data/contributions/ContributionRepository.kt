@@ -20,6 +20,12 @@ import java.util.UUID
 /** The consent text the user accepted; the backend accepts only versions it knows (`CONSENT_VERSIONS`). */
 object ContributionConsent {
     const val VERSION = "train-1"
+
+    /**
+     * Sent with not-a-card scans (#244), which only debug builds collect: such a crop may show anything in a home,
+     * which [VERSION] doesn't cover. A release needs its own consent text first.
+     */
+    const val NOT_CARD_VERSION = "debug-1"
 }
 
 /** How a run of the upload queue ended, for the worker. */
@@ -44,6 +50,8 @@ class ContributionRepository(
     private val acceptedConsent: () -> String?,
     /** Schedules [processQueue] (WorkManager in the app). */
     private val requestRun: () -> Unit = {},
+    /** Whether not-a-card scans are collected (#244): debug builds only, see [ContributionConsent.NOT_CARD_VERSION]. */
+    val collectsNotCards: Boolean = false,
     private val clock: () -> Instant = Instant::now,
     private val sleep: suspend (Long) -> Unit = { delay(it) },
 ) {
@@ -61,10 +69,31 @@ class ContributionRepository(
     /**
      * Queues the crop of a confirmed scan when the user contributes; returns the queue id (to take it back with
      * [withdraw] if the scan is undone), or null when contributing is off. Metadata is stripped before the file is
-     * stored, so not even the queue holds any.
+     * stored, so not even the queue holds any. [predicted] is the scanner's top match when the user picked another
+     * card (#244).
      */
-    suspend fun contribute(cardId: String, lang: String, jpeg: ByteArray): Long? {
+    suspend fun contribute(cardId: String, lang: String, jpeg: ByteArray, predicted: CardRef? = null): Long? {
         val consent = acceptedConsent() ?: return null
+        return enqueue(ContributionKind.CARD, cardId, lang, consent, jpeg, predicted)
+    }
+
+    /**
+     * Queues the crop of a scan the user marked as not a card (#244), with the card it was taken for; null when
+     * contributing is off or this build doesn't collect them ([collectsNotCards]).
+     */
+    suspend fun contributeNotCard(jpeg: ByteArray, predicted: CardRef?): Long? {
+        if (!collectsNotCards || acceptedConsent() == null) return null
+        return enqueue(ContributionKind.NOT_CARD, "", "", ContributionConsent.NOT_CARD_VERSION, jpeg, predicted)
+    }
+
+    private suspend fun enqueue(
+        kind: String,
+        cardId: String,
+        lang: String,
+        consent: String,
+        jpeg: ByteArray,
+        predicted: CardRef?,
+    ): Long {
         val clean = JpegMetadata.strip(jpeg)
         val relative = "$DIR/${UUID.randomUUID()}.jpg"
         val file = File(filesDir, relative)
@@ -75,7 +104,8 @@ class ContributionRepository(
             dao.insert(
                 ContributionEntity(
                     cardId = cardId, language = lang, cropPath = relative, consentVersion = consent, createdAt = clock(),
-                    remoteId = UUID.randomUUID().toString(), withdrawToken = newWithdrawToken(),
+                    remoteId = UUID.randomUUID().toString(), withdrawToken = newWithdrawToken(), kind = kind,
+                    predictedCardId = predicted?.id, predictedLanguage = predicted?.language,
                 ),
             )
         } catch (t: Throwable) {
@@ -161,8 +191,9 @@ class ContributionRepository(
         }
         val item = dao.pendingUploads().firstOrNull() ?: return false
         val consent = acceptedConsent()
-        if (consent == null) {
-            // Turned off while queued: never send it, and withdraw any copy an earlier attempt left on the server.
+        if (consent == null || (item.kind == ContributionKind.NOT_CARD && !collectsNotCards)) {
+            // Turned off while queued (or a not-a-card scan in a build that doesn't send them): never send it, and
+            // withdraw any copy an earlier attempt left on the server.
             retract(item)
             return true
         }
@@ -174,8 +205,10 @@ class ContributionRepository(
             return true
         }
         try {
+            val predicted = item.predictedCardId?.let { id -> item.predictedLanguage?.let { CardRef(id, it) } }
             val uploaded = api.upload(
                 item.cardId, item.language, item.consentVersion, item.remoteId!!, item.withdrawToken!!, file.readBytes(),
+                item.kind, predicted,
             )
             // The answer repeats the stored id and token; a backend without client ids would send its own, which are
             // then the ones that withdraw it.

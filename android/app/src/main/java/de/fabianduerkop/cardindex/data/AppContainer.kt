@@ -124,6 +124,7 @@ class AppContainer(private val context: Context) {
             api = HttpContributionApi(BuildConfig.API_BASE_URL, httpClient),
             acceptedConsent = { settings.contributionConsent?.takeIf { it == ContributionConsent.VERSION } },
             requestRun = { ContributionWorker.enqueue(context) },
+            collectsNotCards = BuildConfig.DEBUG,
         )
     }
 
