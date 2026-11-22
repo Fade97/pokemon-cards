@@ -5,6 +5,8 @@ import de.fabianduerkop.cardindex.data.db.CardEntity
 import de.fabianduerkop.cardindex.data.db.CardSearchHit
 import de.fabianduerkop.cardindex.data.db.CatalogDao
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emitAll
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 
 /**
@@ -62,9 +64,21 @@ data class SearchPage(val hits: List<CardSearchHit>, val more: Boolean)
 class CardSearch(private val dao: CatalogDao) {
     /**
      * One query per shape of [terms] (#124), so a name with a number can look the number up in its index; all three
-     * share the filter and the order of [CatalogDao.searchByName].
+     * share the filter and the order of [CatalogDao.searchByName]. A [query] that is exactly a set's name, such as
+     * "POP Series 5", searches that set instead of splitting off "5" as the collector number (#220).
      */
-    fun observe(terms: SearchTerms, languages: Collection<String>, limit: Int = PAGE): Flow<SearchPage> {
+    fun observe(terms: SearchTerms, languages: Collection<String>, limit: Int = PAGE, query: String? = null): Flow<SearchPage> {
+        val whole = query?.trim()?.replace(Regex("\\s+"), " ")
+        if (terms.both && whole != null) {
+            return flow {
+                val asSet = dao.hasSetNamed(whole, languages.toList())
+                emitAll(observeTerms(if (asSet) SearchTerms(whole, null, both = false) else terms, languages, limit))
+            }
+        }
+        return observeTerms(terms, languages, limit)
+    }
+
+    private fun observeTerms(terms: SearchTerms, languages: Collection<String>, limit: Int): Flow<SearchPage> {
         val escaped = terms.text?.let(SearchTerms::escapeLike)
         val text = escaped?.let { "%$it%" }
         val prefix = escaped?.let { "$it%" }
