@@ -35,12 +35,23 @@ data class ReviewDraft(
     fun withCondition(value: Condition): ReviewDraft = copy(condition = value, conditionChosen = true)
 
     /**
-     * The draft for the chosen card's [printings] (#143): until the user picks a finish, it is the card's only finish
-     * if it has one, else the default ([CopyDefaults.finishFor]). A finish the user picked, or the open finish of an
-     * item that asks to check the variant, stays.
+     * The draft for the chosen card (#143, #219). [checkVariant] is that card's own check ([de.fabianduerkop.cardindex.model.needsVariantCheck]), not
+     * the item's: switching to a candidate or a search pick with a 1st edition opens finish and edition, so Confirm
+     * waits for the user, and switching to one without goes back to the defaults. Until the user picks a finish, it
+     * is the card's only finish if it has one, else the default ([CopyDefaults.finishFor]). Picked values stay.
      */
-    fun forCard(printings: Printings?): ReviewDraft =
-        if (finishChosen || finish == null) this else copy(finish = CopyDefaults.finishFor(printings))
+    fun forCard(printings: Printings?, checkVariant: Boolean = printings?.hasFirstEdition == true): ReviewDraft = copy(
+        finish = when {
+            finishChosen -> finish
+            checkVariant -> null
+            else -> CopyDefaults.finishFor(printings)
+        },
+        edition = when {
+            editionChosen -> edition
+            checkVariant -> null
+            else -> CopyDefaults.edition
+        },
+    )
 
     companion object {
         const val MAX_QUANTITY = 999

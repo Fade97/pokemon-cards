@@ -350,6 +350,9 @@
     <string name="settings_feedback">Send feedback</string>
     <string name="settings_feedback_hint">Opens a form on GitHub (you need a GitHub account). The app version and your phone model are filled in, and everything you send there is public.</string>
     <string name="settings_feedback_no_browser">No browser to open the feedback form. It is at %1$s</string>
+    <!-- For testers without a GitHub account (council launch review). -->
+    <string name="settings_feedback_email">Send feedback by email instead</string>
+    <string name="settings_feedback_email_no_app">No email app found. Write to %1$s</string>
     <!-- Open-source licenses (#136). settings_licenses_hint: %1$s is the app name. -->
     <string name="settings_licenses">Open-source licenses</string>
     <string name="settings_licenses_hint">%1$s is built with these open-source libraries. Tap one for its license.</string>
@@ -433,6 +436,12 @@
     <string name="scan_no_languages">No card language is installed, so cards can\'t be recognized yet.</string>
     <string name="scan_broken_languages">These languages failed their check and are skipped: %1$s.</string>
     <string name="scan_open_languages">Choose languages</string>
+    <!-- First run (council launch review): the chosen languages are still on their way. %1$s and %2$s are sizes. -->
+    <string name="scan_packs_downloading">Downloading card languages: %1$s of %2$s. Scanning starts when they\'re in.</string>
+    <string name="scan_packs_starting">Downloading card languages. Scanning starts when they\'re in.</string>
+    <string name="scan_packs_installing">Installing card languages…</string>
+    <string name="scan_packs_waiting_wifi">Card languages download on Wi-Fi. Connect to Wi-Fi, or allow mobile data under Choose languages.</string>
+    <string name="scan_packs_waiting">Card languages download as soon as the phone is online.</string>
 
     <!-- Scan contributions (issue #14) -->
     <string name="contribute_section">Open dataset</string>

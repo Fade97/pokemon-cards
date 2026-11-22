@@ -160,6 +160,11 @@ class ScanViewModel(application: Application) : AndroidViewModel(application) {
     private val prices = application.appContainer.prices
     private val settings = application.appContainer.settings
 
+    /** Chosen languages still on their way while none is installed (first run), for the no-languages message. */
+    val packWait: StateFlow<PackWait?> = combine(packs.installed, packs.state, settings.packsOnMobileDataFlow) { installed, sync, mobileData ->
+        PackWait.of(packs.wanted - installed.packs.keys, sync, mobileData)
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     /** The user's main market, for the price of a hit and the session total (#162). */
     val priceSource: StateFlow<PriceSource> = application.appContainer.primaryPriceSource
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), PriceRegion.defaultSource())

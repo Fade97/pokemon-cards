@@ -24,6 +24,13 @@ class TesterFeedbackTest {
     }
 
     @Test
+    fun `mailto fills in subject and details`() {
+        val mail = TesterFeedback.mailto("Foilark", appVersion = "0.1.0 (1)", device = "samsung SM-S938B", android = "16 (API 36)")
+        assertTrue(mail, mail.startsWith("mailto:${TesterFeedback.EMAIL}?subject=Foilark%20feedback&body="))
+        assertTrue(mail, mail.contains("App%20version%3A%200.1.0%20%281%29%0APhone%3A%20samsung%20SM-S938B"))
+    }
+
+    @Test
     fun `device does not repeat the maker`() {
         assertEquals("samsung SM-S938B", TesterFeedback.device("samsung", "SM-S938B"))
         assertEquals("Google Pixel 9", TesterFeedback.device("Google", "Google Pixel 9"))

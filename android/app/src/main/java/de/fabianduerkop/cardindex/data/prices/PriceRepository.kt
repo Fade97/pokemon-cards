@@ -13,6 +13,34 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 
+/**
+ * Splits card ids into price requests. The backend reads and parses one file per set a request touches (up to
+ * ~120 KB each, backend/README.md "Limits"), so a request mixing cards from dozens of sets can run past the Workers
+ * free plan's 10 ms CPU limit and fail. Cards are grouped by set: at most [maxIds] ids and [maxSets] sets per request.
+ */
+object PriceBatches {
+    const val MAX_SETS = 4
+
+    fun of(ids: Collection<String>, maxIds: Int = PriceApi.MAX_BATCH, maxSets: Int = MAX_SETS): List<List<String>> {
+        val batches = mutableListOf<List<String>>()
+        var batch = mutableListOf<String>()
+        var sets = 0
+        for ((_, setIds) in ids.groupBy(PriceShards::of).toSortedMap()) {
+            for (part in setIds.chunked(maxIds)) {
+                if (batch.isNotEmpty() && (batch.size + part.size > maxIds || sets == maxSets)) {
+                    batches += batch
+                    batch = mutableListOf()
+                    sets = 0
+                }
+                batch += part
+                sets++
+            }
+        }
+        if (batch.isNotEmpty()) batches += batch
+        return batches
+    }
+}
+
 sealed interface RefreshResult {
     /** [cards] got fresh prices; the rest were fresh enough already or unknown to the backend. */
     data class Updated(val cards: Int) : RefreshResult
@@ -54,7 +82,7 @@ class PriceRepository(
         val ids = valid.filterNot { it in unknown }
         val due = if (force) ids else stale(ids)
         var updated = 0
-        for (chunk in due.chunked(PriceApi.MAX_BATCH)) {
+        for (chunk in PriceBatches.of(due)) {
             val batch = try {
                 fetchWithRetry(chunk)
             } catch (e: IOException) {

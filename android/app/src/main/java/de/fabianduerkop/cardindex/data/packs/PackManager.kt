@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.data.packs
 import android.util.Log
 import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.recognition.PackIntegrityException
+import de.fabianduerkop.cardindex.recognition.sha256Hex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -285,14 +286,22 @@ class PackManager(
         val cardsFile = progress.track { http.download(entry.cardsFile, it) }
         val indexFile = progress.track { http.download(index, it) }
         setProgress(entry.lang, LanguageProgress.Installing)
-        val content = PackContent.parse(cardsFile.readBytes(), indexFile.readBytes(), entry.dim)
-        if (content.lang != entry.lang || content.version != entry.version) {
-            throw PackIntegrityException("${entry.path()} is ${content.lang} ${content.version}")
+        // The index stays a file and is hashed as a stream, as in installDeltas: read into rows it was ~70–95 MB of
+        // Java heap for the English pack on first run, enough to crash a mid-range phone.
+        val cards = PackCards.parse(cardsFile.readBytes())
+        if (cards.lang != entry.lang || cards.version != entry.version) {
+            throw PackIntegrityException("${entry.path()} is ${cards.lang} ${cards.version}")
         }
-        content.verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
+        val rows = cards.indexed.size
+        val dim = if (rows == 0) 0 else entry.dim
+        if (rows > 0 && (dim <= 0 || indexFile.length() != rows.toLong() * dim * 4)) {
+            throw PackIntegrityException("${entry.lang}: index.bin (${indexFile.length()} bytes) does not fit $rows cards of dim ${entry.dim}")
+        }
+        StreamedPack(cards, dim, indexFile, sha256Hex(indexFile))
+            .verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
         val dir = store.newPackDir(entry.lang, entry.version)
         try {
-            store.writePack(dir, cardsFile, indexFile, PackMeta.of(entry, content, indexSha256 = entry.indexSha256!!))
+            store.writePack(dir, cardsFile, indexFile, PackMeta.of(entry, cards, dim, indexSha256 = entry.indexSha256!!))
         } catch (e: Exception) {
             store.discard(dir)
             throw e
