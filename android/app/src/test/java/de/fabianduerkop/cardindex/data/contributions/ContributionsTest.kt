@@ -124,6 +124,44 @@ class ContributionsTest {
     }
 
     @Test
+    fun aCorrectedScanCarriesTheWrongTopMatch() = runTest {
+        repo.contribute("sv03.5-006", "de", jpegWithMetadata, predicted = CardRef("xy9-110", "it"))
+        repo.processQueue()
+        val upload = api.uploads.single()
+        assertEquals(ContributionKind.CARD, upload.kind)
+        assertEquals(CardRef("xy9-110", "it"), upload.predicted)
+    }
+
+    @Test
+    fun notCardScansOnlyInBuildsThatCollectThemAndOnlyWithConsent() = runTest {
+        // A release build: nothing queued.
+        assertNull(repo.contributeNotCard(jpegWithMetadata, CardRef("xy9-110", "de")))
+
+        val debug = ContributionRepository(db, tmp.root, api, acceptedConsent = { consent }, collectsNotCards = true)
+        consent = null
+        assertNull(debug.contributeNotCard(jpegWithMetadata, CardRef("xy9-110", "de")))
+        consent = ContributionConsent.VERSION
+        debug.contributeNotCard(jpegWithMetadata, CardRef("xy9-110", "de"))!!
+        assertEquals(QueueOutcome.Done, debug.processQueue())
+
+        val upload = api.uploads.single()
+        assertEquals(ContributionKind.NOT_CARD, upload.kind)
+        assertEquals(listOf("", "", ContributionConsent.NOT_CARD_VERSION), listOf(upload.cardId, upload.lang, upload.consent))
+        assertEquals(CardRef("xy9-110", "de"), upload.predicted)
+        assertFalse(JpegMetadata.hasMetadata(upload.jpeg))
+    }
+
+    @Test
+    fun aQueuedNotCardScanIsNeverSentByABuildThatDoesNotCollectThem() = runTest {
+        val debug = ContributionRepository(db, tmp.root, api, acceptedConsent = { consent }, collectsNotCards = true)
+        debug.contributeNotCard(jpegWithMetadata, null)!!
+        // The same database read by a build without the feature.
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertTrue(api.uploads.isEmpty())
+        assertTrue(repo.observe().first().isEmpty())
+    }
+
+    @Test
     fun offlineKeepsTheQueueAndRateLimitIsWaitedOut() = runTest {
         repo.contribute("sv03.5-006", "de", jpegWithMetadata)
         api.failNext += IOException("offline")
@@ -351,12 +389,36 @@ class ContributionsTest {
                 kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "cc0-1", id, "B".repeat(43), byteArrayOf(1)) }
             }
             assertEquals(409, taken.code)
+            server.takeRequest()
+
+            // A not-a-card scan names no card, only the one it was taken for (#244).
+            server.enqueue(MockResponse().setResponseCode(201).setBody("""{"id":"$id","withdrawToken":"$token"}"""))
+            server.enqueue(MockResponse().setResponseCode(201).setBody("""{"id":"$id","withdrawToken":"$token"}"""))
+            http.upload("", "", "debug-1", id, token, byteArrayOf(1), ContributionKind.NOT_CARD, CardRef("xy9-110", "de"))
+            assertEquals(
+                "/v1/contributions?kind=not_card&consent=debug-1&id=$id&predicted=xy9-110&predictedLang=de",
+                server.takeRequest().path,
+            )
+            http.upload("sv03.5-006", "de", "train-1", id, token, byteArrayOf(1), predicted = CardRef("xy9-110", "it"))
+            assertEquals(
+                "/v1/contributions?cardId=sv03.5-006&lang=de&consent=train-1&id=$id&predicted=xy9-110&predictedLang=it",
+                server.takeRequest().path,
+            )
         } finally {
             server.shutdown()
         }
     }
 
-    private class Upload(val cardId: String, val lang: String, val consent: String, val id: String, val token: String, val jpeg: ByteArray)
+    private class Upload(
+        val cardId: String,
+        val lang: String,
+        val consent: String,
+        val id: String,
+        val token: String,
+        val jpeg: ByteArray,
+        val kind: String = ContributionKind.CARD,
+        val predicted: CardRef? = null,
+    )
 
     /** The backend's contract: one stored contribution per id; the same id and token again get it back. */
     private class FakeApi : ContributionApi {
@@ -377,13 +439,15 @@ class ContributionsTest {
             id: String,
             withdrawToken: String,
             jpeg: ByteArray,
+            kind: String,
+            predicted: CardRef?,
         ): UploadedContribution {
             requests++
             failNext.removeFirstOrNull()?.let { throw it }
             beforeUploadReturns()
             val existing = uploads.firstOrNull { it.id == id }
             if (existing == null) {
-                uploads += Upload(cardId, lang, consent, id, withdrawToken, jpeg)
+                uploads += Upload(cardId, lang, consent, id, withdrawToken, jpeg, kind, predicted)
             } else if (existing.token != withdrawToken) {
                 throw ContributionRejectedException(409)
             }

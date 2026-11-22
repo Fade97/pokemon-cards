@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.data.db
 
+import androidx.room.ColumnInfo
 import androidx.room.Dao
 import androidx.room.Embedded
 import androidx.room.Entity
@@ -20,9 +21,9 @@ import java.time.Instant
 @Entity(tableName = "contributions", indices = [Index("remoteId", unique = true)])
 data class ContributionEntity(
     @PrimaryKey(autoGenerate = true) val id: Long = 0,
-    /** The TCGdex id the user confirmed. */
+    /** The TCGdex id the user confirmed; '' for a not-a-card scan. */
     val cardId: String,
-    /** The language of the scanned print. */
+    /** The language of the scanned print; '' for a not-a-card scan. */
     val language: String,
     /** The metadata-free crop below the files directory while it waits for upload; null once uploaded. */
     val cropPath: String?,
@@ -34,10 +35,15 @@ data class ContributionEntity(
     val uploadedAt: Instant? = null,
     /** The user withdrew it; the DELETE is still to be sent. */
     val withdrawRequested: Boolean = false,
+    /** [de.fabianduerkop.cardindex.data.contributions.ContributionKind] (#244). */
+    @ColumnInfo(defaultValue = "card") val kind: String = "card",
+    /** The scanner's top match when it was wrong (#244): the card a not-a-card scan was taken for, or the top match the user corrected. */
+    val predictedCardId: String? = null,
+    val predictedLanguage: String? = null,
 ) {
     /** The token is a credential: keep it out of logs and crash reports. */
     override fun toString() =
-        "ContributionEntity(id=$id, cardId=$cardId, language=$language, remoteId=$remoteId, uploadedAt=$uploadedAt, " +
+        "ContributionEntity(id=$id, kind=$kind, cardId=$cardId, language=$language, remoteId=$remoteId, uploadedAt=$uploadedAt, " +
             "withdrawRequested=$withdrawRequested)"
 }
 

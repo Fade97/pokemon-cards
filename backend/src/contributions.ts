@@ -2,6 +2,9 @@
 //
 //   POST   /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>[&id=<uuid>]   body: the rectified
 //          crop (image/jpeg or image/webp, at most 256 KiB, card-shaped)  ->  201 { id, withdrawToken }
+//          Optional `predicted=<tcgdex id>&predictedLang=<code>`: the scanner's top match when the user picked
+//          another card (#244). `kind=not_card` (no cardId/lang, consent `debug-1` only) is a scan the user marked as
+//          not a card, a negative for training; `predicted` then names the card it was taken for.
 //          With `id` the client also sends its own token (Authorization: Bearer <43 chars base64url>); a repeated
 //          POST with the same id and token answers 200 with the same values instead of storing a second copy, so a
 //          retry after a lost response never leaves a copy the client cannot withdraw.
@@ -39,6 +42,12 @@ export const DEFAULT_DAILY_QUOTA = 500;
  * same narrower way.
  */
 export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["train-1", "cc0-1"]);
+/**
+ * Consent for not-a-card scans (#244). Such a crop may show anything in a home, which "train-1" doesn't cover, so
+ * for now only debug builds send them, under this version; a release needs its own consent text first.
+ */
+export const NOT_CARD_CONSENT_VERSIONS: ReadonlySet<string> = new Set(["debug-1"]);
+export type ContributionKind = "card" | "not_card";
 const LANG = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** A claim this old without its image is taken to be abandoned; a retry with the same token may take it over. */
@@ -70,12 +79,33 @@ export async function handleContributions(
 
 async function create(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
   const q = new URL(request.url).searchParams;
-  const cardId = q.get("cardId");
-  const lang = q.get("lang");
+  const kind = q.get("kind") ?? "card";
   const consent = q.get("consent");
-  if (!isCardId(cardId)) return json({ error: "invalid cardId" }, 400);
-  if (!lang || !LANG.test(lang)) return json({ error: "invalid lang" }, 400);
-  if (!consent || !CONSENT_VERSIONS.has(consent)) return json({ error: "unknown consent version" }, 400);
+  let cardId: string;
+  let lang: string;
+  if (kind === "card") {
+    const c = q.get("cardId");
+    const l = q.get("lang");
+    if (!isCardId(c)) return json({ error: "invalid cardId" }, 400);
+    if (!l || !LANG.test(l)) return json({ error: "invalid lang" }, 400);
+    if (!consent || !CONSENT_VERSIONS.has(consent)) return json({ error: "unknown consent version" }, 400);
+    cardId = c;
+    lang = l;
+  } else if (kind === "not_card") {
+    if (q.has("cardId") || q.has("lang")) return json({ error: "a not_card scan has no cardId or lang" }, 400);
+    if (!consent || !NOT_CARD_CONSENT_VERSIONS.has(consent)) return json({ error: "unknown consent version" }, 400);
+    cardId = "";
+    lang = "";
+  } else {
+    return json({ error: "kind must be card or not_card" }, 400);
+  }
+  const predictedCardId = q.get("predicted");
+  const predictedLang = q.get("predictedLang");
+  if ((predictedCardId === null) !== (predictedLang === null)) {
+    return json({ error: "predicted and predictedLang go together" }, 400);
+  }
+  if (predictedCardId !== null && !isCardId(predictedCardId)) return json({ error: "invalid predicted" }, 400);
+  if (predictedLang !== null && !LANG.test(predictedLang)) return json({ error: "invalid predictedLang" }, 400);
 
   // Client-chosen id and token make the upload idempotent; without them the server picks both.
   const clientId = q.get("id");
@@ -132,7 +162,8 @@ async function create(request: Request, env: Env, ctx: ExecutionContext): Promis
   // claim → write → re-check runs under waitUntil: a client that gives up mid-request must not stop the Worker
   // between the steps (a claimed row without its image, or a withdrawn row whose image stays).
   const store = storeClaimed(env, {
-    id, token, tokenHash, key, cardId, lang, consent, declared, clean, width, height, sha256, quota,
+    id, token, tokenHash, key, kind, cardId, lang, predictedCardId, predictedLang, consent, declared, clean, width,
+    height, sha256, quota,
   });
   ctx.waitUntil(store.catch(() => {}));
   return store;
@@ -143,8 +174,12 @@ interface Claim {
   token: string;
   tokenHash: string;
   key: string;
+  kind: ContributionKind;
+  /** '' for a not_card scan. */
   cardId: string;
   lang: string;
+  predictedCardId: string | null;
+  predictedLang: string | null;
   consent: string;
   declared: "image/jpeg" | "image/webp";
   clean: { bytes: Uint8Array<ArrayBuffer> };
@@ -156,18 +191,22 @@ interface Claim {
 }
 
 async function storeClaimed(env: Env, c: Claim): Promise<Response> {
-  const { id, token, tokenHash, key, cardId, lang, consent, declared, clean, width, height, sha256, quota } = c;
+  const { id, token, tokenHash, key, kind, cardId, lang, predictedCardId, predictedLang, consent, declared, clean, width,
+    height, sha256, quota } = c;
   const now = new Date();
   // The claim time doubles as this attempt's id: cleanup and "stored" below only touch the row while it still
   // carries it, so an attempt whose claim was taken over can't delete or complete the new owner's row.
   const claimAt = now.toISOString();
-  const values = [cardId, lang, consent, key, declared, clean.bytes.length, width, height, sha256, claimAt];
+  const values = [
+    kind, cardId, lang, predictedCardId, predictedLang, consent, key, declared, clean.bytes.length, width, height, sha256,
+    claimAt,
+  ];
   // The quota is checked in the claim itself, so concurrent uploads can't take the day past it. New rows start in
   // quarantine (`review` defaults to 'pending', migration 0003).
   const claimed = await env.DB.prepare(
-    `INSERT INTO contributions (id, token_hash, card_id, lang, consent_version, object_key, content_type, size,
-       width, height, sha256, created_at)
-     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
+    `INSERT INTO contributions (id, token_hash, kind, card_id, lang, predicted_card_id, predicted_lang, consent_version,
+       object_key, content_type, size, width, height, sha256, created_at)
+     SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?
      WHERE (SELECT COUNT(*) FROM contributions WHERE created_at >= ? AND object_key <> '') < ?
      ON CONFLICT (id) DO NOTHING`,
   )
@@ -179,8 +218,8 @@ async function storeClaimed(env: Env, c: Claim): Promise<Response> {
     // A claim by the same client whose upload never finished (the Worker died, the write failed and its cleanup
     // too) is taken over once it is old enough; anything else answers as an existing upload.
     const takenOver = await env.DB.prepare(
-      `UPDATE contributions SET card_id = ?, lang = ?, consent_version = ?, object_key = ?, content_type = ?,
-         size = ?, width = ?, height = ?, sha256 = ?, created_at = ?
+      `UPDATE contributions SET kind = ?, card_id = ?, lang = ?, predicted_card_id = ?, predicted_lang = ?,
+         consent_version = ?, object_key = ?, content_type = ?, size = ?, width = ?, height = ?, sha256 = ?, created_at = ?
        WHERE id = ? AND token_hash = ? AND stored_at IS NULL AND withdrawn_at IS NULL AND created_at < ?`,
     )
       .bind(...values, id, tokenHash, new Date(now.getTime() - STALE_CLAIM_MS).toISOString())

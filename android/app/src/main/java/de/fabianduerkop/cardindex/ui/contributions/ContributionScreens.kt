@@ -36,6 +36,7 @@ import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.AppContainer
 import de.fabianduerkop.cardindex.data.contributions.ContributionConsent
+import de.fabianduerkop.cardindex.data.contributions.ContributionKind
 import de.fabianduerkop.cardindex.data.db.ContributionItem
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
@@ -175,7 +176,11 @@ private val dateFormat = DateTimeFormatter.ofLocalizedDateTime(FormatStyle.SHORT
 @Composable
 private fun ContributionRow(item: ContributionItem, onWithdraw: () -> Unit) {
     val c = item.contribution
-    val title = listOfNotNull(item.cardName ?: c.cardId, item.localId, languageName(c.language)).joinToString(" · ")
+    val title = if (c.kind == ContributionKind.NOT_CARD) {
+        stringResource(R.string.contribute_not_a_card)
+    } else {
+        listOfNotNull(item.cardName ?: c.cardId, item.localId, languageName(c.language)).joinToString(" · ")
+    }
     Row(Modifier.padding(vertical = Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
             Text(title, style = MaterialTheme.typography.titleSmall)

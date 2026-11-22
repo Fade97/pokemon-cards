@@ -272,9 +272,19 @@ private fun ItemForm(
         TextAction(
             stringResource(R.string.review_discard),
             onClick = viewModel::discard,
-            modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.lg),
+            modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else Spacing.lg),
             alignToText = true,
         )
+        // Debug builds only (#244): the crop goes to training as a negative, apart from "Remove", which also covers
+        // real cards not worth keeping (blurred, cut off).
+        if (viewModel.collectsNotCards) {
+            TextAction(
+                stringResource(R.string.review_not_a_card),
+                onClick = viewModel::notACard,
+                modifier = Modifier.padding(bottom = Spacing.lg),
+                alignToText = true,
+            )
+        }
     }
 }
 

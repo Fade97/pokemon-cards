@@ -44,7 +44,7 @@ abstract class CardIndexDatabase : RoomDatabase() {
 
     companion object {
         /** Bump together with a new entry in [MIGRATIONS]; the build exports `schemas/…/<VERSION>.json`. */
-        const val VERSION = 10
+        const val VERSION = 11
 
         /** v2 (#17): the Pro price-history cache. Only new tables, so nothing to copy. */
         val MIGRATION_1_2 = object : Migration(1, 2) {
@@ -162,10 +162,22 @@ abstract class CardIndexDatabase : RoomDatabase() {
             }
         }
 
+        /**
+         * v11 (#244): what a contribution shows (a card, or a scan marked as not a card) and the scanner's wrong top
+         * match. Existing rows are card scans without a prediction.
+         */
+        val MIGRATION_10_11 = object : Migration(10, 11) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE `contributions` ADD COLUMN `kind` TEXT NOT NULL DEFAULT 'card'")
+                db.execSQL("ALTER TABLE `contributions` ADD COLUMN `predictedCardId` TEXT")
+                db.execSQL("ALTER TABLE `contributions` ADD COLUMN `predictedLanguage` TEXT")
+            }
+        }
+
         /** Every migration since v1. SchemaMigrationTest runs each exported version through these. */
         val MIGRATIONS: Array<Migration> = arrayOf(
             MIGRATION_1_2, MIGRATION_2_3, MIGRATION_3_4, MIGRATION_4_5, MIGRATION_5_6, MIGRATION_6_7, MIGRATION_7_8,
-            MIGRATION_8_9, MIGRATION_9_10,
+            MIGRATION_8_9, MIGRATION_9_10, MIGRATION_10_11,
         )
 
         private const val NAME = "cardindex.db"

@@ -1,9 +1,10 @@
 // Review of scan contributions before training (#135, ADR 0016). Every upload lands in quarantine
 // (`review = 'pending'`); a training set takes only rows an admin approved.
 //
-//   GET  /v1/admin/contributions[?review=pending|approved|rejected][&limit=1-200][&offset=n]
-//        -> 200 { contributions: [{ id, cardId, lang, contentType, size, width, height, createdAt, review, reviewedAt }] }
-//        Stored, not withdrawn rows, oldest first; `review` defaults to pending.
+//   GET  /v1/admin/contributions[?review=pending|approved|rejected][&kind=card|not_card][&limit=1-200][&offset=n]
+//        -> 200 { contributions: [{ id, kind, cardId, lang, predictedCardId, predictedLang, consent, contentType, size,
+//                 width, height, createdAt, review, reviewedAt }] }
+//        Stored, not withdrawn rows, oldest first; `review` defaults to pending, `kind` to both (#244).
 //   GET  /v1/admin/contributions/:id/image   -> the stored crop (not for rejected rows: their image is gone)
 //   POST /v1/admin/contributions/:id/approve -> 200 { id, review, reviewedAt }
 //   POST /v1/admin/contributions/:id/reject  -> 200 { id, review, reviewedAt }; the image is deleted, the row stays
@@ -18,6 +19,7 @@ const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** Same shape as Pro test tokens: URL-safe, long enough not to be guessed. */
 const TOKEN = /^Bearer ([A-Za-z0-9_-]{32,128})$/;
 const REVIEWS = new Set(["pending", "approved", "rejected"]);
+const KINDS = new Set(["card", "not_card"]);
 type Decision = "approved" | "rejected";
 
 export async function handleContributionReview(request: Request, env: Env, pathname: string): Promise<Response> {
@@ -49,8 +51,12 @@ async function isAdmin(request: Request, env: Env): Promise<boolean> {
 
 interface Row {
   id: string;
+  kind: string;
   card_id: string;
   lang: string;
+  predicted_card_id: string | null;
+  predicted_lang: string | null;
+  consent_version: string;
   content_type: string;
   size: number;
   width: number;
@@ -64,20 +70,24 @@ async function list(request: Request, env: Env): Promise<Response> {
   const q = new URL(request.url).searchParams;
   const review = q.get("review") ?? "pending";
   if (!REVIEWS.has(review)) return json({ error: "review must be pending, approved or rejected" }, 400);
+  const kind = q.get("kind");
+  if (kind !== null && !KINDS.has(kind)) return json({ error: "kind must be card or not_card" }, 400);
   const limit = int(q.get("limit"), 50);
   const offset = int(q.get("offset"), 0);
   if (limit === null || limit < 1 || limit > 200) return json({ error: "limit must be 1-200" }, 400);
   if (offset === null) return json({ error: "offset must be a whole number" }, 400);
   const { results } = await env.DB.prepare(
-    `SELECT id, card_id, lang, content_type, size, width, height, created_at, review, reviewed_at FROM contributions
-     WHERE review = ? AND stored_at IS NOT NULL AND withdrawn_at IS NULL
-     ORDER BY created_at, id LIMIT ? OFFSET ?`,
+    `SELECT id, kind, card_id, lang, predicted_card_id, predicted_lang, consent_version, content_type, size, width,
+       height, created_at, review, reviewed_at FROM contributions
+     WHERE review = ?1 AND (?2 IS NULL OR kind = ?2) AND stored_at IS NOT NULL AND withdrawn_at IS NULL
+     ORDER BY created_at, id LIMIT ?3 OFFSET ?4`,
   )
-    .bind(review, limit, offset)
+    .bind(review, kind, limit, offset)
     .all<Row>();
   return json({
     contributions: results.map((r) => ({
-      id: r.id, cardId: r.card_id, lang: r.lang, contentType: r.content_type, size: r.size, width: r.width,
+      id: r.id, kind: r.kind, cardId: r.card_id, lang: r.lang, predictedCardId: r.predicted_card_id,
+      predictedLang: r.predicted_lang, consent: r.consent_version, contentType: r.content_type, size: r.size, width: r.width,
       height: r.height, createdAt: r.created_at, review: r.review, reviewedAt: r.reviewed_at,
     })),
   });

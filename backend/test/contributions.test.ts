@@ -191,6 +191,62 @@ describe("consent versions (ADR 0016)", () => {
   });
 });
 
+describe("false positives (#244)", () => {
+  const row = (id: string) =>
+    env.DB.prepare("SELECT kind, card_id, lang, predicted_card_id, predicted_lang, consent_version FROM contributions WHERE id = ?")
+      .bind(id)
+      .first();
+
+  it("records the scanner's wrong top match next to the confirmed card", async () => {
+    const res = await upload(jpeg(), {
+      query: "cardId=sv03.5-025&lang=de&consent=train-1&predicted=xy9-110&predictedLang=it",
+    });
+    expect(res.status).toBe(201);
+    const { id } = await res.json<{ id: string }>();
+    expect(await row(id)).toEqual({
+      kind: "card", card_id: "sv03.5-025", lang: "de", predicted_card_id: "xy9-110", predicted_lang: "it",
+      consent_version: "train-1",
+    });
+  });
+
+  it("stores a not-a-card scan without a label, only under the debug consent", async () => {
+    const res = await upload(jpeg(), { query: "kind=not_card&consent=debug-1&predicted=xy9-110&predictedLang=de" });
+    expect(res.status).toBe(201);
+    const { id } = await res.json<{ id: string }>();
+    expect(await row(id)).toEqual({
+      kind: "not_card", card_id: "", lang: "", predicted_card_id: "xy9-110", predicted_lang: "de",
+      consent_version: "debug-1",
+    });
+    // Without a prediction too.
+    expect((await upload(jpeg(), { query: "kind=not_card&consent=debug-1" })).status).toBe(201);
+
+    const { contributions } = await (await admin("?kind=not_card&limit=200")).json<{ contributions: Record<string, unknown>[] }>();
+    expect(contributions.find((c) => c.id === id)).toMatchObject({
+      kind: "not_card", cardId: "", predictedCardId: "xy9-110", predictedLang: "de", consent: "debug-1",
+    });
+    expect(contributions.every((c) => c.kind === "not_card")).toBe(true);
+    const cards = await (await admin("?kind=card&limit=200")).json<{ contributions: { id: string }[] }>();
+    expect(cards.contributions.some((c) => c.id === id)).toBe(false);
+  });
+
+  it("refuses mismatched kinds, consents and predictions", async () => {
+    for (const query of [
+      "kind=not_card&consent=train-1", // release consent doesn't cover non-card crops
+      "kind=not_card&consent=cc0-1",
+      "kind=not_card&cardId=sv03.5-025&lang=de&consent=debug-1",
+      "cardId=sv03.5-025&lang=de&consent=debug-1", // the debug consent is for not_card only
+      "kind=blank&consent=debug-1",
+      "cardId=sv03.5-025&lang=de&consent=train-1&predicted=xy9-110", // without predictedLang
+      "cardId=sv03.5-025&lang=de&consent=train-1&predictedLang=de",
+      "cardId=sv03.5-025&lang=de&consent=train-1&predicted=../x&predictedLang=de",
+      "cardId=sv03.5-025&lang=de&consent=train-1&predicted=xy9-110&predictedLang=DEU",
+    ]) {
+      expect((await upload(jpeg(), { query })).status, query).toBe(400);
+    }
+    expect((await admin("?kind=blank")).status).toBe(400);
+  });
+});
+
 describe("POST /v1/contributions with a client id (idempotent)", () => {
   const token = "A".repeat(43);
   const query = (id: string) => `cardId=sv03.5-025&lang=de&consent=cc0-1&id=${id}`;
@@ -333,9 +389,11 @@ describe("POST /v1/contributions", () => {
     expect(row!.token_hash).toMatch(/^[0-9a-f]{64}$/);
     // Nothing about the client: no column could hold an IP address or device data.
     expect(Object.keys(row!).sort()).toEqual([
-      "card_id", "consent_version", "content_type", "created_at", "height", "id", "lang", "object_key", "review",
-      "reviewed_at", "sha256", "size", "stored_at", "token_hash", "width", "withdrawn_at",
+      "card_id", "consent_version", "content_type", "created_at", "height", "id", "kind", "lang", "object_key",
+      "predicted_card_id", "predicted_lang", "review", "reviewed_at", "sha256", "size", "stored_at", "token_hash", "width",
+      "withdrawn_at",
     ]);
+    expect(row).toMatchObject({ kind: "card", predicted_card_id: null, predicted_lang: null });
     // Quarantined until an admin approves it (#135).
     expect(row).toMatchObject({ review: "pending", reviewed_at: null });
 
@@ -560,7 +618,8 @@ describe("admin review of contributions", () => {
     });
     // No withdraw token hash or R2 key in the listing.
     expect(Object.keys(contributions[0]!).sort()).toEqual([
-      "cardId", "contentType", "createdAt", "height", "id", "lang", "review", "reviewedAt", "size", "width",
+      "cardId", "consent", "contentType", "createdAt", "height", "id", "kind", "lang", "predictedCardId", "predictedLang",
+      "review", "reviewedAt", "size", "width",
     ]);
 
     const image = await admin(`/${id}/image`);

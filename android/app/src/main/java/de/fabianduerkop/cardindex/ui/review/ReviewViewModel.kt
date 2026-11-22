@@ -6,6 +6,7 @@ import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.appContainer
+import de.fabianduerkop.cardindex.data.contributions.CardRef
 import de.fabianduerkop.cardindex.data.db.CardIndexDatabase
 import de.fabianduerkop.cardindex.data.db.CollectionEntity
 import de.fabianduerkop.cardindex.data.db.ReviewCandidateEntity
@@ -171,6 +172,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val id = item.entity.id
         busy.update { it + id }
         val candidate = item.candidates.firstOrNull { it.rank == draft.rank }
+        // The scanner's top match, kept with the contribution when the user picked another card: a hard negative (#244).
+        val predicted = item.candidates.firstOrNull { it.rank == 0 }
+            ?.takeIf { top -> candidate != null && (top.card.id to top.card.language) != (candidate.card.id to candidate.card.language) }
+            ?.let { CardRef(it.card.id, it.card.language) }
         viewModelScope.launch {
             runCatching {
                 withContext(Dispatchers.IO) {
@@ -182,7 +187,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                     drafts.update { it - id }
                     val crop = confirmed.cropJpeg
                     val contribution = if (candidate != null && crop != null) {
-                        runCatching { contributions.contribute(candidate.card.id, candidate.card.language, crop) }
+                        runCatching { contributions.contribute(candidate.card.id, candidate.card.language, crop, predicted) }
                             .onFailure { Log.e(TAG, "queueing the contribution failed", it) }
                             .getOrNull()
                     } else {
@@ -232,6 +237,29 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         busy.update { it + id }
         viewModelScope.launch {
             runCatching { queue.discard(id) }.onFailure { Log.e(TAG, "discarding $id failed", it) }
+            drafts.update { it - id }
+            busy.update { it - id }
+        }
+    }
+
+    /** Whether this build offers [notACard] (#244): debug builds only. */
+    val collectsNotCards: Boolean get() = contributions.collectsNotCards
+
+    /**
+     * The scan shows no card at all (#244): removes it like [discard] and, when the user contributes, sends the crop
+     * with the card it was taken for, as a negative for training. Debug builds only ([collectsNotCards]).
+     */
+    fun notACard() {
+        val item = state.value.current ?: return
+        val id = item.entity.id
+        val predicted = item.candidates.firstOrNull { it.rank == 0 }?.let { CardRef(it.card.id, it.card.language) }
+        busy.update { it + id }
+        viewModelScope.launch {
+            runCatching {
+                // Read before the discard deletes the crop.
+                val crop = withContext(Dispatchers.IO) { runCatching { item.cropFile.readBytes() }.getOrNull() }
+                if (queue.discard(id) && crop != null) contributions.contributeNotCard(crop, predicted)
+            }.onFailure { Log.e(TAG, "reporting $id as not a card failed", it) }
             drafts.update { it - id }
             busy.update { it - id }
         }

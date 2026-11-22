@@ -17,6 +17,18 @@ class UploadedContribution(val id: String, val withdrawToken: String) {
     override fun toString() = "UploadedContribution(id=$id, withdrawToken=…)"
 }
 
+/** A catalog card: TCGdex id and the language of the print. */
+data class CardRef(val id: String, val language: String)
+
+/** What a contribution shows (#244); the backend's `kind`. */
+object ContributionKind {
+    /** A card, labeled with the card the user confirmed. */
+    const val CARD = "card"
+
+    /** A scan the user marked as not a card: a negative for training, without a label. Debug builds only. */
+    const val NOT_CARD = "not_card"
+}
+
 /** HTTP 429: wait [retryAfterSeconds] (the backend sends 60). */
 class ContributionRateLimitedException(val retryAfterSeconds: Long) : IOException("Rate limited, retry after $retryAfterSeconds s")
 
@@ -29,6 +41,9 @@ interface ContributionApi {
      * Uploads under the client's own [id] (UUID v4) and [withdrawToken], both stored before the first attempt. The
      * same id and token again answer with the stored contribution instead of a second copy, so a retry after a lost
      * answer is safe (`201` new, `200` known, `409` the id belongs to another token).
+     *
+     * [kind] [ContributionKind.NOT_CARD] sends no [cardId] and [lang]. [predicted] is the scanner's top match when it
+     * was wrong (#244).
      */
     suspend fun upload(
         cardId: String,
@@ -37,6 +52,8 @@ interface ContributionApi {
         id: String,
         withdrawToken: String,
         jpeg: ByteArray,
+        kind: String = ContributionKind.CARD,
+        predicted: CardRef? = null,
     ): UploadedContribution
 
     /** Withdraws an upload. A `404` (unknown id, or a token that doesn't fit) counts as done: nothing is left to do. */
@@ -55,14 +72,19 @@ class HttpContributionApi(private val baseUrl: String, private val client: Call.
         id: String,
         withdrawToken: String,
         jpeg: ByteArray,
+        kind: String,
+        predicted: CardRef?,
     ): UploadedContribution =
         withContext(Dispatchers.IO) {
-            val url = (baseUrl.trimEnd('/') + "/v1/contributions").toHttpUrl().newBuilder()
-                .addQueryParameter("cardId", cardId)
-                .addQueryParameter("lang", lang)
-                .addQueryParameter("consent", consent)
-                .addQueryParameter("id", id)
-                .build()
+            val builder = (baseUrl.trimEnd('/') + "/v1/contributions").toHttpUrl().newBuilder()
+            if (kind == ContributionKind.CARD) {
+                builder.addQueryParameter("cardId", cardId).addQueryParameter("lang", lang)
+            } else {
+                builder.addQueryParameter("kind", kind)
+            }
+            builder.addQueryParameter("consent", consent).addQueryParameter("id", id)
+            predicted?.let { builder.addQueryParameter("predicted", it.id).addQueryParameter("predictedLang", it.language) }
+            val url = builder.build()
             val request = Request.Builder().url(url).post(jpeg.toRequestBody(JPEG))
                 .header("Authorization", "Bearer $withdrawToken")
                 .build()
