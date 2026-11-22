@@ -221,7 +221,7 @@ Current Cardmarket (EUR) and TCGplayer (USD) prices, updated daily, with a link 
 Cardmarket prices mix all card languages, and the app says so.
 
 PRIVATE BY DESIGN
-No account, no ads, no analytics of our own. Your collection stays on your phone and in your own Android backup.
+No account, no ads, no tracking. Your collection stays on your phone and in your own Android backup.
 Free JSON/CSV export. If you want to help improve recognition, you can choose to share cropped card scans as
 public domain (CC0); that is off by default and can be withdrawn in the app at any time (already published dataset
 releases keep it).
@@ -259,7 +259,7 @@ Aktuelle Cardmarket- (EUR) und TCGplayer-Preise (USD), täglich aktualisiert, mi
 Cardmarket-Preise gelten für alle Kartensprachen zusammen, und die App weist darauf hin.
 
 PRIVATSPHÄRE
-Kein Konto, keine Werbung, keine eigene Analyse. Deine Sammlung bleibt auf deinem Handy und in deinem eigenen
+Kein Konto, keine Werbung, kein Tracking. Deine Sammlung bleibt auf deinem Handy und in deinem eigenen
 Android-Backup. Kostenloser Export als JSON/CSV. Wer die Erkennung verbessern möchte, kann zugeschnittene
 Kartenscans als gemeinfrei (CC0) teilen; das ist standardmäßig aus und in der App jederzeit widerrufbar (bereits
 veröffentlichte Datensatz-Versionen behalten den Scan).
@@ -308,15 +308,14 @@ requirements was not checked.
 
 ### Data safety form
 
-Based on the code on `main` (2026-11-18): the release manifest asks only for `CAMERA` and `INTERNET` (`POST_NOTIFICATIONS` is debug-only until price alerts ship, #138). The app
+Based on the code on `main` (2026-11-22): the release manifest asks only for `CAMERA` and `INTERNET` (`POST_NOTIFICATIONS` is debug-only until price alerts ship, #138). The app
 talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributions) and to the TCGdex CDN
 (`assets.tcgdex.net`, card images). There is no analytics, crash reporting, ads SDK, Firebase or account.
 
 | Data | Collected? | Why |
 |---|---|---|
 | **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language and consent version. |
-| **Device or other IDs** | **Yes** (by the ML Kit SDK) | ML Kit text recognition (bundled) collects per-installation identifiers for diagnostics and usage analytics ([ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)). |
-| **App info and performance → Diagnostics** | **Yes** (by the ML Kit SDK) | Same source: latency, API configuration, error codes. |
+| Device or other IDs, Diagnostics | No | ML Kit's telemetry (per-installation ID, diagnostics; [ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)) is stripped: the app removes datatransport's only upload backend (CCT) in `AndroidManifest.xml`, so the SDK deletes its events on the phone. Checked on the S25 on 2026-11-22 (`Unknown backend … deleting event batch`). |
 | **App activity → Other user-generated content** (card ids of the collection) | **Yes, ephemeral** | Price requests (`POST /v1/prices`, `PriceApi.kt`) send the card ids of the collection, processed in memory and not stored. Ephemeral processing is an answer per declared type, not a reason to leave it out (#15, council launch review 2026-11-22). The collection itself stays on the phone. |
 | Card images from TCGdex | No | The app loads public image URLs; no user data in the request. |
 | IP address | No data type | Play has none for IP. Mention Cloudflare (`observability` is on in `wrangler.jsonc`) and TCGdex in the privacy policy. |
@@ -325,16 +324,16 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 
 Per data type:
 
-| Field | Photos | Device or other IDs | Diagnostics | Other user-generated content |
-|---|---|---|---|---|
-| Purpose | App functionality (improving recognition) | Analytics | Analytics | App functionality (prices) |
-| Required or optional | Optional | Required | Required | Required |
-| Ephemeral | No | No | No | Yes |
-| Shared with third parties | Yes, recommended (published in the CC0 dataset; see the decision below) | No | No | No |
+| Field | Photos | Other user-generated content |
+|---|---|---|
+| Purpose | App functionality (improving recognition) | App functionality (prices) |
+| Required or optional | Optional | Required |
+| Ephemeral | No | Yes |
+| Shared with third parties | Yes, recommended (published in the CC0 dataset; see the decision below) | No |
 
 General answers:
 
-- **Encrypted in transit:** Yes (all endpoints are HTTPS; ML Kit uses HTTPS).
+- **Encrypted in transit:** Yes (all endpoints are HTTPS).
 - **Users can request deletion:** Yes. Contributions can be withdrawn one by one or all at once in the app
   (*My contributions*), which deletes them from the server.
 - **Account creation:** None, so no account-deletion URL yet. Pro (#16) adds Google Sign-In and changes this.
@@ -350,7 +349,7 @@ removes the argument.
 
 - A **privacy policy URL** is required: `https://foilark.app/privacy` (DE/EN, PR #75, #70; the same page as
   `https://cards-api.fdu.gg/privacy`). Website for the listing: `https://foilark.app`. It must cover: no account, local-only collection,
-  the opt-in contribution (what, CC0, withdrawal, retention), ML Kit telemetry, Cloudflare (IP in request logs,
+  the opt-in contribution (what, CC0, withdrawal, retention), ML Kit (on-device, telemetry stripped), Cloudflare (IP in request logs,
   `observability` retention) and TCGdex image requests. As a trader, Fabian also needs the Impressum (§ 5 DDG):
   `https://foilark.app/imprint` (#226).
 - Store **contact email** (public).

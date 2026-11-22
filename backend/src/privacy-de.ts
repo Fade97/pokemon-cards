@@ -71,14 +71,11 @@ hinzugefügt hast.</p>
 
 <h2>5. Texterkennung mit Google ML Kit</h2>
 <p>Um die Kartennummer zu lesen, nutzt die App die Texterkennung von Google ML Kit. Die Erkennungsmodelle sind Teil der
-App und laufen auf dem Handy; Kamerabilder und erkannter Text werden auf dem Gerät verarbeitet. Nach Angaben von
-Google sendet das ML-Kit-SDK Diagnose- und Nutzungsdaten an Google, etwa Geräte- und App-Informationen, Leistungswerte
-und eine Kennung je Installation
-(<a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>). Empfänger ist
-Google Ireland Limited, Gordon House, Barrow Street, Dublin 4, Irland, nach der
-<a href="https://policies.google.com/privacy?hl=de">Datenschutzerklärung von Google</a>; Google kann die Daten auch in
-den USA verarbeiten. Rechtsgrundlage ist Art. 6 Abs. 1 lit. f DSGVO (zuverlässige Texterkennung). Wir erhalten diese
-Daten nicht.</p>
+App und laufen auf dem Handy; Kamerabilder und erkannter Text werden auf dem Gerät verarbeitet und nirgendwohin
+gesendet. Von sich aus würde das ML-Kit-SDK Diagnose- und Nutzungsdaten mit einer Kennung je Installation an Google
+senden (<a href="https://developers.google.com/ml-kit/android-data-disclosure">ML Kit data disclosure</a>). Die App
+entfernt den Teil des SDK, der diese Daten sendet: Das SDK löscht sie auf dem Handy, und weder Google noch wir erhalten
+sie.</p>
 
 <h2>6. Scans beitragen (freiwillig)</h2>
 <p>Du kannst beim Training einer offenen Kartenerkennung helfen, indem du <strong>Settings → Open dataset → Contribute

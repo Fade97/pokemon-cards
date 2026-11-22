@@ -30,6 +30,16 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+        <!-- No ML Kit telemetry (§ 25 TDDDG, launch review 2026-11-22): ML Kit's text recognition logs a per-install ID and
+             diagnostics through Google's datatransport library, whose only upload backend is CCT. Without it the
+             library finds no backend and deletes the queued events; recognition itself runs on the phone either way. -->
+        <service
+            android:name="com.google.android.datatransport.runtime.backends.TransportBackendDiscovery"
+            tools:node="merge">
+            <meta-data
+                android:name="backend:com.google.android.datatransport.cct.CctBackendFactory"
+                tools:node="remove" />
+        </service>
         <!-- Share images (#163): PNGs the app renders into its cache, handed to the share sheet read-only. -->
         <provider
             android:name="androidx.core.content.FileProvider"

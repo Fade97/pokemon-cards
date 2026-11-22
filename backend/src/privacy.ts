@@ -25,7 +25,7 @@ export const CONTROLLER = {
 export const APP_NAME = "Foilark";
 
 /** Shown as "last updated". Change it with every change of the text. */
-export const UPDATED = "2026-11-18";
+export const UPDATED = "2026-11-22";
 
 export type PrivacyLang = "de" | "en";
 
