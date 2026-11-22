@@ -44,8 +44,11 @@ EOF
 rm -f "$tmp/secret.json"
 eval "$exports"
 
-./gradlew :app:bundleRelease "$@"
+# Play needs a higher versionCode for every upload: the UTC hour, yyMMddHH (fits in an Int until 2099).
+# Set VERSION_CODE to override, e.g. for a second upload within the same hour.
+version_code="${VERSION_CODE:-$(date -u +%y%m%d%H)}"
+./gradlew :app:bundleRelease -Pfoilark.versionCode="$version_code" "$@"
 
 aab=app/build/outputs/bundle/release/app-release.aab
-echo "Signed: $aab"
+echo "Signed: $aab (versionCode $version_code)"
 keytool -printcert -jarfile "$aab" | grep -E 'Owner:|SHA256:'

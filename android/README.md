@@ -70,8 +70,9 @@ keyPassword=…
 ```
 
 The environment wins per value. Without any of them `bundleRelease` and `assembleRelease` build unsigned, which is
-what CI does; a half-filled config fails the build. Raise `versionCode` in `app/build.gradle.kts` before every
-upload (Play accepts each one once) and upload `mapping.txt` with the bundle.
+what CI does; a half-filled config fails the build. Play accepts each `versionCode` once: `release-bundle.sh`
+sets it to the UTC hour (`yyMMddHH`, e.g. `26112215`) through `-Pfoilark.versionCode`; set `VERSION_CODE=…` for a
+second upload within the same hour. Other builds stay at 1. Upload `mapping.txt` with the bundle.
 
 ### Smoke test the bundle
 

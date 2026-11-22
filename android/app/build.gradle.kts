@@ -44,7 +44,9 @@ android {
         applicationId = "de.fabianduerkop.foilark"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
+        // Every Play upload needs a higher versionCode. release-bundle.sh passes the UTC time as yyMMddHH
+        // (`-Pfoilark.versionCode=26112215`); local and CI builds stay at 1.
+        versionCode = providers.gradleProperty("foilark.versionCode").map(String::toInt).getOrElse(1)
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
