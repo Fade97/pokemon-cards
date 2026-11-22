@@ -9,10 +9,28 @@ import coil3.disk.DiskCache
 import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import de.fabianduerkop.cardindex.data.AppContainer
+import de.fabianduerkop.cardindex.data.backup.AndroidBackup
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.launch
 import okio.Path.Companion.toOkioPath
 
 class CardIndexApplication : Application(), SingletonImageLoader.Factory {
     val container: AppContainer by lazy { AppContainer(this) }
+
+    override fun onCreate() {
+        super.onCreate()
+        // After a restore to a new phone, the collection comes from the backup snapshot (AndroidBackup), not the
+        // database, which isn't backed up. Runs once per install.
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {
+            runCatching {
+                AndroidBackup.restoreIfNeeded(filesDir, noBackupFilesDir, container.backup) {
+                    container.database.copyDao().all().isEmpty()
+                }
+            }
+        }
+    }
 
     /**
      * Card images come from the TCGdex CDN, never from the APK (ADR 0009). Coil keeps them in a disk cache regardless
