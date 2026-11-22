@@ -236,6 +236,25 @@ class PackSyncTest {
         assertEquals(1, manager.catalog.value!!.packs.getValue("en").version)
     }
 
+    /** #225: a stopped sync leaves no download or install "in progress", and giving up marks what was left failed. */
+    @Test
+    fun aStoppedSyncLeavesNoProgressBehind_andGivingUpFailsIt() = runTest {
+        val model = fake.publishModel("mnv3", modelBytes)
+        fake.publish(en1, model)
+        fake.files.remove("models/$model.tflite") // the model download breaks off: a network error, retried later
+        manager.addLanguages(setOf("en"))
+
+        assertTrue(manager.sync(poll = true) is SyncOutcome.Retry)
+        val after = manager.state.value
+        assertFalse(after.running)
+        assertFalse(after.failed)
+        assertTrue(after.progress.values.none { it is LanguageProgress.Downloading || it == LanguageProgress.Installing })
+
+        manager.gaveUp()
+        assertTrue(manager.state.value.failed)
+        assertTrue(manager.state.value.progress.values.all { it is LanguageProgress.Failed })
+    }
+
     /** Council launch review: Android's JSONException is checked; it must end the sync, not leave it "running". */
     @Test
     fun malformedCatalogFailsTheSyncForGood_andANewLanguageClearsThat() = runTest {

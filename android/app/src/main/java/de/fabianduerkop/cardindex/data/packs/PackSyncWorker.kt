@@ -25,10 +25,12 @@ import java.util.concurrent.TimeUnit
 class PackSyncWorker(context: Context, params: WorkerParameters) : CoroutineWorker(context, params) {
     override suspend fun doWork(): Result {
         val packs = applicationContext.appContainer.packs
+        // Never Result.failure(): a sync the user asks for meanwhile is appended to this one (APPEND_OR_REPLACE), and
+        // WorkManager fails appended work with its predecessor (#225). The sync state records the failure instead.
         return when (packs.sync(poll = inputData.getBoolean(KEY_POLL, false))) {
             SyncOutcome.Done -> Result.success()
-            is SyncOutcome.Retry -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure().also { packs.gaveUp() }
-            is SyncOutcome.Failed -> Result.failure()
+            is SyncOutcome.Retry -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.success().also { packs.gaveUp() }
+            is SyncOutcome.Failed -> Result.success()
         }
     }
 
