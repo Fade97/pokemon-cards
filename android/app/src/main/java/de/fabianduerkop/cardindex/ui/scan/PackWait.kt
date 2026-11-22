@@ -20,15 +20,14 @@ sealed interface PackWait {
 
     companion object {
         /**
-         * Null when nothing is on its way ([pending] is empty) or a download failed: then the screen keeps its
-         * "choose languages" message, and the languages screen shows the failure.
+         * Null when nothing is on its way ([pending] is empty) or the last sync failed for good: then the screen
+         * keeps its "choose languages" message, and the languages screen shows the failure. A sync that stopped on
+         * the network (its languages marked failed until the retry) is waiting again.
          */
         fun of(pending: Set<String>, sync: PackSyncState, mobileData: Boolean): PackWait? {
             if (pending.isEmpty()) return null
-            val progress = pending.mapNotNull { sync.progress[it] }
-            if (progress.any { it is LanguageProgress.Failed }) return null
-            // The progress of a sync that stopped (no network) stays in the state until the next one starts.
-            if (!sync.running) return Waiting(wifiOnly = !mobileData)
+            if (!sync.running) return if (sync.failed) null else Waiting(wifiOnly = !mobileData)
+            val progress = pending.mapNotNull { sync.progress[it] }.filterNot { it is LanguageProgress.Failed }
             val downloads = progress.filterIsInstance<LanguageProgress.Downloading>()
             return when {
                 downloads.isNotEmpty() -> Downloading(downloads.sumOf { it.done }, downloads.sumOf { it.total })

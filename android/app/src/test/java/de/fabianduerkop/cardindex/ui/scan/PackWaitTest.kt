@@ -46,8 +46,16 @@ class PackWaitTest {
     }
 
     @Test
-    fun aFailedDownloadLeavesTheNormalMessage() {
-        val sync = PackSyncState(progress = mapOf("en" to LanguageProgress.Failed("bad checksum")))
+    fun aSyncThatFailedForGoodLeavesTheNormalMessage() {
+        val sync = PackSyncState(progress = mapOf("en" to LanguageProgress.Failed("bad checksum")), error = "bad checksum", failed = true)
         assertEquals(null, PackWait.of(setOf("en"), sync, mobileData = false))
+        // Also when no language is marked, e.g. the model or the catalog failed.
+        assertEquals(null, PackWait.of(setOf("en"), PackSyncState(error = "bad catalog", failed = true), mobileData = false))
+    }
+
+    @Test
+    fun aNetworkErrorWaitsForTheRetry() {
+        val sync = PackSyncState(progress = mapOf("en" to LanguageProgress.Failed("timeout")), error = "timeout")
+        assertEquals(PackWait.Waiting(wifiOnly = true), PackWait.of(setOf("en"), sync, mobileData = false))
     }
 }

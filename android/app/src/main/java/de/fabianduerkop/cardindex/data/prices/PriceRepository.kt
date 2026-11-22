@@ -17,9 +17,11 @@ import kotlinx.coroutines.sync.withLock
  * Splits card ids into price requests. The backend reads and parses one file per set a request touches (up to
  * ~120 KB each, backend/README.md "Limits"), so a request mixing cards from dozens of sets can run past the Workers
  * free plan's 10 ms CPU limit and fail. Cards are grouped by set: at most [maxIds] ids and [maxSets] sets per request.
+ * A 120 KB shard parsed in ~1.3 ms in Node on a desktop CPU (2026-11-22); two leave room for slower Workers machines.
+ * Check with `wrangler tail` before raising it.
  */
 object PriceBatches {
-    const val MAX_SETS = 4
+    const val MAX_SETS = 2
 
     fun of(ids: Collection<String>, maxIds: Int = PriceApi.MAX_BATCH, maxSets: Int = MAX_SETS): List<List<String>> {
         val batches = mutableListOf<List<String>>()

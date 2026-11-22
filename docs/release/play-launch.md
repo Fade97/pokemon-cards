@@ -330,8 +330,7 @@ Per data type:
 | Purpose | App functionality (improving recognition) | Analytics | Analytics | App functionality (prices) |
 | Required or optional | Optional | Required | Required | Required |
 | Ephemeral | No | No | No | Yes |
-| Shared | Yes (published in the CC0 dataset) | No | No | No |
-| Shared with third parties | **Decision** (see below) | No | No |
+| Shared with third parties | Yes, recommended (published in the CC0 dataset; see the decision below) | No | No | No |
 
 General answers:
 
@@ -349,8 +348,8 @@ removes the argument.
 
 **Gaps before the form can be submitted:**
 
-- A **privacy policy URL** is required. PR #75 (#70) adds it at `/privacy` on the Worker (DE/EN); its placeholders
-  must be filled before it is deployed and entered in the Console. It must cover: no account, local-only collection,
+- A **privacy policy URL** is required. It is deployed at `https://cards-api.fdu.gg/privacy` (DE/EN, PR #75, #70) and
+  goes into the Console. It must cover: no account, local-only collection,
   the opt-in contribution (what, CC0, withdrawal, retention), ML Kit telemetry, Cloudflare (IP in request logs,
   `observability` retention) and TCGdex image requests. An Impressum (§ 5 DDG) is needed at the latest when Pro
   makes it a commercial offer. Host both on the product domain or GitHub Pages.

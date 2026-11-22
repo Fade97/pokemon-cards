@@ -19,9 +19,10 @@ class PriceBatchesTest {
     @Test
     fun `a request touches at most MAX_SETS sets`() {
         val ids = (1..10).flatMap { set("set$it", 2) }
-        val batches = PriceBatches.of(ids)
+        val batches = PriceBatches.of(ids, maxSets = 4)
         assertEquals(3, batches.size)
-        batches.forEach { batch -> assertTrue(batch.map(PriceShards::of).toSet().size <= PriceBatches.MAX_SETS) }
+        assertEquals(5, PriceBatches.of(ids).size) // MAX_SETS = 2
+        batches.forEach { batch -> assertTrue(batch.map(PriceShards::of).toSet().size <= 4) }
         assertEquals(ids.toSet(), batches.flatten().toSet())
     }
 

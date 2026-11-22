@@ -31,6 +31,8 @@ data class PackSyncState(
     val progress: Map<String, LanguageProgress> = emptyMap(),
     /** Why the last sync stopped, e.g. no connection. */
     val error: String? = null,
+    /** The last sync ended in [SyncOutcome.Failed]: retrying the same files won't help, so nothing is "waiting". */
+    val failed: Boolean = false,
 )
 
 /** How a sync ended, for the worker. */
@@ -76,7 +78,10 @@ class PackManager(
     /** The last catalog seen, for download sizes; null before the first successful request. */
     val catalog: StateFlow<PackCatalog?> = _catalog.asStateFlow()
 
-    val wanted: Set<String> get() = prefs.wanted
+    private val _wanted = MutableStateFlow(prefs.wanted)
+    /** The languages the user chose, installed or not. */
+    val wantedFlow: StateFlow<Set<String>> = _wanted.asStateFlow()
+    val wanted: Set<String> get() = _wanted.value
 
     var pickerDone: Boolean
         get() = prefs.pickerDone
@@ -104,12 +109,14 @@ class PackManager(
     /** Adds languages to the wanted set and schedules their download. */
     fun addLanguages(languages: Collection<String>) {
         prefs.wanted = prefs.wanted + languages
+        _wanted.value = prefs.wanted
         requestSync()
     }
 
     /** Removes a language and its pack right away. Its cards stay in the catalog: owned copies point to them. */
     suspend fun removeLanguage(lang: String) = mutex.withLock {
         prefs.wanted = prefs.wanted - lang
+        _wanted.value = prefs.wanted
         store.commit { packs[lang] = null }
         _state.update { it.copy(progress = it.progress - lang) }
     }
@@ -146,6 +153,8 @@ class PackManager(
             val catalog = if (poll || _catalog.value == null) refreshCatalog() else _catalog.value!!
             run(catalog)
         } catch (e: CancellationException) {
+            // WorkManager stopped the job (the network went away, the mobile data switch changed): not running any more.
+            _state.update { it.copy(running = false) }
             throw e
         } catch (e: UnsupportedPackFormatException) {
             SyncOutcome.Failed(e.message.orEmpty())
@@ -167,6 +176,7 @@ class PackManager(
                     is SyncOutcome.Retry -> outcome.reason
                     is SyncOutcome.Failed -> outcome.reason
                 },
+                failed = outcome is SyncOutcome.Failed,
             )
         }
         outcome
