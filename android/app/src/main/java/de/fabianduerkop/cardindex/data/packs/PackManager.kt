@@ -4,6 +4,7 @@ package de.fabianduerkop.cardindex.data.packs
 import android.util.Log
 import de.fabianduerkop.cardindex.data.catalog.PackCatalogImporter
 import de.fabianduerkop.cardindex.recognition.PackIntegrityException
+import de.fabianduerkop.cardindex.recognition.sha256Hex
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -30,6 +31,8 @@ data class PackSyncState(
     val progress: Map<String, LanguageProgress> = emptyMap(),
     /** Why the last sync stopped, e.g. no connection. */
     val error: String? = null,
+    /** The last sync ended in [SyncOutcome.Failed]: retrying the same files won't help, so nothing is "waiting". */
+    val failed: Boolean = false,
 )
 
 /** How a sync ended, for the worker. */
@@ -75,7 +78,10 @@ class PackManager(
     /** The last catalog seen, for download sizes; null before the first successful request. */
     val catalog: StateFlow<PackCatalog?> = _catalog.asStateFlow()
 
-    val wanted: Set<String> get() = prefs.wanted
+    private val _wanted = MutableStateFlow(prefs.wanted)
+    /** The languages the user chose, installed or not. */
+    val wantedFlow: StateFlow<Set<String>> = _wanted.asStateFlow()
+    val wanted: Set<String> get() = _wanted.value
 
     var pickerDone: Boolean
         get() = prefs.pickerDone
@@ -103,12 +109,16 @@ class PackManager(
     /** Adds languages to the wanted set and schedules their download. */
     fun addLanguages(languages: Collection<String>) {
         prefs.wanted = prefs.wanted + languages
+        _wanted.value = prefs.wanted
+        // A new request: an earlier sync's failure must not hide that this one is waiting for a network.
+        _state.update { it.copy(failed = false) }
         requestSync()
     }
 
     /** Removes a language and its pack right away. Its cards stay in the catalog: owned copies point to them. */
     suspend fun removeLanguage(lang: String) = mutex.withLock {
         prefs.wanted = prefs.wanted - lang
+        _wanted.value = prefs.wanted
         store.commit { packs[lang] = null }
         _state.update { it.copy(progress = it.progress - lang) }
     }
@@ -117,8 +127,12 @@ class PackManager(
     fun repair(lang: String) {
         // Outside the sync lock, so no garbage collection here: the next sync cleans up.
         store.commit(collectGarbage = false) { addBroken += lang }
+        _state.update { it.copy(failed = false) }
         requestSync()
     }
+
+    /** The worker stopped retrying after network errors: nothing is waiting any more until the next app start. */
+    fun gaveUp() = _state.update { it.copy(failed = true) }
 
     /**
      * Records what [PackLoader] found broken, so recognition skips it and the UI offers a fresh download. Only for
@@ -145,6 +159,9 @@ class PackManager(
             val catalog = if (poll || _catalog.value == null) refreshCatalog() else _catalog.value!!
             run(catalog)
         } catch (e: CancellationException) {
+            // WorkManager stopped the job (the network went away, the mobile data switch changed): not running any
+            // more, and no frozen progress bars; the next sync starts its own.
+            _state.update { it.copy(running = false, progress = emptyMap()) }
             throw e
         } catch (e: UnsupportedPackFormatException) {
             SyncOutcome.Failed(e.message.orEmpty())
@@ -152,8 +169,9 @@ class PackManager(
             SyncOutcome.Retry(e.message ?: "network error")
         } catch (e: PackIntegrityException) {
             SyncOutcome.Failed(e.message.orEmpty())
-        } catch (e: RuntimeException) {
-            // A malformed catalog or pack file (bad JSON, missing field): retrying the same bytes won't help.
+        } catch (e: Exception) {
+            // A malformed catalog or pack file (bad JSON, missing field): retrying the same bytes won't help. Not only
+            // RuntimeException: Android's JSONException is a checked exception and would leave the sync "running".
             Log.e(TAG, "pack sync failed", e)
             SyncOutcome.Failed(e.message ?: e.javaClass.simpleName)
         }
@@ -166,6 +184,7 @@ class PackManager(
                     is SyncOutcome.Retry -> outcome.reason
                     is SyncOutcome.Failed -> outcome.reason
                 },
+                failed = outcome is SyncOutcome.Failed,
             )
         }
         outcome
@@ -285,14 +304,22 @@ class PackManager(
         val cardsFile = progress.track { http.download(entry.cardsFile, it) }
         val indexFile = progress.track { http.download(index, it) }
         setProgress(entry.lang, LanguageProgress.Installing)
-        val content = PackContent.parse(cardsFile.readBytes(), indexFile.readBytes(), entry.dim)
-        if (content.lang != entry.lang || content.version != entry.version) {
-            throw PackIntegrityException("${entry.path()} is ${content.lang} ${content.version}")
+        // The index stays a file and is hashed as a stream, as in installDeltas: read into rows it was ~70–95 MB of
+        // Java heap for the English pack on first run, enough to crash a mid-range phone.
+        val cards = PackCards.parse(cardsFile.readBytes())
+        if (cards.lang != entry.lang || cards.version != entry.version) {
+            throw PackIntegrityException("${entry.path()} is ${cards.lang} ${cards.version}")
         }
-        content.verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
+        val rows = cards.indexed.size
+        val dim = if (rows == 0) 0 else entry.dim
+        if (rows > 0 && (dim <= 0 || indexFile.length() != rows.toLong() * dim * 4)) {
+            throw PackIntegrityException("${entry.lang}: index.bin (${indexFile.length()} bytes) does not fit $rows cards of dim ${entry.dim}")
+        }
+        StreamedPack(cards, dim, indexFile, sha256Hex(indexFile))
+            .verify(entry.keysSha256, entry.indexSha256, entry.cards, entry.metadataCards)
         val dir = store.newPackDir(entry.lang, entry.version)
         try {
-            store.writePack(dir, cardsFile, indexFile, PackMeta.of(entry, content, indexSha256 = entry.indexSha256!!))
+            store.writePack(dir, cardsFile, indexFile, PackMeta.of(entry, cards, dim, indexSha256 = entry.indexSha256!!))
         } catch (e: Exception) {
             store.discard(dir)
             throw e

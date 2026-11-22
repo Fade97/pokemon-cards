@@ -17,6 +17,7 @@ import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Condition
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
+import de.fabianduerkop.cardindex.model.needsVariantCheck
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -97,7 +98,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             current = current,
             draft = current?.let { item ->
                 val draft = drafts[item.entity.id] ?: defaultDraft(item)
-                draft.forCard(item.candidates.firstOrNull { it.rank == draft.rank }?.card?.printings)
+                val card = item.candidates.firstOrNull { it.rank == draft.rank }?.card
+                if (card == null) draft else draft.forCard(card.printings, needsVariantCheck(card.setId, card.printings))
             } ?: ReviewDraft(),
             position = done + 1,
             total = done + open.size,

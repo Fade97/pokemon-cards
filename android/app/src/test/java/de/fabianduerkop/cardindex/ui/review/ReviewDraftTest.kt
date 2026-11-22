@@ -32,11 +32,32 @@ class ReviewDraftTest {
         // Switching to a card with several printings, or unknown ones, goes back to the default.
         assertEquals(Finish.NORMAL, d.forCard(holoOnly).forCard(several).finish)
         assertEquals(Finish.NORMAL, d.forCard(holoOnly).forCard(null).finish)
-        // The user's pick stays, and so does the open finish of an item that asks to check the variant.
+        // The user's pick stays.
         assertEquals(Finish.REVERSE_HOLO, d.withFinish(Finish.REVERSE_HOLO).forCard(holoOnly).finish)
-        assertEquals(null, ReviewDraft.forItem(checkVariant = true).forCard(holoOnly).finish)
         // Only a picked finish is stored, so the card's finish is not taken for the user's.
         assertEquals(null, d.forCard(holoOnly).stored().finish)
+    }
+
+    /** #219: the variant check follows the chosen candidate, not the item's first match. */
+    @Test
+    fun theVariantCheckFollowsTheChosenCard() {
+        val firstEdition = Printings.ofKeys(listOf("holo", "firstEdition"))
+        val unlimited = Printings.ofKeys(listOf("normal", "reverse"))
+        // An item whose best match had no 1st edition: switching to a card with one asks again.
+        val switched = ReviewDraft.forItem(checkVariant = false).copy(rank = 1).forCard(firstEdition)
+        assertEquals(null, switched.finish)
+        assertEquals(null, switched.edition)
+        assertFalse(switched.canConfirm)
+        // An item that asked: switching to a card without a 1st edition goes back to the defaults.
+        val back = ReviewDraft.forItem(checkVariant = true).forCard(unlimited, checkVariant = false)
+        assertEquals(Finish.NORMAL, back.finish)
+        assertEquals(Edition.UNLIMITED, back.edition)
+        assertTrue(back.canConfirm)
+        // What the user picked stays; only the open field blocks Confirm.
+        val picked = ReviewDraft.forItem(checkVariant = false).withFinish(Finish.HOLO).forCard(firstEdition)
+        assertEquals(Finish.HOLO, picked.finish)
+        assertEquals(null, picked.edition)
+        assertTrue(picked.withEdition(Edition.FIRST_EDITION).forCard(firstEdition).canConfirm)
     }
 
     @Test

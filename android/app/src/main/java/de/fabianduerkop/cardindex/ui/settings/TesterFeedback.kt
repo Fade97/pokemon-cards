@@ -12,6 +12,9 @@ object TesterFeedback {
     const val NEW_ISSUE_URL = "https://github.com/Fade97/pokemon-cards/issues/new"
     const val TEMPLATE = "tester-feedback.yml"
 
+    /** For testers without a GitHub account, or who want to write privately: the contact in backend/src/privacy.ts. */
+    const val EMAIL = "fabian@karelo.de"
+
     fun url(appVersion: String, device: String, android: String): String {
         val params = listOf(
             "template" to TEMPLATE,
@@ -20,6 +23,12 @@ object TesterFeedback {
             "android" to android,
         )
         return NEW_ISSUE_URL + "?" + params.joinToString("&") { (key, value) -> "$key=${encode(value.trim())}" }
+    }
+
+    /** A private email with the same details; the tester's mail app opens with them filled in. */
+    fun mailto(appName: String, appVersion: String, device: String, android: String): String {
+        val body = "\n\n---\nApp version: ${appVersion.trim()}\nPhone: ${device.trim()}\nAndroid: ${android.trim()}\n"
+        return "mailto:$EMAIL?subject=${encode("$appName feedback")}&body=${encode(body)}"
     }
 
     /** `Build.MANUFACTURER` + `Build.MODEL`, without repeating the maker when the model already starts with it. */

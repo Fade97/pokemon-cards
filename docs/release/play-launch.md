@@ -183,7 +183,7 @@ Follow-ups in the same PR:
 
 ## 3. Play listing draft
 
-Placeholders: `<Name>` is the chosen name. The app UI is English only for now (`res/values` has no `values-de`),
+The name is Foilark (section 1b). The app UI is English only for now (`res/values` has no `values-de`),
 so the DE listing describes an English app. **Decision:** ship DE store text now, or only once the app has a
 German translation.
 
@@ -200,10 +200,10 @@ Cardmarket prices." (73) / "Sammelkarten offline scannen, in Ordner sortieren, C
 ### Full description (EN)
 
 ```
-<Name> is a free, open-source collection app for Pokémon TCG cards.
+Foilark is a free, open-source collection app for Pokémon TCG cards.
 
 SCAN ON YOUR PHONE
-Point the camera at a card. <Name> recognizes it on the phone itself, with no photo sent anywhere. It reads the
+Point the camera at a card. Foilark recognizes it on the phone itself, with no photo sent anywhere. It reads the
 collector number to tell similar cards apart, and works offline once your language packs are installed.
 
 MANY LANGUAGES
@@ -221,26 +221,27 @@ Current Cardmarket (EUR) and TCGplayer (USD) prices, updated daily, with a link 
 Cardmarket prices mix all card languages, and the app says so.
 
 PRIVATE BY DESIGN
-No account, no ads, no tracking. Your collection stays on your phone and in your own Android backup. Free
-JSON/CSV export. If you want to help improve recognition, you can choose to share cropped card scans as public
-domain (CC0); that is off by default and can be withdrawn at any time.
+No account, no ads, no analytics of our own. Your collection stays on your phone and in your own Android backup.
+Free JSON/CSV export. If you want to help improve recognition, you can choose to share cropped card scans as
+public domain (CC0); that is off by default and can be withdrawn in the app at any time (already published dataset
+releases keep it).
 
 OPEN SOURCE
 The app is licensed under GPLv3, the server under AGPLv3. Source code: https://github.com/Fade97/pokemon-cards
 
-<Name> is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo,
+Foilark is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo,
 Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their
 respective owners. Card images are provided by TCGdex. Cardmarket and TCGplayer are trademarks of their owners;
-<Name> is not affiliated with them.
+Foilark is not affiliated with them.
 ```
 
 ### Full description (DE)
 
 ```
-<Name> ist eine kostenlose Open-Source-App für deine Pokémon-TCG-Sammlung.
+Foilark ist eine kostenlose Open-Source-App für deine Pokémon-TCG-Sammlung.
 
 SCANNEN AUF DEM HANDY
-Halte die Kamera auf eine Karte. <Name> erkennt sie direkt auf dem Handy, ohne dass ein Foto das Gerät verlässt.
+Halte die Kamera auf eine Karte. Foilark erkennt sie direkt auf dem Handy, ohne dass ein Foto das Gerät verlässt.
 Die App liest die Kartennummer, um ähnliche Karten zu unterscheiden, und funktioniert offline, sobald die
 Sprachpakete installiert sind.
 
@@ -258,17 +259,18 @@ Aktuelle Cardmarket- (EUR) und TCGplayer-Preise (USD), täglich aktualisiert, mi
 Cardmarket-Preise gelten für alle Kartensprachen zusammen, und die App weist darauf hin.
 
 PRIVATSPHÄRE
-Kein Konto, keine Werbung, kein Tracking. Deine Sammlung bleibt auf deinem Handy und in deinem eigenen
+Kein Konto, keine Werbung, keine eigene Analyse. Deine Sammlung bleibt auf deinem Handy und in deinem eigenen
 Android-Backup. Kostenloser Export als JSON/CSV. Wer die Erkennung verbessern möchte, kann zugeschnittene
-Kartenscans als gemeinfrei (CC0) teilen; das ist standardmäßig aus und jederzeit widerrufbar.
+Kartenscans als gemeinfrei (CC0) teilen; das ist standardmäßig aus und in der App jederzeit widerrufbar (bereits
+veröffentlichte Datensatz-Versionen behalten den Scan).
 
 OPEN SOURCE
 Die App steht unter GPLv3, der Server unter AGPLv3. Quellcode: https://github.com/Fade97/pokemon-cards
 
-<Name> ist eine inoffizielle Fan-App. Sie steht in keiner Verbindung zu Nintendo, Creatures Inc., GAME FREAK inc.
+Foilark ist eine inoffizielle Fan-App. Sie steht in keiner Verbindung zu Nintendo, Creatures Inc., GAME FREAK inc.
 oder The Pokémon Company und wird von diesen weder unterstützt noch gesponsert oder genehmigt. Pokémon und alle
 zugehörigen Namen sind Marken ihrer jeweiligen Inhaber. Kartenbilder stammen von TCGdex. Cardmarket und TCGplayer
-sind Marken ihrer Inhaber; <Name> steht in keiner Verbindung zu ihnen.
+sind Marken ihrer Inhaber; Foilark steht in keiner Verbindung zu ihnen.
 ```
 
 Keep the in-app "About" screen in line with this disclaimer (README already carries it).
@@ -315,7 +317,7 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 | **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language and consent version. |
 | **Device or other IDs** | **Yes** (by the ML Kit SDK) | ML Kit text recognition (bundled) collects per-installation identifiers for diagnostics and usage analytics ([ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)). |
 | **App info and performance → Diagnostics** | **Yes** (by the ML Kit SDK) | Same source: latency, API configuration, error codes. |
-| Collection, prices fetched | No | The collection stays on the phone. Price requests send a list of card ids, processed in memory and not stored (ephemeral). |
+| **App activity → Other user-generated content** (card ids of the collection) | **Yes, ephemeral** | Price requests (`POST /v1/prices`, `PriceApi.kt`) send the card ids of the collection, processed in memory and not stored. Ephemeral processing is an answer per declared type, not a reason to leave it out (#15, council launch review 2026-11-22). The collection itself stays on the phone. |
 | Card images from TCGdex | No | The app loads public image URLs; no user data in the request. |
 | IP address | No data type | Play has none for IP. Mention Cloudflare (`observability` is on in `wrangler.jsonc`) and TCGdex in the privacy policy. |
 | Android Backup | No | Google's backup, not the app's. |
@@ -323,12 +325,12 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 
 Per data type:
 
-| Field | Photos | Device or other IDs | Diagnostics |
-|---|---|---|---|
-| Purpose | App functionality (improving recognition) | Analytics | Analytics |
-| Required or optional | Optional | Required | Required |
-| Ephemeral | No | No | No |
-| Shared with third parties | **Decision** (see below) | No | No |
+| Field | Photos | Device or other IDs | Diagnostics | Other user-generated content |
+|---|---|---|---|---|
+| Purpose | App functionality (improving recognition) | Analytics | Analytics | App functionality (prices) |
+| Required or optional | Optional | Required | Required | Required |
+| Ephemeral | No | No | No | Yes |
+| Shared with third parties | Yes, recommended (published in the CC0 dataset; see the decision below) | No | No | No |
 
 General answers:
 
@@ -346,8 +348,8 @@ removes the argument.
 
 **Gaps before the form can be submitted:**
 
-- A **privacy policy URL** is required. PR #75 (#70) adds it at `/privacy` on the Worker (DE/EN); its placeholders
-  must be filled before it is deployed and entered in the Console. It must cover: no account, local-only collection,
+- A **privacy policy URL** is required. It is deployed at `https://cards-api.fdu.gg/privacy` (DE/EN, PR #75, #70) and
+  goes into the Console. It must cover: no account, local-only collection,
   the opt-in contribution (what, CC0, withdrawal, retention), ML Kit telemetry, Cloudflare (IP in request logs,
   `observability` retention) and TCGdex image requests. An Impressum (§ 5 DDG) is needed at the latest when Pro
   makes it a commercial offer. Host both on the product domain or GitHub Pages.
@@ -397,10 +399,12 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
 - [x] signed release AAB with Play App Signing (upload key outside the repo,
       signing config only from env or a git-ignored file), smoke-tested on talos via bundletool (#88).
       Steps in `android/README.md`, "Signed release". The S25 follows in #83.
-- [ ] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled; Impressum if needed.
+- [x] Privacy policy (EN/DE, PR #75) deployed with the placeholders filled: `https://cards-api.fdu.gg/privacy`.
+      Impressum still open for Fabian (#15).
 - [x] In-app "About" with the disclaimer, licenses and the privacy link (Settings → About; licenses #136).
 - [ ] Screenshots and feature graphic (section 3).
-- [x] A feedback channel for testers: the GitHub issue form `tester-feedback.yml`, linked from Settings → About (#88).
+- [x] A feedback channel for testers: the GitHub issue form `tester-feedback.yml`, linked from Settings → About (#88),
+      plus a private email link with the same details for testers without a GitHub account.
 - [ ] Optional: CI upload to the internal/closed track with a service account limited to testing tracks.
 
 ### Timeline

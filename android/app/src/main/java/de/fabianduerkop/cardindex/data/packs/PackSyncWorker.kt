@@ -27,7 +27,7 @@ class PackSyncWorker(context: Context, params: WorkerParameters) : CoroutineWork
         val packs = applicationContext.appContainer.packs
         return when (packs.sync(poll = inputData.getBoolean(KEY_POLL, false))) {
             SyncOutcome.Done -> Result.success()
-            is SyncOutcome.Retry -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure()
+            is SyncOutcome.Retry -> if (runAttemptCount < MAX_ATTEMPTS) Result.retry() else Result.failure().also { packs.gaveUp() }
             is SyncOutcome.Failed -> Result.failure()
         }
     }

@@ -306,18 +306,22 @@ private const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
 /** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */
 @Composable
 private fun TesterFeedbackLink() {
-    val url = TesterFeedback.url(
-        appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-        device = TesterFeedback.device(Build.MANUFACTURER.orEmpty(), Build.MODEL.orEmpty()),
-        android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
-    )
+    val appVersion = "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
+    val device = TesterFeedback.device(Build.MANUFACTURER.orEmpty(), Build.MODEL.orEmpty())
+    val android = "${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})"
     ExternalLink(
-        url = url,
+        url = TesterFeedback.url(appVersion, device, android),
         label = stringResource(R.string.settings_feedback),
         noBrowser = stringResource(R.string.settings_feedback_no_browser, TesterFeedback.NEW_ISSUE_URL),
         alignToText = true,
     )
     SettingsHint(stringResource(R.string.settings_feedback_hint))
+    ExternalLink(
+        url = TesterFeedback.mailto(stringResource(R.string.app_name), appVersion, device, android),
+        label = stringResource(R.string.settings_feedback_email),
+        noBrowser = stringResource(R.string.settings_feedback_email_no_app, TesterFeedback.EMAIL),
+        alignToText = true,
+    )
 }
 
 @Composable

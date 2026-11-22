@@ -236,6 +236,21 @@ class PackSyncTest {
         assertEquals(1, manager.catalog.value!!.packs.getValue("en").version)
     }
 
+    /** Council launch review: Android's JSONException is checked; it must end the sync, not leave it "running". */
+    @Test
+    fun malformedCatalogFailsTheSyncForGood_andANewLanguageClearsThat() = runTest {
+        fake.catalogOverride = "not json"
+        manager.addLanguages(setOf("en"))
+
+        assertTrue(manager.sync(poll = true) is SyncOutcome.Failed)
+        assertFalse(manager.state.value.running)
+        assertTrue(manager.state.value.failed)
+
+        manager.addLanguages(setOf("de"))
+        assertFalse(manager.state.value.failed)
+        assertEquals(setOf("en", "de"), manager.wantedFlow.value)
+    }
+
     // --- Sync ------------------------------------------------------------------------------------------------
 
     @Test

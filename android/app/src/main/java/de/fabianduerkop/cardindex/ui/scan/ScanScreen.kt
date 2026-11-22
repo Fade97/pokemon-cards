@@ -10,6 +10,7 @@ import android.content.pm.ApplicationInfo
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.provider.Settings
+import android.text.format.Formatter
 import android.util.Size
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -177,6 +178,7 @@ fun ScanScreen(
     // Coming back from the app settings (or a revoked permission) must show the right state without a restart.
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { granted = hasCameraPermission(context) }
     val engine by viewModel.engineState.collectAsStateWithLifecycle()
+    val packWait by viewModel.packWait.collectAsStateWithLifecycle()
     // The lab is a test bench for the models; release builds don't offer it.
     val debuggable = (context.applicationInfo.flags and ApplicationInfo.FLAG_DEBUGGABLE) != 0
 
@@ -195,7 +197,12 @@ fun ScanScreen(
                 if (debuggable) SecondaryButton(stringResource(R.string.scan_open_lab), onOpenLab)
             }
             engine is ScanEngineState.NoLanguages -> ScanMessage {
-                StatusNotice(stringResource(R.string.scan_no_languages), tone = NoticeTone.WARNING)
+                val wait = packWait
+                if (wait == null) {
+                    StatusNotice(stringResource(R.string.scan_no_languages), tone = NoticeTone.WARNING)
+                } else {
+                    PackWaitNotice(wait)
+                }
                 val broken = (engine as ScanEngineState.NoLanguages).broken
                 if (broken.isNotEmpty()) {
                     StatusNotice(
@@ -226,6 +233,34 @@ fun ScanScreen(
                 }
             }
             else -> LiveScan(viewModel, engine, onOpenReview, onOpenLab.takeIf { debuggable }, onOpenCollections, onOpenSet)
+        }
+    }
+}
+
+/** The first languages are downloading or waiting for a network: scanning starts when they are in. */
+@Composable
+private fun PackWaitNotice(wait: PackWait) {
+    val context = LocalContext.current
+    val size = { bytes: Long -> Formatter.formatShortFileSize(context, bytes) }
+    val text = when (wait) {
+        is PackWait.Downloading ->
+            if (wait.total > 0) {
+                stringResource(R.string.scan_packs_downloading, size(wait.done), size(wait.total))
+            } else {
+                stringResource(R.string.scan_packs_starting)
+            }
+        PackWait.Installing -> stringResource(R.string.scan_packs_installing)
+        is PackWait.Waiting -> stringResource(if (wait.wifiOnly) R.string.scan_packs_waiting_wifi else R.string.scan_packs_waiting)
+    }
+    StatusNotice(text)
+    if (wait is PackWait.Downloading) {
+        if (wait.total > 0) {
+            LinearProgressIndicator(
+                progress = { (wait.done.toFloat() / wait.total).coerceIn(0f, 1f) },
+                modifier = Modifier.fillMaxWidth(),
+            )
+        } else {
+            LinearProgressIndicator(Modifier.fillMaxWidth())
         }
     }
 }
