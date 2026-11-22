@@ -1,4 +1,4 @@
-// Opt-in scan contributions (#14, ADR 0008).
+// Opt-in scan contributions (#14, ADR 0016): pictures to train and test recognition, never published.
 //
 //   POST   /v1/contributions?cardId=<tcgdex id>&lang=<code>&consent=<version>[&id=<uuid>]   body: the rectified
 //          crop (image/jpeg or image/webp, at most 256 KiB, card-shaped)  ->  201 { id, withdrawToken }
@@ -12,7 +12,7 @@
 //
 // Storage is capped twice (#135): per client by CONTRIBUTION_RATE_LIMIT and for everyone by a daily quota
 // (CONTRIBUTION_DAILY_QUOTA uploads per UTC day, 503 once it is used up). Every upload starts in quarantine
-// (`review = 'pending'`); only an admin's approval (src/contribution-review.ts) lets a dataset release take it.
+// (`review = 'pending'`); only an admin's approval (src/contribution-review.ts) lets a training set take it.
 
 import { ImageError, sniffType, stripMetadata } from "./image-meta";
 import { isCardId } from "./prices";
@@ -33,8 +33,12 @@ const CARD_RATIO_MIN = 0.66;
 const CARD_RATIO_MAX = 0.78;
 /** Uploads per UTC day for everyone together, unless CONTRIBUTION_DAILY_QUOTA says otherwise; 0 pauses uploads. */
 export const DEFAULT_DAILY_QUOTA = 500;
-/** Consent texts the app may show. A new text gets a new version here before the app ships it. */
-export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["cc0-1"]);
+/**
+ * Consent texts the app may show. A new text gets a new version here before the app ships it. "train-1" (ADR 0016):
+ * training and testing only, never published. "cc0-1" came from debug builds before it; those pictures are used the
+ * same narrower way.
+ */
+export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["train-1", "cc0-1"]);
 const LANG = /^[a-z]{2}(?:-[a-z]{2})?$/;
 const ID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/;
 /** A claim this old without its image is taken to be abandoned; a retry with the same token may take it over. */

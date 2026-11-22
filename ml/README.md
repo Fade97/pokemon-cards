@@ -84,8 +84,8 @@ types (str, int, list) so that this works.
 ### Open dataset (ADR 0008, #20)
 
 `dataset/` builds a release of the open dataset: the reference manifest (card ids + image URLs, no images), a
-standalone `download.py` that rebuilds the images, and the CC0 user scans from a copy of the backend's
-contributions. It builds files only and never uploads. Steps, layout and privacy rules: [docs/dataset.md](../docs/dataset.md).
+standalone `download.py` that rebuilds the images, and (for `cc0-1` rows from debug builds only, until #20 removes
+it) user scans from a copy of the backend's contributions. Since ADR 0016 user scans are not published. It builds files only and never uploads. Steps, layout and privacy rules: [docs/dataset.md](../docs/dataset.md).
 
 ```sh
 python -m dataset.release --version 2026.11.0 --out ../dataset-release/v2026.11.0 --manifest manifest.csv

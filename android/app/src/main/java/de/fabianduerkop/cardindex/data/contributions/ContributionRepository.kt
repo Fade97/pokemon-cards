@@ -19,7 +19,7 @@ import java.util.UUID
 
 /** The consent text the user accepted; the backend accepts only versions it knows (`CONSENT_VERSIONS`). */
 object ContributionConsent {
-    const val VERSION = "cc0-1"
+    const val VERSION = "train-1"
 }
 
 /** How a run of the upload queue ended, for the worker. */
@@ -32,7 +32,7 @@ sealed interface QueueOutcome {
 
 /**
  * Scan contributions (issue #14, ADR 0008): the rectified crop of a scan the user confirmed, uploaded only after the
- * opt-in and the CC0 consent. Uploads and withdrawals queue in Room and are sent by [ContributionWorker] when the
+ * opt-in and the consent (training only, ADR 0016). Uploads and withdrawals queue in Room and are sent by [ContributionWorker] when the
  * phone is online. The withdraw token is stored only in the app's database and never logged.
  */
 class ContributionRepository(

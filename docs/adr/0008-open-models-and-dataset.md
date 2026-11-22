@@ -1,6 +1,6 @@
 # 0008. Open models; dataset as manifest; CC0 user scans
 
-Status: accepted (2026-11-15)
+Status: accepted (2026-11-15). The user-scan part is replaced by [ADR 0016](0016-contributions-training-only.md): scans train the models but are not published.
 
 ## Context
 

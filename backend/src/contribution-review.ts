@@ -1,5 +1,5 @@
-// Review of scan contributions before a dataset release (#135, ADR 0008). Every upload lands in quarantine
-// (`review = 'pending'`); a dataset release takes only rows an admin approved.
+// Review of scan contributions before training (#135, ADR 0016). Every upload lands in quarantine
+// (`review = 'pending'`); a training set takes only rows an admin approved.
 //
 //   GET  /v1/admin/contributions[?review=pending|approved|rejected][&limit=1-200][&offset=n]
 //        -> 200 { contributions: [{ id, cardId, lang, contentType, size, width, height, createdAt, review, reviewedAt }] }

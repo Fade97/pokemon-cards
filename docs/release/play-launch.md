@@ -222,9 +222,9 @@ Cardmarket prices mix all card languages, and the app says so.
 
 PRIVATE BY DESIGN
 No account, no ads, no tracking. Your collection stays on your phone and in your own Android backup.
-Free JSON/CSV export. If you want to help improve recognition, you can choose to share cropped card scans as
-public domain (CC0); that is off by default and can be withdrawn in the app at any time (already published dataset
-releases keep it).
+Free JSON/CSV export. If you want to help improve recognition, you can choose to send cropped card scans as
+training data; they are never published. That is off by default and can be withdrawn in the app
+at any time.
 
 OPEN SOURCE
 The app is licensed under GPLv3, the server under AGPLv3. Source code: https://github.com/Fade97/pokemon-cards
@@ -261,8 +261,8 @@ Cardmarket-Preise gelten für alle Kartensprachen zusammen, und die App weist da
 PRIVATSPHÄRE
 Kein Konto, keine Werbung, kein Tracking. Deine Sammlung bleibt auf deinem Handy und in deinem eigenen
 Android-Backup. Kostenloser Export als JSON/CSV. Wer die Erkennung verbessern möchte, kann zugeschnittene
-Kartenscans als gemeinfrei (CC0) teilen; das ist standardmäßig aus und in der App jederzeit widerrufbar (bereits
-veröffentlichte Datensatz-Versionen behalten den Scan).
+Kartenscans als Trainingsdaten senden; sie werden nie veröffentlicht. Das ist standardmäßig aus und in der App
+jederzeit widerrufbar.
 
 OPEN SOURCE
 Die App steht unter GPLv3, der Server unter AGPLv3. Quellcode: https://github.com/Fade97/pokemon-cards
@@ -329,7 +329,7 @@ Per data type:
 | Purpose | App functionality (improving recognition) | App functionality (prices) |
 | Required or optional | Optional | Required |
 | Ephemeral | No | Yes |
-| Shared with third parties | Yes, recommended (published in the CC0 dataset; see the decision below) | No |
+| Shared with third parties | No (training only, never published; ADR 0016) | No |
 
 General answers:
 
@@ -339,17 +339,15 @@ General answers:
 - **Account creation:** None, so no account-deletion URL yet. Pro (#16) adds Google Sign-In and changes this.
 - **Independent security review:** No.
 
-**Decision (Photos, "shared"):** contributed crops are published in the open CC0 dataset (#20, ADR 0008). Play
-exempts transfers "based on a specific user-initiated action where the user reasonably expects the data to be
-shared"; the explicit CC0 consent screen arguably fits that. The conservative choice is to declare Photos as
-**shared** (purpose App functionality). Recommendation: declare it as shared; it costs nothing in the listing and
-removes the argument.
+**Decision (Photos, not shared, 2026-11-22):** contributed crops are used only to train and test the recognition
+and are never published ([ADR 0016](../adr/0016-contributions-training-only.md)); Cloudflare stores them as our
+processor. So Photos are **collected (optional), not shared**.
 
 **Gaps before the form can be submitted:**
 
 - A **privacy policy URL** is required: `https://foilark.app/privacy` (DE/EN, PR #75, #70; the same page as
   `https://cards-api.fdu.gg/privacy`). Website for the listing: `https://foilark.app`. It must cover: no account, local-only collection,
-  the opt-in contribution (what, CC0, withdrawal, retention), ML Kit (on-device, telemetry stripped), Cloudflare (IP in request logs,
+  the opt-in contribution (what, training only, withdrawal, retention, 16+ confirmation), ML Kit (on-device, telemetry stripped), Cloudflare (IP in request logs,
   `observability` retention) and TCGdex image requests. As a trader, Fabian also needs the Impressum (§ 5 DDG):
   `https://foilark.app/imprint` (#226).
 - Store **contact email** (public).

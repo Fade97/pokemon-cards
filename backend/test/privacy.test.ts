@@ -66,7 +66,7 @@ describe("privacy policy pages", () => {
     // A guard against the two texts drifting apart: each names every recipient and legal basis.
     for (const lang of ["de", "en"] as const) {
       const html = renderPrivacy(lang);
-      for (const term of ["Cloudflare", "TCGdex", "ML Kit", "CC0", "Art. 6", "Art. 7", "Art. 11", "Art. 21", "Art. 77"]) {
+      for (const term of ["Cloudflare", "TCGdex", "ML Kit", "Art. 8", "Art. 6", "Art. 7", "Art. 11", "Art. 21", "Art. 77"]) {
         expect(html, `${lang}: ${term}`).toContain(term);
       }
       expect(html).toContain(CONTROLLER.name);

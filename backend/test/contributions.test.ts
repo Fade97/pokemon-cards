@@ -179,6 +179,18 @@ function withdraw(id: string, token?: string) {
   });
 }
 
+describe("consent versions (ADR 0016)", () => {
+  it("accepts the training-only consent and the older CC0 one, and records which", async () => {
+    for (const consent of ["train-1", "cc0-1"]) {
+      const res = await upload(jpeg(), { query: `cardId=sv03.5-025&lang=de&consent=${consent}` });
+      expect(res.status).toBe(201);
+      const { id } = (await res.json()) as { id: string };
+      const row = await env.DB.prepare("SELECT consent_version FROM contributions WHERE id = ?").bind(id).first();
+      expect(row).toEqual({ consent_version: consent });
+    }
+  });
+});
+
 describe("POST /v1/contributions with a client id (idempotent)", () => {
   const token = "A".repeat(43);
   const query = (id: string) => `cardId=sv03.5-025&lang=de&consent=cc0-1&id=${id}`;

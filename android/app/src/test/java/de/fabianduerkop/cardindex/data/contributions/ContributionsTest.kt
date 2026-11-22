@@ -106,7 +106,7 @@ class ContributionsTest {
         assertEquals(QueueOutcome.Done, repo.processQueue())
 
         val upload = api.uploads.single()
-        assertEquals(listOf("sv03.5-006", "de", "cc0-1"), listOf(upload.cardId, upload.lang, upload.consent))
+        assertEquals(listOf("sv03.5-006", "de", ContributionConsent.VERSION), listOf(upload.cardId, upload.lang, upload.consent))
         assertFalse(JpegMetadata.hasMetadata(upload.jpeg))
         val stored = db.contributionDao().byId(id)!!
         // Id and token were chosen when the scan was queued and sent as they are.

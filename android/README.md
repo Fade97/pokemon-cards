@@ -250,11 +250,13 @@ Not measured on a phone yet (#78, #83).
 
 ## Scan contributions (issue #14)
 
-Opt-in uploads for the open dataset (ADR 0008); the API contract is in issue #14 and `backend/README.md` (PR #41).
+Opt-in uploads that train and test the recognition and are never published (ADR 0016); the API contract is in
+issue #14 and `backend/README.md` (PR #41).
 
-- **Settings → Open dataset → Contribute my scans** is off by default. Turning it on opens the consent screen
-  (CC0 1.0, version `cc0-1`, sent with every upload). It also says that withdrawing doesn't remove a scan from
-  dataset releases that are already published. Turning it off deletes scans that haven't been sent.
+- **Settings → Improve recognition → Contribute my scans** is off by default. Turning it on opens the consent screen
+  (training only, version `train-1`, sent with every upload). "I agree" stays disabled until the user confirms they
+  are 16 or older or a parent agreed. It also says that models trained before a withdrawal keep what they learned.
+  Turning it off deletes scans that haven't been sent.
 - **What is sent**: the rectified crop of a scan the user confirmed, either auto-added in live scan or confirmed in
   Review, with the confirmed card id, the print's language and the consent version. The JPEG passes through
   `JpegMetadata.strip` (only JFIF and image segments stay), and no location, device or account data is sent.
