@@ -11,7 +11,8 @@ import kotlinx.coroutines.flow.map
 
 /**
  * What the user typed, split into a name part and a collector number (#99). `pikachu`, `151` (a set name and a
- * number), `25`, `025/165`, `TG05`, and `charizard 199` (name and number together) all work.
+ * number), `25`, `025/165`, `TG05`, and `charizard 199` (name and number together) all work. The name part also
+ * finds a set by its printed code: `30C`, `MEW 6` (#241).
  */
 data class SearchTerms(
     /** Card or set name to look for, as typed; null for a number on its own after a name. */
@@ -84,10 +85,12 @@ class CardSearch(private val dao: CatalogDao) {
         val prefix = escaped?.let { "$it%" }
         val langs = languages.toList()
         val number = terms.number
+        // The whole name part as a set code: `30C`, `30C 25`, `MEW 6/165` (#241).
+        val code = terms.text?.removePrefix("#")?.substringBefore('/')
         val rows = when {
-            number != null && terms.both -> dao.searchByNameAndNumber(text, prefix, number, terms.total, langs, limit + 1)
-            number != null -> dao.searchByNameOrNumber(text, prefix, number, terms.total, langs, limit + 1)
-            else -> dao.searchByName(text, prefix, terms.total, langs, limit + 1)
+            number != null && terms.both -> dao.searchByNameAndNumber(text, prefix, code, number, terms.total, langs, limit + 1)
+            number != null -> dao.searchByNameOrNumber(text, prefix, code, number, terms.total, langs, limit + 1)
+            else -> dao.searchByName(text, prefix, code, terms.total, langs, limit + 1)
         }
         return rows.map { SearchPage(it.take(limit), more = it.size > limit) }
     }

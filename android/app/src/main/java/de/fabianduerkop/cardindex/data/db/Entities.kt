@@ -47,6 +47,11 @@ data class CardSetEntity(
     val region: Region,
     /** No longer in the language pack. Kept for owned copies; see the policy at the top of this file. */
     val retired: Boolean = false,
+    /**
+     * The set code printed on the cards (#241): TCGdex's abbreviation (`MEW`, `30C`), for JP sets their id (`SV2a`).
+     * Search finds a set by it. Null when unknown; several sets can share one (`30th` and `30th-c` are both `30C`).
+     */
+    val code: String? = null,
 )
 
 /**

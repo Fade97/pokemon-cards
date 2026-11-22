@@ -107,6 +107,32 @@ class CardSearchTest {
         assertEquals(listOf("sv03.5-025"), pika.hits.map { it.card.id })
     }
 
+    /** #241: the set code printed on the card finds the set, alone or with a number, in any case. */
+    @Test
+    fun aSetCodeFindsItsSets_aloneOrWithANumber() = runTest {
+        seed()
+        db.catalogDao().insertSetsIfMissing(
+            listOf(
+                CardSetEntity("30th", "30th Celebration", "MEG", "en", 128, Region.INTERNATIONAL, code = "30C"),
+                CardSetEntity("30th-c", "30th Classic Collection", "MEG", "en", 30, Region.INTERNATIONAL, code = "30C"),
+            ),
+        )
+        db.catalogDao().upsertCards(
+            listOf(
+                named(card("30th-001", "30th", "001", "en"), "Bulbasaur"),
+                named(card("30th-025", "30th", "025", "en"), "Pikachu"),
+                named(card("30th-c-025", "30th-c", "025", "en"), "Charizard"),
+            ),
+        )
+        fun ids(page: SearchPage) = page.hits.map { it.card.id }.toSet()
+
+        assertEquals(setOf("30th-001", "30th-025", "30th-c-025"), ids(find("30C")))
+        assertEquals(setOf("30th-025", "30th-c-025"), ids(find("30c 25")))
+        assertEquals(setOf("30th-025"), ids(find("30C 025/128")))
+        // A name is still a name: the 30C Pikachu is found with the others, not the whole set.
+        assertEquals(setOf("sv03.5-025", "sv03.5-180", "30th-025"), ids(find("Pikachu", setOf("en"))))
+    }
+
     @Test
     fun byName_caseInsensitive_onlyInTheGivenLanguages() = runTest {
         seed()

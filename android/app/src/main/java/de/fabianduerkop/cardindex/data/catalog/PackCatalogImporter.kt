@@ -67,10 +67,17 @@ class PackCatalogImporter(
         // TCGdex keeps JP prints in their own sets; every other language shares the international set.
         region = if (lang == "ja") Region.JP else Region.INTERNATIONAL,
         retired = false,
+        code = abbreviation?.trim()?.ifEmpty { null } ?: id.takeIf { lang in JP_SET_LANGS },
     )
 
     private companion object {
         /** SQLite's default bound-parameter limit on older Android versions is 999. */
         const val MAX_PARAMS = 900
+
+        /**
+         * Packs whose sets are the Japanese ones (`ko` and `zh-tw` borrow them, docs/packs.md). TCGdex gives them no
+         * abbreviation, but their set id is the code printed on the card (`SV2a`, `M6a`).
+         */
+        val JP_SET_LANGS = setOf("ja", "ko", "zh-tw")
     }
 }

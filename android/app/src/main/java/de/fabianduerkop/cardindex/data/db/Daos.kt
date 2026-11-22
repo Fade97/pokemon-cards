@@ -50,7 +50,8 @@ private const val SEARCH_FROM = """
             AND (:total IS NULL OR c.setId IN (SELECT id FROM card_sets WHERE printedTotal = :total))"""
 
 private const val SEARCH_NAME = """
-    (c.name LIKE :text ESCAPE '\' OR c.setId IN (SELECT id FROM card_sets WHERE name LIKE :text ESCAPE '\'))"""
+    (c.name LIKE :text ESCAPE '\' OR c.setId IN
+        (SELECT id FROM card_sets WHERE name LIKE :text ESCAPE '\' OR code = :code COLLATE NOCASE))"""
 
 private const val SEARCH_ORDER = "byNumber DESC, byPrefix DESC, sortName, sortSet, sortLanguage, sortLength, sortNumber"
 
@@ -181,7 +182,7 @@ interface CatalogDao {
 
     /**
      * Search (#99) over the current cards in [languages]: cards whose name or set name matches [text] (a LIKE
-     * pattern). Matches are ordered by names that start with [prefix], then card name, set name, language and
+     * pattern), or whose set code is [code] ignoring case (`30C`, #241). Matches are ordered by names that start with [prefix], then card name, set name, language and
      * number. A [total] keeps only sets of that printed size. See [de.fabianduerkop.cardindex.data.search.SearchTerms].
      */
     @Query(
@@ -190,6 +191,7 @@ interface CatalogDao {
     fun searchByName(
         text: String?,
         prefix: String?,
+        code: String?,
         total: Int?,
         languages: List<String>,
         limit: Int,
@@ -206,6 +208,7 @@ interface CatalogDao {
     fun searchByNameOrNumber(
         text: String?,
         prefix: String?,
+        code: String?,
         number: String,
         total: Int?,
         languages: List<String>,
@@ -220,6 +223,7 @@ interface CatalogDao {
     fun searchByNameAndNumber(
         text: String?,
         prefix: String?,
+        code: String?,
         number: String,
         total: Int?,
         languages: List<String>,
