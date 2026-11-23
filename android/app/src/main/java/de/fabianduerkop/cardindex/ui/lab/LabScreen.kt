@@ -19,6 +19,7 @@ import androidx.camera.view.LifecycleCameraController
 import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +39,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -46,6 +48,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -59,7 +62,11 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.recognition.GateResult
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
+import de.fabianduerkop.cardindex.ui.scan.FocusCue
 import de.fabianduerkop.cardindex.ui.scan.FrameOverlay
+import de.fabianduerkop.cardindex.ui.scan.GuideCamera
+import de.fabianduerkop.cardindex.ui.scan.focusOnGuide
+import de.fabianduerkop.cardindex.ui.scan.rememberCameraInfo
 import de.fabianduerkop.cardindex.ui.theme.CameraColors
 import de.fabianduerkop.cardindex.ui.theme.LumifoilTheme
 
@@ -122,12 +129,17 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
             imageAnalysisOutputImageFormat = ImageAnalysis.OUTPUT_IMAGE_FORMAT_RGBA_8888
             imageCaptureMode = ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY
             setImageAnalysisAnalyzer(viewModel.worker, viewModel::analyze)
+            // Same optics as Scan (#197, #199): zoom and focus fitted to the guide, a tap refocuses on its centre.
+            isTapToFocusEnabled = false
+            isPinchToZoomEnabled = false
         }
     }
     DisposableEffect(lifecycleOwner) {
         controller.bindToLifecycle(lifecycleOwner)
         onDispose { controller.unbind() }
     }
+    GuideCamera(controller, rememberCameraInfo(controller), lifecycleOwner)
+    var focusTaps by remember { mutableIntStateOf(0) }
     val pickPhoto = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri ->
         if (uri != null) viewModel.recognizeUri(uri)
     }
@@ -157,6 +169,16 @@ private fun LabContent(viewModel: LabViewModel, engine: EngineState) {
                         outlineColor = outlineColor(live, LumifoilTheme.colors.camera),
                     )
                 }
+                // Over the picture, under the buttons: a tap anywhere refocuses on the guide.
+                Box(
+                    Modifier.fillMaxSize().pointerInput(controller) {
+                        detectTapGestures {
+                            controller.focusOnGuide()
+                            focusTaps++
+                        }
+                    },
+                )
+                FocusCue(focusTaps, Modifier.align(Alignment.Center))
             } else {
                 Image(s.photo.asImageBitmap(), contentDescription = null, Modifier.fillMaxSize(), contentScale = ContentScale.Fit)
                 s.result?.let {

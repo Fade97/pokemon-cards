@@ -537,10 +537,10 @@ private fun CameraProblemWatcher(
 
 /**
  * A ring at the guide's centre after a tap (#197): the camera heard it and is focusing there. Fades out; with
- * reduced motion it shows briefly and goes.
+ * reduced motion it shows briefly and goes. The Lab shows it too.
  */
 @Composable
-private fun FocusCue(taps: Int, modifier: Modifier) {
+internal fun FocusCue(taps: Int, modifier: Modifier) {
     val alpha = remember { Animatable(0f) }
     val reducedMotion = rememberReducedMotion()
     LaunchedEffect(taps) {
