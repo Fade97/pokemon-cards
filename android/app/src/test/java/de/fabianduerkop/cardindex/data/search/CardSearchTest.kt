@@ -220,8 +220,8 @@ class CardSearchTest {
 
     /**
      * #124 rewrote the query for speed; results and their order must stay what the #99 query returned. The old query
-     * runs here as a reference over a catalog with every kind of match, page sizes 50 and 2. One change since: within a
-     * name, owned prints come first (#221).
+     * runs here as a reference over a catalog with every kind of match, page sizes 50 and 2. Changed since (#221): among
+     * equally good matches, owned names come first, and within a name, owned prints.
      */
     @Test
     fun sameHitsInTheSameOrderAsTheQueryBefore124() = runTest {
@@ -295,7 +295,9 @@ class CardSearchTest {
                 END
             )
             ORDER BY (?3 IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = ?3) DESC,
-                (c.name LIKE ?2 ESCAPE '\') DESC, c.name, owned > 0 DESC, s.name, c.language, LENGTH(c.localId), c.localId
+                (c.name LIKE ?2 ESCAPE '\') DESC,
+                c.name IN (SELECT oc.name FROM owned_copies o JOIN cards oc ON oc.id = o.cardId AND oc.language = o.cardLanguage) DESC,
+                c.name, owned > 0 DESC, s.name, c.language, LENGTH(c.localId), c.localId
             LIMIT ?6
         """
         val args = arrayOf<Any?>(

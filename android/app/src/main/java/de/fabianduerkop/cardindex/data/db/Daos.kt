@@ -43,6 +43,8 @@ private const val SEARCH_HEAD = """
 private const val SEARCH_KEYS = """
             (c.name LIKE :prefix ESCAPE '\') AS byPrefix,
             EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS byOwned,
+            c.name IN (SELECT oc.name FROM owned_copies o JOIN cards oc ON oc.id = o.cardId AND oc.language = o.cardLanguage)
+                AS byOwnedName,
             c.name AS sortName, s.name AS sortSet,
             c.language AS sortLanguage, LENGTH(c.localId) AS sortLength, c.localId AS sortNumber"""
 
@@ -55,9 +57,11 @@ private const val SEARCH_NAME = """
     (c.name LIKE :text ESCAPE '\' OR c.setId IN
         (SELECT id FROM card_sets WHERE name LIKE :text ESCAPE '\' OR code = :code COLLATE NOCASE))"""
 
-/* Within a name, the user's own prints come first: "Pikachu" lists the Pikachu they own before the other printings
- * (#221). Name order stays first, so owning a card never lifts it above a better name match. */
-private const val SEARCH_ORDER = "byNumber DESC, byPrefix DESC, sortName, byOwned DESC, sortSet, sortLanguage, sortLength, sortNumber"
+/* The user's own cards first, without beating a better match (#221): among names that start with the text, the names
+ * they own lead ("char" lists the Charizard they own before Charcadet), and within a name, the prints they own. The
+ * owned-names subquery does not depend on the row, so SQLite runs it once (no window functions before API 30). */
+private const val SEARCH_ORDER =
+    "byNumber DESC, byPrefix DESC, byOwnedName DESC, sortName, byOwned DESC, sortSet, sortLanguage, sortLength, sortNumber"
 
 private const val SEARCH_TAIL = """
         ORDER BY $SEARCH_ORDER
@@ -65,7 +69,8 @@ private const val SEARCH_TAIL = """
     ) p
     JOIN cards c ON c.rowid = p.rid
     LEFT JOIN card_sets s ON s.id = c.setId
-    ORDER BY p.byNumber DESC, p.byPrefix DESC, p.sortName, p.byOwned DESC, p.sortSet, p.sortLanguage, p.sortLength, p.sortNumber
+    ORDER BY p.byNumber DESC, p.byPrefix DESC, p.byOwnedName DESC, p.sortName, p.byOwned DESC, p.sortSet, p.sortLanguage,
+        p.sortLength, p.sortNumber
 """
 
 /** Catalog data from language packs and the price API. Upserts only, see Entities.kt. */

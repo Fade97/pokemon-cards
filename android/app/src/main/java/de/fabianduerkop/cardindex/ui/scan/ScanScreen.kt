@@ -29,6 +29,9 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
 import androidx.compose.ui.input.pointer.pointerInput
@@ -815,7 +818,18 @@ private fun Tray(
     var showingReceipt by remember { mutableStateOf(false) }
 
     val sheetShape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
-    Surface(modifier, color = MaterialTheme.colorScheme.surface, shape = sheetShape) {
+    // The sheet's rounded top gets a hairline: in dark mode the page and the camera ground are nearly the same, and
+    // the sheet's edge vanished (#221). Only the top, so it never doubles the navigation bar's own line below.
+    val edge = MaterialTheme.colorScheme.outlineVariant
+    Surface(
+        modifier.drawWithContent {
+            drawContent()
+            val outline = sheetShape.createOutline(size, layoutDirection, this)
+            clipRect(bottom = SheetEdgeHeight.toPx()) { drawOutline(outline, edge, style = Stroke(1.dp.toPx())) }
+        },
+        color = MaterialTheme.colorScheme.surface,
+        shape = sheetShape,
+    ) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -1281,3 +1295,6 @@ private fun outlineColor(hint: ScanHint, camera: CameraColors): Color = when (hi
     ScanHint.QUEUED -> camera.warning
     else -> camera.faint
 }
+
+/** How far down the sheet's top hairline reaches: the rounded corners and the top edge. */
+private val SheetEdgeHeight = 32.dp

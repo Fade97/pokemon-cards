@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -140,10 +141,13 @@ fun CollectionsScreen(
         if (pastSwitch) scope.launch { listState.scrollToItem(SWITCH_INDEX) }
     }
 
+    // While the view switch is pinned under the bar, the two read as one raised block; the switch draws the edge.
+    val switchPinned by remember { derivedStateOf { listState.firstVisibleItemIndex >= SWITCH_INDEX } }
     TopLevelScaffold(
         title = stringResource(R.string.nav_collections),
         modifier = modifier,
         wordmark = true,
+        pinnedBelow = switchPinned,
         actions = {
             ScanShortcut(onClick = onOpenScan)
             TextAction(
@@ -191,8 +195,7 @@ fun CollectionsScreen(
                     }
                 }
                 stickyHeader(key = "view-switch") {
-                    val pinned by remember { derivedStateOf { listState.firstVisibleItemIndex >= SWITCH_INDEX } }
-                    CollectionsSwitch(view, onSelect = show, pinned = pinned)
+                    CollectionsSwitch(view, onSelect = show, pinned = switchPinned)
                 }
                 when (view) {
                     CollectionsView.SETS -> setItems(
@@ -237,6 +240,9 @@ fun CollectionsScreen(
         )
     }
 }
+
+/** Width of a set row's completion track, the widest common count ("100/165") at the default font. */
+private val SetRowBarMin = 72.dp
 
 /** List index of the switch: right after the value header. */
 private const val SWITCH_INDEX = 1
@@ -601,7 +607,9 @@ private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
         contentDescription = description,
         below = change?.let { { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xxs)) } },
         trailing = {
-            Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End) {
+            // One track width down the list, so 1/16 and 10/103 compare by their bars, not by their digits (#221);
+            // a wider count at large font still widens it.
+            Column(Modifier.width(IntrinsicSize.Max).widthIn(min = SetRowBarMin), horizontalAlignment = Alignment.End) {
                 Text(
                     progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
                     style = MaterialTheme.typography.titleMedium,

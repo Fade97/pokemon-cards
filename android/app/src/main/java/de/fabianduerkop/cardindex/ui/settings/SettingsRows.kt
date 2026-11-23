@@ -104,12 +104,14 @@ internal fun ConfirmDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    /** The confirm word in the error colour, where the loss is decided (#221). */
+    destructive: Boolean = false,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
-        confirmButton = { TextAction(confirmLabel, onClick = onConfirm) },
+        confirmButton = { TextAction(confirmLabel, onClick = onConfirm, destructive = destructive) },
         dismissButton = { TextAction(stringResource(android.R.string.cancel), onClick = onDismiss) },
         // Material's dialog already uses the 22 dp sheet corner (shapes.extraLarge) and a raised container.
     )

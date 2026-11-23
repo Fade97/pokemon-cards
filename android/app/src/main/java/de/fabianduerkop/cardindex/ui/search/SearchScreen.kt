@@ -2,6 +2,11 @@
 package de.fabianduerkop.cardindex.ui.search
 
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Column
@@ -103,12 +108,14 @@ fun SearchScreen(
 
     val scaffold: @Composable (@Composable (PaddingValues) -> Unit) -> Unit = { content ->
         if (onBack != null) {
-            DetailScaffold(title = title, onBack = onBack, modifier = modifier, content = content)
+            DetailScaffold(title = title, onBack = onBack, modifier = modifier, pinnedBelow = true, content = content)
         } else {
-            TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, content = content)
+            TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, pinnedBelow = true, content = content)
         }
     }
     val current by viewModel.query.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val scrolled by remember { derivedStateOf { listState.canScrollBackward } }
     scaffold { padding ->
         // The field stays pinned above the results, so a new query is one tap away after scrolling (#221).
         Column(
@@ -119,28 +126,35 @@ fun SearchScreen(
                 .imePadding(),
         ) {
             // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
-            Column(Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.sm)) {
-                SearchField(
-                    value = text,
-                    onValueChange = {
-                        text = it
-                        viewModel.setQuery(it)
-                    },
-                    onSearch = { keyboard?.hide() },
-                    modifier = Modifier.padding(top = Spacing.sm),
-                )
-                val languages = state.languages
-                if (!languages.isNullOrEmpty()) {
-                    Text(
-                        stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+            // With results under it, the field takes the bar's raised tint and the edge moves below it, where the
+            // rows actually pass (#221).
+            val colors = MaterialTheme.colorScheme
+            Column(Modifier.fillMaxWidth().background(if (scrolled) colors.surfaceContainer else colors.background)) {
+                Column(Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.sm)) {
+                    SearchField(
+                        value = text,
+                        onValueChange = {
+                            text = it
+                            viewModel.setQuery(it)
+                        },
+                        onSearch = { keyboard?.hide() },
                         modifier = Modifier.padding(top = Spacing.sm),
                     )
+                    val languages = state.languages
+                    if (!languages.isNullOrEmpty()) {
+                        Text(
+                            stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(top = Spacing.sm),
+                        )
+                    }
                 }
+                HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
             }
             LazyColumn(
                 Modifier.weight(1f).fillMaxWidth(),
+                state = listState,
                 contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
             ) {
                 val languages = state.languages

@@ -55,6 +55,8 @@ fun LumifoilTopAppBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    /** A pinned block under the bar (search field, view switch) takes the tint and draws the edge itself (#221). */
+    pinnedBelow: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(modifier) {
@@ -74,7 +76,7 @@ fun LumifoilTopAppBar(
         // A hairline once content runs under the bar, like the bottom bars have, so a half-hidden row has an edge to
         // pass under (#218). Always laid out, only coloured, so nothing below moves when it shows.
         val scrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > 0.01f
-        HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
+        HorizontalDivider(color = if (scrolled && !pinnedBelow) colors.outlineVariant else Color.Transparent)
     }
 }
 
@@ -103,6 +105,7 @@ fun TopLevelScaffold(
     modifier: Modifier = Modifier,
     wordmark: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
+    pinnedBelow: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     PearlScaffold(
@@ -119,6 +122,7 @@ fun TopLevelScaffold(
                 },
                 actions = actions,
                 scrollBehavior = scrollBehavior,
+                pinnedBelow = pinnedBelow,
             )
         },
         content = content,
@@ -138,6 +142,7 @@ fun DetailScaffold(
     backDescription: String = stringResource(R.string.action_back),
     actions: @Composable RowScope.() -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    pinnedBelow: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     PearlScaffold(
@@ -149,6 +154,7 @@ fun DetailScaffold(
                 navigationIcon = { BackButton(onBack, contentDescription = backDescription) },
                 actions = actions,
                 scrollBehavior = scrollBehavior,
+                pinnedBelow = pinnedBelow,
             )
         },
         bottomBar = bottomBar,

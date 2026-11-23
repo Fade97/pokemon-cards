@@ -81,6 +81,7 @@ import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.finishOrder
+import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
@@ -188,17 +189,21 @@ private fun ItemForm(
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             // Tap to see the scan large, next to the card Confirm would add (#161).
             val enlargeLabel = stringResource(R.string.review_crop_enlarge)
-            AsyncImage(
-                model = item.cropFile,
-                contentDescription = stringResource(R.string.review_crop),
-                modifier = Modifier
-                    .width(88.dp)
-                    .aspectRatio(63f / 88f)
-                    .focusRing(MaterialTheme.shapes.small)
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable(onClickLabel = enlargeLabel, role = Role.Button) { comparing = true },
-                contentScale = ContentScale.Crop,
-            )
+            // The expand mark says the scan opens the side-by-side comparison, not only to TalkBack (#221).
+            Box {
+                AsyncImage(
+                    model = item.cropFile,
+                    contentDescription = stringResource(R.string.review_crop),
+                    modifier = Modifier
+                        .width(88.dp)
+                        .aspectRatio(63f / 88f)
+                        .focusRing(MaterialTheme.shapes.small)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClickLabel = enlargeLabel, role = Role.Button) { comparing = true },
+                    contentScale = ContentScale.Crop,
+                )
+                ExpandMark(Modifier.align(Alignment.BottomEnd).padding(Spacing.xs), size = 14.dp)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 if (chosen != null) {
                     // The card that Confirm will add, number first: the easiest thing to check against the card.

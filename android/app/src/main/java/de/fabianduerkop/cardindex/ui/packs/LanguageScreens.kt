@@ -248,8 +248,10 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
     removing?.let { code ->
         ConfirmDialog(
             title = stringResource(R.string.packs_remove_title, languageName(code)),
-            text = stringResource(R.string.packs_remove_text),
+            // The last language stops scanning altogether: say so, not only that its cards go unrecognized (#221).
+            text = stringResource(if (installed.size <= 1) R.string.packs_remove_last_text else R.string.packs_remove_text),
             confirmLabel = stringResource(R.string.packs_remove),
+            destructive = true,
             onConfirm = {
                 viewModel.remove(code)
                 removing = null
@@ -273,13 +275,13 @@ private fun InstalledLanguageRow(row: LanguageRow, mobileData: Boolean, onRemove
                     color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Ends on the right edge like the switches below it, in the error colour: it removes recognition (#218).
+            // Ends on the right edge like the switches below it (#218). A quiet action: a red word beside every language
+            // was louder than the section heading; the confirmation says what removing costs (#221).
             TextAction(
                 stringResource(R.string.packs_remove),
                 onClick = onRemove,
                 modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.packs_remove_language, name),
-                destructive = true,
             )
         }
         (row.progress as? LanguageProgress.Downloading)?.let { p ->

@@ -31,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -69,6 +71,7 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CARD_ASPECT
 import de.fabianduerkop.cardindex.ui.components.CardImage
+import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.CardViewer
 import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
@@ -135,8 +138,16 @@ fun CardDetailScreen(
         pickingFor = null
     }
 
+    val listState = rememberLazyListState()
+    // The set while the hero shows the card's number and name; once they scroll away, the bar names the card, so
+    // the prices and copies below never lose whose they are (#221).
+    val heroGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
     DetailScaffold(
-        title = detail?.set?.name ?: detail?.card?.name.orEmpty(),
+        title = when {
+            detail == null -> ""
+            heroGone -> padCollectorNumber(detail.card.localId, detail.set?.printedTotal) + " " + detail.card.name
+            else -> detail.set?.name ?: detail.card.name
+        },
         onBack = onBack,
         bottomBar = { if (detail != null) AddCopyBar(onAdd = { editing = newCopyOf(detail.card) }) },
     ) { padding ->
@@ -149,7 +160,7 @@ fun CardDetailScreen(
             else -> BoxWithConstraints(Modifier.fillMaxSize()) {
                 // What the list shows between the top bar and the Add a copy and navigation bars: the hero fits in it.
                 val viewport = maxHeight - padding.calculateTopPadding() - padding.calculateBottomPadding()
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = padding) {
                     item {
                         CardHeader(
                             viewport = viewport,
@@ -421,21 +432,8 @@ private fun CardHeader(
                         preferOwnPhoto = photos.preferOwn,
                         quality = ImageQuality.HIGH,
                     )
-                    if (heroDescription != null) {
-                        // A quiet mark that the art opens larger (#221); the tap goes to the art under it.
-                        Surface(
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
-                            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.sm),
-                        ) {
-                            Icon(
-                                painterResource(R.drawable.ic_expand_view),
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.padding(6.dp).size(18.dp),
-                            )
-                        }
-                    }
+                    // A quiet mark that the art opens larger (#221); the tap goes to the art under it.
+                    if (heroDescription != null) ExpandMark(Modifier.align(Alignment.BottomEnd).padding(Spacing.sm))
                 }
             }
             Column(
@@ -464,15 +462,24 @@ private fun CardHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
-                // Owned or not, without scrolling to "Your copies" under the prices (#221).
+                // Owned or not, without scrolling to "Your copies" under the prices (#221). A check and plain text, not
+                // the sea-glass of the links, since it is a fact, not an action.
                 val owned = detail.copies.sumOf { it.copy.quantity }
                 if (owned > 0) {
-                    Text(
-                        pluralStringResource(R.plurals.card_owned_copies, owned, owned),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.padding(top = Spacing.xs),
-                    )
+                    Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            pluralStringResource(R.plurals.card_owned_copies, owned, owned),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
                 }
             }
         }

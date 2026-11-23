@@ -33,10 +33,11 @@ class SetShareTest {
     fun slotMapListsEverySlotInPrintOrder_withSecretRaresAndWishlistMarks() {
         val data = SetShare.build(detail, "EN", wantedKeys = setOf("2"))
 
-        assertEquals(listOf("1", "2", "3", "4", "5", "6"), data.slots.map { it.label })
+        // Padded like the set grid (#221).
+        assertEquals(listOf("001", "002", "003", "004", "005", "006"), data.slots.map { it.label })
         assertEquals(listOf(true, false, true, false, false, false), data.slots.map { it.owned })
-        assertEquals(listOf("6"), data.slots.filter { it.secret }.map { it.label })
-        assertEquals(listOf("2"), data.slots.filter { it.wanted }.map { it.label })
+        assertEquals(listOf("006"), data.slots.filter { it.secret }.map { it.label })
+        assertEquals(listOf("002"), data.slots.filter { it.wanted }.map { it.label })
         assertEquals(SetMissing(base = 3, secret = 1), data.missing)
         assertTrue(data.anyWanted)
     }

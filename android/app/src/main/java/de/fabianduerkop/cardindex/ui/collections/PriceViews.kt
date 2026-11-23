@@ -231,9 +231,11 @@ internal fun PriceBox(
             val datesText = if (dates.map { it.date.toLocalDate() }.distinct().size == 1) {
                 stringResource(R.string.price_as_of, formatDate(dates.first().date.toLocalDate()))
             } else {
+                // One line per market, the date unbreakable: no "·" stranded at a line end, no date split (#221).
                 dates.map {
-                    stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate()))
-                }.joinToString(" · ")
+                    val date = formatDate(it.date.toLocalDate()).replace(' ', '\u00A0')
+                    stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), date)
+                }.joinToString("\n")
             }
             val notes = buildList {
                 add(datesText)

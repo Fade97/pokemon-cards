@@ -46,7 +46,14 @@ object SetShare {
         val total = detail.set.printedTotal
         val slots = detail.slots.map { slot ->
             val key = numberKey(slot.localId)
-            ShareSlot(label = key, owned = slot.owned, secret = isSecret(key, total), wanted = !slot.owned && key in wantedKeys)
+            // Padded like the set grid ("001"), so the map reads the same as the app and "151" is never mistaken for
+            // the set's name (#221).
+            ShareSlot(
+                label = padCollectorNumber(slot.localId, total.takeIf { it > 0 }),
+                owned = slot.owned,
+                secret = isSecret(key, total),
+                wanted = !slot.owned && key in wantedKeys,
+            )
         }
         val missing = detail.slots.filterNot { it.owned }.map { slot ->
             MissingLine(

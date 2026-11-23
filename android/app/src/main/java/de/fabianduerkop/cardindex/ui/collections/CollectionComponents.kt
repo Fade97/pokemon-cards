@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -83,9 +82,11 @@ internal fun LanguageChips(
     horizontalPadding: Dp = ScreenPadding,
 ) {
     if (languages.size < 2) return
+    // A tighter gap than other chip rows: "All languages" and four codes then fit one line at 1.3x font on a 411 dp
+    // phone instead of leaving one code alone on a second line (#221). The chips keep their 48 dp touch height.
     FlowRow(
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         ChoiceChip(
             selected = selected.isEmpty(),
@@ -342,7 +343,11 @@ internal fun ViewSwitch(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup()) {
+    // Overlapped by spacing rather than offsets, so the last segment still ends on the gutter (#221).
+    Row(
+        modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy((-1).dp),
+    ) {
         labels.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val shape = SegmentedButtonDefaults.itemShape(index, labels.size, MaterialTheme.shapes.medium)
@@ -350,9 +355,8 @@ internal fun ViewSwitch(
             Box(
                 Modifier
                     .weight(1f)
-                    // Neighbours share one outline, as in Material's segmented buttons; the selected one draws on top,
-                    // and a focused one above that, so no neighbour covers its focus ring.
-                    .offset(x = (-1).dp * index)
+                    // Neighbours share one outline, as in Material's segmented buttons (the row's -1 dp spacing); the
+                    // selected one draws on top, and a focused one above that, so no neighbour covers its focus ring.
                     .zIndex(if (focused) 2f else if (selected) 1f else 0f)
                     .onFocusChanged { focused = it.isFocused }
                     .fillMaxHeight()

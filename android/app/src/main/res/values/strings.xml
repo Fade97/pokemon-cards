@@ -323,7 +323,8 @@
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
-    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, a set code such as 30C, or a collector number such as 25 or 025/165. Put a number after a name or set code to narrow it down: Pikachu 25, 30C 25.</string>
+    <!-- Examples on lines of their own, so the combined query is not buried in a paragraph (#221). -->
+    <string name="search_hint">Type a card name, a set, a set code or a collector number:\nPikachu · Surging Sparks · 30C · 025/165\n\nAdd a number to narrow it down:\nPikachu 25 · 30C 25</string>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
@@ -426,6 +427,8 @@
     <string name="packs_remove_language">Remove %1$s</string>
     <string name="packs_remove_title">Remove %1$s?</string>
     <string name="packs_remove_text">Cards in this language are no longer recognized. Your copies and collections stay.</string>
+    <!-- Removing the only installed language (#221). -->
+    <string name="packs_remove_last_text">This is your only card language: scanning stops until you add one. Your copies and collections stay.</string>
     <string name="packs_download_again">Download again</string>
     <!-- Version number, storage size -->
     <string name="packs_installed">Version %1$d · %2$s</string>
@@ -485,7 +488,8 @@
     <string name="scan_light_off">Light off</string>
     <string name="scan_hint_looking">Hold a card inside the frame</string>
     <string name="scan_hint_hold_still">Hold still</string>
-    <string name="scan_hint_unknown">Card not recognized. Is its language pack installed?</string>
+    <!-- Retry first: most misses are blur or glare; the language pack only when it keeps failing (#221). -->
+    <string name="scan_hint_unknown">Not recognized. Tap to refocus, or check its language in Settings.</string>
     <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->

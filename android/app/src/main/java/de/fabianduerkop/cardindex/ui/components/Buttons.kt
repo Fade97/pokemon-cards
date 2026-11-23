@@ -112,7 +112,8 @@ fun TextAction(
             ButtonDefaults.textButtonColors()
         },
     ) {
-        Text(text)
+        // Weighted, so the label wraps in what is left and the mark keeps its size at large font (#221).
+        Text(text, Modifier.weight(1f, fill = false))
         if (external) {
             Spacer(Modifier.width(Spacing.xs))
             Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null, modifier = Modifier.size(16.dp))
