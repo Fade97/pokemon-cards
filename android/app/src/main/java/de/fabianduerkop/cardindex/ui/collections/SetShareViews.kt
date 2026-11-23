@@ -98,9 +98,15 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
         ShareImagePreview(layer, description) {
             if (mapTab) SlotMapImage(data) else MissingListImage(data)
         }
+        // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
+        // more, and past the image's limit it says the text has them all (#221).
+        val missing = data.missingLines.size
         Text(
-            // The slot map has numbers only; the missing list has names too (#218).
-            stringResource(if (mapTab) R.string.set_share_map_no_art else R.string.set_share_no_art),
+            when {
+                mapTab || (missing > NamedLines && missing <= NumberChips) -> stringResource(R.string.set_share_map_no_art)
+                missing > NumberChips -> stringResource(R.string.set_share_cut_note)
+                else -> stringResource(R.string.set_share_no_art)
+            },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,

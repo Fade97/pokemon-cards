@@ -372,6 +372,14 @@ private fun SetHeader(
                     horizontalAlignment = Alignment.End,
                     modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
+                    // Above a partial sum, so it never reads as the set's whole worth, as on Collections (#221).
+                    if (priced.unpricedCopies > 0) {
+                        Text(
+                            stringResource(R.string.collections_priced_copies),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
                     // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
                     // many copies it covers when not all (#176, #218). The date never splits.

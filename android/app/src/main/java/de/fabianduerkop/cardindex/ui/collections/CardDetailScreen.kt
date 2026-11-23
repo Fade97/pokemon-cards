@@ -245,6 +245,7 @@ fun CardDetailScreen(
                     items(detail.copies, key = { it.copy.id }) { item ->
                         CopyRow(
                             ordinal = ordinals[item.copy.id],
+                            shownLanguage = detail.card.language,
                             item = item,
                             memberships = state.memberships[item.copy.id].orEmpty(),
                             showCard = false,
@@ -252,7 +253,7 @@ fun CardDetailScreen(
                         )
                     }
                     // At least the fade's height, so the last row rests clear of it.
-                    item { Spacer(Modifier.height(Spacing.xl)) }
+                    item { Spacer(Modifier.height(FooterFadeHeight)) }
                 }
                 // As on Review: the list fades into the Add bar instead of a line being cut at it (#218).
                 FooterFade(Modifier.align(Alignment.BottomCenter).padding(bottom = padding.calculateBottomPadding()))
@@ -565,6 +566,8 @@ internal fun CopyRow(
     trailing: @Composable ((stacked: Boolean) -> Unit)? = null,
     /** "Copy 2" when this row would otherwise read exactly like another one in the list (#221). */
     ordinal: Int? = null,
+    /** The language the screen already names (card detail's print): said again only for a copy in another one. */
+    shownLanguage: String? = null,
 ) {
     val copy = item.copy
     val fontScale = LocalDensity.current.fontScale
@@ -609,19 +612,22 @@ internal fun CopyRow(
                         } else {
                             add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_in_no_binder) })
                         }
-                        add(languageName(item.card.language))
-                        // Bought on, else added on: two otherwise equal copies are then told apart (#221).
+                        if (item.card.language != shownLanguage) add(languageName(item.card.language))
+                        // Bought on, else added on: two otherwise equal copies are then told apart (#221). Dates
+                        // never split across lines.
                         val bought = copy.purchaseDate
                         if (bought != null) {
-                            add(stringResource(R.string.collections_bought_on, formatDate(bought)))
+                            add(stringResource(R.string.collections_bought_on, formatDate(bought).replace(' ', '\u00A0')))
                         } else if (!showCard) {
-                            add(stringResource(R.string.collections_added_on, formatDate(copy.createdAt.atZone(ZoneId.systemDefault()).toLocalDate())))
+                            val added = formatDate(copy.createdAt.atZone(ZoneId.systemDefault()).toLocalDate())
+                            add(stringResource(R.string.collections_added_on, added.replace(' ', '\u00A0')))
                         }
                         ordinal?.let { add(stringResource(R.string.collections_copy_ordinal, it)) }
                     }
                     // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
                     Text(
-                        details.joinToString(", "),
+                        // " · " between facts, as in every other list's meta line (#221).
+                        details.joinToString(" · "),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

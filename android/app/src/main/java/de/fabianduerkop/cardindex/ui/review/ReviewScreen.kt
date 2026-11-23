@@ -86,6 +86,7 @@ import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.FooterFade
+import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
@@ -277,7 +278,8 @@ private fun ItemForm(
         TextAction(
             stringResource(R.string.review_discard),
             onClick = viewModel::discard,
-            modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else Spacing.lg),
+            // The last action ends clear of the footer fade at the end of the scroll (#221).
+            modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else FooterFadeHeight),
             alignToText = true,
         )
         // Debug builds only (#244): the crop goes to training as a negative, apart from "Remove", which also covers
@@ -286,7 +288,7 @@ private fun ItemForm(
             TextAction(
                 stringResource(R.string.review_not_a_card),
                 onClick = viewModel::notACard,
-                modifier = Modifier.padding(bottom = Spacing.lg),
+                modifier = Modifier.padding(bottom = FooterFadeHeight),
                 alignToText = true,
             )
         }

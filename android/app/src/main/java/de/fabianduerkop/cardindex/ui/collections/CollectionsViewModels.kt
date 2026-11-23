@@ -770,6 +770,11 @@ class CollectionDetailViewModel(
     private val collectionId: Long = checkNotNull(savedState.get<String>(CollectionsRoutes.ARG_COLLECTION_ID)).toLong()
     private val sort = MutableStateFlow(CopySort.VALUE)
 
+    /** Names of the other binders, so a rename can't make two look the same (#221). */
+    val otherBinderNames: StateFlow<Set<String>> = repository.observeCustomCollections()
+        .map { list -> list.filter { it.id != collectionId }.mapTo(HashSet()) { binderNameKey(it.name) } }
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptySet())
+
     private val source: Flow<Pair<CollectionEntity?, List<CopyWithCard>>> =
         if (collectionId == CollectionsRoutes.ALL_CARDS) {
             repository.observeAllCopies().map { null to it }

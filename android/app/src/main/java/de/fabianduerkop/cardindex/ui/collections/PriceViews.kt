@@ -17,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -78,7 +79,8 @@ internal fun quoteLabel(quote: PriceQuote): String {
     val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
     // The plain trend says so, now that the note under the prices no longer claims one printing for both (#221).
     val printing = if (plainTrend) stringResource(R.string.price_all_printings) else stringResource(quote.variant.label())
-    return "$market · $printing"
+    // At large font the printing goes on its own line, so no "·" is left at a line end (#221).
+    return if (LocalDensity.current.fontScale > LargeFontScale) "$market\n$printing" else "$market · $printing"
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
@@ -299,3 +301,6 @@ internal fun PriceBox(
         }
     }
 }
+
+/** Font scale from which two-part labels split onto two lines, as the set rows do (#221). */
+private const val LargeFontScale = 1.15f

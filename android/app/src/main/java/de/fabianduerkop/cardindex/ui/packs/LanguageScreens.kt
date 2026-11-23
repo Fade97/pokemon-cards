@@ -136,7 +136,7 @@ fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = lan
 private fun MobileDataSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     SwitchRow(
         title = stringResource(R.string.packs_mobile_data),
-        hint = stringResource(R.string.packs_mobile_data_hint),
+        hint = stringResource(if (checked) R.string.packs_mobile_data_hint_on else R.string.packs_mobile_data_hint),
         checked = checked,
         onCheckedChange = onCheckedChange,
     )

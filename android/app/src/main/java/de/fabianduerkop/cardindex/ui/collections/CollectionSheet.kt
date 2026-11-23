@@ -53,8 +53,11 @@ internal fun CollectionSheet(
     automaticCover: CopyWithCard? = null,
     coverChoices: List<CopyWithCard> = emptyList(),
     photos: OwnPhotos = OwnPhotos(),
+    /** [binderNameKey]s of the other binders: a name already taken can't be saved (#221). */
+    takenNames: Set<String> = emptySet(),
 ) {
     var name by rememberSaveable { mutableStateOf(initial?.name.orEmpty()) }
+    val taken = binderNameKey(name) in takenNames
     var description by rememberSaveable { mutableStateOf(initial?.description.orEmpty()) }
     // Only a pick that still shows (the copy is in the binder) is kept; a stale one saves as automatic.
     var coverUuid by rememberSaveable { mutableStateOf(cover?.takeIf { it.picked }?.copy?.copy?.uuid) }
@@ -83,6 +86,12 @@ internal fun CollectionSheet(
                 label = { Text(stringResource(R.string.collection_name)) },
                 placeholder = { Text(stringResource(R.string.collection_name_placeholder)) },
                 singleLine = true,
+                isError = taken,
+                supportingText = if (taken) {
+                    { Text(stringResource(R.string.collection_name_taken)) }
+                } else {
+                    null
+                },
                 shape = MaterialTheme.shapes.medium,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences),
                 modifier = Modifier.fillMaxWidth(),
@@ -128,10 +137,13 @@ internal fun CollectionSheet(
                 PrimaryButton(
                     stringResource(if (initial == null) R.string.collection_create else R.string.collection_save),
                     onClick = { onSave(name, description, coverUuid?.takeIf { uuid -> coverChoices.any { it.copy.uuid == uuid } }) },
-                    enabled = name.isNotBlank(),
+                    enabled = name.isNotBlank() && !taken,
                     modifier = Modifier.weight(1f),
                 )
             }
         }
     }
 }
+
+/** How binder names are compared: two that differ only in case or outer spaces read as the same binder (#221). */
+internal fun binderNameKey(name: String): String = name.trim().lowercase()

@@ -230,6 +230,7 @@ fun CollectionsScreen(
     if (creating) {
         CollectionSheet(
             initial = null,
+            takenNames = state.collections.mapTo(HashSet()) { binderNameKey(it.name) },
             onDismiss = { creating = false },
             onSave = { name, description, _ ->
                 viewModel.createCollection(name, description)
@@ -550,13 +551,7 @@ private fun FeaturedSet(
                 }
             }
             change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
-            CompletionBar(
-                row.progress.base,
-                set.printedTotal,
-                Modifier.padding(top = Spacing.md),
-                // On the raised cover the divider tone nearly vanished; the track stays visible as the whole set (#221).
-                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
-            )
+            CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
         }
     }
 }

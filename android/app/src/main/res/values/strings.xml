@@ -54,8 +54,10 @@
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- While some copies have no price in that market (#221). -->
-    <string name="collections_value_label_cardmarket_partial">Value of priced copies, Cardmarket trend, all languages</string>
-    <string name="collections_value_label_tcgplayer_partial">Value of priced copies, TCGplayer market price</string>
+    <!-- Above a set's value while some of its copies have no price (#221). -->
+    <string name="collections_priced_copies">Value of priced copies</string>
+    <string name="collections_value_label_cardmarket_partial">Priced copies, Cardmarket trend, all languages</string>
+    <string name="collections_value_label_tcgplayer_partial">Priced copies, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
     <!-- %1$s: the market, "TCGplayer" or "Cardmarket" (#221): the header naming it may have scrolled away. -->
@@ -255,6 +257,8 @@
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>
     <string name="collection_new_hint">For binders, trade piles or anything you want to keep together.</string>
+    <!-- Under the binder name when another binder already has it (#221). -->
+    <string name="collection_name_taken">You already have a binder with this name.</string>
     <string name="collection_name">Name</string>
     <string name="collection_name_placeholder">e.g. Fire binder</string>
     <string name="collection_description">Description (optional)</string>
@@ -353,8 +357,8 @@
         <item quantity="other">Showing the first %1$d cards</item>
     </plurals>
     <plurals name="search_owned">
-        <item quantity="one">%1$d owned</item>
-        <item quantity="other">%1$d owned</item>
+        <item quantity="one">%1$d in collection</item>
+        <item quantity="other">%1$d in collection</item>
     </plurals>
     <!-- The non-affiliation notice of the store listing (docs/release/play-launch.md, #130). %1$s is the app name. -->
     <string name="settings_disclaimer">%1$s is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their respective owners.</string>
@@ -449,7 +453,9 @@
     <string name="packs_waiting_wifi">Waiting for Wi-Fi</string>
     <!-- Language packs over mobile data (#137): off by default, all packs together are about 110 MB. -->
     <string name="packs_mobile_data">Use mobile data for language packs</string>
-    <string name="packs_mobile_data_hint">Off: language packs and their updates download only on Wi-Fi or another network without a data limit.</string>
+    <!-- Follows the switch (#221). -->
+    <string name="packs_mobile_data_hint">Language packs and their updates download only on Wi-Fi or another network without a data limit.</string>
+    <string name="packs_mobile_data_hint_on">Language packs and their updates also download over mobile data.</string>
     <string name="packs_failed">Download failed: %1$s</string>
     <string name="packs_broken">Damaged, so recognition skips this language. Download it again.</string>
     <string name="packs_model_storage">Recognition model: %1$s</string>
@@ -620,6 +626,8 @@
     <string name="set_share_missing">Missing list</string>
     <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
     <string name="set_share_map_no_art">Numbers only, no card pictures.</string>
+    <!-- The missing list image is cut at 150 numbers (#221). -->
+    <string name="set_share_cut_note">Numbers only, the first 150. Share as text for the full list.</string>
     <string name="set_share_image">Share image</string>
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>

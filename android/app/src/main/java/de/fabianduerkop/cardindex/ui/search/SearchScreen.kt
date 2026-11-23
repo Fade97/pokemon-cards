@@ -350,12 +350,13 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
             CardImage(card = card, localId = card.localId, printedTotal = hit.printedTotal, modifier = Modifier.width(44.dp))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                // On the number's baseline, so "2 in collection" reads as its own fact, not as part of "/165" (#221).
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     CollectorNumber(
                         localId = card.localId,
                         printedTotal = hit.printedTotal,
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f, fill = false),
+                        modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
                     )
                     if (hit.owned > 0) {
                         // A fact, shown as on the card's own screen: muted, not in the link colour (#221).
@@ -363,6 +364,7 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
                             pluralStringResource(R.plurals.search_owned, hit.owned, hit.owned),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.alignByBaseline(),
                         )
                     }
                 }

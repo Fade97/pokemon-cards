@@ -101,8 +101,8 @@ fun CompletionBar(
     total: Int,
     modifier: Modifier = Modifier,
     marks: List<Float> = emptyList(),
-    /** On a raised surface (the foil cover) the divider tone nearly vanishes; pass a stronger one (#221). */
-    trackColor: Color = MaterialTheme.colorScheme.outlineVariant,
+    /** The rest of the set: a visible tone on the page and on raised covers alike, not the divider one (#221). */
+    trackColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
 ) {
     val fraction = if (total > 0) (owned.toFloat() / total).coerceIn(0f, 1f) else 0f
     val track = trackColor

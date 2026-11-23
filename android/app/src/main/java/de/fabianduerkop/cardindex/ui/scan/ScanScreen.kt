@@ -1034,7 +1034,8 @@ private fun sessionCount(tray: ScanTray): String {
 private fun ScanTargetChip(target: String?, onClick: () -> Unit) {
     val name = target ?: stringResource(R.string.collections_all_cards)
     val description = stringResource(R.string.scan_target_description, name)
-    val shape = MaterialTheme.shapes.small
+    // The same corners as the Review button beside it (#221).
+    val shape = MaterialTheme.shapes.medium
     val colors = MaterialTheme.colorScheme
     OutlinedButton(
         onClick = onClick,
@@ -1298,4 +1299,4 @@ private fun outlineColor(hint: ScanHint, camera: CameraColors): Color = when (hi
 }
 
 /** How far down the sheet's top hairline reaches: the rounded corners and the top edge. */
-private val SheetEdgeHeight = 32.dp
+private val SheetEdgeHeight = 22.dp
