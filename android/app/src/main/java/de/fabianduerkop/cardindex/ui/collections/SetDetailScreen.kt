@@ -71,6 +71,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.collections.Milestones
 import de.fabianduerkop.cardindex.data.collections.SetDetail
@@ -252,9 +253,13 @@ private fun SetGrid(
         // One header with its own spacing: the grid's row gap differs between Compact and Cards, and as separate grid
         // items the filters moved under the thumb when the view toggle was tapped (#218).
         header {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // The header-to-grid gap is the same in both views: Compact's tighter row gap is made up below it (#221).
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(bottom = if (compact) Spacing.md - Spacing.xs else 0.dp),
+            ) {
                 milestone?.let { reached -> MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
-                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
+                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate, state.source)
                 FilterRow(
                     state = state,
                     detail = detail,
@@ -303,7 +308,13 @@ private fun LazyGridScope.header(content: @Composable () -> Unit) {
  * owned secret rares beyond it show apart as "+N secret" (#132).
  */
 @Composable
-private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?, priceDate: Instant?) {
+private fun SetHeader(
+    detail: SetDetail,
+    selectedLanguages: Set<String>,
+    value: CollectionValue?,
+    priceDate: Instant?,
+    source: PriceSource,
+) {
     val languages = selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted()
     val progress = detail.progress
     val languageLabel = if (selectedLanguages.isEmpty() && languages.size != 1) {
@@ -348,7 +359,8 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     // Part of the count's spoken description above.
                     Text(
                         it,
-                        style = MaterialTheme.typography.labelLarge,
+                        // Quieter than the count it explains, like the series line above (#221).
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clearAndSetSemantics {},
                     )
@@ -380,9 +392,9 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     )
                 }
             } else if (detail.copies.isNotEmpty()) {
-                // Owned copies but no price in this market: say so, as the set's row on Collections does (#218).
+                // Owned copies but no price in this market: say so, naming it, as the set's row on Collections does (#218).
                 Text(
-                    stringResource(R.string.collections_not_priced),
+                    stringResource(R.string.collections_not_priced, stringResource(source.marketName())),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,

@@ -41,7 +41,9 @@ private const val SEARCH_HEAD = """
         SELECT c.rowid AS rid,"""
 
 private const val SEARCH_KEYS = """
-            (c.name LIKE :prefix ESCAPE '\') AS byPrefix, c.name AS sortName, s.name AS sortSet,
+            (c.name LIKE :prefix ESCAPE '\') AS byPrefix,
+            EXISTS (SELECT 1 FROM owned_copies o WHERE o.cardId = c.id AND o.cardLanguage = c.language) AS byOwned,
+            c.name AS sortName, s.name AS sortSet,
             c.language AS sortLanguage, LENGTH(c.localId) AS sortLength, c.localId AS sortNumber"""
 
 private const val SEARCH_FROM = """
@@ -53,7 +55,9 @@ private const val SEARCH_NAME = """
     (c.name LIKE :text ESCAPE '\' OR c.setId IN
         (SELECT id FROM card_sets WHERE name LIKE :text ESCAPE '\' OR code = :code COLLATE NOCASE))"""
 
-private const val SEARCH_ORDER = "byNumber DESC, byPrefix DESC, sortName, sortSet, sortLanguage, sortLength, sortNumber"
+/* Within a name, the user's own prints come first: "Pikachu" lists the Pikachu they own before the other printings
+ * (#221). Name order stays first, so owning a card never lifts it above a better name match. */
+private const val SEARCH_ORDER = "byNumber DESC, byPrefix DESC, sortName, byOwned DESC, sortSet, sortLanguage, sortLength, sortNumber"
 
 private const val SEARCH_TAIL = """
         ORDER BY $SEARCH_ORDER
@@ -61,7 +65,7 @@ private const val SEARCH_TAIL = """
     ) p
     JOIN cards c ON c.rowid = p.rid
     LEFT JOIN card_sets s ON s.id = c.setId
-    ORDER BY p.byNumber DESC, p.byPrefix DESC, p.sortName, p.sortSet, p.sortLanguage, p.sortLength, p.sortNumber
+    ORDER BY p.byNumber DESC, p.byPrefix DESC, p.sortName, p.byOwned DESC, p.sortSet, p.sortLanguage, p.sortLength, p.sortNumber
 """
 
 /** Catalog data from language packs and the price API. Upserts only, see Entities.kt. */

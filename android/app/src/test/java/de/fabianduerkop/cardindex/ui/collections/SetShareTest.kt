@@ -94,4 +94,20 @@ class SetShareTest {
         assertEquals(java.time.LocalDate.of(2026, 11, 7), SetShare.build(complete, "EN", emptySet(), java.time.ZoneOffset.UTC).completedOn)
         assertEquals(null, SetShare.build(detail, "EN", emptySet()).completedOn)
     }
+
+    @Test
+    fun aSetCompleteOnlyInAnotherLanguageIsNoCertificate() {
+        fun copy(localId: String, language: String) = CopyWithCard(
+            OwnedCopyEntity(cardId = "s-$localId", cardLanguage = language, createdAt = Instant.EPOCH),
+            card("s-$localId", "s", localId, language),
+            set,
+        )
+        // Complete in English, only 001 in German: the German map has gaps, so it is no certificate (#221).
+        val owned = listOf("001", "002", "003", "004", "005").map { copy(it, "en") } + copy("001", "de")
+        val german = SetDetail(set, listOf("de", "en"), buildSetSlots(5, catalog, owned, setOf("de")), owned)
+        val english = SetDetail(set, listOf("de", "en"), buildSetSlots(5, catalog, owned, setOf("en")), owned)
+
+        assertEquals(null, SetShare.build(german, "DE", emptySet()).completedOn)
+        assertTrue(SetShare.build(english, "EN", emptySet()).completedOn != null)
+    }
 }

@@ -55,7 +55,8 @@
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
-    <string name="collections_not_priced">No price</string>
+    <!-- %1$s: the market, "TCGplayer" or "Cardmarket" (#221): the header naming it may have scrolled away. -->
+    <string name="collections_not_priced">No %1$s price</string>
     <string name="collections_missing_slot_open">Show this missing card</string>
     <plurals name="collections_set_value_coverage">
         <item quantity="one">%1$d of %2$d copy priced</item>
@@ -139,6 +140,11 @@
     <string name="collections_set_unknown">This set is not on this device.</string>
     <string name="collections_print">%1$s, %2$s print</string>
     <string name="collections_your_copies">Your copies (%1$d)</string>
+    <!-- Under the card's name on its detail screen, when the user owns it (#221). -->
+    <plurals name="card_owned_copies">
+        <item quantity="one">%1$d copy in your collection</item>
+        <item quantity="other">%1$d copies in your collection</item>
+    </plurals>
     <string name="collections_add_copy">Add a copy</string>
     <!-- Wishlist (#134): wanted cards, not copies. -->
     <string name="wishlist_title">Wishlist</string>

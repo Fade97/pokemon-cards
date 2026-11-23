@@ -23,6 +23,7 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /*
@@ -92,6 +93,8 @@ fun TextAction(
     contentDescription: String? = null,
     destructive: Boolean = false,
     alignToText: Boolean = false,
+    /** The link leaves the app (a market page, a website): a trailing open-in-new mark says so (#221). */
+    external: Boolean = false,
 ) {
     val shape = MaterialTheme.shapes.medium
     TextButton(
@@ -108,7 +111,13 @@ fun TextAction(
         } else {
             ButtonDefaults.textButtonColors()
         },
-    ) { Text(text) }
+    ) {
+        Text(text)
+        if (external) {
+            Spacer(Modifier.width(Spacing.xs))
+            Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null, modifier = Modifier.size(16.dp))
+        }
+    }
 }
 
 /** A text button's own start padding (Material's 12 dp); [TextAction] with alignToText, or a row of them, moves back by it. */

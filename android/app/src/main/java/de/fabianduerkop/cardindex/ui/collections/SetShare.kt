@@ -55,7 +55,10 @@ object SetShare {
                 wanted = numberKey(slot.localId) in wantedKeys,
             )
         }
-        val completedOn = Recaps.completionDate(detail.copies, total, zone)
+        // Only the copies that fill the shown slots (the chosen languages), so a language-filtered map with gaps is
+        // never titled a certificate because another language completed the set (#221).
+        val shownUuids = detail.slots.flatMapTo(HashSet()) { it.copyUuids }
+        val completedOn = Recaps.completionDate(detail.copies.filter { it.copy.uuid in shownUuids }, total, zone)
         return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing, completedOn)
     }
 

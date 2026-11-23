@@ -220,7 +220,8 @@ class CardSearchTest {
 
     /**
      * #124 rewrote the query for speed; results and their order must stay what the #99 query returned. The old query
-     * runs here as a reference over a catalog with every kind of match, page sizes 50 and 2.
+     * runs here as a reference over a catalog with every kind of match, page sizes 50 and 2. One change since: within a
+     * name, owned prints come first (#221).
      */
     @Test
     fun sameHitsInTheSameOrderAsTheQueryBefore124() = runTest {
@@ -275,7 +276,7 @@ class CardSearchTest {
 
     private fun row(hit: CardSearchHit) = listOf(hit.card.id, hit.card.language, hit.setName, hit.printedTotal, hit.owned)
 
-    /** The search query of #99, as it was before #124, with the same parameters. */
+    /** The search query of #99, as it was before #124 (plus #221's owned-first within a name), same parameters. */
     private fun before124(terms: SearchTerms, languages: Set<String>, limit: Int): List<List<Any?>> {
         val escaped = terms.text?.let(SearchTerms::escapeLike)
         val langs = languages.joinToString(",") { "'$it'" }
@@ -294,7 +295,7 @@ class CardSearchTest {
                 END
             )
             ORDER BY (?3 IS NOT NULL AND UPPER(LTRIM(c.localId, '0')) = ?3) DESC,
-                (c.name LIKE ?2 ESCAPE '\') DESC, c.name, s.name, c.language, LENGTH(c.localId), c.localId
+                (c.name LIKE ?2 ESCAPE '\') DESC, c.name, owned > 0 DESC, s.name, c.language, LENGTH(c.localId), c.localId
             LIMIT ?6
         """
         val args = arrayOf<Any?>(

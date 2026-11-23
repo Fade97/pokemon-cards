@@ -34,6 +34,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
@@ -107,53 +108,62 @@ fun SearchScreen(
             TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, content = content)
         }
     }
+    val current by viewModel.query.collectAsStateWithLifecycle()
     scaffold { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().consumeWindowInsets(padding).imePadding(),
-            contentPadding = padding,
+        // The field stays pinned above the results, so a new query is one tap away after scrolling (#221).
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .consumeWindowInsets(padding)
+                .imePadding(),
         ) {
-            item {
-                // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
-                Column(Modifier.padding(horizontal = Spacing.gutter)) {
-                    SearchField(
-                        value = text,
-                        onValueChange = {
-                            text = it
-                            viewModel.setQuery(it)
-                        },
-                        onSearch = { keyboard?.hide() },
+            // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
+            Column(Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.sm)) {
+                SearchField(
+                    value = text,
+                    onValueChange = {
+                        text = it
+                        viewModel.setQuery(it)
+                    },
+                    onSearch = { keyboard?.hide() },
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+                val languages = state.languages
+                if (!languages.isNullOrEmpty()) {
+                    Text(
+                        stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(top = Spacing.sm),
                     )
-                    val languages = state.languages
-                    if (!languages.isNullOrEmpty()) {
-                        Text(
-                            stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = Spacing.sm),
-                        )
-                    }
                 }
             }
-            val languages = state.languages
-            when {
-                languages == null -> Unit
-                languages.isEmpty() -> item {
-                    StatusNotice(
-                        stringResource(R.string.search_no_languages),
-                        tone = NoticeTone.WARNING,
-                        actionLabel = stringResource(R.string.search_choose_languages),
-                        onAction = onOpenLanguages,
-                        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+            LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
+            ) {
+                val languages = state.languages
+                when {
+                    languages == null -> Unit
+                    languages.isEmpty() -> item {
+                        StatusNotice(
+                            stringResource(R.string.search_no_languages),
+                            tone = NoticeTone.WARNING,
+                            actionLabel = stringResource(R.string.search_choose_languages),
+                            onAction = onOpenLanguages,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+                        )
+                    }
+                    else -> results(
+                        state.results,
+                        currentQuery = current,
+                        onOpenCard = onOpenCard,
+                        onRetry = viewModel::retry,
+                        onOpenScan = onOpenScan,
+                        onShowMore = viewModel::showMore,
                     )
                 }
-                else -> results(
-                    state.results,
-                    onOpenCard = onOpenCard,
-                    onRetry = viewModel::retry,
-                    onOpenScan = onOpenScan,
-                    onShowMore = viewModel::showMore,
-                )
             }
         }
     }
@@ -183,6 +193,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, onSearch
 
 private fun LazyListScope.results(
     results: SearchResults,
+    currentQuery: String,
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
     onOpenScan: (() -> Unit)?,
@@ -203,6 +214,9 @@ private fun LazyListScope.results(
         is SearchResults.Found -> if (results.hits.isEmpty()) {
             item { NoMatch(onOpenScan) }
         } else {
+            // Hits of older text while the next search runs: shown faded, not pickable, so a tap never opens a card
+            // the field no longer asks for (#221).
+            val stale = results.query != currentQuery
             item {
                 Text(
                     if (results.more) {
@@ -220,7 +234,7 @@ private fun LazyListScope.results(
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
             }
             items(results.hits, key = { it.card.id + "/" + it.card.language }) { hit ->
-                SearchResultRow(hit, onClick = { onOpenCard(hit.card.id, hit.card.language) })
+                SearchResultRow(hit, enabled = !stale, onClick = { onOpenCard(hit.card.id, hit.card.language) })
             }
             // The list is cut at a page: the next page of the same query, so a broad query never hides a match (#218).
             if (results.more) {
@@ -228,6 +242,7 @@ private fun LazyListScope.results(
                     SecondaryButton(
                         stringResource(R.string.search_show_more),
                         onClick = onShowMore,
+                        enabled = !stale,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
                     )
                 }
@@ -285,7 +300,7 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
  * set and language, and how many copies of this print the user owns. One button for TalkBack.
  */
 @Composable
-private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
+private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () -> Unit) {
     val card = hit.card
     // One label for the whole row: merged, the number's own description would replace the name, set and language.
     val spoken = listOfNotNull(
@@ -298,8 +313,9 @@ private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
     Column(
         Modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else STALE_ALPHA)
             .focusRing(MaterialTheme.shapes.small, gap = (-2).dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
@@ -343,3 +359,5 @@ private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
         HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
+
+private const val STALE_ALPHA = 0.5f

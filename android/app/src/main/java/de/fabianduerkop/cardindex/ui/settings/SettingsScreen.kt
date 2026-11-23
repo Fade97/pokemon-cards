@@ -341,7 +341,8 @@ private fun TesterFeedbackLink() {
 internal fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier, alignToText: Boolean = false) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    TextAction(label, modifier = modifier, alignToText = alignToText, onClick = {
+    // Web pages get the leaving-the-app mark; an e-mail link opens the mail app, which the label already says.
+    TextAction(label, modifier = modifier, alignToText = alignToText, external = !url.startsWith("mailto:"), onClick = {
         // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
         // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
         val opened = try {

@@ -25,6 +25,7 @@ import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -42,6 +43,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -394,29 +396,47 @@ private fun CardHeader(
                     .padding(top = Spacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
-                CardImage(
-                    card = detail.card,
-                    localId = detail.card.localId,
-                    printedTotal = detail.set?.printedTotal,
-                    // No fillMaxWidth: the card's aspect ratio then fits the widest card the height allows.
-                    modifier = Modifier
-                        .widthIn(max = HeroMaxWidth)
-                        .then(
-                            if (heroDescription != null) {
-                                Modifier
-                                    .focusRing(shape)
-                                    .clip(shape)
-                                    .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
-                                    .clearAndSetSemantics { contentDescription = heroDescription }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                    // The newest photo of a copy in the shown language, else of any copy of the card.
-                    ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
-                    preferOwnPhoto = photos.preferOwn,
-                    quality = ImageQuality.HIGH,
-                )
+                // Sized by the art, so the expand mark sits on the card's own corner, not the column's.
+                Box {
+                    CardImage(
+                        card = detail.card,
+                        localId = detail.card.localId,
+                        printedTotal = detail.set?.printedTotal,
+                        // No fillMaxWidth: the card's aspect ratio then fits the widest card the height allows.
+                        modifier = Modifier
+                            .widthIn(max = HeroMaxWidth)
+                            .then(
+                                if (heroDescription != null) {
+                                    Modifier
+                                        .focusRing(shape)
+                                        .clip(shape)
+                                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
+                                        .clearAndSetSemantics { contentDescription = heroDescription }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        // The newest photo of a copy in the shown language, else of any copy of the card.
+                        ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
+                        preferOwnPhoto = photos.preferOwn,
+                        quality = ImageQuality.HIGH,
+                    )
+                    if (heroDescription != null) {
+                        // A quiet mark that the art opens larger (#221); the tap goes to the art under it.
+                        Surface(
+                            shape = CircleShape,
+                            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.85f),
+                            modifier = Modifier.align(Alignment.BottomEnd).padding(Spacing.sm),
+                        ) {
+                            Icon(
+                                painterResource(R.drawable.ic_expand_view),
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.padding(6.dp).size(18.dp),
+                            )
+                        }
+                    }
+                }
             }
             Column(
                 Modifier
@@ -444,6 +464,16 @@ private fun CardHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
+                // Owned or not, without scrolling to "Your copies" under the prices (#221).
+                val owned = detail.copies.sumOf { it.copy.quantity }
+                if (owned > 0) {
+                    Text(
+                        pluralStringResource(R.plurals.card_owned_copies, owned, owned),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = Spacing.xs),
+                    )
+                }
             }
         }
         WishlistToggle(

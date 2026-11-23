@@ -28,8 +28,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -189,7 +191,8 @@ fun CollectionsScreen(
                     }
                 }
                 stickyHeader(key = "view-switch") {
-                    CollectionsSwitch(view, onSelect = show)
+                    val pinned by remember { derivedStateOf { listState.firstVisibleItemIndex >= SWITCH_INDEX } }
+                    CollectionsSwitch(view, onSelect = show, pinned = pinned)
                 }
                 when (view) {
                     CollectionsView.SETS -> setItems(
@@ -243,7 +246,7 @@ private const val SWITCH_INDEX = 1
  * divider that closes the value header below it.
  */
 @Composable
-private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView) -> Unit) {
+private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView) -> Unit, pinned: Boolean) {
     val labels = CollectionsView.entries.map { entry ->
         stringResource(
             when (entry) {
@@ -253,19 +256,20 @@ private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView)
             },
         )
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = ScreenPadding),
-    ) {
+    // Pinned under the app bar, it takes the bar's scrolled surface and a full-width hairline, so the two read as one
+    // raised block over the list instead of a strip floating on it (#221).
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().background(if (pinned) colors.surfaceContainer else colors.background)) {
         ViewSwitch(
             labels = labels,
             selectedIndex = view.ordinal,
             onSelect = { onSelect(CollectionsView.entries[it]) },
-            modifier = Modifier.padding(vertical = Spacing.sm),
+            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.sm),
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            Modifier.padding(horizontal = if (pinned) 0.dp else ScreenPadding),
+            color = colors.outlineVariant,
+        )
     }
 }
 
@@ -409,7 +413,8 @@ private fun ValueHeader(
 private fun valueCoverage(row: SetRowUi): String? {
     val value = row.value
     return when {
-        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) -> stringResource(R.string.collections_not_priced)
+        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) ->
+            stringResource(R.string.collections_not_priced, stringResource(row.source.marketName()))
         value != null && value.unpricedCopies > 0 ->
             pluralStringResource(R.plurals.collections_set_value_coverage, value.totalCopies, value.pricedCopies, value.totalCopies)
         else -> null
@@ -496,17 +501,19 @@ private fun FeaturedSet(
             CardFan(row.art, set.printedTotal, Modifier.padding(vertical = Spacing.md))
             // Top-aligned: the count lines up with the value, not between it and its coverage line (#218).
             Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    progressText(
-                        row.progress.base,
-                        set.printedTotal,
-                        countColor = MaterialTheme.colorScheme.onSurface,
-                        suffix = listOfNotNull(stringResource(R.string.collections_collected), secretText(row.progress))
-                            .joinToString(" · "),
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    // Its natural width (measured first, unweighted): the count never breaks; the value takes the rest.
-                )
+                // "collected" and "+N secret" under the count, not after it: the value column keeps the width to show
+                // its source on one line at large font (#221). Natural width (unweighted): the count never breaks.
+                Column {
+                    Text(
+                        progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    Text(
+                        listOfNotNull(stringResource(R.string.collections_collected), secretText(row.progress)).joinToString("\n"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 val priced = row.value?.takeIf { it.amountMinor > 0 }
                 if (priced != null) {
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
@@ -523,7 +530,7 @@ private fun FeaturedSet(
                 } else if (set.copies > 0) {
                     // Owned but unpriced: said here too, as in the rows and on the set screen, where a price would be.
                     Text(
-                        stringResource(R.string.collections_not_priced),
+                        stringResource(R.string.collections_not_priced, stringResource(row.source.marketName())),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -576,14 +583,16 @@ private val FanHeight = 132.dp
 private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val set = row.completion
     val description = setDescription(row, change = change)
-    val subtitle = listOfNotNull(
+    val facts = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
-        valueSource(row),
-        valueCoverage(row),
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
     ).joinToString(" · ")
+    // Where the value comes from and how much it covers on a line of its own: run on after "·", it broke mid-way at
+    // large font and left a "·" dangling at a line end (#221).
+    val basis = listOfNotNull(valueSource(row), valueCoverage(row)).joinToString(" · ").ifEmpty { null }
+    val subtitle = listOfNotNull(facts, basis).joinToString("\n")
     ListRow(
         title = set.name,
         subtitle = subtitle,

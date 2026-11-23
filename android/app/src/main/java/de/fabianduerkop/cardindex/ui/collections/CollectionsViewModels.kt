@@ -145,6 +145,8 @@ data class SetRowUi(
     val priceDate: Instant? = null,
     val series: String? = null,
     val art: List<CardEntity> = emptyList(),
+    /** The market [value] comes from, named even when nothing is priced there ("No TCGplayer price", #221). */
+    val source: PriceSource = PriceSource.CARDMARKET,
 ) {
     /**
      * Owned numbers counted like the set detail's header (`006` and `6` are one slot), so the row, the cover and the
@@ -272,6 +274,7 @@ class CollectionsViewModel(
                 priceDate = PriceSelection.totalDate(copies.map { it.copy }, priceMap, source),
                 series = copies.firstOrNull()?.set?.series?.takeIf { it.isNotBlank() },
                 art = copies.map { it.card }.distinctBy { it.id }.sortedBy { it.imageUrl == null }.take(FEATURED_ART),
+                source = source,
             )
         }
         val featured = featuredSet(sets, pinnedId)
@@ -468,6 +471,8 @@ data class SetDetailUiState(
     val value: CollectionValue? = null,
     /** Newest price date behind [value], shown with it (#176). */
     val priceDate: Instant? = null,
+    /** The market [value] comes from; named when the copies have no price there ("No TCGplayer price", #221). */
+    val source: PriceSource = PriceSource.CARDMARKET,
     /** Whether the user pinned this set to the Collections foil cover (#156). */
     val pinned: Boolean = false,
     /** Whether the slot legend shows under the filter row: on the first visits, then by the info button (#165). */
@@ -531,6 +536,7 @@ class SetDetailViewModel(
             detail = detail,
             value = PriceSelection.total(owned, priceMap, source),
             priceDate = PriceSelection.totalDate(owned, priceMap, source),
+            source = source,
             legendShown = legendShown,
         )
     }.stateIn(this, SetDetailUiState())

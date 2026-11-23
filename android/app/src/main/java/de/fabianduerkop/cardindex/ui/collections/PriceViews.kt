@@ -268,6 +268,7 @@ internal fun PriceBox(
                             stringResource(R.string.price_open_cardmarket)
                         },
                         onClick = { open(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
+                        external = true,
                     )
                 }
             }
@@ -276,6 +277,7 @@ internal fun PriceBox(
                     TextAction(
                         stringResource(R.string.price_open_tcgplayer),
                         onClick = { open(MarketLinks.tcgplayer(tcgplayerId)) },
+                        external = true,
                     )
                 }
             }

@@ -27,8 +27,11 @@ sealed interface SearchResults {
     /** The first search for this text is still running. */
     data object Loading : SearchResults
 
-    /** [hits] may be empty (no match); [more] when the list was cut at one page. */
-    data class Found(val hits: List<CardSearchHit>, val more: Boolean) : SearchResults
+    /**
+     * [hits] may be empty (no match); [more] when the list was cut at one page. [query] is the text they were found
+     * for: while the field already holds newer text, the list is stale and cannot be picked from (#221).
+     */
+    data class Found(val hits: List<CardSearchHit>, val more: Boolean, val query: String = "") : SearchResults
 
     /** The local catalog could not be read. */
     data object Failed : SearchResults
@@ -75,7 +78,7 @@ class SearchViewModel(
                 delay(DEBOUNCE_MS)
                 try {
                     search.observe(terms, languages, limit = CardSearch.PAGE * shown, query = q).collect { page ->
-                        _state.update { it.copy(results = SearchResults.Found(page.hits, page.more)) }
+                        _state.update { it.copy(results = SearchResults.Found(page.hits, page.more, q)) }
                     }
                 } catch (e: CancellationException) {
                     throw e
