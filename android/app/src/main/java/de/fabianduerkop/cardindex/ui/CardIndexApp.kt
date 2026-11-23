@@ -130,7 +130,8 @@ fun CardIndexApp(navController: NavHostController = rememberNavController()) {
             collectionsGraph(
                 navController,
                 onOpenScan = { navController.navigateTopLevel(TopLevelDestination.SCAN) },
-                onOpenSearch = { navController.navigateTopLevel(TopLevelDestination.SEARCH) },
+                // "Find a card" promises the search field: Search from its start, not a card opened there before (#249).
+                onOpenSearch = { navController.navigateTopLevel(TopLevelDestination.SEARCH, fresh = true) },
             )
             searchGraph(
                 navController,
@@ -196,8 +197,15 @@ private fun BottomBar(navController: NavHostController) {
     )
 }
 
-private fun NavHostController.navigateTopLevel(destination: TopLevelDestination) = navigate(destination.route) {
-    popUpTo(graph.findStartDestination().id) { saveState = true }
-    launchSingleTop = true
-    restoreState = true
+/**
+ * Switches to a tab as the bottom bar does: the tab left keeps its state, the tab opened gets its own back. With
+ * [fresh] the opened tab starts at its first screen instead, for shortcuts that promise that screen (#249).
+ */
+private fun NavHostController.navigateTopLevel(destination: TopLevelDestination, fresh: Boolean = false) {
+    if (fresh) clearBackStack(destination.route)
+    navigate(destination.route) {
+        popUpTo(graph.findStartDestination().id) { saveState = true }
+        launchSingleTop = true
+        restoreState = !fresh
+    }
 }

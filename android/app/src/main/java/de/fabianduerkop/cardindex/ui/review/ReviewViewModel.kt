@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.ui.review
 
 import android.app.Application
+import android.os.SystemClock
 import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
@@ -45,6 +46,13 @@ data class ReviewUiState(
     val skipped: Int = 0,
     /** Items waiting in the queue, skipped ones included: the Scan screen's badge shows the same number. */
     val waiting: Int = 0,
+    /**
+     * A confirm, discard or "not a card" is still being written (#248). The next item already shows, but its actions
+     * wait, so a double tap on Confirm never adds the next card unseen.
+     */
+    val saving: Boolean = false,
+    /** Confirming [current] failed last time: the screen says so, and the item stays in the queue (#248). */
+    val saveFailed: Boolean = false,
 )
 
 /** The last confirmation, which Undo can take back: the card it added and the user's choices for it. */
@@ -84,13 +92,33 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     /** Ids of items being written; a double tap must not confirm the same item twice. */
     private val busy = MutableStateFlow<Set<Long>>(emptySet())
 
+    /** The item whose confirmation failed last (#248), until the next confirm. */
+    private val failed = MutableStateFlow<Long?>(null)
+
+    /** The item on screen and since when ([SystemClock.elapsedRealtime]), set by the screen when it shows one. */
+    private var shown: Pair<Long, Long>? = null
+
+    /** The screen shows item [itemId] now; its actions wait [SETTLE_MS] (#248). */
+    fun onShown(itemId: Long) {
+        if (shown?.first != itemId) shown = itemId to SystemClock.elapsedRealtime()
+    }
+
+    /**
+     * Whether [itemId] has been on screen long enough to act on (#248). Saving is quick, so a double tap on Confirm
+     * otherwise confirmed the next card the moment it appeared under the finger, before anyone saw it.
+     */
+    private fun settled(itemId: Long): Boolean {
+        val (id, since) = shown ?: return true
+        return id != itemId || SystemClock.elapsedRealtime() - since >= SETTLE_MS
+    }
+
     private val _undo = MutableStateFlow<ReviewUndo?>(null)
     val undo: StateFlow<ReviewUndo?> = _undo.asStateFlow()
 
 
     val state: StateFlow<ReviewUiState> = combine(
-        queue.observeItems(), skippedInPass, confirmedInPass, drafts, busy,
-    ) { items, skipped, confirmed, drafts, busy ->
+        queue.observeItems(), skippedInPass, confirmedInPass, drafts, combine(busy, failed, ::Pair),
+    ) { items, skipped, confirmed, drafts, (busy, failedId) ->
         val open = items.filter { it.entity.id !in skipped && it.entity.id !in busy }
         val current = open.firstOrNull()
         val done = confirmed + skipped.size
@@ -107,6 +135,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             confirmed = confirmed,
             skipped = skipped.size,
             waiting = items.size,
+            saving = busy.isNotEmpty(),
+            saveFailed = current != null && current.entity.id == failedId,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), ReviewUiState())
 
@@ -165,12 +195,16 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     fun changeQuantity(delta: Int) = editDraft { it.withQuantity(delta) }
 
     fun confirm() {
+        // One write at a time (#248): while the last one runs, the item on screen is already the next one.
+        if (busy.value.isNotEmpty()) return
         val s = state.value
         val item = s.current ?: return
+        if (!settled(item.entity.id)) return
         val draft = s.draft
         if (!draft.canConfirm) return
         val id = item.entity.id
         busy.update { it + id }
+        failed.value = null
         val candidate = item.candidates.firstOrNull { it.rank == draft.rank }
         // The scanner's top match, kept with the contribution when the user picked another card: a hard negative (#244).
         val predicted = item.candidates.firstOrNull { it.rank == 0 }
@@ -195,7 +229,11 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     _undo.value = candidate?.let { ReviewUndo(confirmed, it, draft, contribution) }
                 }
-                .onFailure { Log.e(TAG, "confirming review item $id failed", it) }
+                .onFailure {
+                    Log.e(TAG, "confirming review item $id failed", it)
+                    // It comes back on screen with a note instead of vanishing without a word (#248).
+                    failed.value = id
+                }
             busy.update { it - id }
         }
     }
@@ -224,7 +262,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     fun skip() {
+        if (busy.value.isNotEmpty()) return
         val item = state.value.current ?: return
+        if (!settled(item.entity.id)) return
         val id = item.entity.id
         skippedInPass.update { it + id }
         viewModelScope.launch { runCatching { queue.skip(id) }.onFailure { Log.e(TAG, "skipping $id failed", it) } }
@@ -232,7 +272,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
 
     /** Not a card, or a scan not worth keeping: removes the item and its crop. */
     fun discard() {
+        if (busy.value.isNotEmpty()) return
         val item = state.value.current ?: return
+        if (!settled(item.entity.id)) return
         val id = item.entity.id
         busy.update { it + id }
         viewModelScope.launch {
@@ -250,7 +292,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
      * with the card it was taken for, as a negative for training. Debug builds only ([collectsNotCards]).
      */
     fun notACard() {
+        if (busy.value.isNotEmpty()) return
         val item = state.value.current ?: return
+        if (!settled(item.entity.id)) return
         val id = item.entity.id
         val predicted = item.candidates.firstOrNull { it.rank == 0 }?.let { CardRef(it.card.id, it.card.language) }
         busy.update { it + id }
@@ -279,5 +323,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
 
     companion object {
         private const val TAG = "ReviewViewModel"
+
+        /** How long a newly shown item ignores Confirm, Review later and Remove: longer than a double tap (#248). */
+        const val SETTLE_MS = 700L
     }
 }

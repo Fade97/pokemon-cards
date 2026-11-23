@@ -715,6 +715,8 @@
     <string name="review_quantity_more">One more</string>
     <string name="review_skip">Skip</string>
     <string name="review_confirm">Confirm</string>
+    <!-- On the card when adding it failed (#248); it stays in the queue. -->
+    <string name="review_confirm_failed">This card could not be added. Try Confirm again.</string>
     <string name="review_discard">Remove this scan</string>
     <!-- Debug builds only (#244). -->
     <string name="review_not_a_card" translatable="false">Not a card: remove and send for training</string>

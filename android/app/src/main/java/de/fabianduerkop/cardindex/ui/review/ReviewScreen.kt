@@ -36,6 +36,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -85,6 +86,7 @@ import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.FooterFade
+import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
@@ -149,6 +151,7 @@ fun ReviewScreen(
                                 onChange = { scope.launch { choices.bringIntoView() } },
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
+                                enabled = !state.saving,
                             )
                         }
                     }
@@ -162,7 +165,19 @@ fun ReviewScreen(
                 state.loading -> Unit
                 item == null -> Done(state, onBack, viewModel::reviewSkippedAgain, viewModel::addSampleItems)
                 // Each item starts at the top; its own scroll state, not the previous card's.
-                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, choices, onFindCard = { onFindCard(item) }) }
+                else -> key(item.entity.id) {
+                    // Starts the item's short settle time, so a tap meant for the last card can't act on it (#248).
+                    LaunchedEffect(item.entity.id) { viewModel.onShown(item.entity.id) }
+                    ItemForm(
+                        item,
+                        state.draft,
+                        viewModel,
+                        choices,
+                        onFindCard = { onFindCard(item) },
+                        saving = state.saving,
+                        saveFailed = state.saveFailed,
+                    )
+                }
             }
             if (item != null) FooterFade(Modifier.align(Alignment.BottomCenter))
         }
@@ -175,6 +190,8 @@ private fun ItemForm(
     draft: ReviewDraft,
     viewModel: ReviewViewModel,
     choices: BringIntoViewRequester,
+    saving: Boolean = false,
+    saveFailed: Boolean = false,
     onFindCard: () -> Unit,
 ) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
@@ -225,6 +242,8 @@ private fun ItemForm(
                 }
             }
         }
+        // A failed confirm says so on the card it was for, which stays in the queue (#248).
+        if (saveFailed) StatusNotice(stringResource(R.string.review_confirm_failed), tone = NoticeTone.ERROR)
         StatusNotice(stringResource(reasonExplanation(item.entity.reason)))
 
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below. Next to
@@ -272,6 +291,7 @@ private fun ItemForm(
         TextAction(
             stringResource(R.string.review_discard),
             onClick = viewModel::discard,
+            enabled = !saving,
             modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else Spacing.lg),
             alignToText = true,
         )
@@ -281,6 +301,7 @@ private fun ItemForm(
             TextAction(
                 stringResource(R.string.review_not_a_card),
                 onClick = viewModel::notACard,
+                enabled = !saving,
                 modifier = Modifier.padding(bottom = Spacing.lg),
                 alignToText = true,
             )
@@ -520,6 +541,8 @@ private fun Footer(
     onChange: () -> Unit,
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
+    /** False while the last confirmation is still being written (#248). */
+    enabled: Boolean = true,
 ) {
     // Little top padding: the Change button's 48 dp touch height already spaces the summary line (#218).
     Column(
@@ -576,8 +599,8 @@ private fun Footer(
             )
         }
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f))
-            PrimaryButton(stringResource(R.string.review_confirm), onConfirm, Modifier.weight(1f), enabled = draft.canConfirm)
+            SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f), enabled = enabled)
+            PrimaryButton(stringResource(R.string.review_confirm), onConfirm, Modifier.weight(1f), enabled = enabled && draft.canConfirm)
         }
     }
 }
