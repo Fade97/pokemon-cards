@@ -30,6 +30,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -116,6 +117,15 @@ fun SearchScreen(
     val current by viewModel.query.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val scrolled by remember { derivedStateOf { listState.canScrollBackward } }
+    // A new query's results start at their best match; "Show more" and coming back from a card keep the place (#221).
+    val foundQuery = (state.results as? SearchResults.Found)?.query
+    var shownQuery by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(foundQuery) {
+        if (foundQuery != null && foundQuery != shownQuery) {
+            if (shownQuery != null) listState.scrollToItem(0)
+            shownQuery = foundQuery
+        }
+    }
     scaffold { padding ->
         // The field stays pinned above the results, so a new query is one tap away after scrolling (#221).
         Column(

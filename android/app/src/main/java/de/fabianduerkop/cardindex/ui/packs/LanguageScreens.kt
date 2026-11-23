@@ -282,6 +282,7 @@ private fun InstalledLanguageRow(row: LanguageRow, mobileData: Boolean, onRemove
                 onClick = onRemove,
                 modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.packs_remove_language, name),
+                muted = true,
             )
         }
         (row.progress as? LanguageProgress.Downloading)?.let { p ->

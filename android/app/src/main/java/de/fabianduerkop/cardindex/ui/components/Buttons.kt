@@ -78,7 +78,8 @@ fun SecondaryButton(
         enabled = enabled,
         shape = shape,
         contentPadding = ButtonPadding,
-        border = BorderStroke(1.dp, if (enabled) colors.outlineVariant else colors.onSurface.copy(alpha = 0.12f)),
+        // Control boundaries use the outline role (≥3:1); outlineVariant stays for dividers (#221).
+        border = BorderStroke(1.dp, if (enabled) colors.outline else colors.onSurface.copy(alpha = 0.12f)),
         // Material's outlined label is grey now; Pearl's is sea-glass, or an enabled action reads as dimmed (#218).
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primary),
     ) { ButtonContent(text, icon) }
@@ -99,6 +100,8 @@ fun TextAction(
     enabled: Boolean = true,
     contentDescription: String? = null,
     destructive: Boolean = false,
+    /** A quiet action in the muted text colour, for one that should not draw the eye (#221). */
+    muted: Boolean = false,
     alignToText: Boolean = false,
     /** The link leaves the app (a market page, a website): a trailing open-in-new mark says so (#221). */
     external: Boolean = false,
@@ -115,6 +118,8 @@ fun TextAction(
         shape = shape,
         colors = if (destructive) {
             ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+        } else if (muted) {
+            ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             ButtonDefaults.textButtonColors()
         },

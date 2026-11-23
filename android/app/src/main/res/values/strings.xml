@@ -53,6 +53,9 @@
     </plurals>
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
+    <!-- While some copies have no price in that market (#221). -->
+    <string name="collections_value_label_cardmarket_partial">Value of priced copies, Cardmarket trend, all languages</string>
+    <string name="collections_value_label_tcgplayer_partial">Value of priced copies, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
     <!-- %1$s: the market, "TCGplayer" or "Cardmarket" (#221): the header naming it may have scrolled away. -->
@@ -169,6 +172,10 @@
     <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
     <string name="collections_in_no_binder">Not in a binder</string>
     <string name="collections_bought_on">bought %1$s</string>
+    <!-- A copy's row on its card's screen when no purchase date is set (#221). -->
+    <string name="collections_added_on">added %1$s</string>
+    <!-- Numbers copies whose rows would otherwise read the same (#221). -->
+    <string name="collections_copy_ordinal">copy %1$d</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
     <string name="collections_sort_by">Sort by</string>
@@ -493,7 +500,7 @@
     <string name="scan_hint_looking">Hold a card inside the frame</string>
     <string name="scan_hint_hold_still">Hold still</string>
     <!-- Retry first: most misses are blur or glare; the language pack only when it keeps failing (#221). -->
-    <string name="scan_hint_unknown">Not recognized. Tap to refocus, or check its language in Settings.</string>
+    <string name="scan_hint_unknown">Not recognized. Tap to refocus or add its language.</string>
     <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->

@@ -372,7 +372,7 @@ private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, 
             },
         shape = shape,
         color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant),
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outline),
     ) {
         Row(
             Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
@@ -595,7 +595,7 @@ private fun QuantityButton(icon: Int, description: String, enabled: Boolean = tr
         enabled = enabled,
         modifier = Modifier.focusRing(shape).size(Spacing.touchTarget).semantics { contentDescription = description },
         shape = shape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         contentPadding = PaddingValues(0.dp),
     ) {
         Icon(painterResource(icon), contentDescription = null)

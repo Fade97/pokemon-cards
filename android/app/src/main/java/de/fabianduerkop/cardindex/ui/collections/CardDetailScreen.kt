@@ -92,6 +92,7 @@ import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.io.File
+import java.time.ZoneId
 
 /**
  * Card detail (Pearl study "Card details", #99): the art as the hero, the collector number first under it with the
@@ -239,8 +240,11 @@ fun CardDetailScreen(
                             HorizontalDivider(Modifier.padding(horizontal = ScreenPadding), color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
+                    // Rows that would read the same (same printing, condition, binders, language and day) get a number.
+                    val ordinals = copyOrdinals(detail.copies, state.memberships)
                     items(detail.copies, key = { it.copy.id }) { item ->
                         CopyRow(
+                            ordinal = ordinals[item.copy.id],
                             item = item,
                             memberships = state.memberships[item.copy.id].orEmpty(),
                             showCard = false,
@@ -499,10 +503,11 @@ private fun CardHeader(
                 }
             }
         }
+        // More room below than above, so the button groups with the card it belongs to, not with the prices (#221).
         WishlistToggle(
             wanted,
             onChange = onWanted,
-            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.sm),
+            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.lg),
         )
     }
 }
@@ -558,6 +563,8 @@ internal fun CopyRow(
     showCard: Boolean,
     onClick: () -> Unit,
     trailing: @Composable ((stacked: Boolean) -> Unit)? = null,
+    /** "Copy 2" when this row would otherwise read exactly like another one in the list (#221). */
+    ordinal: Int? = null,
 ) {
     val copy = item.copy
     val fontScale = LocalDensity.current.fontScale
@@ -603,7 +610,14 @@ internal fun CopyRow(
                             add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_in_no_binder) })
                         }
                         add(languageName(item.card.language))
-                        copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
+                        // Bought on, else added on: two otherwise equal copies are then told apart (#221).
+                        val bought = copy.purchaseDate
+                        if (bought != null) {
+                            add(stringResource(R.string.collections_bought_on, formatDate(bought)))
+                        } else if (!showCard) {
+                            add(stringResource(R.string.collections_added_on, formatDate(copy.createdAt.atZone(ZoneId.systemDefault()).toLocalDate())))
+                        }
+                        ordinal?.let { add(stringResource(R.string.collections_copy_ordinal, it)) }
                     }
                     // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
                     Text(
@@ -627,6 +641,26 @@ internal fun CopyRow(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
+}
+
+/**
+ * "Copy 1", "Copy 2" for copies whose rows would otherwise be identical: same printing and condition, binders,
+ * language and day bought or added. Copies that differ get none.
+ */
+internal fun copyOrdinals(copies: List<CopyWithCard>, memberships: Map<Long, List<String>>): Map<Long, Int> {
+    val zone = ZoneId.systemDefault()
+    return copies
+        .groupBy { item ->
+            val copy = item.copy
+            listOf(
+                copy.quantity, copy.finish, copy.edition, copy.condition, copy.grader, copy.grade, item.card.language,
+                memberships[copy.id].orEmpty(), copy.purchaseDate ?: copy.createdAt.atZone(zone).toLocalDate(),
+            )
+        }
+        .values
+        .filter { it.size > 1 }
+        .flatMap { group -> group.mapIndexed { index, item -> item.copy.id to index + 1 } }
+        .toMap()
 }
 
 /** The trailing price of a [CopyRow]: the caller's [trailing], else what the copy was bought for. */

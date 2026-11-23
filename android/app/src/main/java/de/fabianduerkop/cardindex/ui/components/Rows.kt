@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -95,9 +96,16 @@ fun DataRow(label: String, value: String, modifier: Modifier = Modifier) {
 
 /** A thin completion bar for a set, e.g. 87 of 165. The surrounding text says the numbers; this repeats them for TalkBack. */
 @Composable
-fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier, marks: List<Float> = emptyList()) {
+fun CompletionBar(
+    owned: Int,
+    total: Int,
+    modifier: Modifier = Modifier,
+    marks: List<Float> = emptyList(),
+    /** On a raised surface (the foil cover) the divider tone nearly vanishes; pass a stronger one (#221). */
+    trackColor: Color = MaterialTheme.colorScheme.outlineVariant,
+) {
     val fraction = if (total > 0) (owned.toFloat() / total).coerceIn(0f, 1f) else 0f
-    val track = MaterialTheme.colorScheme.outlineVariant
+    val track = trackColor
     val fill = MaterialTheme.colorScheme.primary
     val gap = MaterialTheme.colorScheme.background
     Canvas(

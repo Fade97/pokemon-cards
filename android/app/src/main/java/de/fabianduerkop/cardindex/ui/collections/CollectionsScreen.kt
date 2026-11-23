@@ -384,15 +384,20 @@ private fun ValueHeader(
     onPortfolioRange: (HistoryRange) -> Unit,
     onOpenAll: () -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = ScreenPadding)) {
+    // The same 8 dp under the bar as the set screen and Search (#221).
+    Column(Modifier.padding(horizontal = ScreenPadding).padding(top = Spacing.sm)) {
+        // "Value of priced copies" while some copies have no price, so the big number never reads as the whole
+        // collection's worth before the coverage line under it is read (#221).
+        val partial = (state.value?.unpricedCopies ?: 0) > 0
         ValueSummary(
             value = state.value,
             caption = pluralStringResource(R.plurals.collections_summary, state.totalCopies, state.totalCopies),
             label = stringResource(
-                if (state.source == PriceSource.CARDMARKET) {
-                    R.string.collections_value_label_cardmarket
-                } else {
-                    R.string.collections_value_label_tcgplayer
+                when {
+                    state.source == PriceSource.CARDMARKET && partial -> R.string.collections_value_label_cardmarket_partial
+                    state.source == PriceSource.CARDMARKET -> R.string.collections_value_label_cardmarket
+                    partial -> R.string.collections_value_label_tcgplayer_partial
+                    else -> R.string.collections_value_label_tcgplayer
                 },
             ),
             priceDate = state.priceDate,
@@ -545,7 +550,13 @@ private fun FeaturedSet(
                 }
             }
             change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
-            CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
+            CompletionBar(
+                row.progress.base,
+                set.printedTotal,
+                Modifier.padding(top = Spacing.md),
+                // On the raised cover the divider tone nearly vanished; the track stays visible as the whole set (#221).
+                trackColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.45f),
+            )
         }
     }
 }

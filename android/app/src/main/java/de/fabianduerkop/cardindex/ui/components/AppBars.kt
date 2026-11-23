@@ -224,7 +224,7 @@ fun ScanShortcut(onClick: () -> Unit, modifier: Modifier = Modifier) {
         onClick = onClick,
         modifier = modifier.padding(horizontal = Spacing.xs).focusRing(shape).heightIn(min = Spacing.touchTarget),
         shape = shape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         // Sea-glass like the other header actions (#218).
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(start = 12.dp, end = 16.dp),

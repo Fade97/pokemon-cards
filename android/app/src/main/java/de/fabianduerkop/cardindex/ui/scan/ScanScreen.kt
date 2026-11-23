@@ -738,7 +738,8 @@ private fun HintPill(text: String, dot: Color? = null) {
 }
 
 /** A hint's corner: half the height of a one-line hint, so one line is still a pill. */
-private val HintCorner = 20.dp
+/** Pearl's chip radius: a hint that wraps to two lines at large font stays compact over the guide (#221). */
+private val HintCorner = 14.dp
 
 /** Hints wrap before they reach across the whole picture. */
 private val HintMaxWidth = 320.dp
@@ -1040,7 +1041,7 @@ private fun ScanTargetChip(target: String?, onClick: () -> Unit) {
         modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget).semantics { contentDescription = description },
         shape = shape,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurfaceVariant),
-        border = BorderStroke(1.dp, if (target != null) colors.primary else colors.outlineVariant),
+        border = BorderStroke(1.dp, if (target != null) colors.primary else colors.outline),
         contentPadding = PaddingValues(start = Spacing.md, end = Spacing.sm),
     ) {
         Text(stringResource(R.string.scan_target_label), style = MaterialTheme.typography.labelLarge)
@@ -1122,7 +1123,7 @@ private fun ReviewQueueButton(count: Int, onOpen: () -> Unit) {
         } else {
             ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurfaceVariant)
         },
-        border = BorderStroke(1.dp, if (count > 0) colors.primary else colors.outlineVariant),
+        border = BorderStroke(1.dp, if (count > 0) colors.primary else colors.outline),
         contentPadding = PaddingValues(start = Spacing.lg, end = if (count > 0) Spacing.md else Spacing.lg),
     ) {
         Text(stringResource(if (count > 0) R.string.scan_review else R.string.scan_nothing_to_review))

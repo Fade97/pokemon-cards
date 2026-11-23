@@ -371,7 +371,7 @@ internal fun ViewSwitch(
                     .clip(shape)
                     // Unselected segments show the surface beneath, the page or a sheet, instead of painting the page colour.
                     .background(if (selected) colors.secondaryContainer else Color.Transparent)
-                    .border(1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
+                    .border(1.dp, if (selected) colors.primary else colors.outline, shape)
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                 contentAlignment = Alignment.Center,
