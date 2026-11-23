@@ -76,7 +76,14 @@ fun LumifoilTopAppBar(
         // A hairline once content runs under the bar, like the bottom bars have, so a half-hidden row has an edge to
         // pass under (#218). Always laid out, only coloured, so nothing below moves when it shows.
         val scrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > 0.01f
-        HorizontalDivider(color = if (scrolled && !pinnedBelow) colors.outlineVariant else Color.Transparent)
+        // Under a pinned block it takes the raised tint, so no 1 dp strip of the page shows between the two (#221).
+        HorizontalDivider(
+            color = when {
+                !scrolled -> Color.Transparent
+                pinnedBelow -> colors.surfaceContainer
+                else -> colors.outlineVariant
+            },
+        )
     }
 }
 

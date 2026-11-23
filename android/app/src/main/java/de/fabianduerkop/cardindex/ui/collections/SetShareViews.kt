@@ -327,7 +327,7 @@ private fun progressText(data: SetShareData): String {
 /** The plain-text checklist (#170): a heading line, every missing card, the star's meaning, and where it came from. */
 @Composable
 private fun checklistText(data: SetShareData): String {
-    val name = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
+    val name = scopedName(data)
     val count = pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size)
     return buildList {
         add(stringResource(R.string.set_share_text_heading, name, count))
@@ -337,14 +337,17 @@ private fun checklistText(data: SetShareData): String {
     }.joinToString("\n")
 }
 
+/** The set's name with the languages the picture covers, "151 (DE, EN)", as the preview shows them (#221). */
+private fun scopedName(data: SetShareData): String = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
+
 @Composable
 private fun mapDescription(data: SetShareData): String =
-    stringResource(R.string.set_share_map_description, data.setName, progressText(data))
+    stringResource(R.string.set_share_map_description, scopedName(data), progressText(data))
 
 @Composable
 private fun missingDescription(data: SetShareData): String =
     stringResource(
         R.string.set_share_missing_description,
-        data.setName,
+        scopedName(data),
         pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size),
     )

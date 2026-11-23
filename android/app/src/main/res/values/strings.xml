@@ -70,6 +70,8 @@
     <string name="collections_new">New</string>
     <string name="collections_new_description">New collection</string>
     <string name="collections_all_languages">All languages</string>
+    <!-- The first chip of the language chips on Collections; TalkBack says "All languages" (#221). -->
+    <string name="collections_all_languages_short">All</string>
     <string name="collections_sets">Sets</string>
     <string name="collections_yours">Your collections</string>
     <!-- Collections home switch (#164); read by TalkBack as tabs. -->
@@ -182,7 +184,9 @@
     <string name="price_title">Market price</string>
     <string name="price_no_browser">No app here opens web links.</string>
     <!-- Under a card's prices: they are for the printing, whatever the owned copy's state (#218). -->
-    <string name="price_not_condition">For the printing; not adjusted for condition or grade.</string>
+    <string name="price_not_condition">Not adjusted for condition or grade.</string>
+    <!-- After "Cardmarket trend, all languages" when the trend is the card's across all its printings (#221). -->
+    <string name="price_all_printings">All printings</string>
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
     <string name="price_as_of">Prices from %1$s</string>
@@ -338,8 +342,8 @@
     </plurals>
     <string name="search_show_more">Show more cards</string>
     <plurals name="search_more">
-        <item quantity="one">The first %1$d card. Type more to narrow it down, or show more below.</item>
-        <item quantity="other">The first %1$d cards. Type more to narrow it down, or show more below.</item>
+        <item quantity="one">Showing the first %1$d card</item>
+        <item quantity="other">Showing the first %1$d cards</item>
     </plurals>
     <plurals name="search_owned">
         <item quantity="one">%1$d owned</item>
@@ -723,7 +727,8 @@
     <string name="review_quantity">Quantity</string>
     <string name="review_quantity_less">One less</string>
     <string name="review_quantity_more">One more</string>
-    <string name="review_skip">Skip</string>
+    <!-- The scan stays in the queue for a later pass (#221). -->
+    <string name="review_skip">Review later</string>
     <string name="review_confirm">Confirm</string>
     <string name="review_discard">Remove this scan</string>
     <!-- Debug builds only (#244). -->

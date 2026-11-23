@@ -15,6 +15,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -33,6 +34,8 @@ fun ChoiceChip(
     label: String,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    /** What TalkBack says instead of a short [label] ("All languages" for "All", "German" for "DE"). */
+    contentDescription: String? = null,
 ) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.small
@@ -40,7 +43,9 @@ fun ChoiceChip(
         selected = selected,
         onClick = onClick,
         label = { Text(label) },
-        modifier = modifier.focusRing(shape),
+        modifier = modifier
+            .focusRing(shape)
+            .then(if (contentDescription != null) Modifier.semantics { this.contentDescription = contentDescription } else Modifier),
         enabled = enabled,
         shape = shape,
         colors = FilterChipDefaults.filterChipColors(
@@ -52,7 +57,8 @@ fun ChoiceChip(
         border = FilterChipDefaults.filterChipBorder(
             enabled = enabled,
             selected = selected,
-            borderColor = colors.outlineVariant,
+            // The control role, not the divider one: at least 3:1 against the page in both themes (#221).
+            borderColor = colors.outline,
             selectedBorderColor = colors.primary,
             selectedBorderWidth = 1.dp,
         ),
@@ -87,6 +93,6 @@ fun MenuChip(
             labelColor = if (active) colors.primary else colors.onSurface,
             trailingIconContentColor = if (active) colors.primary else colors.onSurfaceVariant,
         ),
-        border = BorderStroke(1.dp, if (active) colors.primary else colors.outlineVariant),
+        border = BorderStroke(1.dp, if (active) colors.primary else colors.outline),
     )
 }

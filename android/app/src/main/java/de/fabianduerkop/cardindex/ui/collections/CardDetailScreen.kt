@@ -24,16 +24,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.derivedStateOf
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -42,6 +43,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
@@ -71,11 +74,11 @@ import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CARD_ASPECT
 import de.fabianduerkop.cardindex.ui.components.CardImage
-import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.CardViewer
 import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.FooterFade
 import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
@@ -139,9 +142,12 @@ fun CardDetailScreen(
     }
 
     val listState = rememberLazyListState()
-    // The set while the hero shows the card's number and name; once they scroll away, the bar names the card, so
-    // the prices and copies below never lose whose they are (#221).
-    val heroGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 } }
+    // The set while the hero shows the card's name; once the name has passed under the bar, the bar names the card,
+    // so the prices and copies below never lose whose they are (#221). Measured on the name itself: on a short page
+    // the list can stop before the whole hero item leaves, so its index alone never changed at the default font.
+    var listTop by remember { mutableFloatStateOf(0f) }
+    var nameBottom by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    val heroGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || nameBottom <= listTop } }
     DetailScaffold(
         title = when {
             detail == null -> ""
@@ -160,9 +166,14 @@ fun CardDetailScreen(
             else -> BoxWithConstraints(Modifier.fillMaxSize()) {
                 // What the list shows between the top bar and the Add a copy and navigation bars: the hero fits in it.
                 val viewport = maxHeight - padding.calculateTopPadding() - padding.calculateBottomPadding()
-                LazyColumn(Modifier.fillMaxSize(), state = listState, contentPadding = padding) {
+                LazyColumn(
+                    Modifier.fillMaxSize().onGloballyPositioned { listTop = it.positionInRoot().y },
+                    state = listState,
+                    contentPadding = padding,
+                ) {
                     item {
                         CardHeader(
+                            onNamePositioned = { nameBottom = it },
                             viewport = viewport,
                             detail = detail,
                             photos = state.photos,
@@ -383,6 +394,7 @@ private fun cardTitle(detail: CardDetail): String {
  */
 @Composable
 private fun CardHeader(
+    onNamePositioned: (bottomInRoot: Float) -> Unit,
     viewport: Dp,
     detail: CardDetail,
     photos: OwnPhotos,
@@ -450,7 +462,11 @@ private fun CardHeader(
                 Text(
                     detail.card.name,
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+                    modifier = Modifier
+                        .padding(top = Spacing.sm)
+                        .semantics { heading() }
+                        // Unclipped position: bounds in root stop at the list's edge, so they never pass above it.
+                        .onGloballyPositioned { onNamePositioned(it.positionInRoot().y + it.size.height) },
                 )
                 Text(
                     stringResource(

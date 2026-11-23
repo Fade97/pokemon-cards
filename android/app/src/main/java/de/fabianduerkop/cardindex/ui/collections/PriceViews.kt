@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
@@ -38,11 +39,10 @@ import de.fabianduerkop.cardindex.ui.components.DataRow
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
-import androidx.compose.foundation.layout.offset
-import de.fabianduerkop.cardindex.ui.components.TextActionInset
 
 @StringRes
 internal fun PriceSource.label(): Int =
@@ -69,13 +69,16 @@ internal fun PriceVariant.label(): Int = when (this) {
 
 /**
  * "TCGplayer market · Holo": a market's label with the printing its price is for. Cardmarket's plain trend is the
- * card's price across its printings, not a "Normal" one, so it gets no printing; its reverse holo trend does (#218).
+ * card's price across its printings, not a "Normal" one, so it says "All printings" (#221); its reverse holo trend
+ * names its printing (#218).
  */
 @Composable
 internal fun quoteLabel(quote: PriceQuote): String {
     val market = stringResource(quote.source.label())
     val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
-    return if (plainTrend) market else market + " · " + stringResource(quote.variant.label())
+    // The plain trend says so, now that the note under the prices no longer claims one printing for both (#221).
+    val printing = if (plainTrend) stringResource(R.string.price_all_printings) else stringResource(quote.variant.label())
+    return "$market · $printing"
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()

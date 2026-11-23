@@ -82,19 +82,25 @@ internal fun LanguageChips(
     horizontalPadding: Dp = ScreenPadding,
 ) {
     if (languages.size < 2) return
-    // A tighter gap than other chip rows: "All languages" and four codes then fit one line at 1.3x font on a 411 dp
-    // phone instead of leaving one code alone on a second line (#221). The chips keep their 48 dp touch height.
     FlowRow(
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        // "All" beside the codes: "All languages" left JA alone on a second line at 1.3x font (#221); TalkBack still
+        // hears the full words.
         ChoiceChip(
             selected = selected.isEmpty(),
             onClick = { onToggle(null) },
-            label = stringResource(R.string.collections_all_languages),
+            label = stringResource(R.string.collections_all_languages_short),
+            contentDescription = stringResource(R.string.collections_all_languages),
         )
         languages.forEach { code ->
-            ChoiceChip(selected = code in selected, onClick = { onToggle(code) }, label = code.uppercase())
+            ChoiceChip(
+                selected = code in selected,
+                onClick = { onToggle(code) },
+                label = code.uppercase(),
+                contentDescription = languageName(code),
+            )
         }
     }
 }

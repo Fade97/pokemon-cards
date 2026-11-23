@@ -6,10 +6,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -22,7 +25,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
@@ -112,14 +119,26 @@ fun TextAction(
             ButtonDefaults.textButtonColors()
         },
     ) {
-        // Weighted, so the label wraps in what is left and the mark keeps its size at large font (#221).
-        Text(text, Modifier.weight(1f, fill = false))
         if (external) {
-            Spacer(Modifier.width(Spacing.xs))
-            Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null, modifier = Modifier.size(16.dp))
+            // The mark inside the text, so it follows the last word when the label wraps at large font, instead of
+            // drifting to the row's end (#221).
+            val label = buildAnnotatedString {
+                append(text)
+                append('\u00A0')
+                // Compose needs a non-empty stand-in text; a space adds nothing to what TalkBack reads.
+                appendInlineContent(EXTERNAL_MARK, " ")
+            }
+            val mark = InlineTextContent(Placeholder(1.em, 1.em, PlaceholderVerticalAlign.TextCenter)) {
+                Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null, modifier = Modifier.fillMaxSize())
+            }
+            Text(label, inlineContent = mapOf(EXTERNAL_MARK to mark))
+        } else {
+            Text(text)
         }
     }
 }
+
+private const val EXTERNAL_MARK = "external"
 
 /** A text button's own start padding (Material's 12 dp); [TextAction] with alignToText, or a row of them, moves back by it. */
 val TextActionInset = 12.dp
