@@ -33,8 +33,8 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /** One topic of Settings: a heading, then its rows. */
 @Composable
-internal fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    SectionHeader(title)
+internal fun SettingsSection(title: String, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    SectionHeader(title, first = first)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = content)
 }
 

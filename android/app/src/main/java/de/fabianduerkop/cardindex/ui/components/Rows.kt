@@ -41,11 +41,13 @@ fun SectionHeader(
     trailing: String? = null,
     dense: Boolean = false,
     action: (@Composable RowScope.() -> Unit)? = null,
+    /** The first heading on a screen sits 8 dp under the bar, as content does on the other tabs (#221). */
+    first: Boolean = false,
 ) {
     val tight = dense || action != null
     Row(
         modifier.fillMaxWidth().padding(
-            top = if (tight) Spacing.md else Spacing.xl,
+            top = if (first) Spacing.sm else if (tight) Spacing.md else Spacing.xl,
             bottom = if (tight) Spacing.xs else Spacing.md,
         ),
         verticalAlignment = Alignment.CenterVertically,

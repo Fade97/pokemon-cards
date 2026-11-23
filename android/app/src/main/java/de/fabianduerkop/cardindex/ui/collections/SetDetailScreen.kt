@@ -378,6 +378,7 @@ private fun SetHeader(
                             stringResource(R.string.collections_priced_copies),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
                         )
                     }
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)

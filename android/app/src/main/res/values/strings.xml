@@ -173,11 +173,11 @@
     <string name="collections_only_all_cards">All cards only</string>
     <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
     <string name="collections_in_no_binder">Not in a binder</string>
-    <string name="collections_bought_on">bought %1$s</string>
+    <string name="collections_bought_on">bought&#160;%1$s</string>
     <!-- A copy's row on its card's screen when no purchase date is set (#221). -->
-    <string name="collections_added_on">added %1$s</string>
+    <string name="collections_added_on">added&#160;%1$s</string>
     <!-- Numbers copies whose rows would otherwise read the same (#221). -->
-    <string name="collections_copy_ordinal">copy %1$d</string>
+    <string name="collections_copy_ordinal">copy&#160;%1$d</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
     <string name="collections_sort_by">Sort by</string>
@@ -316,6 +316,11 @@
     <string name="viewer_position">%1$d of %2$d</string>
     <string name="viewer_zoom_in">Zoom in</string>
     <string name="viewer_zoom_reset">Reset zoom</string>
+    <!-- TalkBack actions while zoomed in (#221): show more of that side of the card. -->
+    <string name="viewer_pan_left">Show more to the left</string>
+    <string name="viewer_pan_right">Show more to the right</string>
+    <string name="viewer_pan_up">Show more above</string>
+    <string name="viewer_pan_down">Show more below</string>
     <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
     <string name="viewer_photo_failed">This photo could not be loaded. It may have been moved or deleted.</string>
     <!-- Tilt light (#167, ADR 0015): under the image name whenever the app draws its own light over the card, so it
@@ -506,7 +511,7 @@
     <string name="scan_hint_looking">Hold a card inside the frame</string>
     <string name="scan_hint_hold_still">Hold still</string>
     <!-- Retry first: most misses are blur or glare; the language pack only when it keeps failing (#221). -->
-    <string name="scan_hint_unknown">Not recognized. Tap to refocus or add its language.</string>
+    <string name="scan_hint_unknown">Not recognized. Tap to refocus or add languages in Settings.</string>
     <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->
@@ -727,6 +732,8 @@
     <string name="review_why_number_not_read">The number couldn\'t be read. Pick the right card.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
+    <!-- When the matches differ only in their language (#221): the clue to check on the card. -->
+    <string name="review_why_language_only">The same card in two languages. Check the language printed on your card.</string>
     <string name="review_why_check_variant">Card found. This set has 1st edition prints, which look alike in photos, so check the variant.</string>
     <string name="review_best_matches">Best matches</string>
     <string name="review_card">Card</string>

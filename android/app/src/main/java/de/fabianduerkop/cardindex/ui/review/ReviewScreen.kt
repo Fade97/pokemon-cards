@@ -231,7 +231,10 @@ private fun ItemForm(
                 }
             }
         }
-        StatusNotice(stringResource(reasonExplanation(item.entity.reason)))
+        // Similar matches that differ only in their language get the one clue to check (#221).
+        val languageOnly = item.entity.reason == ReviewReason.SIMILAR_CARDS &&
+            differences.language && !differences.number && !differences.set
+        StatusNotice(stringResource(if (languageOnly) R.string.review_why_language_only else reasonExplanation(item.entity.reason)))
 
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below. Next to
         // the heading, so the way out shows on the first screen at any font size (#218).

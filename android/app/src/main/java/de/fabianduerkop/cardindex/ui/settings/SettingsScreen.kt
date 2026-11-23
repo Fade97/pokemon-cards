@@ -97,7 +97,7 @@ fun SettingsScreen(
                 .padding(horizontal = Spacing.gutter)
                 .padding(bottom = Spacing.xl),
         ) {
-            SettingsSection(stringResource(R.string.settings_languages)) { LanguagesSection() }
+            SettingsSection(stringResource(R.string.settings_languages), first = true) { LanguagesSection() }
             SettingsSection(stringResource(R.string.settings_prices)) {
                 PriceSourcePicker(state, viewModel::setPriceSource)
                 SettingsHint(stringResource(R.string.settings_price_hint))

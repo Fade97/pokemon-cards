@@ -292,6 +292,12 @@ private fun ZoomablePage(
     val failedText = stringResource(if (image.ownPhoto) R.string.viewer_photo_failed else R.string.viewer_image_failed)
     val zoomIn = stringResource(R.string.viewer_zoom_in)
     val zoomReset = stringResource(R.string.viewer_zoom_reset)
+    val panLabels = listOf(
+        stringResource(R.string.viewer_pan_left),
+        stringResource(R.string.viewer_pan_right),
+        stringResource(R.string.viewer_pan_up),
+        stringResource(R.string.viewer_pan_down),
+    )
     // Read in composition only when they flip, not on every frame of a pinch.
     val zoomed by remember { derivedStateOf { ViewerZoom.isZoomed(scale) } }
     val canZoomIn by remember { derivedStateOf { scale < ViewerZoom.MAX_SCALE } }
@@ -367,6 +373,20 @@ private fun ZoomablePage(
                                     true
                                 },
                             )
+                            // Panning was touch-only, so a zoomed card's corners were out of TalkBack's reach (#221):
+                            // a quarter of the screen per step, within the same bounds as a drag.
+                            val stepX = container.width / 4
+                            val stepY = container.height / 4
+                            listOf(Offset(stepX, 0f), Offset(-stepX, 0f), Offset(0f, stepY), Offset(0f, -stepY))
+                                .forEachIndexed { index, step ->
+                                    add(
+                                        CustomAccessibilityAction(panLabels[index]) {
+                                            animation?.cancel()
+                                            apply(scale, offset + step)
+                                            true
+                                        },
+                                    )
+                                }
                         }
                     }
                 },
