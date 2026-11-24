@@ -1,18 +1,18 @@
 [versions]
-agp = "9.5.1"
+agp = "9.5.2"
 # AGP 9 compiles Kotlin itself (built-in Kotlin). Declaring KGP raises the Kotlin version above AGP's default;
 # the Compose compiler plugin must use the same version.
 kotlin = "2.4.21"
 ksp = "2.3.14"
 coreKtx = "1.19.1"
 activityCompose = "1.13.0"
-composeBom = "2026.09.00"
+composeBom = "2026.11.01"
 navigationCompose = "2.10.2"
 lifecycle = "2.11.0"
 room = "2.8.5"
-camerax = "1.6.2"
+camerax = "1.7.0"
 mlkitTextRecognition = "16.0.1"
-litert = "2.3.2"
+litert = "2.4.0"
 # Python prototype (ml/uv.lock) is on 5.0.0: 5.0.0's arm64 libc++_shared.so is not 16 KB aligned, and
 # opencv-python 5.1 is not on PyPI yet. Re-run RecognitionParityTest after changing either side; align when possible.
 opencv = "5.1.0"
@@ -25,7 +25,7 @@ work = "2.12.0"
 # Open-source licenses screen (#136): the Gradle plugin collects licenses at build time; the app reads its JSON.
 aboutlibraries = "15.3.0"
 junit = "4.13.2"
-robolectric = "4.18"
+robolectric = "4.18.1"
 androidxTestCore = "1.7.0"
 androidxTestExtJunit = "1.3.0"
 androidxTestRunner = "1.7.0"
