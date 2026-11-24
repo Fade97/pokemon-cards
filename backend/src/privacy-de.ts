@@ -132,8 +132,8 @@ damit ein widerrufenes Bild nie wieder genutzt und ein noch laufendes Hochladen 
 <li><strong>Wichtig:</strong> Nur die App auf deinem Handy weiß, welche Bilder von dir sind. Deinstallierst du die App,
 löschst ihre Daten oder wechselst du das Handy, können wir nicht mehr erkennen, welche Bilder du gesendet hast, weil
 wir kein Konto, keine IP-Adresse und keine Gerätedaten dazu speichern (Art. 11 DSGVO) und die Android-Sicherung die
-Widerrufsschlüssel nicht enthält. Widerrufe die Bilder in der App, bevor du sie deinstallierst oder das Handy
-wechselst.</li>
+Widerrufsschlüssel nicht enthält. Widerrufe die Bilder in der App und warte, bis sie nicht mehr als „being withdrawn“ angezeigt werden (dafür muss das
+Handy online sein), bevor du sie deinstallierst oder das Handy wechselst.</li>
 </ul>
 
 

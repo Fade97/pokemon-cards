@@ -118,7 +118,8 @@ was withdrawn is never used again and an upload still on its way is refused.</li
 <li><strong>Important:</strong> only the app on your phone knows which pictures are yours. If you uninstall the app,
 clear its data or move to a new phone, we can no longer tell which pictures you sent, because we store no account,
 IP address or device data with them (Art. 11 GDPR), and the Android backup does not include the withdrawal keys.
-Withdraw the pictures in the app before you uninstall it or change phones.</li>
+Withdraw the pictures in the app, and wait until they no longer show as “being withdrawn” (the phone has to be
+online for that), before you uninstall it or change phones.</li>
 </ul>
 
 
