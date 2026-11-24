@@ -261,7 +261,8 @@ issue #14 and `backend/README.md` (PR #41).
   withdraw. Turning it off deletes scans that haven't been sent.
 - **What is sent**: the rectified crop of a scan the user confirmed, either auto-added in live scan or confirmed in
   Review, with the confirmed card id, the print's language and the consent version, and after a correction the
-  scanner's top match (#244). The JPEG passes through `JpegMetadata.strip` (only JFIF and image segments stay), and no location, device or account data is sent.
+  scanner's top match (#244). The JPEG passes through `JpegMetadata.strip` (only JFIF and image segments stay),
+  and no location, device or account data is sent.
   **Undo** on an auto-added card withdraws its contribution, because a wrong match must not stay in the dataset
   under that label.
 - **Queue** (`data/contributions/`, Room table `contributions`): `ContributionWorker` (WorkManager, network

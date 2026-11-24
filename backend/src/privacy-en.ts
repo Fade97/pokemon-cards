@@ -106,7 +106,7 @@ withdrawal.</p>
 <h3>Withdrawal and retention</h3>
 <ul>
 <li>You can withdraw your consent at any time, for one picture or for all, under <strong>Settings → My
-contributions</strong>. A withdrawn picture is deleted from our server as soon as your phone is online, and not used for training again. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
+contributions</strong>. The app sends the withdrawal when your phone is online; our server then deletes the picture at once, and it is not used for training again. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
 <li><strong>Models trained before the withdrawal keep what they learned from the picture.</strong> The picture itself
 cannot be recovered from a model.</li>
 <li>Turning the switch off deletes the pictures that are still waiting to be sent. Pictures already sent stay until
