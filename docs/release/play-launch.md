@@ -314,7 +314,7 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 
 | Data | Collected? | Why |
 |---|---|---|
-| **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language and consent version. |
+| **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language, consent version, a random id and withdrawal key, and, after a correction, the scanner's top match (card id and language). |
 | Device or other IDs, Diagnostics | No | ML Kit's telemetry (per-installation ID, diagnostics; [ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)) is stripped: the app removes datatransport's only upload backend (CCT) in `AndroidManifest.xml`, so the SDK deletes its events on the phone. Checked on the S25 on 2026-11-22 (`Unknown backend … deleting event batch`). |
 | **App activity → Other user-generated content** (card ids of the collection) | **Yes, ephemeral** | Price requests (`POST /v1/prices`, `PriceApi.kt`) send the card ids of the collection, processed in memory and not stored. Ephemeral processing is an answer per declared type, not a reason to leave it out (#15, council launch review 2026-11-22). The collection itself stays on the phone. |
 | Card images from TCGdex | No | The app loads public image URLs; no user data in the request. |

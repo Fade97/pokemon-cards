@@ -195,9 +195,12 @@ class ContributionRepository(
         }
         val item = dao.pendingUploads().firstOrNull() ?: return false
         val consent = acceptedConsent()
-        if (consent == null || (item.kind == ContributionKind.NOT_CARD && !collectsNotCards)) {
-            // Turned off while queued (or a not-a-card scan in a build that doesn't send them): never send it, and
-            // withdraw any copy an earlier attempt left on the server.
+        // A card scan queued under an older consent text (e.g. train-1 before #253) is not covered by the one
+        // accepted now; not-a-card scans carry their own version (NOT_CARD_VERSION).
+        val outdated = item.kind == ContributionKind.CARD && item.consentVersion != consent
+        if (consent == null || outdated || (item.kind == ContributionKind.NOT_CARD && !collectsNotCards)) {
+            // Turned off while queued, queued under an older consent text, or a not-a-card scan in a build that
+            // doesn't send them: never send it, and withdraw any copy an earlier attempt left on the server.
             retract(item)
             return true
         }

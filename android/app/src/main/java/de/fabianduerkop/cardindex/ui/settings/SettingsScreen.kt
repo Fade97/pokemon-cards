@@ -6,6 +6,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -248,6 +249,7 @@ fun SettingsScreen(
                 val appName = stringResource(R.string.app_name)
                 SettingsHint(stringResource(R.string.settings_disclaimer, appName))
                 SettingsHint(stringResource(R.string.settings_credits, appName))
+                SettingsHint(stringResource(R.string.settings_credits_tcgplayer))
             }
         }
     }
@@ -281,12 +283,16 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
 
 /** Opens the privacy policy (#70) in the browser; the page picks German or English from the browser's language. */
 @Composable
-internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
+internal fun PrivacyPolicyLink(
+    modifier: Modifier = Modifier,
+    @StringRes label: Int = R.string.settings_privacy_policy,
+    @StringRes noBrowser: Int = R.string.settings_privacy_policy_no_browser,
+) {
     val url = BuildConfig.PRIVACY_POLICY_URL
     ExternalLink(
         url = url,
-        label = stringResource(R.string.settings_privacy_policy),
-        noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url),
+        label = stringResource(label),
+        noBrowser = stringResource(noBrowser, url),
         modifier = modifier,
         alignToText = true,
     )

@@ -24,13 +24,13 @@ export const CONTROLLER = {
 /** The app's name in the text (final name, #15). */
 export const APP_NAME = "Foilark";
 
-/** Shown as "last updated". Change it with every change of the text. */
 /**
- * The imprint (src/site.ts) by its absolute address: this page is served on every host, the imprint only on
- * foilark.app, and § 5 DDG wants it one click away wherever a user lands (#253).
+ * The imprint (src/site.ts) at its canonical address on foilark.app: this page is served on every host, and § 5 DDG
+ * wants the imprint one click away wherever a user lands (#253).
  */
 export const IMPRINT_URL = "https://foilark.app/imprint";
 
+/** Shown as "last updated". Change it with every change of the text. */
 export const UPDATED = "2026-11-23";
 
 export type PrivacyLang = "de" | "en";

@@ -27,15 +27,20 @@ data class LibraryLicense(
  */
 object OpenSourceLicenses {
     /** [bundled] first, then the libraries from the build. */
-    fun load(context: Context): List<LibraryLicense> =
-        bundled(context) + parse(context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() })
+    fun load(context: Context): List<LibraryLicense> {
+        val libraries = parse(context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() })
+        // The model's Apache-2.0 text (§ 4(a) wants a copy) is the one the build already ships for the libraries.
+        val apache = libraries.asSequence().flatMap { it.licenses }
+            .firstOrNull { it.name.contains("Apache") && it.name.contains("2.0") && it.text != null }?.text
+        return bundled(context, apache) + libraries
+    }
 
     /**
      * What the app and its language packs ship besides the Gradle libraries, which AboutLibraries can't see (#253):
-     * the app's own GPLv3 notice (with the § 7 permission in LICENSE), the TCGdex card data, the font and the
-     * recognition model's ImageNet starting point.
+     * the app's own GPLv3 notice and full text with the § 7 permission (LICENSE, LICENSE-EXCEPTION.md, copied to
+     * `assets/licenses/foilark/`), the TCGdex card data, the font and the recognition model's ImageNet starting point.
      */
-    fun bundled(context: Context): List<LibraryLicense> {
+    fun bundled(context: Context, apacheText: String? = null): List<LibraryLicense> {
         fun asset(path: String) = runCatching { context.assets.open(path).bufferedReader().use { it.readText() } }.getOrNull()
         val app = context.getString(R.string.app_name)
         return listOf(
@@ -44,7 +49,14 @@ object OpenSourceLicenses {
                 name = app,
                 version = BuildConfig.VERSION_NAME,
                 website = SOURCE_CODE_URL,
-                licenses = listOf(LicenseInfo(GPL_NAME, GPL_URL, context.getString(R.string.licenses_app_notice, app))),
+                licenses = listOf(
+                    LicenseInfo(
+                        GPL_NAME, GPL_URL,
+                        listOfNotNull(context.getString(R.string.licenses_app_notice, app), asset("licenses/foilark/LICENSE.txt"))
+                            .joinToString("\n\n"),
+                    ),
+                    LicenseInfo(context.getString(R.string.licenses_app_exception), EXCEPTION_URL, asset("licenses/foilark/LICENSE-EXCEPTION.md")),
+                ),
             ),
             LibraryLicense(
                 id = "tcgdex",
@@ -65,7 +77,7 @@ object OpenSourceLicenses {
                 name = context.getString(R.string.licenses_model),
                 version = null,
                 website = "https://huggingface.co/timm/mobilenetv3_large_100.ra_in1k",
-                licenses = listOf(LicenseInfo("Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0", null)),
+                licenses = listOf(LicenseInfo("Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0", apacheText)),
             ),
         )
     }
@@ -73,6 +85,7 @@ object OpenSourceLicenses {
     const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
     private const val GPL_NAME = "GNU General Public License v3.0 or later"
     private const val GPL_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
+    private const val EXCEPTION_URL = "$SOURCE_CODE_URL/blob/main/LICENSE-EXCEPTION.md"
 
     /** Sorted by name; a license without text keeps its link. */
     fun parse(json: String): List<LibraryLicense> {

@@ -98,7 +98,7 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
             Text(stringResource(R.string.contribute_consent_body), style = MaterialTheme.typography.bodyLarge)
             SettingsHint(stringResource(R.string.contribute_consent_version, ContributionConsent.VERSION))
             // Who processes the uploads, legal basis, retention and rights (#70).
-            PrivacyPolicyLink()
+            PrivacyPolicyLink(label = R.string.contribute_privacy_policy, noBrowser = R.string.contribute_privacy_policy_no_browser)
             // Consent under 16 would need a parent's that we can't verify (Art. 8 GDPR, 16 in Germany), so
             // contributing is for 16 and older only (#253); "I agree" waits for this box.
             var ageConfirmed by rememberSaveable { mutableStateOf(false) }

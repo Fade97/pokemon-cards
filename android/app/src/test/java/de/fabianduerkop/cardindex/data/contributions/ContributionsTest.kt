@@ -225,6 +225,17 @@ class ContributionsTest {
         assertTrue(File(tmp.root, ContributionRepository.DIR).listFiles().orEmpty().isEmpty())
     }
 
+    /** A scan queued under an older consent text is not sent after the user accepts a newer one (#253). */
+    @Test
+    fun scansQueuedUnderAnOlderConsentAreNeverSent() = runTest {
+        consent = "train-1"
+        repo.contribute("sv03.5-006", "de", jpegWithMetadata)
+        consent = ContributionConsent.VERSION // the user accepted train-2 while the scan waited
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertTrue(api.uploads.isEmpty())
+        assertTrue(repo.observe().first().isEmpty())
+    }
+
     @Test
     fun lostAnswerThenContributingTurnedOff_removesTheServerCopy() = runTest {
         val id = repo.contribute("sv03.5-006", "de", jpegWithMetadata)!!

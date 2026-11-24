@@ -68,9 +68,24 @@ class OpenSourceLicensesTest {
 
         assertEquals(listOf("foilark", "tcgdex", "schibsted-grotesk", "mobilenetv3"), libs.take(4).map { it.id })
         val byId = libs.associateBy { it.id }
-        assertTrue(byId.getValue("foilark").licenses.single().text!!.contains("WITHOUT ANY WARRANTY"))
+        val (gpl, exception) = byId.getValue("foilark").licenses
+        assertTrue(gpl.text!!.contains("WITHOUT ANY WARRANTY"))
+        assertTrue(gpl.text!!.contains("TERMS AND CONDITIONS")) // the full GPL text, not only the notice
+        assertTrue(exception.text!!.contains("com.google.android.play"))
         assertTrue(byId.getValue("tcgdex").licenses.single().text!!.contains("Copyright (c) 2021 TCGdex"))
         assertTrue(byId.getValue("schibsted-grotesk").licenses.single().text!!.contains("SIL OPEN FONT LICENSE"))
-        assertEquals("Apache License 2.0", byId.getValue("mobilenetv3").licenses.single().name)
+        val apache = byId.getValue("mobilenetv3").licenses.single()
+        assertEquals("Apache License 2.0", apache.name)
+        assertTrue(apache.text!!.contains("Apache License"))
+    }
+
+    /** The app's copies of LICENSE and LICENSE-EXCEPTION.md stay the same as the repo's (#253). */
+    @Test
+    fun bundledFoilarkLicensesMatchTheRepo() {
+        val root = generateSequence(java.io.File("").absoluteFile) { it.parentFile }.first { java.io.File(it, "LICENSE-EXCEPTION.md").isFile }
+        val assets = java.io.File(root, "android/app/src/main/assets/licenses/foilark")
+        for (name in listOf("LICENSE" to "LICENSE.txt", "LICENSE-EXCEPTION.md" to "LICENSE-EXCEPTION.md")) {
+            assertEquals(name.first, java.io.File(root, name.first).readText(), java.io.File(assets, name.second).readText())
+        }
     }
 }

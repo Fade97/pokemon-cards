@@ -342,8 +342,9 @@
     </plurals>
     <!-- The non-affiliation notice of the store listing (docs/release/play-launch.md, #130). %1$s is the app name. -->
     <string name="settings_disclaimer">%1$s is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their respective owners.</string>
-    <!-- The TCGplayer sentence is TCGplayer's required wording for its data (#253); keep it word for word. -->
-    <string name="settings_credits">Card data and images: TCGdex. Prices: the Cardmarket price guide and TCGplayer, via TCGCSV. Cardmarket and TCGplayer are trademarks of their owners; %1$s is not affiliated with them. This product uses TCGplayer data but is not endorsed or certified by TCGplayer.</string>
+    <string name="settings_credits">Card data and images: TCGdex. Prices: the Cardmarket price guide and TCGplayer, via TCGCSV. Cardmarket and TCGplayer are trademarks of their owners; %1$s is not affiliated with them.</string>
+    <!-- TCGplayer's required notice for its data, on its own line (#253); keep it word for word. -->
+    <string name="settings_credits_tcgplayer">This product uses TCGplayer data but is not endorsed or certified by TCGplayer.</string>
     <string name="settings_source_code">Source code (GPLv3)</string>
     <string name="settings_source_code_no_browser">No browser to open the source code. It is at %1$s</string>
     <string name="settings_about">About</string>
@@ -366,7 +367,8 @@
     <string name="settings_licenses_website">Project website</string>
     <string name="settings_licenses_no_browser">No browser to open the page. It is at %1$s</string>
     <!-- Entries for what the app ships besides the libraries (#253). licenses_app_notice: %1$s is the app name. -->
-    <string name="licenses_app_notice">%1$s is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version, with the additional permission in LICENSE-EXCEPTION.md of the source code for the Google ML Kit, Play services and Play Billing libraries it uses.\n\n%1$s is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\nCopyright © 2026 Fabian Dürkop.</string>
+    <string name="licenses_app_notice">%1$s is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License as published by the Free Software Foundation, either version 3 of the License, or (at your option) any later version, with the additional permission under section 7 for the Google libraries it links (ML Kit, Play services, Play Core, Play Billing, Sign-In), shown below the license.\n\n%1$s is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.\n\nCopyright © 2026 Fabian Dürkop.</string>
+    <string name="licenses_app_exception">Additional permission under GNU GPL version 3 section 7</string>
     <string name="licenses_tcgdex">TCGdex card data (names, sets, numbers)</string>
     <string name="licenses_font">Schibsted Grotesk font</string>
     <string name="licenses_model">Card recognition model, trained from MobileNetV3 (timm, ImageNet weights)</string>
@@ -459,12 +461,15 @@
     <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card you confirm is sent to help train and test the card recognition. The pictures are not published.</string>
     <string name="contribute_mine">My contributions</string>
     <string name="contribute_consent_title">Contribute scans</string>
-    <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. If you picked a different card than the scanner\'s first guess, that guess (its card id and language) is sent too, so the recognition learns from the mistake. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
+    <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. If you picked a different card than the scanner\'s first guess, that guess (its card id and language) is sent too, so the recognition learns from the mistake. Each picture also gets a random ID and key, so you can withdraw it later. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
     <!-- Version of the consent text, sent with every upload -->
     <string name="contribute_consent_version">Consent text version %1$s</string>
     <string name="contribute_age_confirm">I am 16 or older.</string>
     <string name="contribute_agree">I agree, contribute</string>
     <string name="contribute_decline">Not now</string>
+    <!-- The consent screen's privacy link; its own strings so the German consent screen links in German (#253). -->
+    <string name="contribute_privacy_policy">Privacy policy</string>
+    <string name="contribute_privacy_policy_no_browser">No browser to open the privacy policy. It is at %1$s</string>
     <string name="contribute_withdraw_hint">Withdrawing deletes a picture from the server, so it is not used for training any more. Models trained before keep what they learned from it.</string>
     <string name="contribute_none">No contributions yet.</string>
     <string name="contribute_withdraw">Withdraw</string>
