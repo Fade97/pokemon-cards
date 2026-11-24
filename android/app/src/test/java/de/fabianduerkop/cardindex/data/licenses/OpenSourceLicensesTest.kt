@@ -59,4 +59,18 @@ class OpenSourceLicensesTest {
         assertNull(libs["com.google.mlkit:text-recognition-japanese"])
         assertTrue(libs.values.all { it.licenses.isNotEmpty() })
     }
+
+    /** What AboutLibraries can't see (#253): the app's GPL notice and the bundled data, font and model, listed first. */
+    @Test
+    fun bundledEntriesComeFirstWithTheirTexts() {
+        val context: Context = ApplicationProvider.getApplicationContext()
+        val libs = OpenSourceLicenses.load(context)
+
+        assertEquals(listOf("foilark", "tcgdex", "schibsted-grotesk", "mobilenetv3"), libs.take(4).map { it.id })
+        val byId = libs.associateBy { it.id }
+        assertTrue(byId.getValue("foilark").licenses.single().text!!.contains("WITHOUT ANY WARRANTY"))
+        assertTrue(byId.getValue("tcgdex").licenses.single().text!!.contains("Copyright (c) 2021 TCGdex"))
+        assertTrue(byId.getValue("schibsted-grotesk").licenses.single().text!!.contains("SIL OPEN FONT LICENSE"))
+        assertEquals("Apache License 2.0", byId.getValue("mobilenetv3").licenses.single().name)
+    }
 }

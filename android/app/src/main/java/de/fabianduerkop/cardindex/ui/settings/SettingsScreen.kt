@@ -41,6 +41,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.alerts.PriceAlertWorker
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
+import de.fabianduerkop.cardindex.data.licenses.OpenSourceLicenses
 import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -313,7 +314,7 @@ private fun SourceCodeLink() {
     )
 }
 
-private const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
+private const val SOURCE_CODE_URL = OpenSourceLicenses.SOURCE_CODE_URL
 private const val IMPRINT_URL = "https://foilark.app/imprint"
 
 /** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */

@@ -38,10 +38,11 @@ const CARD_RATIO_MAX = 0.78;
 export const DEFAULT_DAILY_QUOTA = 500;
 /**
  * Consent texts the app may show. A new text gets a new version here before the app ships it. "train-1" (ADR 0016):
- * training and testing only, never published. "cc0-1" came from debug builds before it; those pictures are used the
- * same narrower way.
+ * training and testing only, never published. "train-2" (#253) also names the scanner's top match a correction sends
+ * (#244) and asks for 16 or older only. "cc0-1" came from debug builds before them; those pictures are used the same
+ * narrower way.
  */
-export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["train-1", "cc0-1"]);
+export const CONSENT_VERSIONS: ReadonlySet<string> = new Set(["train-2", "train-1", "cc0-1"]);
 /**
  * Consent for not-a-card scans (#244). Such a crop may show anything in a home, which "train-1" doesn't cover, so
  * for now only debug builds send them, under this version; a release needs its own consent text first.

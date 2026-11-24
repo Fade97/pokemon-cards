@@ -1,6 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Android 11 and lower: the same as data_extraction_rules.xml, the JSON snapshot of the collection (ADR 0006). -->
+<!-- Android 11 and lower: the same as data_extraction_rules.xml, the JSON snapshot of the collection (ADR 0006). The
+     contribution consent stays on the phone it was given on (#253, AppSettings.consentPrefs). -->
 <full-backup-content>
     <include domain="file" path="android-backup/" />
     <include domain="sharedpref" path="." />
+    <exclude domain="sharedpref" path="contribution_consent.xml" />
 </full-backup-content>

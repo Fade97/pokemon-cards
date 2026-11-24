@@ -25,7 +25,13 @@ export const CONTROLLER = {
 export const APP_NAME = "Foilark";
 
 /** Shown as "last updated". Change it with every change of the text. */
-export const UPDATED = "2026-11-22";
+/**
+ * The imprint (src/site.ts) by its absolute address: this page is served on every host, the imprint only on
+ * foilark.app, and § 5 DDG wants it one click away wherever a user lands (#253).
+ */
+export const IMPRINT_URL = "https://foilark.app/imprint";
+
+export const UPDATED = "2026-11-23";
 
 export type PrivacyLang = "de" | "en";
 
@@ -134,7 +140,7 @@ ${PAGE_STYLE}</style>
 </head>
 <body>
 <main>
-<p class="meta"><a href="/privacy/${other}" hreflang="${other}" lang="${other}">${escapeHtml(TEXTS[other].languageName)}</a></p>
+<p class="meta"><a href="/privacy/${other}" hreflang="${other}" lang="${other}">${escapeHtml(TEXTS[other].languageName)}</a> · <a href="${IMPRINT_URL}/${lang}">${lang === "de" ? "Impressum" : "Imprint"}</a></p>
 <h1>${escapeHtml(t.title)}</h1>
 <p class="meta">${escapeHtml(t.updated)} ${UPDATED}</p>
 ${t.body(contact).trim()}

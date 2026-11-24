@@ -2,6 +2,7 @@
 package de.fabianduerkop.cardindex.data.licenses
 
 import android.content.Context
+import de.fabianduerkop.cardindex.BuildConfig
 import de.fabianduerkop.cardindex.R
 import org.json.JSONObject
 
@@ -25,8 +26,53 @@ data class LibraryLicense(
  * for Java 21, which the JVM unit tests (Java 17) can't load, and the format is two flat lists.
  */
 object OpenSourceLicenses {
+    /** [bundled] first, then the libraries from the build. */
     fun load(context: Context): List<LibraryLicense> =
-        parse(context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() })
+        bundled(context) + parse(context.resources.openRawResource(R.raw.aboutlibraries).bufferedReader().use { it.readText() })
+
+    /**
+     * What the app and its language packs ship besides the Gradle libraries, which AboutLibraries can't see (#253):
+     * the app's own GPLv3 notice (with the § 7 permission in LICENSE), the TCGdex card data, the font and the
+     * recognition model's ImageNet starting point.
+     */
+    fun bundled(context: Context): List<LibraryLicense> {
+        fun asset(path: String) = runCatching { context.assets.open(path).bufferedReader().use { it.readText() } }.getOrNull()
+        val app = context.getString(R.string.app_name)
+        return listOf(
+            LibraryLicense(
+                id = "foilark",
+                name = app,
+                version = BuildConfig.VERSION_NAME,
+                website = SOURCE_CODE_URL,
+                licenses = listOf(LicenseInfo(GPL_NAME, GPL_URL, context.getString(R.string.licenses_app_notice, app))),
+            ),
+            LibraryLicense(
+                id = "tcgdex",
+                name = context.getString(R.string.licenses_tcgdex),
+                version = null,
+                website = "https://tcgdex.dev",
+                licenses = listOf(LicenseInfo("MIT License", "https://github.com/tcgdex/cards-database/blob/master/LICENSE", asset("licenses/tcgdex/LICENSE.txt"))),
+            ),
+            LibraryLicense(
+                id = "schibsted-grotesk",
+                name = context.getString(R.string.licenses_font),
+                version = null,
+                website = "https://github.com/schibsted/schibsted-grotesk",
+                licenses = listOf(LicenseInfo("SIL Open Font License 1.1", "https://openfontlicense.org", asset("licenses/schibsted-grotesk/OFL.txt"))),
+            ),
+            LibraryLicense(
+                id = "mobilenetv3",
+                name = context.getString(R.string.licenses_model),
+                version = null,
+                website = "https://huggingface.co/timm/mobilenetv3_large_100.ra_in1k",
+                licenses = listOf(LicenseInfo("Apache License 2.0", "https://www.apache.org/licenses/LICENSE-2.0", null)),
+            ),
+        )
+    }
+
+    const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
+    private const val GPL_NAME = "GNU General Public License v3.0 or later"
+    private const val GPL_URL = "https://www.gnu.org/licenses/gpl-3.0.html"
 
     /** Sorted by name; a license without text keeps its link. */
     fun parse(json: String): List<LibraryLicense> {

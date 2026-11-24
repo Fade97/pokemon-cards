@@ -22,6 +22,10 @@ GDPR, 16 in Germany).
 - The consent screen has a required checkbox: "I am 16 or older, or a parent or guardian agreed."
 - Withdrawal deletes the picture and keeps it out of later training; models trained before keep what they learned.
 - Play Data safety: Photos collected (optional), not shared.
+- Amended 2026-11-23 (legal review, #253): consent version `train-2` names the scanner's top match that a
+  correction sends along (#244), and contributing is for 16 and older only, because a parent's agreement can't be
+  verified. The consent stays out of the Android backup, like the withdrawal keys, so a restored phone asks again.
+  The consent screen is also in German.
 
 ## Alternatives considered
 

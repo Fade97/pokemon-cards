@@ -156,7 +156,7 @@ no history for those months until its app data is cleared.
 
 Issue #14, ADR 0016. Opt-in uploads of the rectified card crop to train and test the recognition; they are never
 published. The app shows the consent text, the backend only accepts versions it knows (`CONSENT_VERSIONS` in
-[`src/contributions.ts`](src/contributions.ts): `train-1`, and `cc0-1` from older debug builds).
+[`src/contributions.ts`](src/contributions.ts): `train-2`, plus `train-1` and `cc0-1` from older builds).
 
 | Request | Answer |
 |---|---|

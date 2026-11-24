@@ -183,8 +183,8 @@ Follow-ups in the same PR:
 
 ## 3. Play listing draft
 
-The name is Foilark (section 1b). The app UI is English only for now (`res/values` has no `values-de`),
-so the DE listing describes an English app. **Decision:** ship DE store text now, or only once the app has a
+The name is Foilark (section 1b). The app UI is English only for now; only the contribution consent is also in German (`values-de`,
+#253), so the DE listing describes an English app. **Decision:** ship DE store text now, or only once the app has a
 German translation.
 
 ### Short description (max. 80 characters)
@@ -203,7 +203,7 @@ Cardmarket prices." (73) / "Sammelkarten offline scannen, in Ordner sortieren, C
 Foilark is a free, open-source collection app for Pokémon TCG cards.
 
 SCAN ON YOUR PHONE
-Point the camera at a card. Foilark recognizes it on the phone itself, with no photo sent anywhere. It reads the
+Point the camera at a card. Foilark recognizes it on the phone itself; no photo is sent unless you choose to contribute scans. It reads the
 collector number to tell similar cards apart, and works offline once your language packs are installed.
 
 MANY LANGUAGES
@@ -241,7 +241,7 @@ Foilark is not affiliated with them.
 Foilark ist eine kostenlose Open-Source-App für deine Pokémon-TCG-Sammlung.
 
 SCANNEN AUF DEM HANDY
-Halte die Kamera auf eine Karte. Foilark erkennt sie direkt auf dem Handy, ohne dass ein Foto das Gerät verlässt.
+Halte die Kamera auf eine Karte. Foilark erkennt sie direkt auf dem Handy; kein Foto verlässt das Gerät, außer du trägst freiwillig Scans bei.
 Die App liest die Kartennummer, um ähnliche Karten zu unterscheiden, und funktioniert offline, sobald die
 Sprachpakete installiert sind.
 
@@ -292,7 +292,7 @@ Category: **All other app types** (a utility, not a game, not social).
 | Crude language | No |
 | Controlled substances (drugs, alcohol, tobacco) | No |
 | Gambling, simulated gambling | No. Showing card prices is not gambling; no loot boxes, no paid packs. |
-| Users interact or exchange content with each other | No. Contributed scans go to a public dataset, not to other users in the app. |
+| Users interact or exchange content with each other | No. Contributed scans are used only to train the recognition; they are not published and not shown to other users (ADR 0016). |
 | Shares the user's location with others | No |
 | Digital purchases | No for the MVP. Yes once Pro (#16) ships; update the questionnaire then. |
 | Unrestricted internet / web browser | No (links open in the external browser) |
@@ -366,9 +366,10 @@ Required by Play: app icon 512 × 512 PNG; feature graphic 1024 × 500; at least
 7. Privacy: export/backup and the contribution switch (off by default).
 8. Optional: dark mode.
 
-**Decision:** card art in screenshots is TPC's copyright, and the store listing is marketing, not app use.
-Recommendation: show the UI with small thumbnails, no full-screen card art, no Pokémon logo; for the feature
-graphic use own artwork (no card art). No Pokéball shapes in the icon (ADR 0009).
+**Decision:** card art in screenshots is TPC's copyright, and the store listing is marketing, not app use
+(legal review #253). No real card art in the store graphics: take the screenshots with own placeholder images in
+place of the card art (own photos of blank or self-drawn cards via "Prefer my own photos", or replace the thumbnails
+when editing), no Pokémon logo; for the feature graphic use own artwork. No Pokéball shapes in the icon (ADR 0009).
 
 ## 4. Closed test plan
 
@@ -433,8 +434,8 @@ About 4 weeks from account creation to production, if nothing is rejected.
 | 1 | App name | **Foilark** (Fabian, 2026-11-18, second round, section 1b; Lumifoil was dropped the same day) |
 | 2 | applicationId | `de.fabianduerkop.foilark` (applied), namespace stays `de.fabianduerkop.cardindex` |
 | 3 | Domain | Register `.de` (and `.app` if free) for the chosen name |
-| 4 | Contributed photos as "shared" in Data safety | Yes, declare as shared |
+| 4 | Contributed photos as "shared" in Data safety | No: collected (optional), not shared (ADR 0016, section 3) |
 | 5 | Target audience | 13+ |
-| 6 | Card art in store screenshots | Small UI thumbnails only, own art for the feature graphic |
+| 6 | Card art in store screenshots | None: own placeholder images, own art for the feature graphic (#253) |
 | 7 | DE store text with an English-only app | Ship it, add a German UI later |
 | 8 | Trademark filing | Optional; DE/EU classes 9 + 42 after the name is fixed |

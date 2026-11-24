@@ -19,7 +19,11 @@ import java.util.UUID
 
 /** The consent text the user accepted; the backend accepts only versions it knows (`CONSENT_VERSIONS`). */
 object ContributionConsent {
-    const val VERSION = "train-1"
+    /**
+     * "train-2" (#253): names the scanner's top match that a correction sends along (#244), and asks for 16 or older
+     * without the parent option. "train-1" covered neither, so its users are asked again.
+     */
+    const val VERSION = "train-2"
 
     /**
      * Sent with not-a-card scans (#244), which only debug builds collect: such a crop may show anything in a home,

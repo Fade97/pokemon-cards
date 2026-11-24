@@ -61,8 +61,9 @@ android {
         // Pro test token for debug builds (#17) until sign-in and billing exist (#16); empty in release builds. Set
         // `cardindex.proTestToken=…` in ~/.gradle/gradle.properties, never in the repo. backend/README.md, "Price history".
         buildConfigField("String", "PRO_TEST_TOKEN", "\"\"")
-        // The privacy policy the Play listing links to, served by the same Worker (#70).
-        buildConfigField("String", "PRIVACY_POLICY_URL", "\"${api.trimEnd('/')}/privacy\"")
+        // The privacy policy the Play listing links to (#70), on the app's website next to the imprint (#253). The
+        // Worker serves it on every host, but the address users see should be the one the listing and imprint use.
+        buildConfigField("String", "PRIVACY_POLICY_URL", "\"https://foilark.app/privacy\"")
     }
 
     signingConfigs {

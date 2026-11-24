@@ -181,7 +181,7 @@ function withdraw(id: string, token?: string) {
 
 describe("consent versions (ADR 0016)", () => {
   it("accepts the training-only consent and the older CC0 one, and records which", async () => {
-    for (const consent of ["train-1", "cc0-1"]) {
+    for (const consent of ["train-2", "train-1", "cc0-1"]) {
       const res = await upload(jpeg(), { query: `cardId=sv03.5-025&lang=de&consent=${consent}` });
       expect(res.status).toBe(201);
       const { id } = (await res.json()) as { id: string };

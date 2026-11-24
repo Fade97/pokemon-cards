@@ -80,7 +80,7 @@ private fun contributionsViewModel(): ContributionsViewModel =
 
 /**
  * The consent screen (issue #14, ADR 0016): what is sent, what it is used for, and what withdrawing can and can't
- * undo; contributors confirm they are 16 or have a parent's OK. Only "I agree" turns contributing on; Back and "Not now" leave it off. The version shown is the one sent with
+ * undo; contributors confirm they are 16 or older (#253). Only "I agree" turns contributing on; Back and "Not now" leave it off. The version shown is the one sent with
  * every upload.
  */
 @Composable
@@ -99,7 +99,8 @@ fun ContributionConsentScreen(onBack: () -> Unit, viewModel: ContributionsViewMo
             SettingsHint(stringResource(R.string.contribute_consent_version, ContributionConsent.VERSION))
             // Who processes the uploads, legal basis, retention and rights (#70).
             PrivacyPolicyLink()
-            // Consent under 16 needs a parent's (Art. 8 GDPR, 16 in Germany); "I agree" waits for this box.
+            // Consent under 16 would need a parent's that we can't verify (Art. 8 GDPR, 16 in Germany), so
+            // contributing is for 16 and older only (#253); "I agree" waits for this box.
             var ageConfirmed by rememberSaveable { mutableStateOf(false) }
             Row(
                 Modifier
