@@ -281,14 +281,17 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
     }
 }
 
-/** Opens the privacy policy (#70) in the browser; the page picks German or English from the browser's language. */
+/**
+ * Opens the privacy policy (#70) in the browser. Without [url] the page picks German or English from the browser's
+ * language; the consent screen passes the page in its own language (#253).
+ */
 @Composable
 internal fun PrivacyPolicyLink(
     modifier: Modifier = Modifier,
     @StringRes label: Int = R.string.settings_privacy_policy,
     @StringRes noBrowser: Int = R.string.settings_privacy_policy_no_browser,
+    url: String = BuildConfig.PRIVACY_POLICY_URL,
 ) {
-    val url = BuildConfig.PRIVACY_POLICY_URL
     ExternalLink(
         url = url,
         label = stringResource(label),

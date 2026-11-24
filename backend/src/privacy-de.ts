@@ -118,7 +118,7 @@ ohne Bild wie nach einem Widerruf.</p>
 <h3>Widerruf und Speicherdauer</h3>
 <ul>
 <li>Du kannst deine Einwilligung jederzeit widerrufen, für ein Bild oder für alle, unter <strong>Settings → My
-contributions</strong>. Ein widerrufenes Bild wird sofort von unserem Server gelöscht und nicht mehr zum Training
+contributions</strong>. Ein widerrufenes Bild wird von unserem Server gelöscht, sobald dein Handy online ist, und nicht mehr zum Training
 genutzt. Der Widerruf berührt nicht die Rechtmäßigkeit der Verarbeitung bis dahin (Art. 7 Abs. 3
 DSGVO).</li>
 <li><strong>Modelle, die vor dem Widerruf trainiert wurden, behalten, was sie aus dem Bild gelernt haben.</strong> Das

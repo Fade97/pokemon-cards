@@ -31,7 +31,7 @@ export const APP_NAME = "Foilark";
 export const IMPRINT_URL = "https://foilark.app/imprint";
 
 /** Shown as "last updated". Change it with every change of the text. */
-export const UPDATED = "2026-11-23";
+export const UPDATED = "2026-11-24";
 
 export type PrivacyLang = "de" | "en";
 
