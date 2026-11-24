@@ -12,7 +12,7 @@ const REDIRECT_HOSTS = new Set(["www.foilark.app", "foilark.de", "www.foilark.de
 const SOURCE_CODE = "https://github.com/Fade97/pokemon-cards";
 
 /** Shown as "last updated". Change it with every change of the imprint text. */
-export const IMPRINT_UPDATED = "2026-11-22";
+export const IMPRINT_UPDATED = "2026-11-24";
 
 const CACHE = "public, max-age=3600";
 
@@ -74,7 +74,7 @@ function imprintText(lang: PrivacyLang): ImprintText {
 <h2>Kontakt</h2>
 <p>Telefon: ${c.phoneLink}<br>E-Mail: ${c.emailLink}</p>
 <h2>Umsatzsteuer</h2>
-<p>Kleinunternehmer gemäß § 19 UStG. Es wird keine Umsatzsteuer berechnet und ausgewiesen.</p>
+<p>Kleinunternehmer gemäß § 19 UStG; ich weise keine Umsatzsteuer aus. Käufe in der App verkauft Google Play an dich und berechnet dabei die Umsatzsteuer, die in deinem Land gilt.</p>
 <h2>Verbraucherstreitbeilegung</h2>
 <p>Ich bin nicht bereit oder verpflichtet, an Streitbeilegungsverfahren vor einer Verbraucherschlichtungsstelle teilzunehmen.</p>
 <h2>Hinweis</h2>
@@ -92,7 +92,7 @@ function imprintText(lang: PrivacyLang): ImprintText {
 <h2>Contact</h2>
 <p>Phone: ${c.phoneLink}<br>Email: ${c.emailLink}</p>
 <h2>VAT</h2>
-<p>Small business under § 19 UStG (German VAT Act); no VAT is charged or shown.</p>
+<p>Small business under § 19 UStG (German VAT Act); I do not charge VAT myself. Purchases in the app are sold to you by Google Play, which charges the VAT of your country.</p>
 <h2>Consumer dispute resolution</h2>
 <p>I am neither willing nor obliged to take part in dispute resolution proceedings before a consumer arbitration board.</p>
 <h2>Notice</h2>

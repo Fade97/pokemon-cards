@@ -390,6 +390,10 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
       the website; the other two redirect to it (#226).
 - [ ] Recruit testers and approve the Google Group.
 - [ ] Sign the declarations in the Console (content rating, data safety, target audience, ads: no ads).
+- [ ] Deploy the backend (`cd backend && pnpm run deploy`) before uploading a build with a new consent version
+      (`train-2`, #253). An app released first keeps its scans queued until the backend knows the version.
+- [ ] Before training on FORB / TCG-AR: get the authors' written OK for model training and published weights (#256).
+- [ ] Before Pro: the legal prerequisites in #255 (TCGplayer / Cardmarket rights, Play VAT, § 312k / § 356a BGB, terms).
 
 ### Prepared by agents (follow-up issues)
 

@@ -436,6 +436,14 @@ describe("POST /v1/contributions", () => {
     }
   });
 
+  it("names an unknown consent version, which the app retries instead of dropping (#253)", async () => {
+    // The app matches this exact message (ContributionApi.UNKNOWN_CONSENT): a release that ships before the backend
+    // learns its consent version keeps its scans queued.
+    const res = await upload(jpeg(), { query: "cardId=sv03.5-025&lang=de&consent=train-99" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "unknown consent version" });
+  });
+
   it("accepts a card crop in either orientation and slightly off the exact ratio", async () => {
     for (const [w, h] of [[352, 252], [240, 352], [270, 352]]) {
       const r = await upload(jpeg({ w, h }));

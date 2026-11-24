@@ -54,6 +54,7 @@ describe("foilark.app website (#226)", () => {
       expect(html).toContain(`mailto:${CONTROLLER.email}`);
       expect(html).toContain('href="tel:+4915233933821"');
       expect(html).toContain("§ 19 UStG");
+      expect(html).toContain("Google Play"); // Play sales carry VAT; Google charges it (#253)
     }
   });
 
