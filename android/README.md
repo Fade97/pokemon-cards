@@ -255,12 +255,14 @@ Opt-in uploads that train and test the recognition and are never published (ADR 
 issue #14 and `backend/README.md` (PR #41).
 
 - **Settings → Improve recognition → Contribute my scans** is off by default. Turning it on opens the consent screen
-  (training only, version `train-1`, sent with every upload). "I agree" stays disabled until the user confirms they
-  are 16 or older or a parent agreed. It also says that models trained before a withdrawal keep what they learned.
-  Turning it off deletes scans that haven't been sent.
+  (training only, version `train-2`, sent with every upload; also in German, `values-de`). "I agree" stays disabled
+  until the user confirms they are 16 or older (#253). Scans queued under an older consent version are never sent.
+  It also says that models trained before a withdrawal keep what they learned, and that only this phone can
+  withdraw. Turning it off deletes scans that haven't been sent.
 - **What is sent**: the rectified crop of a scan the user confirmed, either auto-added in live scan or confirmed in
-  Review, with the confirmed card id, the print's language and the consent version. The JPEG passes through
-  `JpegMetadata.strip` (only JFIF and image segments stay), and no location, device or account data is sent.
+  Review, with the confirmed card id, the print's language and the consent version, and after a correction the
+  scanner's top match (#244). The JPEG passes through `JpegMetadata.strip` (only JFIF and image segments stay),
+  and no location, device or account data is sent.
   **Undo** on an auto-added card withdraws its contribution, because a wrong match must not stay in the dataset
   under that label.
 - **Queue** (`data/contributions/`, Room table `contributions`): `ContributionWorker` (WorkManager, network
@@ -272,7 +274,8 @@ issue #14 and `backend/README.md` (PR #41).
 - **My contributions** lists every scan with its state; withdraw one or all. Withdrawing a scan not sent yet only
   deletes it locally. For a sent one the app calls `DELETE` with the stored token (`404` counts as done) and then
   forgets it. The withdraw token lives only in the app's database and is redacted from `toString()`, so it never
-  reaches a log. The database is in the user's own Android backup, so a restored phone can still withdraw.
+  reaches a log. Neither the tokens nor the consent are in the Android backup (#253): a restored phone asks for
+  consent again and can't withdraw scans sent from the old one.
 
 ## Collections, images and prices
 

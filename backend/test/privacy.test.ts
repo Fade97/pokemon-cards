@@ -70,6 +70,8 @@ describe("privacy policy pages", () => {
         expect(html, `${lang}: ${term}`).toContain(term);
       }
       expect(html).toContain(CONTROLLER.name);
+      // § 5 DDG: the imprint one click away, also when the page is opened on the API host (#253).
+      expect(html).toContain(`href="https://foilark.app/imprint/${lang}"`);
     }
   });
 });

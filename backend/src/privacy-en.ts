@@ -31,8 +31,9 @@ queue, saved prices and your settings.</li>
 you pick, not access to your gallery.</li>
 <li><strong>Exports</strong> (JSON/CSV) are saved where you choose.</li>
 </ul>
-<p>The collection database and the settings are part of your phone’s Android backup and device transfer, if you have
-them turned on. That backup is a service of Google (or your phone’s maker) under your account and their terms; we
+<p>A copy of your collection and the settings are part of your phone’s Android backup and device transfer, if you have
+them turned on. Your consent to contribute scans and the withdrawal keys of your contributions (section 6) are not:
+they stay on the phone they were created on. That backup is a service of Google (or your phone’s maker) under your account and their terms; we
 have no access to it. Your own photos and card pictures are not included.</p>
 <p>Uninstalling the app deletes all of this from the phone, except exports you saved outside the app.</p>
 
@@ -80,6 +81,8 @@ It is off by default, and it starts only after you accept the consent text in th
 the review queue), the cropped and straightened picture of the card, as a JPEG. All metadata (EXIF, location,
 camera details) is removed on the phone and again on the server;</li>
 <li>the card’s ID and the language of the printed card, as recognised or confirmed;</li>
+<li>if you picked a different card than the scanner’s first guess: the ID and language of that guess, so the
+recognition learns from the mistake;</li>
 <li>the version of the consent text you accepted;</li>
 <li>a random ID and a random secret (the withdrawal key) the app creates for each picture. The server stores only a
 hash of the key.</li>
@@ -93,8 +96,8 @@ card is visible.</p>
 <p>The pictures are used only to train and test the app’s card recognition models. They are not published: the card
 artwork in them belongs to The Pokémon Company. What is published as open source is what the models learn from the
 pictures (the model weights and the reference index), not the pictures. The legal basis is your consent, Art. 6(1)(a)
-GDPR. Consent under 16 needs a parent or guardian (Art. 8 GDPR); the app asks you to confirm that you are 16 or older,
-or that a parent or guardian agreed.</p>
+GDPR. Contributing is only for people aged 16 or older, because consent under 16 would need a parent or guardian
+(Art. 8 GDPR); the app asks you to confirm that you are 16 or older.</p>
 <h3>Recipients</h3>
 <p>The pictures are stored privately with our hosting provider Cloudflare (section 7) and used only by us, on our own
 computers, for training and testing. Before a picture is used we look at it: a rejected picture (no card, the wrong
@@ -103,19 +106,20 @@ withdrawal.</p>
 <h3>Withdrawal and retention</h3>
 <ul>
 <li>You can withdraw your consent at any time, for one picture or for all, under <strong>Settings → My
-contributions</strong>. A withdrawn picture is deleted from our server at once and not used for training again. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
+contributions</strong>. The app sends the withdrawal when your phone is online; our server then deletes the picture at once, and it is not used for training again. The withdrawal does not affect processing before it (Art. 7(3) GDPR).</li>
 <li><strong>Models trained before the withdrawal keep what they learned from the picture.</strong> The picture itself
 cannot be recovered from a model.</li>
 <li>Turning the switch off deletes the pictures that are still waiting to be sent. Pictures already sent stay until
 you withdraw them.</li>
 <li>Otherwise a picture is kept as long as we train and test the recognition with it. After a withdrawal we keep only a record without
-the picture (ID, hash of the withdrawal key, card ID, language, consent version, file type, size and dimensions,
+the picture (ID, hash of the withdrawal key, card IDs and languages, consent version, file type, size and dimensions,
 checksum and times), so that a picture that
 was withdrawn is never used again and an upload still on its way is refused.</li>
-<li><strong>Important:</strong> only the app on your phone knows which pictures are yours. If you uninstall the app
-(or clear its data) without restoring it from a backup, we can no longer tell which pictures you sent, because we
-store no account, IP address or device data with them (Art. 11 GDPR). Withdraw the pictures in the app before you
-uninstall it.</li>
+<li><strong>Important:</strong> only the app on your phone knows which pictures are yours. If you uninstall the app,
+clear its data or move to a new phone, we can no longer tell which pictures you sent, because we store no account,
+IP address or device data with them (Art. 11 GDPR), and the Android backup does not include the withdrawal keys.
+Withdraw the pictures in the app, and wait until they no longer show as “being withdrawn” (the phone has to be
+online for that), before you uninstall it or change phones.</li>
 </ul>
 
 

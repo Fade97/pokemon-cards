@@ -33,8 +33,9 @@ gespeicherte Preise und deine Einstellungen.</li>
 die ausgewählten Fotos, keinen Zugriff auf deine Galerie.</li>
 <li><strong>Exporte</strong> (JSON/CSV) werden dort gespeichert, wo du es auswählst.</li>
 </ul>
-<p>Die Sammlungsdatenbank und die Einstellungen sind Teil der Android-Sicherung und der Geräteübertragung deines
-Handys, wenn du diese eingeschaltet hast. Diese Sicherung ist ein Dienst von Google (oder des Herstellers deines
+<p>Eine Kopie deiner Sammlung und die Einstellungen sind Teil der Android-Sicherung und der Geräteübertragung deines
+Handys, wenn du diese eingeschaltet hast. Deine Einwilligung zum Beitragen von Scans und die Widerrufsschlüssel deiner
+Beiträge (Abschnitt 6) gehören nicht dazu: Sie bleiben auf dem Handy, auf dem sie entstanden sind. Diese Sicherung ist ein Dienst von Google (oder des Herstellers deines
 Handys) unter deinem Konto und deren Bedingungen; wir haben keinen Zugriff darauf. Eigene Fotos und Kartenbilder sind
 nicht enthalten.</p>
 <p>Wenn du die App deinstallierst, wird all das vom Handy gelöscht, außer Exporten, die du außerhalb der App
@@ -90,6 +91,8 @@ zustimmst.</p>
 in der Prüfliste bestätigt hast), das zugeschnittene und entzerrte Bild der Karte als JPEG. Alle Metadaten (EXIF,
 Standort, Kameradaten) werden auf dem Handy und noch einmal auf dem Server entfernt;</li>
 <li>die ID der Karte und die Sprache der gedruckten Karte, so wie sie erkannt oder bestätigt wurden;</li>
+<li>wenn du eine andere Karte gewählt hast als den ersten Vorschlag des Scanners: ID und Sprache dieses Vorschlags,
+damit die Erkennung aus dem Fehler lernt;</li>
 <li>die Version des Einwilligungstextes, dem du zugestimmt hast;</li>
 <li>eine zufällige ID und ein zufälliger geheimer Schlüssel (Widerrufsschlüssel), die die App für jedes Bild erzeugt.
 Der Server speichert nur einen Hash des Schlüssels.</li>
@@ -104,8 +107,9 @@ Finger. Achte bitte darauf, dass nur die Karte zu sehen ist.</p>
 <p>Die Bilder dienen nur dazu, die Modelle der Kartenerkennung der App zu trainieren und zu testen. Sie werden nicht
 veröffentlicht: Die Kartenmotive darauf gehören The Pokémon Company. Als Open Source veröffentlicht wird, was die
 Modelle aus den Bildern lernen (die Modellgewichte und der Referenzindex), nicht die Bilder. Rechtsgrundlage ist deine
-Einwilligung, Art. 6 Abs. 1 lit. a DSGVO. Unter 16 braucht die Einwilligung deine Eltern oder Erziehungsberechtigten
-(Art. 8 DSGVO); die App lässt dich bestätigen, dass du mindestens 16 bist oder sie zugestimmt haben.</p>
+Einwilligung, Art. 6 Abs. 1 lit. a DSGVO. Beitragen können nur Personen ab 16 Jahren, weil die Einwilligung unter 16
+deine Eltern oder Erziehungsberechtigten bräuchte (Art. 8 DSGVO); die App lässt dich bestätigen, dass du mindestens
+16 bist.</p>
 <h3>Empfänger</h3>
 <p>Die Bilder werden nicht öffentlich bei unserem Hosting-Anbieter Cloudflare gespeichert (Abschnitt 7) und nur von
 uns auf eigenen Rechnern zum Trainieren und Testen genutzt. Bevor ein Bild genutzt wird, sehen wir es uns an: Ein
@@ -114,21 +118,22 @@ ohne Bild wie nach einem Widerruf.</p>
 <h3>Widerruf und Speicherdauer</h3>
 <ul>
 <li>Du kannst deine Einwilligung jederzeit widerrufen, für ein Bild oder für alle, unter <strong>Settings → My
-contributions</strong>. Ein widerrufenes Bild wird sofort von unserem Server gelöscht und nicht mehr zum Training
-genutzt. Der Widerruf berührt nicht die Rechtmäßigkeit der Verarbeitung bis dahin (Art. 7 Abs. 3
+contributions</strong>. Die App sendet den Widerruf, wenn dein Handy online ist; unser Server löscht das Bild dann sofort, und es wird nicht mehr
+zum Training genutzt. Der Widerruf berührt nicht die Rechtmäßigkeit der Verarbeitung bis dahin (Art. 7 Abs. 3
 DSGVO).</li>
 <li><strong>Modelle, die vor dem Widerruf trainiert wurden, behalten, was sie aus dem Bild gelernt haben.</strong> Das
 Bild selbst lässt sich aus einem Modell nicht zurückgewinnen.</li>
 <li>Schaltest du die Funktion aus, werden die Bilder gelöscht, die noch auf das Senden warten. Bereits gesendete Bilder
 bleiben, bis du sie widerrufst.</li>
 <li>Ansonsten wird ein Bild gespeichert, solange wir die Erkennung damit trainieren und testen. Nach einem Widerruf behalten wir nur
-einen Eintrag ohne Bild (ID, Hash des Widerrufsschlüssels, Karten-ID, Sprache, Version der Einwilligung, Dateityp,
+einen Eintrag ohne Bild (ID, Hash des Widerrufsschlüssels, Karten-IDs und Sprachen, Version der Einwilligung, Dateityp,
 -größe und Bildmaße, Prüfsumme und Zeitpunkte),
 damit ein widerrufenes Bild nie wieder genutzt und ein noch laufendes Hochladen abgewiesen wird.</li>
-<li><strong>Wichtig:</strong> Nur die App auf deinem Handy weiß, welche Bilder von dir sind. Deinstallierst du die App
-(oder löschst ihre Daten), ohne sie aus einer Sicherung wiederherzustellen, können wir nicht mehr erkennen, welche
-Bilder du gesendet hast, weil wir kein Konto, keine IP-Adresse und keine Gerätedaten dazu speichern (Art. 11 DSGVO).
-Widerrufe die Bilder in der App, bevor du sie deinstallierst.</li>
+<li><strong>Wichtig:</strong> Nur die App auf deinem Handy weiß, welche Bilder von dir sind. Deinstallierst du die App,
+löschst ihre Daten oder wechselst du das Handy, können wir nicht mehr erkennen, welche Bilder du gesendet hast, weil
+wir kein Konto, keine IP-Adresse und keine Gerätedaten dazu speichern (Art. 11 DSGVO) und die Android-Sicherung die
+Widerrufsschlüssel nicht enthält. Widerrufe die Bilder in der App und warte, bis sie nicht mehr als „being withdrawn“ angezeigt werden (dafür muss das
+Handy online sein), bevor du sie deinstallierst oder das Handy wechselst.</li>
 </ul>
 
 

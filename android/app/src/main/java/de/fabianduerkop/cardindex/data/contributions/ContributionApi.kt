@@ -35,6 +35,13 @@ class ContributionRateLimitedException(val retryAfterSeconds: Long) : IOExceptio
 /** The backend refused the request for good (400, 401, 409, 413, 415, 422): sending it again won't help. */
 class ContributionRejectedException(val code: Int) : IOException("Contribution refused: HTTP $code")
 
+/**
+ * HTTP 400 "unknown consent version": the server doesn't know the consent text yet, because the app was released
+ * before the backend that adds it was deployed (#253). Not the upload's fault, so it waits in the queue and is sent
+ * again on a later run instead of being dropped.
+ */
+class ContributionConsentUnknownException : IOException("Consent version not known to the server yet")
+
 /** The backend's contribution routes (issue #14, backend/README.md "Scan contributions"). */
 interface ContributionApi {
     /**
@@ -108,12 +115,19 @@ class HttpContributionApi(private val baseUrl: String, private val client: Call.
         when {
             code in 200..299 -> Unit
             code == 429 -> throw ContributionRateLimitedException(response.header("Retry-After")?.toLongOrNull()?.coerceIn(1, 3600) ?: 60)
+            code == 400 && errorOf(response) == UNKNOWN_CONSENT -> throw ContributionConsentUnknownException()
             code in PERMANENT -> throw ContributionRejectedException(code)
             else -> throw IOException("Contribution service: HTTP $code")
         }
     }
 
+    /** The backend's `{"error": …}` message, or null for any other body. */
+    private fun errorOf(response: Response): String? =
+        runCatching { JSONObject(response.body!!.string()).optString("error").ifEmpty { null } }.getOrNull()
+
     private companion object {
+        /** backend/src/contributions.ts answers an unaccepted consent version with this error. */
+        const val UNKNOWN_CONSENT = "unknown consent version"
         val JPEG = "image/jpeg".toMediaType()
         val PERMANENT = setOf(400, 401, 409, 413, 415, 422)
     }

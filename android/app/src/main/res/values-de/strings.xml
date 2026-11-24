@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- The app is English. Only the contribution consent is also in German (#253): consent has to be in clear and plain
+     language (Art. 7(2) GDPR), and the Play listing addresses German users. Keep it in step with values/strings.xml;
+     a change to the meaning needs a new ContributionConsent.VERSION. -->
+<resources>
+    <string name="contribute_consent_title">Scans beitragen</string>
+    <string name="contribute_consent_body">Wenn du eine gescannte Karte bestätigst (automatisch hinzugefügt oder unter „Review“ bestätigt), lädt die App das zugeschnittene Bild dieser Karte zusammen mit der Karten-ID und der Sprache der Karte hoch. Hast du eine andere Karte gewählt als den ersten Vorschlag des Scanners, wird auch dieser Vorschlag (Karten-ID und Sprache) gesendet, damit die Erkennung aus dem Fehler lernt. Jedes Bild bekommt außerdem eine zufällige ID und einen Schlüssel, damit du es später widerrufen kannst. Sonst nichts: kein Standort, keine Geräte- oder Kontodaten, und das Bild wird ohne Metadaten gespeichert.\n\nDie Bilder werden nur genutzt, um die Kartenerkennung zu trainieren und zu testen. Sie werden nicht veröffentlicht: Die Kartenmotive gehören The Pokémon Company, deshalb wird nur das, was die Modelle aus den Bildern lernen, als Open Source veröffentlicht.\n\nDu kannst ein Bild oder alle jederzeit unter „My contributions“ widerrufen. Die App sendet einen Widerruf, wenn das Handy online ist; der Server löscht das Bild dann, und es wird nicht wieder genutzt. Widerrufen kann nur dieses Handy, weil die Schlüssel darauf bleiben: Widerrufe die Bilder und warte, bis sie nicht mehr als „being withdrawn“ angezeigt werden, bevor du die App deinstallierst oder das Handy wechselst. Bereits trainierte Modelle behalten, was sie daraus gelernt haben.\n\nScans, die auf eine Verbindung warten, werden später gesendet. Ausschalten löscht die noch nicht gesendeten.</string>
+    <string name="contribute_consent_version">Version des Einwilligungstextes: %1$s</string>
+    <string name="contribute_age_confirm">Ich bin 16 Jahre oder älter.</string>
+    <string name="contribute_agree">Zustimmen und beitragen</string>
+    <string name="contribute_decline">Jetzt nicht</string>
+    <string name="contribute_privacy_policy_lang">de</string>
+    <string name="contribute_privacy_policy">Datenschutzerklärung</string>
+    <string name="contribute_privacy_policy_no_browser">Kein Browser zum Öffnen der Datenschutzerklärung. Sie steht unter %1$s</string>
+</resources>

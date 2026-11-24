@@ -9,7 +9,8 @@ Status: design phase. See [docs/DESIGN.md](docs/DESIGN.md) and the [ADRs](docs/a
 
 ## License
 
-- App: [GPLv3](LICENSE)
+- App: [GPLv3](LICENSE), with an [additional permission](LICENSE-EXCEPTION.md) for the Google libraries it links (ML Kit,
+  Play services, Play Core, Play Billing, Sign-In)
 - Backend (`backend/`): [AGPLv3](backend/LICENSE)
 
 Not affiliated with, endorsed or sponsored by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company.

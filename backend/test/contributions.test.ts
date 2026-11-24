@@ -181,7 +181,7 @@ function withdraw(id: string, token?: string) {
 
 describe("consent versions (ADR 0016)", () => {
   it("accepts the training-only consent and the older CC0 one, and records which", async () => {
-    for (const consent of ["train-1", "cc0-1"]) {
+    for (const consent of ["train-2", "train-1", "cc0-1"]) {
       const res = await upload(jpeg(), { query: `cardId=sv03.5-025&lang=de&consent=${consent}` });
       expect(res.status).toBe(201);
       const { id } = (await res.json()) as { id: string };
@@ -434,6 +434,14 @@ describe("POST /v1/contributions", () => {
       expect(r.status).toBe(status);
       await r.arrayBuffer();
     }
+  });
+
+  it("names an unknown consent version, which the app retries instead of dropping (#253)", async () => {
+    // The app matches this exact message (ContributionApi.UNKNOWN_CONSENT): a release that ships before the backend
+    // learns its consent version keeps its scans queued.
+    const res = await upload(jpeg(), { query: "cardId=sv03.5-025&lang=de&consent=train-99" });
+    expect(res.status).toBe(400);
+    expect(await res.json()).toEqual({ error: "unknown consent version" });
   });
 
   it("accepts a card crop in either orientation and slightly off the exact ratio", async () => {

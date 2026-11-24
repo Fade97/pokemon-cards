@@ -183,8 +183,8 @@ Follow-ups in the same PR:
 
 ## 3. Play listing draft
 
-The name is Foilark (section 1b). The app UI is English only for now (`res/values` has no `values-de`),
-so the DE listing describes an English app. **Decision:** ship DE store text now, or only once the app has a
+The name is Foilark (section 1b). The app UI is English only for now; only the contribution consent is also in German (`values-de`,
+#253), so the DE listing describes an English app. **Decision:** ship DE store text now, or only once the app has a
 German translation.
 
 ### Short description (max. 80 characters)
@@ -203,7 +203,7 @@ Cardmarket prices." (73) / "Sammelkarten offline scannen, in Ordner sortieren, C
 Foilark is a free, open-source collection app for Pokémon TCG cards.
 
 SCAN ON YOUR PHONE
-Point the camera at a card. Foilark recognizes it on the phone itself, with no photo sent anywhere. It reads the
+Point the camera at a card. Foilark recognizes it on the phone itself; no photo is sent unless you choose to contribute scans. It reads the
 collector number to tell similar cards apart, and works offline once your language packs are installed.
 
 MANY LANGUAGES
@@ -241,7 +241,7 @@ Foilark is not affiliated with them.
 Foilark ist eine kostenlose Open-Source-App für deine Pokémon-TCG-Sammlung.
 
 SCANNEN AUF DEM HANDY
-Halte die Kamera auf eine Karte. Foilark erkennt sie direkt auf dem Handy, ohne dass ein Foto das Gerät verlässt.
+Halte die Kamera auf eine Karte. Foilark erkennt sie direkt auf dem Handy; kein Foto verlässt das Gerät, außer du trägst freiwillig Scans bei.
 Die App liest die Kartennummer, um ähnliche Karten zu unterscheiden, und funktioniert offline, sobald die
 Sprachpakete installiert sind.
 
@@ -292,7 +292,7 @@ Category: **All other app types** (a utility, not a game, not social).
 | Crude language | No |
 | Controlled substances (drugs, alcohol, tobacco) | No |
 | Gambling, simulated gambling | No. Showing card prices is not gambling; no loot boxes, no paid packs. |
-| Users interact or exchange content with each other | No. Contributed scans go to a public dataset, not to other users in the app. |
+| Users interact or exchange content with each other | No. Contributed scans are used only to train the recognition; they are not published and not shown to other users (ADR 0016). |
 | Shares the user's location with others | No |
 | Digital purchases | No for the MVP. Yes once Pro (#16) ships; update the questionnaire then. |
 | Unrestricted internet / web browser | No (links open in the external browser) |
@@ -314,7 +314,7 @@ talks to the own backend (`cards-api.fdu.gg`: prices, language packs, contributi
 
 | Data | Collected? | Why |
 |---|---|---|
-| **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language and consent version. |
+| **Photos** (Photos and videos) | **Yes, optional** | Only with the opt-in contribution: the rectified card crop of a confirmed scan, metadata stripped on the phone and again on the server (`ContributionApi.kt`, `backend/src/contributions.ts`). Sent with the card id, language, consent version, a random id and withdrawal key, and, after a correction, the scanner's top match (card id and language). |
 | Device or other IDs, Diagnostics | No | ML Kit's telemetry (per-installation ID, diagnostics; [ML Kit data disclosure](https://developers.google.com/ml-kit/android-data-disclosure)) is stripped: the app removes datatransport's only upload backend (CCT) in `AndroidManifest.xml`, so the SDK deletes its events on the phone. Checked on the S25 on 2026-11-22 (`Unknown backend … deleting event batch`). |
 | **App activity → Other user-generated content** (card ids of the collection) | **Yes, ephemeral** | Price requests (`POST /v1/prices`, `PriceApi.kt`) send the card ids of the collection, processed in memory and not stored. Ephemeral processing is an answer per declared type, not a reason to leave it out (#15, council launch review 2026-11-22). The collection itself stays on the phone. |
 | Card images from TCGdex | No | The app loads public image URLs; no user data in the request. |
@@ -366,9 +366,10 @@ Required by Play: app icon 512 × 512 PNG; feature graphic 1024 × 500; at least
 7. Privacy: export/backup and the contribution switch (off by default).
 8. Optional: dark mode.
 
-**Decision:** card art in screenshots is TPC's copyright, and the store listing is marketing, not app use.
-Recommendation: show the UI with small thumbnails, no full-screen card art, no Pokémon logo; for the feature
-graphic use own artwork (no card art). No Pokéball shapes in the icon (ADR 0009).
+**Decision:** card art in screenshots is TPC's copyright, and the store listing is marketing, not app use
+(legal review #253). No real card art in the store graphics: take the screenshots with own placeholder images in
+place of the card art (own photos of blank or self-drawn cards via "Prefer my own photos", or replace the thumbnails
+when editing), no Pokémon logo; for the feature graphic use own artwork. No Pokéball shapes in the icon (ADR 0009).
 
 ## 4. Closed test plan
 
@@ -389,6 +390,10 @@ production. Testers who leave and rejoin start over. After the test: Dashboard �
       the website; the other two redirect to it (#226).
 - [ ] Recruit testers and approve the Google Group.
 - [ ] Sign the declarations in the Console (content rating, data safety, target audience, ads: no ads).
+- [ ] Deploy the backend (`cd backend && pnpm run deploy`) before uploading a build with a new consent version
+      (`train-2`, #253). An app released first keeps its scans queued until the backend knows the version.
+- [ ] Before training on FORB / TCG-AR: get the authors' written OK for model training and published weights (#256).
+- [ ] Before Pro: the legal prerequisites in #255 (TCGplayer / Cardmarket rights, Play VAT, § 312k / § 356a BGB, terms).
 
 ### Prepared by agents (follow-up issues)
 
@@ -433,8 +438,8 @@ About 4 weeks from account creation to production, if nothing is rejected.
 | 1 | App name | **Foilark** (Fabian, 2026-11-18, second round, section 1b; Lumifoil was dropped the same day) |
 | 2 | applicationId | `de.fabianduerkop.foilark` (applied), namespace stays `de.fabianduerkop.cardindex` |
 | 3 | Domain | Register `.de` (and `.app` if free) for the chosen name |
-| 4 | Contributed photos as "shared" in Data safety | Yes, declare as shared |
+| 4 | Contributed photos as "shared" in Data safety | No: collected (optional), not shared (ADR 0016, section 3) |
 | 5 | Target audience | 13+ |
-| 6 | Card art in store screenshots | Small UI thumbnails only, own art for the feature graphic |
+| 6 | Card art in store screenshots | None: own placeholder images, own art for the feature graphic (#253) |
 | 7 | DE store text with an English-only app | Ship it, add a German UI later |
 | 8 | Trademark filing | Optional; DE/EU classes 9 + 42 after the name is fixed |

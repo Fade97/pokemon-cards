@@ -216,6 +216,17 @@ class ContributionsTest {
     }
 
     @Test
+    fun aServerThatDoesNotKnowTheConsentYetKeepsTheScanQueued() = runTest {
+        repo.contribute("sv03.5-006", "de", jpegWithMetadata)
+        api.failNext += ContributionConsentUnknownException()
+        assertEquals(QueueOutcome.Retry, repo.processQueue())
+        assertNull(db.contributionDao().pendingUploads().single().uploadedAt)
+
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertEquals(1, api.uploads.size)
+    }
+
+    @Test
     fun queuedScansGoWhenContributingIsTurnedOff() = runTest {
         repo.contribute("sv03.5-006", "de", jpegWithMetadata)
         consent = null
@@ -223,6 +234,17 @@ class ContributionsTest {
         assertTrue(api.uploads.isEmpty())
         assertTrue(repo.observe().first().isEmpty())
         assertTrue(File(tmp.root, ContributionRepository.DIR).listFiles().orEmpty().isEmpty())
+    }
+
+    /** A scan queued under an older consent text is not sent after the user accepts a newer one (#253). */
+    @Test
+    fun scansQueuedUnderAnOlderConsentAreNeverSent() = runTest {
+        consent = "train-1"
+        repo.contribute("sv03.5-006", "de", jpegWithMetadata)
+        consent = ContributionConsent.VERSION // the user accepted train-2 while the scan waited
+        assertEquals(QueueOutcome.Done, repo.processQueue())
+        assertTrue(api.uploads.isEmpty())
+        assertTrue(repo.observe().first().isEmpty())
     }
 
     @Test
@@ -389,6 +411,19 @@ class ContributionsTest {
                 kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "cc0-1", id, "B".repeat(43), byteArrayOf(1)) }
             }
             assertEquals(409, taken.code)
+            server.takeRequest()
+
+            // A backend deployed after the app doesn't know its consent version yet: a later run tries again (#253).
+            // Any other 400 stays a refusal.
+            server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"unknown consent version"}"""))
+            server.enqueue(MockResponse().setResponseCode(400).setBody("""{"error":"invalid cardId"}"""))
+            assertThrows(ContributionConsentUnknownException::class.java) {
+                kotlinx.coroutines.runBlocking { http.upload("sv03.5-006", "de", "train-9", id, token, byteArrayOf(1)) }
+            }
+            server.takeRequest()
+            assertEquals(400, assertThrows(ContributionRejectedException::class.java) {
+                kotlinx.coroutines.runBlocking { http.upload("x", "de", "cc0-1", id, token, byteArrayOf(1)) }
+            }.code)
             server.takeRequest()
 
             // A not-a-card scan names no card, only the one it was taken for (#244).

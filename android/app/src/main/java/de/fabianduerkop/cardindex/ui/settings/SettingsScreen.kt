@@ -6,6 +6,7 @@ import android.os.Build
 import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
@@ -41,6 +42,7 @@ import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.data.alerts.PriceAlertWorker
 import de.fabianduerkop.cardindex.data.appContainer
 import de.fabianduerkop.cardindex.data.backup.BackupFileType
+import de.fabianduerkop.cardindex.data.licenses.OpenSourceLicenses
 import de.fabianduerkop.cardindex.data.prices.PriceSourcePreference
 import de.fabianduerkop.cardindex.data.prices.RefreshResult
 import de.fabianduerkop.cardindex.debug.DebugTools
@@ -247,6 +249,7 @@ fun SettingsScreen(
                 val appName = stringResource(R.string.app_name)
                 SettingsHint(stringResource(R.string.settings_disclaimer, appName))
                 SettingsHint(stringResource(R.string.settings_credits, appName))
+                SettingsHint(stringResource(R.string.settings_credits_tcgplayer))
             }
         }
     }
@@ -278,14 +281,21 @@ private fun PriceSourcePicker(state: SettingsUiState, onSelect: (PriceSourcePref
     }
 }
 
-/** Opens the privacy policy (#70) in the browser; the page picks German or English from the browser's language. */
+/**
+ * Opens the privacy policy (#70) in the browser. Without [url] the page picks German or English from the browser's
+ * language; the consent screen passes the page in its own language (#253).
+ */
 @Composable
-internal fun PrivacyPolicyLink(modifier: Modifier = Modifier) {
-    val url = BuildConfig.PRIVACY_POLICY_URL
+internal fun PrivacyPolicyLink(
+    modifier: Modifier = Modifier,
+    @StringRes label: Int = R.string.settings_privacy_policy,
+    @StringRes noBrowser: Int = R.string.settings_privacy_policy_no_browser,
+    url: String = BuildConfig.PRIVACY_POLICY_URL,
+) {
     ExternalLink(
         url = url,
-        label = stringResource(R.string.settings_privacy_policy),
-        noBrowser = stringResource(R.string.settings_privacy_policy_no_browser, url),
+        label = stringResource(label),
+        noBrowser = stringResource(noBrowser, url),
         modifier = modifier,
         alignToText = true,
     )
@@ -313,7 +323,7 @@ private fun SourceCodeLink() {
     )
 }
 
-private const val SOURCE_CODE_URL = "https://github.com/Fade97/pokemon-cards"
+private const val SOURCE_CODE_URL = OpenSourceLicenses.SOURCE_CODE_URL
 private const val IMPRINT_URL = "https://foilark.app/imprint"
 
 /** Opens the tester feedback form (#88), a GitHub issue form with the version and phone filled in. */

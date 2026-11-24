@@ -14,6 +14,18 @@ import kotlinx.coroutines.flow.distinctUntilChanged
 class AppSettings(context: Context) {
     private val prefs: SharedPreferences = context.getSharedPreferences("settings", Context.MODE_PRIVATE)
 
+    /**
+     * The contribution consent in its own file, which `data_extraction_rules.xml` and `backup_rules.xml` leave out of
+     * the Android backup (#253): consent is given on this phone, and the withdrawal keys of its uploads stay in this
+     * phone's database too, so a restored phone asks again.
+     */
+    private val consentPrefs: SharedPreferences = context.getSharedPreferences(CONSENT_PREFS, Context.MODE_PRIVATE)
+
+    init {
+        // Before #253 the consent sat in "settings", which is backed up. Its version (train-1) is out of date anyway.
+        if (prefs.contains(KEY_CONTRIBUTION_CONSENT)) prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
+    }
+
     /** Show the user's own photo of a copy instead of the CDN image wherever both exist. */
     var preferOwnPhotos: Boolean
         get() = prefs.getBoolean(KEY_PREFER_OWN_PHOTOS, false)
@@ -35,13 +47,13 @@ class AppSettings(context: Context) {
      * off. Off by default; only the consent screen turns it on.
      */
     val contributionConsent: String?
-        get() = prefs.getString(KEY_CONTRIBUTION_CONSENT, null)
+        get() = consentPrefs.getString(KEY_CONTRIBUTION_CONSENT, null)
 
-    val contributionConsentFlow: Flow<String?> = observe { contributionConsent }
+    val contributionConsentFlow: Flow<String?> = observe(consentPrefs) { contributionConsent }
 
-    fun acceptContributionConsent(version: String) = prefs.edit { putString(KEY_CONTRIBUTION_CONSENT, version) }
+    fun acceptContributionConsent(version: String) = consentPrefs.edit { putString(KEY_CONTRIBUTION_CONSENT, version) }
 
-    fun stopContributing() = prefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
+    fun stopContributing() = consentPrefs.edit { remove(KEY_CONTRIBUTION_CONSENT) }
 
     /**
      * Language packs may download over mobile data (#137). Off by default: all packs together are about 110 MB, so
@@ -145,14 +157,16 @@ class AppSettings(context: Context) {
     val debugProFlow: Flow<Boolean> = observe { debugPro }
 
     /** Emits [read] now and after every change; the listener is held strongly while collected. */
-    private fun <T> observe(read: () -> T): Flow<T> = callbackFlow {
+    private fun <T> observe(source: SharedPreferences = prefs, read: () -> T): Flow<T> = callbackFlow {
         val listener = SharedPreferences.OnSharedPreferenceChangeListener { _, _ -> trySend(read()) }
-        prefs.registerOnSharedPreferenceChangeListener(listener)
+        source.registerOnSharedPreferenceChangeListener(listener)
         trySend(read())
-        awaitClose { prefs.unregisterOnSharedPreferenceChangeListener(listener) }
+        awaitClose { source.unregisterOnSharedPreferenceChangeListener(listener) }
     }.distinctUntilChanged()
 
     private companion object {
+        /** File name of [consentPrefs]; the backup rules exclude `contribution_consent.xml`. */
+        const val CONSENT_PREFS = "contribution_consent"
         const val KEY_PREFER_OWN_PHOTOS = "prefer_own_photos"
         const val KEY_PRICE_SOURCE = "price_source"
         const val KEY_CONTRIBUTION_CONSENT = "contribution_consent"
