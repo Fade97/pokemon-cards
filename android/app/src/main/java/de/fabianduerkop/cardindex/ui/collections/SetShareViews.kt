@@ -42,6 +42,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.material3.LocalTextStyle
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.components.LumifoilWordmark
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -219,6 +223,13 @@ private fun SlotCell(slot: ShareSlot, size: Dp) {
                 slot.label,
                 color = if (slot.owned) colors.onPrimary else colors.onSurfaceVariant,
                 fontWeight = if (slot.owned) FontWeight.SemiBold else FontWeight.Normal,
+                // A line exactly one font size high, without font padding: the theme's fixed line height is taller
+                // than a cell, so the auto-size shrank the numbers to fit it instead of the cell's width (#250).
+                style = LocalTextStyle.current.copy(
+                    lineHeight = 1.em,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+                ),
                 maxLines = 1,
                 softWrap = false,
                 // As large as the cell allows, so the numbers read at a glance in the image and its preview; longer
@@ -228,7 +239,7 @@ private fun SlotCell(slot: ShareSlot, size: Dp) {
                     maxFontSize = (size.value * 0.44f).sp,
                     stepSize = (size.value * 0.02f).coerceAtLeast(0.25f).sp,
                 ),
-                modifier = Modifier.padding(horizontal = gap),
+                modifier = Modifier.padding(horizontal = gap / 2),
             )
         }
     }

@@ -589,11 +589,13 @@ class SetDetailViewModel(
 
     /**
      * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist
-     * mark them (#170), so a friend sees which missing cards matter most.
+     * mark them (#170), so a friend sees which missing cards matter most. Only prints in the languages shown: an English
+     * want never marks a slot of a German-only image or list (#250).
      */
-    val wantedNumbers: StateFlow<Set<String>> = repository.observeWishlist()
-        .map { wanted -> wanted.filter { !it.found && it.set.id == setId }.mapTo(HashSet()) { numberKey(it.card.localId) } }
-        .stateIn(this, emptySet())
+    val wantedNumbers: StateFlow<Set<String>> = combine(repository.observeWishlist(), selected) { wanted, languages ->
+        wanted.filter { !it.found && it.set.id == setId && (languages.isEmpty() || it.card.language in languages) }
+            .mapTo(HashSet()) { numberKey(it.card.localId) }
+    }.stateIn(this, emptySet())
 }
 
 data class CardDetailUiState(

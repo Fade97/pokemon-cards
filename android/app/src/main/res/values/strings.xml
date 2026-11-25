@@ -184,7 +184,7 @@
     <string name="wishlist_remove_short">Remove</string>
     <string name="wishlist_remove_description">Remove %1$s from the wishlist</string>
     <string name="collections_open_card">Open card</string>
-    <string name="collections_copy_line">%1$d× %2$s</string>
+    <string name="collections_copy_line">%1$d×&#160;%2$s</string>
     <string name="collections_only_all_cards">All cards only</string>
     <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
     <string name="collections_in_no_binder">Not in a binder</string>
