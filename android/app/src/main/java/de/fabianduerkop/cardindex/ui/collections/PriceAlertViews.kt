@@ -41,6 +41,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import de.fabianduerkop.cardindex.data.alerts.AlertDirection
@@ -158,8 +159,8 @@ internal fun PriceAlertRow(alert: PriceAlert, title: String?, onDelete: () -> Un
                     stringResource(if (alert.armed) R.string.alerts_last_notified else R.string.alerts_notified, date)
                 },
             )
-            Text(
-                details.joinToString(" · "),
+            JoinedText(
+                details,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

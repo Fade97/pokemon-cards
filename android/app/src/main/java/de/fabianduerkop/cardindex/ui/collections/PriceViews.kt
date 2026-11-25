@@ -17,7 +17,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalUriHandler
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
@@ -37,6 +36,7 @@ import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.ui.components.DataRow
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
@@ -74,13 +74,13 @@ internal fun PriceVariant.label(): Int = when (this) {
  * names its printing (#218).
  */
 @Composable
-internal fun quoteLabel(quote: PriceQuote): String {
+internal fun quoteLabel(quote: PriceQuote): List<String> {
     val market = stringResource(quote.source.label())
     val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
     // The plain trend says so, now that the note under the prices no longer claims one printing for both (#221).
     val printing = if (plainTrend) stringResource(R.string.price_all_printings) else stringResource(quote.variant.label())
-    // At large font the printing goes on its own line, so no "·" is left at a line end (#221).
-    return if (LocalDensity.current.fontScale > LargeFontScale) "$market\n$printing" else "$market · $printing"
+    // Shown with [JoinedText]: on one line while it fits, the printing on its own line when not (#250).
+    return listOf(market, printing)
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
@@ -109,8 +109,8 @@ internal fun QuoteColumn(
         Column {
             Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
             change?.let { WeeklyChangeLine(it) }
-            Text(
-                listOfNotNull(secondLine, notInTotal).joinToString(" · "),
+            JoinedText(
+                listOfNotNull(secondLine, notInTotal),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -218,7 +218,7 @@ internal fun PriceBox(
             val second = secondary.takeIf { main != null }
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                 // The printing it prices goes with the label, not in a note under the other market's row (#218).
-                Text(
+                JoinedText(
                     quoteLabel(first),
                     style = MaterialTheme.typography.bodySmall,
                     color = muted,
@@ -301,6 +301,3 @@ internal fun PriceBox(
         }
     }
 }
-
-/** Font scale from which two-part labels split onto two lines, as the set rows do (#221). */
-private const val LargeFontScale = 1.15f

@@ -37,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -62,6 +61,7 @@ import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
@@ -157,9 +157,9 @@ internal fun ValueSummary(
             }
         }
         if (details.isNotEmpty()) {
-            Text(
-                // One line at 1x; at a large font each part on its own line, never a lone "·" at a line end (#218).
-                details.joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
+            JoinedText(
+                // One line while it fits, else each part on its own line: never a lone "·" at a line end (#218, #250).
+                details,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
@@ -259,6 +259,8 @@ internal fun ListRow(
     below: (@Composable () -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     subtitleMaxLines: Int = Int.MAX_VALUE,
+    /** Instead of [subtitle]: lines of facts, each joined with " · " as far as it fits ([JoinedText], #250). */
+    subtitleLines: List<List<String>>? = null,
     trailing: @Composable () -> Unit = {},
 ) {
     Column(
@@ -293,7 +295,15 @@ internal fun ListRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (subtitle != null) {
+                if (subtitleLines != null) {
+                    JoinedText(
+                        subtitleLines,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xxs),
+                        groupLines = true,
+                    )
+                } else if (subtitle != null) {
                     Text(
                         subtitle,
                         style = MaterialTheme.typography.bodySmall,

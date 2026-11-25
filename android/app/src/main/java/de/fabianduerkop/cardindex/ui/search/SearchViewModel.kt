@@ -90,7 +90,7 @@ class SearchViewModel(
     }
 
     fun setQuery(text: String) {
-        val next = text.take(MAX_QUERY)
+        val next = text.take(MAX_QUERY_LENGTH)
         if (next != query.value) pages.value = 1
         saved[KEY_QUERY] = next
     }
@@ -106,7 +106,9 @@ class SearchViewModel(
 
     private companion object {
         const val KEY_QUERY = "query"
-        const val MAX_QUERY = 60
         const val DEBOUNCE_MS = 150L
     }
 }
+
+/** The longest query the search reads; the field takes no more, so it never shows text the search ignores (#250). */
+internal const val MAX_QUERY_LENGTH = 60

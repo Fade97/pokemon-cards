@@ -72,14 +72,18 @@ fun SectionHeader(
  * instead of being cut when the font is large.
  */
 @Composable
-fun DataRow(label: String, value: String, modifier: Modifier = Modifier) {
+fun DataRow(label: String, value: String, modifier: Modifier = Modifier) = DataRow(listOf(label), value, modifier)
+
+/** A [DataRow] whose label has facts joined with " · " ([JoinedText]): "Cardmarket trend · All printings". */
+@Composable
+fun DataRow(label: List<String>, value: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = Spacing.touchTarget).padding(vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Text(
+            JoinedText(
                 label,
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,

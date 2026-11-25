@@ -40,6 +40,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -314,6 +315,23 @@ private fun ZoomablePage(
         val content = ViewerZoom.fit(if (intrinsic.isFinite()) intrinsic else Size(CARD_ASPECT, 1f), area)
         val contentDp: Pair<Dp, Dp> = with(density) { content.width.toDp() to content.height.toDp() }
 
+        val panSteps = listOf(
+            Offset(container.width / 4, 0f),
+            Offset(-container.width / 4, 0f),
+            Offset(0f, container.height / 4),
+            Offset(0f, -container.height / 4),
+        )
+        // Bit i is set while pan step i would still move the zoomed image; read in composition, so the TalkBack
+        // actions follow the image as it reaches an edge.
+        val canPan by remember(content, container) {
+            derivedStateOf(structuralEqualityPolicy()) {
+                panSteps.foldIndexed(0) { index, mask, step ->
+                    if (ViewerZoom.clampOffset(offset + step, scale, content, container) != offset) mask or (1 shl index) else mask
+                }
+            }
+        }
+        val panMask = canPan
+
         fun apply(newScale: Float, newOffset: Offset) {
             scale = newScale
             offset = ViewerZoom.clampOffset(newOffset, newScale, content, container)
@@ -374,19 +392,18 @@ private fun ZoomablePage(
                                 },
                             )
                             // Panning was touch-only, so a zoomed card's corners were out of TalkBack's reach (#221):
-                            // a quarter of the screen per step, within the same bounds as a drag.
-                            val stepX = container.width / 4
-                            val stepY = container.height / 4
-                            listOf(Offset(stepX, 0f), Offset(-stepX, 0f), Offset(0f, stepY), Offset(0f, -stepY))
-                                .forEachIndexed { index, step ->
-                                    add(
-                                        CustomAccessibilityAction(panLabels[index]) {
-                                            animation?.cancel()
-                                            apply(scale, offset + step)
-                                            true
-                                        },
-                                    )
-                                }
+                            // a quarter of the screen per step, within the same bounds as a drag. Only the
+                            // directions that can still move are offered, so none reports a move at an edge (#250).
+                            panSteps.forEachIndexed { index, step ->
+                                if (panMask and (1 shl index) == 0) return@forEachIndexed
+                                add(
+                                    CustomAccessibilityAction(panLabels[index]) {
+                                        animation?.cancel()
+                                        apply(scale, offset + step)
+                                        true
+                                    },
+                                )
+                            }
                         }
                     }
                 },

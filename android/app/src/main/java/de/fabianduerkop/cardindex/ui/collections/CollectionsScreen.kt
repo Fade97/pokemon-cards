@@ -520,8 +520,13 @@ private fun FeaturedSet(
                         progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
                         style = MaterialTheme.typography.labelLarge,
                     )
+                    // The copies count under it, so "10 of 20 copies priced" on the right refers to something (#250).
                     Text(
-                        listOfNotNull(stringResource(R.string.collections_collected), secretText(row.progress)).joinToString("\n"),
+                        listOfNotNull(
+                            stringResource(R.string.collections_collected),
+                            pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies).takeIf { set.copies > 0 },
+                            secretText(row.progress),
+                        ).joinToString("\n"),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -600,14 +605,14 @@ private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
-    ).joinToString(" · ")
+    )
     // Where the value comes from and how much it covers on a line of its own: run on after "·", it broke mid-way at
-    // large font and left a "·" dangling at a line end (#221).
-    val basis = listOfNotNull(valueSource(row), valueCoverage(row)).joinToString(" · ").ifEmpty { null }
-    val subtitle = listOfNotNull(facts, basis).joinToString("\n")
+    // large font and left a "·" dangling at a line end (#221). Each line breaks only between its facts (#250).
+    val basis = listOfNotNull(valueSource(row), valueCoverage(row))
     ListRow(
         title = set.name,
-        subtitle = subtitle,
+        subtitle = null,
+        subtitleLines = listOf(facts, basis),
         onClick = onClick,
         onClickLabel = stringResource(R.string.collections_open_set),
         contentDescription = description,

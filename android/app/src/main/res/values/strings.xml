@@ -361,10 +361,6 @@
         <item quantity="one">Showing the first %1$d card</item>
         <item quantity="other">Showing the first %1$d cards</item>
     </plurals>
-    <plurals name="search_owned">
-        <item quantity="one">%1$d in collection</item>
-        <item quantity="other">%1$d in collection</item>
-    </plurals>
     <!-- The non-affiliation notice of the store listing (docs/release/play-launch.md, #130). %1$s is the app name. -->
     <string name="settings_disclaimer">%1$s is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their respective owners.</string>
     <string name="settings_credits">Card data and images: TCGdex. Prices: the Cardmarket price guide and TCGplayer, via TCGCSV. Cardmarket and TCGplayer are trademarks of their owners; %1$s is not affiliated with them.</string>
@@ -733,7 +729,7 @@
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
     <!-- When the matches differ only in their language (#221): the clue to check on the card. -->
-    <string name="review_why_language_only">The same card in two languages. Check the language printed on your card.</string>
+    <string name="review_why_language_only">Choose the language printed on your card.</string>
     <string name="review_why_check_variant">Card found. This set has 1st edition prints, which look alike in photos, so check the variant.</string>
     <string name="review_best_matches">Best matches</string>
     <string name="review_card">Card</string>

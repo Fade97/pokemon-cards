@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -568,16 +569,26 @@ private fun CompactSlot(slot: SetSlot, printedTotal: Int, selected: Boolean, onC
             },
         contentAlignment = Alignment.Center,
     ) {
+        val style = numberStyle(MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
         Text(
             text = padCollectorNumber(slot.localId, printedTotal),
-            style = numberStyle(MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)),
+            style = style,
             color = if (slot.owned) extra.onOwnedSlot else extra.onMissingSlot,
             maxLines = 1,
             overflow = TextOverflow.Clip,
+            // Long numbers (TG05, SWSH001) shrink to fit the slot at large font instead of being cut off (#250);
+            // "006" keeps its size.
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = with(LocalDensity.current) { SlotNumberMinSize.toSp() },
+                maxFontSize = style.fontSize,
+            ),
             modifier = Modifier.padding(horizontal = Spacing.xxs),
         )
     }
 }
+
+/** The smallest a long collector number shrinks to in a compact slot, in dp so a large font cannot undo it. */
+private val SlotNumberMinSize = 9.dp
 
 /**
  * A slot in the Cards view: owned cards in full colour, missing ones grey and faded with the hollow slot outline and

@@ -81,6 +81,7 @@ import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.FooterFade
 import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -354,10 +355,11 @@ private fun AddCopyBar(onAdd: () -> Unit) {
 
 /**
  * Wishlist (#134) for the shown print, in the identity block under the name (#166): a quieter button, since wanting a
- * card adds no copy. When it is on the wishlist, a line says so above the button that takes it off.
+ * card adds no copy. When it is on the wishlist, a line says so above the button that takes it off. For a card the
+ * user already owns it is a text action: it is rarely wanted then and should not sit above the price (#250).
  */
 @Composable
-private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+private fun WishlistToggle(wanted: Boolean, owned: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
         if (wanted) {
             Text(
@@ -367,11 +369,16 @@ private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifie
                 modifier = Modifier.padding(bottom = Spacing.xs),
             )
         }
-        SecondaryButton(
-            stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add),
-            onClick = { onChange(!wanted) },
-            icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
-        )
+        val label = stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add)
+        if (owned) {
+            TextAction(label, onClick = { onChange(!wanted) }, alignToText = true)
+        } else {
+            SecondaryButton(
+                label,
+                onClick = { onChange(!wanted) },
+                icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
+            )
+        }
     }
 }
 
@@ -507,6 +514,7 @@ private fun CardHeader(
         // More room below than above, so the button groups with the card it belongs to, not with the prices (#221).
         WishlistToggle(
             wanted,
+            owned = detail.copies.isNotEmpty(),
             onChange = onWanted,
             modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.lg),
         )
@@ -605,7 +613,9 @@ internal fun CopyRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    val details = buildList {
+                    // Where the copy is, then where it came from: when they do not fit one line, each group gets
+                    // its own, so "added Nov 18, 2026 · copy 1" stays together and no "·" ends a line (#250).
+                    val where = buildList {
                         if (showCard) {
                             add(item.set.name)
                             add(stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)))
@@ -613,6 +623,8 @@ internal fun CopyRow(
                             add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_in_no_binder) })
                         }
                         if (item.card.language != shownLanguage) add(languageName(item.card.language))
+                    }
+                    val provenance = buildList {
                         // Bought on, else added on: two otherwise equal copies are then told apart (#221). Dates
                         // never split across lines.
                         val bought = copy.purchaseDate
@@ -625,9 +637,9 @@ internal fun CopyRow(
                         ordinal?.let { add(stringResource(R.string.collections_copy_ordinal, it)) }
                     }
                     // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
-                    Text(
+                    JoinedText(
                         // " · " between facts, as in every other list's meta line (#221).
-                        details.joinToString(" · "),
+                        listOf(where, provenance),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

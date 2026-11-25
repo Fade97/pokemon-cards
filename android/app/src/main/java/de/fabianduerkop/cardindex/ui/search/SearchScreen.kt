@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -67,6 +69,7 @@ import de.fabianduerkop.cardindex.ui.collections.languageName
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
@@ -144,8 +147,8 @@ fun SearchScreen(
                     SearchField(
                         value = text,
                         onValueChange = {
-                            text = it
-                            viewModel.setQuery(it)
+                            text = it.take(MAX_QUERY_LENGTH)
+                            viewModel.setQuery(text)
                         },
                         onSearch = { keyboard?.hide() },
                         modifier = Modifier.padding(top = Spacing.sm),
@@ -324,6 +327,7 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
  * One found card: its art (or the numbered placeholder), the collector number as the strongest text, the name, then
  * set and language, and how many copies of this print the user owns. One button for TalkBack.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () -> Unit) {
     val card = hit.card
@@ -333,7 +337,7 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
         card.name,
         hit.setName,
         languageName(card.language),
-        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.search_owned, it, it) },
+        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.card_owned_copies, it, it) },
     ).joinToString(", ")
     Column(
         Modifier
@@ -350,18 +354,19 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
             CardImage(card = card, localId = card.localId, printedTotal = hit.printedTotal, modifier = Modifier.width(44.dp))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                // On the number's baseline, so "2 in collection" reads as its own fact, not as part of "/165" (#221).
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                // On the number's baseline, so the owned count reads as its own fact, not as part of "/165" (#221);
+                // under the number when both do not fit, so it never squeezes the number (#250).
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     CollectorNumber(
                         localId = card.localId,
                         printedTotal = hit.printedTotal,
                         style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f, fill = false).alignByBaseline(),
+                        modifier = Modifier.alignByBaseline(),
                     )
                     if (hit.owned > 0) {
-                        // A fact, shown as on the card's own screen: muted, not in the link colour (#221).
+                        // A fact, said as on the card's own screen and muted, not in the link colour (#221, #250).
                         Text(
-                            pluralStringResource(R.plurals.search_owned, hit.owned, hit.owned),
+                            pluralStringResource(R.plurals.card_owned_copies, hit.owned, hit.owned),
                             style = MaterialTheme.typography.labelMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.alignByBaseline(),
@@ -369,12 +374,10 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
                     }
                 }
                 Text(card.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                Text(
-                    listOfNotNull(hit.setName, languageName(card.language)).joinToString(" · "),
+                JoinedText(
+                    listOfNotNull(hit.setName, languageName(card.language)),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
                 )
             }
             Icon(
