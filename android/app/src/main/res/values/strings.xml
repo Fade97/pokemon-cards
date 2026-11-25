@@ -758,7 +758,8 @@
     <!-- A value in the Confirm summary that is still the default while others were picked, e.g. "Normal (default)". -->
     <string name="review_default_mark">%1$s (default)</string>
     <string name="review_edit_copy">Edit copy</string>
-    <string name="review_change_description">Edit the copy: finish, edition, condition and quantity</string>
+    <!-- Starts with the visible "Edit copy", so voice control finds it (label in name). -->
+    <string name="review_change_description">Edit copy: finish, edition, condition and quantity</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
