@@ -113,6 +113,8 @@
     <string name="collections_open_collection">Open collection</string>
     <!-- After a count like "87/165" on the featured set cover. -->
     <string name="collections_collected">collected</string>
+    <!-- A language chip for TalkBack: its visible code, then the language, e.g. "DE, German" (#250). -->
+    <string name="collections_language_chip_description">%1$s, %2$s</string>
     <!-- Set detail filters with no slot to show (#250). -->
     <string name="collections_filter_owned_empty">None of these cards is in your collection yet.</string>
     <string name="collections_filter_missing_empty">Nothing missing: every card here is in your collection.</string>

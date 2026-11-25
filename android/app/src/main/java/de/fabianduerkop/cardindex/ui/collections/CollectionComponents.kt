@@ -99,7 +99,9 @@ internal fun LanguageChips(
                 selected = code in selected,
                 onClick = { onToggle(code) },
                 label = code.uppercase(),
-                contentDescription = languageName(code),
+                // The visible code first, then the language: "DE, German", so voice control finds the chip by what it
+                // shows (label in name, #250) and TalkBack still says the language.
+                contentDescription = stringResource(R.string.collections_language_chip_description, code.uppercase(), languageName(code)),
             )
         }
     }
