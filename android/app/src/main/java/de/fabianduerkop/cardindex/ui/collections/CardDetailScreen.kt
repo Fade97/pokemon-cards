@@ -233,8 +233,12 @@ fun CardDetailScreen(
                         }
                     }
                     item {
+                        val (here, elsewhere) = detail.ownedHereAndElsewhere()
                         SectionHeader(
-                            stringResource(R.string.collections_your_copies, detail.copies.sumOf { it.copy.quantity }),
+                            stringResource(
+                                if (elsewhere > 0) R.string.collections_your_copies_all_languages else R.string.collections_your_copies,
+                                here + elsewhere,
+                            ),
                             Modifier.padding(horizontal = ScreenPadding),
                         )
                         if (detail.copies.isNotEmpty()) {
@@ -252,6 +256,17 @@ fun CardDetailScreen(
                             showCard = false,
                             onClick = { editing = item.copy },
                         )
+                    }
+                    if (detail.copies.isNotEmpty()) {
+                        item {
+                            // An owned card is rarely wished for: a quiet action after its copies (#250).
+                            WishlistToggle(
+                                wanted,
+                                owned = true,
+                                onChange = { viewModel.setWanted(detail.card, it) },
+                                modifier = Modifier.padding(horizontal = ScreenPadding).padding(top = Spacing.sm),
+                            )
+                        }
                     }
                     // At least the fade's height, so the last row rests clear of it.
                     item { Spacer(Modifier.height(FooterFadeHeight)) }
@@ -492,8 +507,10 @@ private fun CardHeader(
                 )
                 // Owned or not, without scrolling to "Your copies" under the prices (#221). A check and plain text, not
                 // the sea-glass of the links, since it is a fact, not an action.
-                val owned = detail.copies.sumOf { it.copy.quantity }
-                if (owned > 0) {
+                // Copies of this print, in its language, as Search counts them; copies in other languages are
+                // named apart, so the count never changes between the two screens (#250).
+                val (here, elsewhere) = detail.ownedHereAndElsewhere()
+                if (here + elsewhere > 0) {
                     Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
                         Icon(
                             painterResource(R.drawable.ic_check),
@@ -502,8 +519,15 @@ private fun CardHeader(
                             modifier = Modifier.size(18.dp),
                         )
                         Spacer(Modifier.width(Spacing.xs))
-                        Text(
-                            pluralStringResource(R.plurals.card_owned_copies, owned, owned),
+                        JoinedText(
+                            listOfNotNull(
+                                if (here > 0) pluralStringResource(R.plurals.card_owned_copies, here, here) else null,
+                                when {
+                                    elsewhere == 0 -> null
+                                    here > 0 -> pluralStringResource(R.plurals.card_owned_more_languages, elsewhere, elsewhere)
+                                    else -> pluralStringResource(R.plurals.card_owned_other_languages, elsewhere, elsewhere)
+                                },
+                            ),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurface,
                         )
@@ -511,14 +535,23 @@ private fun CardHeader(
                 }
             }
         }
-        // More room below than above, so the button groups with the card it belongs to, not with the prices (#221).
-        WishlistToggle(
-            wanted,
-            owned = detail.copies.isNotEmpty(),
-            onChange = onWanted,
-            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.lg),
-        )
+        // Under the card it belongs to while the user owns none; for an owned card it moves under "Your copies", so
+        // the prices follow the card's name directly (#250).
+        if (detail.copies.isEmpty()) {
+            WishlistToggle(
+                wanted,
+                owned = false,
+                onChange = onWanted,
+                modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.lg),
+            )
+        }
     }
+}
+
+/** Copies of the shown print in its language, and of the same card in the user's other languages. */
+internal fun CardDetail.ownedHereAndElsewhere(): Pair<Int, Int> {
+    val (here, elsewhere) = copies.partition { it.card.language == card.language }
+    return here.sumOf { it.copy.quantity } to elsewhere.sumOf { it.copy.quantity }
 }
 
 /** The hero never gets wider than this (tablets, foldables) … */

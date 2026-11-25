@@ -5,8 +5,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -46,6 +44,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -227,7 +226,7 @@ private fun LazyListScope.results(
     onShowMore: () -> Unit,
 ) {
     when (results) {
-        SearchResults.Idle -> item { Note(stringResource(R.string.search_hint)) }
+        SearchResults.Idle -> item { SearchHint() }
         SearchResults.Loading -> item { Note(stringResource(R.string.search_loading)) }
         SearchResults.Failed -> item {
             StatusNotice(
@@ -289,6 +288,19 @@ private fun Note(text: String) {
     )
 }
 
+/** What the field takes, with examples that break only between them (#250). */
+@Composable
+private fun SearchHint() {
+    val style = MaterialTheme.typography.bodyMedium
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.xl)) {
+        Text(stringResource(R.string.search_hint), style = style, color = color)
+        JoinedText(stringArrayResource(R.array.search_hint_examples).toList(), style = style, color = color)
+        Text(stringResource(R.string.search_hint_narrow), style = style, color = color, modifier = Modifier.padding(top = Spacing.lg))
+        JoinedText(stringArrayResource(R.array.search_hint_narrow_examples).toList(), style = style, color = color)
+    }
+}
+
 @Composable
 private fun NoMatch(onOpenScan: (() -> Unit)?) {
     Column(
@@ -327,7 +339,6 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
  * One found card: its art (or the numbered placeholder), the collector number as the strongest text, the name, then
  * set and language, and how many copies of this print the user owns. One button for TalkBack.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () -> Unit) {
     val card = hit.card
@@ -354,31 +365,38 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
             CardImage(card = card, localId = card.localId, printedTotal = hit.printedTotal, modifier = Modifier.width(44.dp))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                // On the number's baseline, so the owned count reads as its own fact, not as part of "/165" (#221);
-                // under the number when both do not fit, so it never squeezes the number (#250).
-                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    CollectorNumber(
-                        localId = card.localId,
-                        printedTotal = hit.printedTotal,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.alignByBaseline(),
-                    )
-                    if (hit.owned > 0) {
-                        // A fact, said as on the card's own screen and muted, not in the link colour (#221, #250).
+                CollectorNumber(
+                    localId = card.localId,
+                    printedTotal = hit.printedTotal,
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(card.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // "151, English" as on Review's candidates and the card's own screen (#250).
+                Text(
+                    hit.setName?.let { stringResource(R.string.review_set_language, it, languageName(card.language)) } ?: languageName(card.language),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (hit.owned > 0) {
+                    // Last, with the check, as on the card's own screen: number and name stay together at any font
+                    // size, and the count reads as a fact about the print, not as part of "/165" (#250).
+                    Row(Modifier.padding(top = Spacing.xxs), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
                         Text(
                             pluralStringResource(R.plurals.card_owned_copies, hit.owned, hit.owned),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.alignByBaseline(),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
                         )
                     }
                 }
-                Text(card.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                JoinedText(
-                    listOfNotNull(hit.setName, languageName(card.language)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
             }
             Icon(
                 painterResource(R.drawable.ic_chevron_right),

@@ -127,6 +127,7 @@ import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.collections.formatDate
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.CountBadge
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
@@ -424,7 +425,7 @@ private fun LiveScan(
                     Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, Modifier.align(Alignment.Start))
+                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, cameraOff = problem != null, Modifier.align(Alignment.Start))
                     CameraReading(
                         engine,
                         viewfinder,
@@ -451,9 +452,11 @@ private fun LiveScan(
                     icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
                     onClick = { viewModel.setPaused(!paused) },
                 )
+                // The light needs the camera: off while it reports an error (#250).
                 CameraButton(
                     stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
                     onClick = { torch = !torch; controller.enableTorch(torch) },
+                    enabled = problem == null,
                 )
                 if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
             }
@@ -577,7 +580,7 @@ private fun problemOf(code: Int): CameraProblem = when (code) {
  * outline, so it reads on a bright photo and on the black letterbox alike.
  */
 @Composable
-private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
+private fun LiveStatus(paused: Boolean, ready: Boolean, cameraOff: Boolean, modifier: Modifier) {
     val camera = LumifoilTheme.colors.camera
     Row(
         modifier
@@ -588,10 +591,12 @@ private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         // Green and "Live" only once recognition is loaded: before that a card can't be added yet (#218).
-        Box(Modifier.size(8.dp).background(if (paused || !ready) camera.muted else camera.live, CircleShape))
+        // A camera error comes first: the chip never says "Live" while no picture arrives (#250).
+        Box(Modifier.size(8.dp).background(if (paused || !ready || cameraOff) camera.muted else camera.live, CircleShape))
         Text(
             stringResource(
                 when {
+                    cameraOff -> R.string.scan_camera_off
                     paused -> R.string.scan_paused
                     !ready -> R.string.scan_starting
                     else -> R.string.scan_live
@@ -749,14 +754,20 @@ private val HintMaxWidth = 320.dp
  * letterbox too), 48 dp high, with the focus ring.
  */
 @Composable
-private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
+private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null, enabled: Boolean = true) {
     val camera = LumifoilTheme.colors.camera
     val shape = CircleShape
     Button(
         onClick = onClick,
         modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget),
+        enabled = enabled,
         shape = shape,
-        colors = ButtonDefaults.buttonColors(containerColor = camera.scrim, contentColor = camera.content),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = camera.scrim,
+            contentColor = camera.content,
+            disabledContainerColor = camera.scrim,
+            disabledContentColor = camera.muted,
+        ),
         border = BorderStroke(1.dp, camera.faint),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
     ) {
@@ -844,13 +855,14 @@ private fun Tray(
             milestone?.let { MilestoneCard(it, onOpenSet = { onOpenSet(it.set.id) }) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    // Both lines break only between their facts (#250).
+                    JoinedText(
                         sessionCount(tray),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
                     sessionValue(tray.value(priceSource))?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                        JoinedText(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
                 ReviewQueueButton(toReview, onOpenReview)
@@ -913,14 +925,13 @@ private fun Tray(
  * none there. With no price at all it says only "3 without a EUR price", never €0.00; null before anything was added.
  */
 @Composable
-private fun sessionValue(value: CollectionValue): String? {
+private fun sessionValue(value: CollectionValue): List<String>? {
     val unpriced = value.unpricedCopies.takeIf { it > 0 }?.let {
         pluralStringResource(R.plurals.scan_session_unpriced, it, it, value.currency)
     }
     // Nothing priced yet (offline, or only cards this market doesn't price): still say how many have no price.
-    if (value.pricedCopies == 0) return unpriced
-    val amount = Money.format(value.amountMinor, value.currency)
-    return if (unpriced == null) amount else "$amount · $unpriced"
+    if (value.pricedCopies == 0) return unpriced?.let { listOf(it) }
+    return listOfNotNull(Money.format(value.amountMinor, value.currency), unpriced)
 }
 
 /**
@@ -1020,11 +1031,10 @@ private fun FirstGoalCard(goal: FirstGoal.State, onOpenCollections: () -> Unit) 
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */
 @Composable
-private fun sessionCount(tray: ScanTray): String {
-    val added = pluralStringResource(R.plurals.scan_session_added, tray.added, tray.added)
-    if (tray.queued == 0) return added
-    return added + " · " + pluralStringResource(R.plurals.scan_session_queued, tray.queued, tray.queued)
-}
+private fun sessionCount(tray: ScanTray): List<String> = listOfNotNull(
+    pluralStringResource(R.plurals.scan_session_added, tray.added, tray.added),
+    if (tray.queued == 0) null else pluralStringResource(R.plurals.scan_session_queued, tray.queued, tray.queued),
+)
 
 /**
  * "Scanning into: All cards" (#139): where the next scans go, and the way to change it. A quiet outlined control

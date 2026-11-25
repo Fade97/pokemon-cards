@@ -153,7 +153,8 @@ fun ReviewScreen(
                                 onChange = { scope.launch { choices.bringIntoView() } },
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
-                                enabled = !state.saving,
+                                saving = state.saving,
+                                saveFailed = state.saveFailed,
                             )
                         }
                     }
@@ -177,7 +178,6 @@ fun ReviewScreen(
                         choices,
                         onFindCard = { onFindCard(item) },
                         saving = state.saving,
-                        saveFailed = state.saveFailed,
                     )
                 }
             }
@@ -193,7 +193,6 @@ private fun ItemForm(
     viewModel: ReviewViewModel,
     choices: BringIntoViewRequester,
     saving: Boolean = false,
-    saveFailed: Boolean = false,
     onFindCard: () -> Unit,
 ) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
@@ -248,8 +247,6 @@ private fun ItemForm(
                 }
             }
         }
-        // A failed confirm says so on the card it was for, which stays in the queue (#248).
-        if (saveFailed) StatusNotice(stringResource(R.string.review_confirm_failed), tone = NoticeTone.ERROR)
         // Similar matches that differ only in their language get the one clue to check (#221).
         val languageOnly = item.entity.reason == ReviewReason.SIMILAR_CARDS &&
             differences.language && !differences.number && !differences.set
@@ -551,9 +548,12 @@ private fun Footer(
     onChange: () -> Unit,
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
-    /** False while the last confirmation is still being written (#248). */
-    enabled: Boolean = true,
+    /** The item's confirmation is being written: the buttons wait and Confirm says so (#248, #250). */
+    saving: Boolean = false,
+    /** The last confirmation of this item failed: said right above Confirm, where the user tapped (#248, #250). */
+    saveFailed: Boolean = false,
 ) {
+    val enabled = !saving
     // Little top padding: the Change button's 48 dp touch height already spaces the summary line (#218).
     Column(
         Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xs, bottom = Spacing.md),
@@ -608,9 +608,15 @@ private fun Footer(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (saveFailed) StatusNotice(stringResource(R.string.review_confirm_failed), tone = NoticeTone.ERROR)
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
             SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f), enabled = enabled)
-            PrimaryButton(stringResource(R.string.review_confirm), onConfirm, Modifier.weight(1f), enabled = enabled && draft.canConfirm)
+            PrimaryButton(
+                stringResource(if (saving) R.string.review_confirm_saving else R.string.review_confirm),
+                onConfirm,
+                Modifier.weight(1f),
+                enabled = enabled && draft.canConfirm,
+            )
         }
     }
 }

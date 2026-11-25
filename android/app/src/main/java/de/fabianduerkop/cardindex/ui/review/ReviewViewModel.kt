@@ -47,8 +47,8 @@ data class ReviewUiState(
     /** Items waiting in the queue, skipped ones included: the Scan screen's badge shows the same number. */
     val waiting: Int = 0,
     /**
-     * A confirm, discard or "not a card" is still being written (#248). The next item already shows, but its actions
-     * wait, so a double tap on Confirm never adds the next card unseen.
+     * A confirm, discard or "not a card" of [current] is still being written (#248). The item stays on screen with
+     * its actions off until the write succeeds, so the queue never moves on before the outcome is known (#250).
      */
     val saving: Boolean = false,
     /** Confirming [current] failed last time: the screen says so, and the item stays in the queue (#248). */
@@ -92,6 +92,13 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     /** Ids of items being written; a double tap must not confirm the same item twice. */
     private val busy = MutableStateFlow<Set<Long>>(emptySet())
 
+    /**
+     * Items written successfully (confirmed or removed): they leave the screen at once, before the queue's next
+     * emission drops them, so the finished item can never come back with its actions on (#250). Undo takes its item
+     * out again.
+     */
+    private val written = MutableStateFlow<Set<Long>>(emptySet())
+
     /** The item whose confirmation failed last (#248), until the next confirm. */
     private val failed = MutableStateFlow<Long?>(null)
 
@@ -117,9 +124,10 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
 
 
     val state: StateFlow<ReviewUiState> = combine(
-        queue.observeItems(), skippedInPass, confirmedInPass, drafts, combine(busy, failed, ::Pair),
-    ) { items, skipped, confirmed, drafts, (busy, failedId) ->
-        val open = items.filter { it.entity.id !in skipped && it.entity.id !in busy }
+        queue.observeItems(), skippedInPass, confirmedInPass, drafts, combine(busy, failed, written, ::Triple),
+    ) { items, skipped, confirmed, drafts, (busy, failedId, written) ->
+        // An item being written stays in view (its actions off) until it succeeds or fails (#250).
+        val open = items.filter { it.entity.id !in skipped && it.entity.id !in written }
         val current = open.firstOrNull()
         val done = confirmed + skipped.size
         ReviewUiState(
@@ -217,6 +225,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
                 }
             }
                 .onSuccess { confirmed ->
+                    written.update { it + id }
                     confirmedInPass.update { it + 1 }
                     drafts.update { it - id }
                     val crop = confirmed.cropJpeg
@@ -249,6 +258,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             runCatching { withContext(Dispatchers.IO) { queue.undoConfirm(undo.confirmed) } }
                 .onSuccess { restored ->
                     if (restored) {
+                        written.update { it - id }
                         drafts.update { it + (id to undo.draft) }
                         persist(id, undo.draft)
                         skippedInPass.update { it - id }
@@ -278,7 +288,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
         val id = item.entity.id
         busy.update { it + id }
         viewModelScope.launch {
-            runCatching { queue.discard(id) }.onFailure { Log.e(TAG, "discarding $id failed", it) }
+            runCatching { queue.discard(id) }
+                .onSuccess { written.update { it + id } }
+                .onFailure { Log.e(TAG, "discarding $id failed", it) }
             drafts.update { it - id }
             busy.update { it - id }
         }
@@ -302,7 +314,9 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
             runCatching {
                 // Read before the discard deletes the crop.
                 val crop = withContext(Dispatchers.IO) { runCatching { item.cropFile.readBytes() }.getOrNull() }
-                if (queue.discard(id) && crop != null) contributions.contributeNotCard(crop, predicted)
+                val removed = queue.discard(id)
+                written.update { it + id }
+                if (removed && crop != null) contributions.contributeNotCard(crop, predicted)
             }.onFailure { Log.e(TAG, "reporting $id as not a card failed", it) }
             drafts.update { it - id }
             busy.update { it - id }

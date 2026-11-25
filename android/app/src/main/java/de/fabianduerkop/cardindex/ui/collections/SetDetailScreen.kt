@@ -82,6 +82,7 @@ import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CardImage
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.MenuChip
 import de.fabianduerkop.cardindex.ui.components.CompletionBar
@@ -324,8 +325,8 @@ private fun SetHeader(
         stringResource(R.string.collections_languages_label, languageList(languages, stringResource(R.string.collections_and)))
     }
     Column(Modifier.padding(top = Spacing.sm, bottom = Spacing.md)) {
-        Text(
-            text = listOfNotNull(detail.set.series.takeIf { it.isNotBlank() }, languageLabel).joinToString(" · "),
+        JoinedText(
+            listOfNotNull(detail.set.series.takeIf { it.isNotBlank() }, languageLabel),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

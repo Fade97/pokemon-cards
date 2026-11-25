@@ -147,10 +147,22 @@
     <string name="collections_set_unknown">This set is not on this device.</string>
     <string name="collections_print">%1$s, %2$s print</string>
     <string name="collections_your_copies">Your copies (%1$d)</string>
+    <!-- The list holds copies of the card in more than one language (#250). -->
+    <string name="collections_your_copies_all_languages">Your copies, all languages (%1$d)</string>
     <!-- Under the card's name on its detail screen, when the user owns it (#221). -->
     <plurals name="card_owned_copies">
         <item quantity="one">%1$d copy in your collection</item>
         <item quantity="other">%1$d copies in your collection</item>
+    </plurals>
+    <!-- After "2 copies in your collection": copies of the same card in the user's other languages (#250). -->
+    <plurals name="card_owned_more_languages">
+        <item quantity="one">%1$d more in another language</item>
+        <item quantity="other">%1$d more in other languages</item>
+    </plurals>
+    <!-- No copy of the shown print's language, but some in others (#250). -->
+    <plurals name="card_owned_other_languages">
+        <item quantity="one">%1$d copy in another language</item>
+        <item quantity="other">%1$d copies in other languages</item>
     </plurals>
     <string name="collections_add_copy">Add a copy</string>
     <!-- Wishlist (#134): wanted cards, not copies. -->
@@ -173,11 +185,11 @@
     <string name="collections_only_all_cards">All cards only</string>
     <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
     <string name="collections_in_no_binder">Not in a binder</string>
-    <string name="collections_bought_on">bought&#160;%1$s</string>
+    <string name="collections_bought_on">Bought&#160;%1$s</string>
     <!-- A copy's row on its card's screen when no purchase date is set (#221). -->
-    <string name="collections_added_on">added&#160;%1$s</string>
+    <string name="collections_added_on">Added&#160;%1$s</string>
     <!-- Numbers copies whose rows would otherwise read the same (#221). -->
-    <string name="collections_copy_ordinal">copy&#160;%1$d</string>
+    <string name="collections_copy_ordinal">Copy&#160;%1$d</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
     <string name="collections_sort_by">Sort by</string>
@@ -344,7 +356,19 @@
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
     <!-- Examples on lines of their own, so the combined query is not buried in a paragraph (#221). -->
-    <string name="search_hint">Type a card name, a set, a set code or a collector number:\nPikachu · Surging Sparks · 30C · 025/165\n\nAdd a number to narrow it down:\nPikachu 25 · 30C 25</string>
+    <string name="search_hint">Type a card name, a set, a set code or a collector number:</string>
+    <!-- Shown joined with " · ", breaking only between examples (#250). -->
+    <string-array name="search_hint_examples">
+        <item>Pikachu</item>
+        <item>Surging Sparks</item>
+        <item>30C</item>
+        <item>025/165</item>
+    </string-array>
+    <string name="search_hint_narrow">Add a number to narrow it down:</string>
+    <string-array name="search_hint_narrow_examples">
+        <item>Pikachu 25</item>
+        <item>30C 25</item>
+    </string-array>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
@@ -545,6 +569,8 @@
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
     <string name="scan_live">Live · on device</string>
+    <!-- Status chip while the camera reports an error (#250). -->
+    <string name="scan_camera_off">Camera unavailable</string>
     <string name="scan_starting">Starting · on device</string>
     <string name="scan_hint_reading">Reading the number…</string>
     <string name="scan_hint_added">Added. Take the next card.</string>
@@ -748,6 +774,8 @@
     <!-- The scan stays in the queue for a later pass (#221). -->
     <string name="review_skip">Review later</string>
     <string name="review_confirm">Confirm</string>
+    <!-- On Confirm while the copy is being written (#250). -->
+    <string name="review_confirm_saving">Adding…</string>
     <!-- On the card when adding it failed (#248); it stays in the queue. -->
     <string name="review_confirm_failed">This card could not be added. Try Confirm again.</string>
     <string name="review_discard">Remove this scan</string>
