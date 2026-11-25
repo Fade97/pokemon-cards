@@ -35,9 +35,7 @@ import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -85,6 +83,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -406,25 +407,23 @@ private fun LiveScan(
                     )
                 }
                 // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197). TalkBack gets the
-                // same as a named action, since the hint under the picture tells everyone to tap it (#218).
+                // same as a named action, since the hint under the picture tells everyone to tap it (#218), and a
+                // keyboard or D-pad can focus and press it too (#250). No ripple: the focus cue answers the tap.
                 val refocusLabel = stringResource(R.string.scan_refocus)
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(controller) {
-                            detectTapGestures {
-                                controller.focusOnGuide()
-                                focusTaps++
-                            }
+                        .focusRing(RectangleShape)
+                        .clickable(
+                            interactionSource = null,
+                            indication = null,
+                            onClickLabel = refocusLabel,
+                            role = Role.Button,
+                        ) {
+                            controller.focusOnGuide()
+                            focusTaps++
                         }
-                        .semantics {
-                            contentDescription = refocusLabel
-                            onClick(label = refocusLabel) {
-                                controller.focusOnGuide()
-                                focusTaps++
-                                true
-                            }
-                        },
+                        .semantics { contentDescription = refocusLabel },
                 )
                 FocusCue(focusTaps, Modifier.align(Alignment.Center))
                 // The status chip, then the reading under it: stacked, so a larger font moves the reading down instead

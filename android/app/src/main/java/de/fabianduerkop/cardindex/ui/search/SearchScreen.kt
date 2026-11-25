@@ -237,15 +237,20 @@ private fun LazyListScope.results(
                 modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
             )
         }
-        is SearchResults.Found -> if (results.hits.isEmpty()) {
+        // An older query's "No cards found" never stands under new text: the search is still running (#250).
+        is SearchResults.Found -> if (results.hits.isEmpty() && results.query != currentQuery) {
+            item { Note(stringResource(R.string.search_loading)) }
+        } else if (results.hits.isEmpty()) {
             item { NoMatch(onOpenScan) }
         } else {
             // Hits of older text while the next search runs: shown faded, not pickable, so a tap never opens a card
-            // the field no longer asks for (#221).
+            // the field no longer asks for (#221). Their count is not said for the new text either (#250).
             val stale = results.query != currentQuery
             item {
                 Text(
-                    if (results.more) {
+                    if (stale) {
+                        stringResource(R.string.search_loading)
+                    } else if (results.more) {
                         pluralStringResource(R.plurals.search_more, results.hits.size, results.hits.size)
                     } else {
                         pluralStringResource(R.plurals.search_count, results.hits.size, results.hits.size)

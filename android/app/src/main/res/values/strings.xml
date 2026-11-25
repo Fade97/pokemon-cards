@@ -252,16 +252,16 @@
     <string name="weekly_change_short_flat">No change · 7 days</string>
     <!-- Which copies the change covers, when some have no week of price history -->
     <plurals name="weekly_change_covered">
-        <item quantity="one">%1$d of %2$d copy</item>
-        <item quantity="other">%1$d of %2$d copies</item>
+        <item quantity="one">%1$d of %2$d priced copy</item>
+        <item quantity="other">%1$d of %2$d priced copies</item>
     </plurals>
     <!-- Screen-reader text. %1$s: "1,20 € (12 %)" without a sign -->
     <string name="weekly_change_up_description">Up %1$s over the last 7 days</string>
     <string name="weekly_change_down_description">Down %1$s over the last 7 days</string>
     <string name="weekly_change_flat_description">No price change over the last 7 days</string>
     <plurals name="weekly_change_covered_description">
-        <item quantity="one">for %1$d of %2$d copy</item>
-        <item quantity="other">for %1$d of %2$d copies</item>
+        <item quantity="one">for %1$d of %2$d priced copy</item>
+        <item quantity="other">for %1$d of %2$d priced copies</item>
     </plurals>
     <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
     <string name="weekly_direction_up">Up over the last 7 days</string>
@@ -746,10 +746,10 @@
     <!-- Scan target collection (#139) -->
     <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
     <string name="review_confirm_adds">Confirm adds %1$s.</string>
-    <string name="review_confirm_adds_defaults">Confirm adds %1$s, the defaults.</string>
+    <string name="review_confirm_adds_defaults">Confirm adds %1$s (defaults).</string>
     <!-- With the chosen card first, e.g. "Confirm adds 025/165 Pikachu: 1× Normal, Near mint." (#250). -->
     <string name="review_confirm_adds_card">Confirm adds %1$s: %2$s.</string>
-    <string name="review_confirm_adds_card_defaults">Confirm adds %1$s: %2$s, the defaults.</string>
+    <string name="review_confirm_adds_card_defaults">Confirm adds %1$s: %2$s (defaults).</string>
     <!-- A value in the Confirm summary that is still the default while others were picked, e.g. "Normal (default)". -->
     <string name="review_default_mark">%1$s (default)</string>
     <string name="review_change_description">Change finish, edition, condition and quantity</string>
@@ -757,7 +757,7 @@
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
-    <string name="review_why_number_not_read">The number couldn\'t be read. Pick the right card.</string>
+    <string name="review_why_number_not_read">Number not read. Pick the right card.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
     <!-- When the matches differ only in their language (#221): the clue to check on the card. -->

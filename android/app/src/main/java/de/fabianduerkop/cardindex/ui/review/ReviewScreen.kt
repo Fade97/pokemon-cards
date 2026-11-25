@@ -214,7 +214,9 @@ private fun ItemForm(
                     model = item.cropFile,
                     contentDescription = stringResource(R.string.review_crop),
                     modifier = Modifier
-                        .width(88.dp)
+                        // 76 dp, not 88: so all three matches clear the footer at 1.3x font; the expand mark
+                        // opens the scan large (#250).
+                        .width(76.dp)
                         .aspectRatio(63f / 88f)
                         .focusRing(MaterialTheme.shapes.small)
                         .clip(MaterialTheme.shapes.small)
@@ -258,6 +260,8 @@ private fun ItemForm(
         // the heading, so the way out shows on the first screen at any font size (#218).
         SectionHeader(
             stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card),
+            // The notice above already sets it apart; its own top kept the third match under the fade at 1.3x (#250).
+            snug = true,
             action = {
                 TextAction(
                     stringResource(R.string.review_find_card_short),
@@ -271,7 +275,13 @@ private fun ItemForm(
         )
         Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             item.candidates.forEach { c ->
-                CandidateRow(c, differences, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
+                CandidateRow(
+                    c,
+                    differences,
+                    selected = c.rank == draft.rank,
+                    onClick = { viewModel.selectCandidate(c.rank) },
+                    enabled = !saving,
+                )
             }
         }
 
@@ -294,8 +304,9 @@ private fun ItemForm(
                 onFinish = viewModel::setFinish,
                 onEdition = viewModel::setEdition,
                 onCondition = viewModel::setCondition,
+                enabled = !saving,
             )
-            QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm))
+            QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm), enabled = !saving)
         }
 
         TextAction(
@@ -339,17 +350,27 @@ internal fun VariantChoices(
     onFinish: (Finish) -> Unit,
     onEdition: (Edition) -> Unit,
     onCondition: (Condition) -> Unit,
+    /** False while the card is being saved: the chips look and read as off, as they are (#250). */
+    enabled: Boolean = true,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish)
-        ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition)
-        ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition)
+        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish, enabled)
+        ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition, enabled)
+        ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition, enabled)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: Boolean, label: (T) -> Int, onSelect: (T) -> Unit) {
+private fun <T> ChoiceGroup(
+    title: Int,
+    values: List<T>,
+    selected: T?,
+    chosen: Boolean,
+    label: (T) -> Int,
+    onSelect: (T) -> Unit,
+    enabled: Boolean,
+) {
     val state = when {
         selected == null -> R.string.variant_state_check
         chosen -> R.string.variant_state_chosen
@@ -368,7 +389,9 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
         Modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        values.forEach { v -> ChoiceChip(selected = v == selected, onClick = { onSelect(v) }, label = stringResource(label(v))) }
+        values.forEach { v ->
+            ChoiceChip(selected = v == selected, onClick = { onSelect(v) }, label = stringResource(label(v)), enabled = enabled)
+        }
     }
 }
 
@@ -377,7 +400,13 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
  * ([differences]) in strong type (#161). No similarity score: it reads as precision it doesn't have; Lab keeps it.
  */
 @Composable
-private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, selected: Boolean, onClick: () -> Unit) {
+private fun CandidateRow(
+    c: ReviewCandidate,
+    differences: CandidateDifferences,
+    selected: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.medium
     val spoken = listOf(
@@ -391,7 +420,7 @@ private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, 
             .fillMaxWidth()
             .heightIn(min = 64.dp)
             .focusRing(shape)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .selectable(selected = selected, enabled = enabled, onClick = onClick, role = Role.RadioButton)
             // One label: merged, the number's own description would replace the name, set and language (#218).
             .clearAndSetSemantics {
                 contentDescription = spoken
@@ -525,10 +554,10 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
 
 /** How many of the card to add; in the form under the choices, so the footer keeps only what Confirm saves. */
 @Composable
-private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.review_quantity), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-        QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = quantity > 1) {
+        QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = enabled && quantity > 1) {
             onQuantity(-1)
         }
         Text(
@@ -537,7 +566,7 @@ private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modi
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
         )
-        QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more)) { onQuantity(1) }
+        QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more), enabled = enabled) { onQuantity(1) }
     }
 }
 
@@ -607,6 +636,7 @@ private fun Footer(
             TextAction(
                 stringResource(R.string.scan_variant_change),
                 onClick = onChange,
+                enabled = enabled,
                 modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.review_change_description),
             )
