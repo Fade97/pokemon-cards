@@ -139,8 +139,8 @@
     <string name="collections_view_show_compact">Show numbers only</string>
     <string name="collections_legend_toggle">What the slots mean</string>
     <string name="collections_languages_title">Languages</string>
-    <!-- Spoken form of the language chip, e.g. "Languages: All languages". -->
-    <string name="collections_languages_chip_description">Languages: %1$s</string>
+    <!-- Spoken form of the language chip: its visible text first (label in name, #250), e.g. "DE, change languages". -->
+    <string name="collections_languages_chip_description">%1$s, change languages</string>
     <string name="collections_filter_all_count">All %1$d</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
@@ -699,6 +699,8 @@
         <item quantity="one">%1$d secret rare</item>
         <item quantity="other">%1$d secret rares</item>
     </plurals>
+    <!-- Under the legend of a slot map with more than one language (#250). -->
+    <string name="set_share_legend_any_language">A copy in any of these languages fills a square.</string>
     <string name="set_share_legend_owned">Owned</string>
     <string name="set_share_legend_missing">Missing</string>
     <string name="set_share_legend_wanted">Wanted most</string>
@@ -718,7 +720,7 @@
     <string name="set_share_missing_description">Missing list of %1$s: %2$s</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
-    <string name="scan_review_empty_description">Review queue, nothing waiting</string>
+    <string name="scan_review_empty_description">Nothing to review, open the review queue</string>
     <plurals name="scan_review_description">
         <item quantity="one">Review, %1$d scan waiting</item>
         <item quantity="other">Review, %1$d scans waiting</item>

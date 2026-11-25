@@ -453,6 +453,8 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
     val progress = row.progress
     val parts = listOfNotNull(
         pluralStringResource(R.plurals.collections_set_row, set.printedTotal, set.name, progress.base, set.printedTotal),
+        // The copies too, as the row shows them ("30 copies"): the slot count alone loses them (#250).
+        set.copies.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_cards_count, it, it) },
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },

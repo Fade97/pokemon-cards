@@ -224,9 +224,16 @@ internal fun SlotMapImage(data: SetShareData) {
                     Text(stringResource(R.string.set_share_legend_wanted), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
                 }
             }
+            // With more than one language on the map, a filled square means a copy in any of them, not in each (#250).
+            if (data.multilingual) {
+                Text(stringResource(R.string.set_share_legend_any_language), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+            }
         }
     }
 }
+
+/** The map covers more than one language ("DE, EN"). */
+private val SetShareData.multilingual: Boolean get() = languages?.contains(',') == true
 
 @Composable
 private fun SlotCell(slot: ShareSlot, size: Dp) {
@@ -461,7 +468,9 @@ private fun mapDescription(data: SetShareData): String {
             )
         },
     )
-    return stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", "))
+    val rule = if (data.multilingual) stringResource(R.string.set_share_legend_any_language) else null
+    return listOfNotNull(stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")), rule)
+        .joinToString(". ")
 }
 
 @Composable
