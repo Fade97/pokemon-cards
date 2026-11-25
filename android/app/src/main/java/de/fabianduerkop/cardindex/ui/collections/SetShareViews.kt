@@ -33,6 +33,7 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -81,6 +82,7 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     val chooserTitle = stringResource(R.string.set_share_chooser)
     val text = checklistText(data)
     val description = if (mapTab) mapDescription(data) else missingDescription(data)
+    var numbersShown by rememberSaveable { mutableStateOf(false) }
     // The preview and its numbers scroll; the share actions stay at the bottom, never under a long number list or
     // cut off at a large font (#250).
     Column(Modifier.fillMaxWidth()) {
@@ -115,6 +117,9 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
         // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
         // more, and when not all of them fit it says how many it shows and that the text has them all (#221, #250).
         val missing = data.missingLines.size
+        val multilingualCaption = mapTab && data.multilingual && data.languages != null
+        // The preview's spoken summary already ends with the language rule: the caption then adds only "no pictures".
+        val captionSpoken = stringResource(R.string.set_share_map_no_art)
         Text(
             when {
                 // The language rule also in the sheet's own text, which follows the system font size (#250).
@@ -128,10 +133,11 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
+            modifier = if (multilingualCaption) Modifier.semantics { contentDescription = captionSpoken } else Modifier,
         )
         // The image's numbers are small in the preview: on request the same numbers as app text, at the system font
-        // size, in groups TalkBack can step through (#250).
-        ImageNumbers(data, mapTab)
+        // size, in groups TalkBack can step through (#250). The toggle sits in the footer, always in view.
+        if (numbersShown) ImageNumbers(data, mapTab)
     }
     Column(
         Modifier
@@ -141,6 +147,12 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
+        if (hasNumbers(data, mapTab)) {
+            TextAction(
+                stringResource(if (numbersShown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
+                onClick = { numbersShown = !numbersShown },
+            )
+        }
         ShareImageButton(
             stringResource(R.string.set_share_image),
             layer = layer,
@@ -188,7 +200,6 @@ private fun ShareHeader(data: SetShareData, overline: String) {
  */
 @Composable
 private fun ImageNumbers(data: SetShareData, mapTab: Boolean) {
-    var shown by rememberSaveable { mutableStateOf(false) }
     val owned = data.slots.filter { it.owned }.map { it.label }
     val missing = data.missingLines.map { it.number.substringBefore('/') + if (it.wanted) " " + SetShare.WANTED_MARK else "" }
     val (heading, numbers) = when {
@@ -198,44 +209,41 @@ private fun ImageNumbers(data: SetShareData, mapTab: Boolean) {
     }
     if (numbers.isEmpty()) return
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        TextAction(
-            stringResource(if (shown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
-            onClick = { shown = !shown },
-            alignToText = true,
+        Text(
+            stringResource(heading, numbers.size),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
         )
-        if (shown) {
+        numbers.chunked(NumberGroup).forEach { group ->
             Text(
-                stringResource(heading, numbers.size),
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
+                group.joinToString(", "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
-            numbers.chunked(NumberGroup).forEach { group ->
+        }
+        val wanted = data.slots.filter { it.wanted }.map { it.label }
+        if (mapTab && wanted.isNotEmpty()) {
+            Text(
+                stringResource(R.string.set_share_numbers_wanted, wanted.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
+            )
+            wanted.chunked(NumberGroup).forEach { group ->
                 Text(
                     group.joinToString(", "),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            val wanted = data.slots.filter { it.wanted }.map { it.label }
-            if (mapTab && wanted.isNotEmpty()) {
-                Text(
-                    stringResource(R.string.set_share_numbers_wanted, wanted.size),
-                    style = MaterialTheme.typography.titleSmall,
-                    modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
-                )
-                wanted.chunked(NumberGroup).forEach { group ->
-                    Text(
-                        group.joinToString(", "),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            } else if (!mapTab && data.anyWanted) {
-                Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
+        } else if (!mapTab && data.anyWanted) {
+            Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }
+
+/** Whether "Show the numbers" has any to show for this tab. */
+private fun hasNumbers(data: SetShareData, mapTab: Boolean): Boolean =
+    if (mapTab) data.slots.isNotEmpty() else data.missingLines.isNotEmpty()
 
 /** Numbers per line of "Show the numbers": one TalkBack stop each. */
 private const val NumberGroup = 10
