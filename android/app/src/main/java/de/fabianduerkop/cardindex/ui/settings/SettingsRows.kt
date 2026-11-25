@@ -63,7 +63,7 @@ internal fun SwitchRow(title: String, hint: String, checked: Boolean, onCheckedC
     ) {
         // The switch sits with its title, and the hint takes the full width under both: centred on the whole block,
         // the switch sat lines below its label at a large font (#250).
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(title, Modifier.weight(1f).padding(end = Spacing.md), style = MaterialTheme.typography.titleSmall)
                 Switch(checked = checked, onCheckedChange = null)

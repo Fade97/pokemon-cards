@@ -196,12 +196,19 @@ internal fun SlotMapImage(data: SetShareData) {
             }
             Spacer(Modifier.height(Spacing.sm))
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value)
-                val cell = SetShare.cellSize(data.slots.size, columns, maxWidth.value, maxHeight.value).dp
+                // Secret rares start a row of their own after a small gap, so the map shows where 165 ends (#250).
+                val (main, secret) = data.slots.partition { !it.secret }
+                val secretCount = if (main.isEmpty()) 0 else secret.size
+                val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value, secretCount)
+                val cell = SetShare.cellSize(data.slots.size, columns, maxWidth.value, maxHeight.value, secretCount).dp
                 // A height-bound grid is narrower than the page: centred, like the legend's page margins.
                 Column(Modifier.align(Alignment.TopCenter)) {
-                    data.slots.chunked(columns).forEach { row ->
-                        Row { row.forEach { SlotCell(it, cell) } }
+                    val groups = if (secretCount > 0) listOf(main, secret) else listOf(data.slots)
+                    groups.forEachIndexed { index, slots ->
+                        if (index > 0) Spacer(Modifier.height(cell * SetShare.SECRET_GAP))
+                        slots.chunked(columns).forEach { row ->
+                            Row { row.forEach { SlotCell(it, cell) } }
+                        }
                     }
                 }
             }

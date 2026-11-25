@@ -282,7 +282,9 @@ private fun ItemForm(
                 )
             },
         )
-        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // A tighter gap than the form's: with the two-line notice, all three matches still clear the footer at 1.3x
+        // (#250).
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             item.candidates.forEach { c ->
                 CandidateRow(
                     c,
@@ -441,8 +443,10 @@ private fun CandidateRow(
         color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outline),
     ) {
+        // Little vertical padding: the three lines and the 64 dp minimum already give the row its height, and at
+        // 1.3x all three matches then clear the footer under the two-line notice (#250).
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {

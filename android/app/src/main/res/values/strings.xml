@@ -246,7 +246,7 @@
     <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
     <string name="weekly_change">%1$s over the last 7 days</string>
-    <string name="weekly_change_flat">No change over the last 7 days</string>
+    <string name="weekly_change_flat">Value unchanged over the last 7 days</string>
     <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
     <string name="weekly_change_short">%1$s · 7 days</string>
     <string name="weekly_change_short_flat">No change · 7 days</string>
@@ -256,18 +256,18 @@
         <item quantity="other">%1$d of %2$d priced copies</item>
     </plurals>
     <!-- Screen-reader text. %1$s: "1,20 € (12 %)" without a sign -->
-    <string name="weekly_change_up_description">Up %1$s over the last 7 days</string>
-    <string name="weekly_change_down_description">Down %1$s over the last 7 days</string>
-    <string name="weekly_change_flat_description">No price change over the last 7 days</string>
+    <string name="weekly_change_up_description">Value up %1$s over the last 7 days</string>
+    <string name="weekly_change_down_description">Value down %1$s over the last 7 days</string>
+    <string name="weekly_change_flat_description">Value unchanged over the last 7 days</string>
     <plurals name="weekly_change_covered_description">
         <item quantity="one">for %1$d of %2$d priced copy</item>
         <item quantity="other">for %1$d of %2$d priced copies</item>
     </plurals>
     <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
-    <string name="weekly_direction_up">Up over the last 7 days</string>
-    <string name="weekly_direction_down">Down over the last 7 days</string>
-    <string name="weekly_direction_up_description">Up over the last 7 days</string>
-    <string name="weekly_direction_down_description">Down over the last 7 days</string>
+    <string name="weekly_direction_up">Value up over the last 7 days</string>
+    <string name="weekly_direction_down">Value down over the last 7 days</string>
+    <string name="weekly_direction_up_description">Value up over the last 7 days</string>
+    <string name="weekly_direction_down_description">Value down over the last 7 days</string>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>
@@ -434,7 +434,7 @@
     <string name="settings_debug_check_alerts">Check price alerts now</string>
     <string name="settings_debug_pro_hint">Shows price history, portfolio charts and price alerts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
-    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores your copies and collections, but not your own photos (Android\'s backup does not keep them either). CSV opens in a spreadsheet. Importing a file twice adds nothing twice.</string>
+    <string name="settings_backup_hint">Save your collection to a file, free. Use JSON to back up your copies, binders and wishlist; it does not hold your own photos (Android\'s backup does not keep them either). Use CSV to open your copies in a spreadsheet. Importing a file twice adds nothing twice.</string>
     <string name="settings_export_json">Export JSON</string>
     <string name="settings_export_csv">Export CSV</string>
     <string name="settings_import">Import</string>
@@ -505,7 +505,7 @@
     <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card the app adds, automatically or after you confirm it in Review, is sent to help train and test the card recognition. The pictures are not published.</string>
     <string name="contribute_mine">My contributions</string>
     <string name="contribute_consent_title">Contribute scans</string>
-    <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
+    <string name="contribute_consent_body">When the app adds a scanned card, automatically or after you confirm it in Review, it uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
     <!-- Version of the consent text, sent with every upload -->
     <string name="contribute_consent_version">Consent text version %1$s</string>
     <string name="contribute_age_confirm">I am 16 or older, or a parent or guardian agreed.</string>
@@ -762,7 +762,7 @@
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
-    <string name="review_why_number_not_read">Number not read. Check the match.</string>
+    <string name="review_why_number_not_read">Couldn\'t read your scan\'s number. Check the match.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
     <!-- When the matches differ only in their language (#221): the clue to check on the card. -->

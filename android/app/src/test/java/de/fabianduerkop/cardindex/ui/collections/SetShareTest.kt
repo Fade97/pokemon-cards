@@ -60,6 +60,15 @@ class SetShareTest {
     }
 
     @Test
+    fun secretRaresStartTheirOwnRowsAfterAGap() {
+        // 165 main + 42 secret in 12 columns: 14 rows, the gap, then 4 rows.
+        assertEquals(14f + SetShare.SECRET_GAP + 4f, SetShare.rows(207, 12, secret = 42), 0.001f)
+        // Without a main set the secret slots are just the grid.
+        assertEquals(4f, SetShare.rows(42, 12, secret = 42), 0.001f)
+        assertEquals(18f, SetShare.rows(207, 12), 0.001f)
+    }
+
+    @Test
     fun gridColumnsGiveTheLargestSquaresThatFit() {
         // 165 slots on a 312 × 460 area: 11 columns of 28 px, 15 rows.
         assertEquals(11, SetShare.gridColumns(165, 312f, 460f))

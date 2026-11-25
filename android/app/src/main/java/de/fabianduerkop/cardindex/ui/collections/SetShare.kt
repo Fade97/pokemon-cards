@@ -78,22 +78,31 @@ object SetShare {
      * How many columns of square cells fit [count] slots into a [width] × [height] area with the largest cells:
      * a 165-card set fills the page, a 30-card one gets big squares.
      */
-    fun gridColumns(count: Int, width: Float, height: Float): Int {
+    fun gridColumns(count: Int, width: Float, height: Float, secret: Int = 0): Int {
         if (count <= 0 || width <= 0f || height <= 0f) return 1
-        return (1..count).maxBy { columns ->
-            val rows = ceil(count / columns.toFloat())
-            min(width / columns, height / rows)
-        }
+        return (1..count).maxBy { columns -> min(width / columns, height / rows(count, columns, secret)) }
     }
+
+    /**
+     * Rows of the grid: the main set, then, when the last [secret] of [count] slots are secret rares, those on rows of
+     * their own after a [SECRET_GAP] (in cells), so the map shows where the main set ends (#250).
+     */
+    fun rows(count: Int, columns: Int, secret: Int = 0): Float {
+        val main = count - secret
+        val mainRows = ceil(main / columns.toFloat())
+        if (secret <= 0 || main <= 0) return ceil(count / columns.toFloat())
+        return mainRows + SECRET_GAP + ceil(secret / columns.toFloat())
+    }
+
+    /** The gap before the secret rares on the slot map, as a share of one cell. */
+    const val SECRET_GAP = 0.4f
 
     /**
      * The side of one square cell for [count] slots in [columns] columns of a [width] × [height] area: the smaller of
      * the column width and the row height, so a tall set (141 slots in 10 × 15) never runs past the bottom.
      */
-    fun cellSize(count: Int, columns: Int, width: Float, height: Float): Float {
-        val rows = ceil(count / columns.toFloat()).coerceAtLeast(1f)
-        return min(width / columns, height / rows)
-    }
+    fun cellSize(count: Int, columns: Int, width: Float, height: Float, secret: Int = 0): Float =
+        min(width / columns, height / rows(count, columns, secret).coerceAtLeast(1f))
 
     const val WANTED_MARK = "★"
 
