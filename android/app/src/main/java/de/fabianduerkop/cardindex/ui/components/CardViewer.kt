@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
@@ -234,15 +235,19 @@ private fun ViewerBar(
             .fillMaxWidth()
             // A dark scrim under the bar and the status bar: zoomed art passes behind them, and Close and the foil
             // note must keep their contrast over a bright card (#250).
-            .background(
-                Brush.verticalGradient(
-                    0f to camera.background.copy(alpha = 0.92f),
-                    0.7f to camera.background.copy(alpha = 0.8f),
-                    1f to Color.Transparent,
-                ),
-            )
+            // At least 85 % behind the whole bar, fading only in the padding under it.
+            .drawBehind {
+                val fadeFrom = ((size.height - ScrimFade.toPx()) / size.height).coerceIn(0f, 1f)
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to camera.background.copy(alpha = 0.92f),
+                        fadeFrom to camera.background.copy(alpha = 0.85f),
+                        1f to Color.Transparent,
+                    ),
+                )
+            }
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-            .padding(start = Spacing.xs, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.lg),
+            .padding(start = Spacing.xs, end = Spacing.xs, top = Spacing.xs, bottom = ScrimFade),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -266,6 +271,9 @@ private fun ViewerBar(
         }
     }
 }
+
+/** The scrim under the viewer's bar fades out over this much padding below the bar's content. */
+private val ScrimFade = Spacing.lg
 
 /** The dialog's window draws behind the system bars; on the dark surface their icons must be light in both themes. */
 @Composable

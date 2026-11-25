@@ -23,6 +23,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -124,6 +125,9 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        // The image's numbers are small in the preview: on request the same numbers as app text, at the system font
+        // size, in groups TalkBack can step through (#250).
+        ImageNumbers(data, mapTab)
         ShareImageButton(
             stringResource(R.string.set_share_image),
             layer = layer,
@@ -162,6 +166,57 @@ private fun ShareHeader(data: SetShareData, overline: String) {
     )
     Text(progressText(data), style = MaterialTheme.typography.bodyMedium, color = colors.onSurface)
 }
+
+/**
+ * "Show the numbers": the image's numbers as wrapping app text. The slot map lists the shorter of its owned and
+ * missing numbers, the missing list all missing ones; wishlist numbers carry the star. Ten to a group, each its own
+ * TalkBack stop, so a slot can be checked without zooming into the preview (#250).
+ */
+@Composable
+private fun ImageNumbers(data: SetShareData, mapTab: Boolean) {
+    var shown by rememberSaveable { mutableStateOf(false) }
+    val owned = data.slots.filter { it.owned }.map { it.label }
+    val missing = data.missingLines.map { it.number.substringBefore('/') + if (it.wanted) " " + SetShare.WANTED_MARK else "" }
+    val (heading, numbers) = when {
+        !mapTab -> R.string.set_share_numbers_missing to missing
+        owned.isNotEmpty() && owned.size <= missing.size -> R.string.set_share_numbers_owned to owned
+        else -> R.string.set_share_numbers_missing to missing
+    }
+    if (numbers.isEmpty()) return
+    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        TextAction(
+            stringResource(if (shown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
+            onClick = { shown = !shown },
+            alignToText = true,
+        )
+        if (shown) {
+            Text(
+                stringResource(heading, numbers.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.semantics { heading() },
+            )
+            numbers.chunked(NumberGroup).forEach { group ->
+                Text(
+                    group.joinToString(", "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            if (mapTab && data.anyWanted) {
+                Text(
+                    stringResource(R.string.set_share_wanted_numbers, data.slots.filter { it.wanted }.joinToString(", ") { it.label }),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            } else if (!mapTab && data.anyWanted) {
+                Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+/** Numbers per line of "Show the numbers": one TalkBack stop each. */
+private const val NumberGroup = 10
 
 /**
  * The slot map: every number of the set as a square, owned filled in sea-glass, missing hollow, wishlist ones with a

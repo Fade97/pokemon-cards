@@ -705,6 +705,11 @@
     <string name="set_share_map_caption_languages">%1$s: a copy in any of these languages fills a square. Numbers only, no card pictures.</string>
     <!-- Spoken after the slot map's counts (#250). -->
     <string name="set_share_owned_numbers">Owned: %1$s</string>
+    <!-- Under the share preview: its numbers as app text, on request (#250). -->
+    <string name="set_share_show_numbers">Show the numbers</string>
+    <string name="set_share_hide_numbers">Hide the numbers</string>
+    <string name="set_share_numbers_owned">Owned (%1$d)</string>
+    <string name="set_share_numbers_missing">Missing (%1$d)</string>
     <string name="set_share_missing_numbers">Missing: %1$s</string>
     <string name="set_share_wanted_numbers">On the wishlist: %1$s</string>
     <string name="set_share_legend_owned">Owned</string>
