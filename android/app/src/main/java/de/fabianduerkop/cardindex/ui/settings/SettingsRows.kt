@@ -60,13 +60,16 @@ internal fun SwitchRow(title: String, hint: String, checked: Boolean, onCheckedC
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .heightIn(min = Spacing.touchTarget)
             .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+        // The switch sits with its title, and the hint takes the full width under both: centred on the whole block,
+        // the switch sat lines below its label at a large font (#250).
+        Column(Modifier.weight(1f)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, Modifier.weight(1f).padding(end = Spacing.md), style = MaterialTheme.typography.titleSmall)
+                Switch(checked = checked, onCheckedChange = null)
+            }
             SettingsHint(hint)
         }
-        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

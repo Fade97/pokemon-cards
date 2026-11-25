@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -42,6 +40,10 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.SubcomposeLayout
 import androidx.compose.ui.unit.em
 import androidx.compose.ui.text.style.LineHeightStyle
 import androidx.compose.ui.text.PlatformTextStyle
@@ -100,17 +102,20 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             selectedIndex = tab,
             onSelect = { tab = it },
         )
+        // How many numbers the missing-list image fits, as measured when it is laid out (#250).
+        var fitted by remember(data) { mutableIntStateOf(-1) }
         ShareImagePreview(layer, description) {
-            if (mapTab) SlotMapImage(data) else MissingListImage(data)
+            if (mapTab) SlotMapImage(data) else MissingListImage(data, onFitted = { fitted = it })
         }
         // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
-        // more, and past the image's limit it says the text has them all (#221).
+        // more, and when not all of them fit it says how many it shows and that the text has them all (#221, #250).
         val missing = data.missingLines.size
         Text(
             when {
-                mapTab || (missing > NamedLines && missing <= NumberChips) -> stringResource(R.string.set_share_map_no_art)
-                missing > NumberChips -> stringResource(R.string.set_share_cut_note)
-                else -> stringResource(R.string.set_share_no_art)
+                mapTab -> stringResource(R.string.set_share_map_no_art)
+                missing <= NamedLines -> stringResource(R.string.set_share_no_art)
+                fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
+                else -> stringResource(R.string.set_share_map_no_art)
             },
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -281,9 +286,8 @@ private fun LegendSquare(filled: Boolean, wanted: Boolean = false) {
  * The missing list: "These are the ones I need", then each missing card with its name (few missing) or a grid of
  * numbers (many). Wishlist ones carry a star. A complete set says so instead.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun MissingListImage(data: SetShareData) {
+internal fun MissingListImage(data: SetShareData, onFitted: (Int) -> Unit = {}) {
     ShareCanvas {
         val colors = MaterialTheme.colorScheme
         Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -317,27 +321,7 @@ internal fun MissingListImage(data: SetShareData) {
                         }
                     }
                 } else {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        lines.take(NumberChips).forEach { line ->
-                            Text(
-                                line.number.substringBefore('/') + if (line.wanted) " " + SetShare.WANTED_MARK else "",
-                                Modifier
-                                    .border(1.dp, if (line.wanted) colors.primary else colors.outlineVariant, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 4.dp, vertical = 1.dp),
-                                style = numberStyle(MaterialTheme.typography.labelSmall),
-                                color = colors.onSurface,
-                            )
-                        }
-                    }
-                    val more = lines.size - NumberChips
-                    if (more > 0) {
-                        Text(
-                            pluralStringResource(R.plurals.receipt_more, more, more),
-                            Modifier.padding(top = Spacing.xs),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
+                    FittedChips(lines, onFitted, Modifier.fillMaxSize())
                 }
             }
             if (data.anyWanted) {
@@ -345,6 +329,75 @@ internal fun MissingListImage(data: SetShareData) {
             }
         }
     }
+}
+
+/**
+ * The missing numbers as chips, as many as the image has room for, then "+ 40 more prints": measured, not a fixed
+ * count, so long ids (SWSH050) never overfill the page (#250). [onFitted] gets how many it shows, for the caption.
+ */
+@Composable
+private fun FittedChips(lines: List<MissingLine>, onFitted: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    SubcomposeLayout(modifier) { constraints ->
+        val gap = Spacing.xs.roundToPx()
+        val width = constraints.maxWidth
+        val loose = Constraints(maxWidth = width)
+        val chips = subcompose("chips") {
+            lines.take(NumberChips).forEach { line ->
+                Text(
+                    line.number.substringBefore('/') + if (line.wanted) " " + SetShare.WANTED_MARK else "",
+                    Modifier
+                        .border(1.dp, if (line.wanted) colors.primary else colors.outlineVariant, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                    style = numberStyle(MaterialTheme.typography.labelSmall),
+                    color = colors.onSurface,
+                )
+            }
+        }.map { it.measure(loose) }
+        // Where each chip goes, row by row, and the bottom of the rows so far after each chip.
+        val positions = ArrayList<IntOffset>(chips.size)
+        val bottoms = IntArray(chips.size)
+        var x = 0
+        var y = 0
+        var rowHeight = 0
+        chips.forEachIndexed { index, chip ->
+            if (x > 0 && x + chip.width > width) {
+                y += rowHeight + gap
+                x = 0
+                rowHeight = 0
+            }
+            positions += IntOffset(x, y)
+            x += chip.width + gap
+            rowHeight = maxOf(rowHeight, chip.height)
+            bottoms[index] = y + rowHeight
+        }
+        val moreHeight = subcompose("probe") { MoreLine(lines.size) }.first().measure(loose).height + gap
+        val maxHeight = constraints.maxHeight
+        fun fits(count: Int): Boolean {
+            if (count == 0) return true
+            val bottom = bottoms[count - 1]
+            return if (count == lines.size) bottom <= maxHeight else bottom + moreHeight <= maxHeight
+        }
+        var shown = chips.size
+        while (shown > 0 && !fits(shown)) shown--
+        onFitted(shown)
+        val rest = lines.size - shown
+        val more = if (rest > 0) subcompose("more") { MoreLine(rest) }.first().measure(loose) else null
+        val chipsBottom = if (shown > 0) bottoms[shown - 1] else 0
+        layout(width, if (constraints.hasBoundedHeight) maxHeight else chipsBottom + (more?.let { it.height + gap } ?: 0)) {
+            for (index in 0 until shown) chips[index].place(positions[index])
+            more?.place(0, chipsBottom + if (shown > 0) gap else 0)
+        }
+    }
+}
+
+@Composable
+private fun MoreLine(count: Int) {
+    Text(
+        pluralStringResource(R.plurals.receipt_more, count, count),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /**
@@ -379,9 +432,30 @@ private fun checklistText(data: SetShareData): String {
 /** The set's name with the languages the picture covers, "151 (DE, EN)", as the preview shows them (#221). */
 private fun scopedName(data: SetShareData): String = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
 
+/**
+ * What TalkBack says for the slot map (#250): counts in words, not "7/165", and on a certificate its status and date:
+ * "Slot map of 151 (DE, EN): 7 of 165 main-set cards owned, 0 of 42 secret rares owned".
+ */
 @Composable
-private fun mapDescription(data: SetShareData): String =
-    stringResource(R.string.set_share_map_description, scopedName(data), progressText(data))
+private fun mapDescription(data: SetShareData): String {
+    val progress = data.progress
+    val secretTotal = progress.secret + data.missing.secret
+    val parts = listOfNotNull(
+        stringResource(R.string.set_share_main_owned_description, progress.base, progress.printedTotal),
+        when {
+            data.missing.secret > 0 -> stringResource(R.string.set_share_secret_owned_description, progress.secret, secretTotal)
+            progress.secret > 0 -> pluralStringResource(R.plurals.set_share_secret, progress.secret, progress.secret)
+            else -> null
+        },
+        data.completedOn?.let { date ->
+            stringResource(
+                if (data.missing.secret > 0) R.string.set_share_main_completed_on else R.string.set_share_completed_on,
+                formatDate(date),
+            )
+        },
+    )
+    return stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", "))
+}
 
 @Composable
 private fun missingDescription(data: SetShareData): String =

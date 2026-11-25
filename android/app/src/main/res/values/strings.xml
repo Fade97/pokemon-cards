@@ -218,7 +218,7 @@
     <string name="price_market_as_of">%1$s prices from %2$s</string>
     <string name="price_none">No price yet</string>
     <string name="price_none_hint">Prices come from the price service when you are online and stay saved for offline use. Some cards and printings have no market price.</string>
-    <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s offers)</string>
+    <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s&#160;offers)</string>
     <string name="price_open_cardmarket">Open on Cardmarket</string>
     <string name="price_open_tcgplayer">Open on TCGplayer</string>
     <string name="price_currencies">Each market\'s price is in its own currency. Prices are never converted.</string>
@@ -502,7 +502,7 @@
     <!-- Scan contributions (issue #14) -->
     <string name="contribute_section">Improve recognition</string>
     <string name="contribute_toggle">Contribute my scans</string>
-    <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card you confirm is sent to help train and test the card recognition. The pictures are not published.</string>
+    <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card the app adds, automatically or after you confirm it in Review, is sent to help train and test the card recognition. The pictures are not published.</string>
     <string name="contribute_mine">My contributions</string>
     <string name="contribute_consent_title">Contribute scans</string>
     <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
@@ -656,8 +656,8 @@
     <string name="set_share_missing">Missing list</string>
     <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
     <string name="set_share_map_no_art">Numbers only, no card pictures.</string>
-    <!-- The missing list image is cut at 150 numbers (#221). -->
-    <string name="set_share_cut_note">Numbers only, the first 150. Share as text for the full list.</string>
+    <!-- The missing list image shows as many numbers as fit (#221, #250). -->
+    <string name="set_share_cut_note">Numbers only, the first %1$d. Share as text for the full list.</string>
     <string name="set_share_image">Share image</string>
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>
@@ -710,7 +710,9 @@
     <!-- First line of the text checklist, e.g. "151 (EN): 9 cards missing" -->
     <string name="set_share_text_heading">%1$s: %2$s</string>
     <string name="set_share_text_footer">From my Foilark collection</string>
-    <string name="set_share_map_description">Slot map of %1$s: %2$s owned</string>
+    <string name="set_share_map_description">Slot map of %1$s: %2$s</string>
+    <string name="set_share_main_owned_description">%1$d of %2$d main-set cards owned</string>
+    <string name="set_share_secret_owned_description">%1$d of %2$d secret rares owned</string>
     <string name="set_share_missing_description">Missing list of %1$s: %2$s</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
