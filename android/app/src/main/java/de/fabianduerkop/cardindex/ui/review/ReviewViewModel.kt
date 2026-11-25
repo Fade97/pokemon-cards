@@ -158,6 +158,8 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
     }
 
     private fun editDraft(change: (ReviewDraft) -> ReviewDraft) {
+        // The choices on screen are the ones being saved: none changes until the write is done (#250).
+        if (busy.value.isNotEmpty()) return
         val s = state.value
         val item = s.current ?: return
         val draft = change(s.draft)
@@ -186,6 +188,7 @@ class ReviewViewModel(application: Application) : AndroidViewModel(application) 
      * finish, edition and condition picked so far stay.
      */
     fun useCard(itemId: Long, cardId: String, language: String) {
+        if (itemId in busy.value || itemId in written.value) return
         viewModelScope.launch {
             // After the draft writes queued before, so none of them can put the old rank back.
             runCatching { draftLock.withLock { withContext(Dispatchers.IO) { queue.pickCard(itemId, cardId, language) } } }

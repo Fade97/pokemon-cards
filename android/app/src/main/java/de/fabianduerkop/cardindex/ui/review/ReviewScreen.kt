@@ -149,6 +149,8 @@ fun ReviewScreen(
                         if (item != null) {
                             Footer(
                                 state.draft,
+                                card = item.candidates.firstOrNull { it.rank == state.draft.rank }
+                                    ?.let { "${numberWithTotal(it.card.localId, it.set.printedTotal)} ${it.card.name}" },
                                 target = target?.name,
                                 onChange = { scope.launch { choices.bringIntoView() } },
                                 onSkip = viewModel::skip,
@@ -260,6 +262,8 @@ private fun ItemForm(
                 TextAction(
                     stringResource(R.string.review_find_card_short),
                     onClick = onFindCard,
+                    // Off while this card is being saved, like every other choice on it (#250).
+                    enabled = !saving,
                     modifier = Modifier.offset(x = TextActionInset),
                     contentDescription = stringResource(R.string.review_find_card_description),
                 )
@@ -544,6 +548,8 @@ private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modi
 @Composable
 private fun Footer(
     draft: ReviewDraft,
+    /** The chosen card, "025/165 Pikachu": named in the summary, so it shows while the form is scrolled (#250). */
+    card: String?,
     target: String?,
     onChange: () -> Unit,
     onSkip: () -> Unit,
@@ -586,8 +592,13 @@ private fun Footer(
                 // The condition in the form's words ("Near mint"), so the summary matches the chips below (#218).
                 val condition = mark(stringResource(conditionLabel(draft.condition)), draft.conditionChosen)
                 val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, $condition")
+                val summary = when {
+                    card == null -> stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved)
+                    defaults -> stringResource(R.string.review_confirm_adds_card_defaults, card, saved)
+                    else -> stringResource(R.string.review_confirm_adds_card, card, saved)
+                }
                 Text(
-                    stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved),
+                    summary,
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,

@@ -16,6 +16,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.TorchState
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
@@ -330,7 +331,6 @@ private fun LiveScan(
     val paused by viewModel.paused.collectAsStateWithLifecycle()
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
-    var torch by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<CameraProblem?>(null) }
     // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
     val hit = hitFor(tray.latest, viewfinder.decision)
@@ -362,6 +362,15 @@ private fun LiveScan(
         onDispose { controller.unbind() }
     }
     val cameraInfo = CameraProblemWatcher(controller, lifecycleOwner) { problem = it }
+    // The light as the camera reports it, not as last tapped: a failed or refused request never reads "Light off" (#250).
+    var torch by remember { mutableStateOf(false) }
+    DisposableEffect(cameraInfo, lifecycleOwner) {
+        val info = cameraInfo ?: return@DisposableEffect onDispose {}
+        val observer = Observer<Int> { torch = it == TorchState.ON }
+        info.torchState.observe(lifecycleOwner, observer)
+        onDispose { info.torchState.removeObserver(observer) }
+    }
+    val hasFlash = cameraInfo?.hasFlashUnit() == true
     GuideCamera(controller, cameraInfo, lifecycleOwner)
     var focusTaps by remember { mutableIntStateOf(0) }
 
@@ -452,12 +461,14 @@ private fun LiveScan(
                     icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
                     onClick = { viewModel.setPaused(!paused) },
                 )
-                // The light needs the camera: off while it reports an error (#250).
-                CameraButton(
-                    stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
-                    onClick = { torch = !torch; controller.enableTorch(torch) },
-                    enabled = problem == null,
-                )
+                // Only on a camera with a flash, and off while the camera reports an error (#250).
+                if (hasFlash) {
+                    CameraButton(
+                        stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
+                        onClick = { controller.enableTorch(!torch) },
+                        enabled = problem == null,
+                    )
+                }
                 if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
             }
             // On the camera's dark ground, so the tray's rounded top corners show under the button strip (#218).

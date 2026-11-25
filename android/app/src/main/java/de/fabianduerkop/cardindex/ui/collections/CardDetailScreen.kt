@@ -188,7 +188,13 @@ fun CardDetailScreen(
                     item {
                         // Price the printing the user owns in this language, or the plain print if they own none.
                         val owned = detail.pricedCopy()
-                        SectionHeader(stringResource(R.string.price_title), Modifier.padding(horizontal = ScreenPadding))
+                        // Right under an owned card's name the header's fade room is the gap already; the heading's
+                        // own top would double it (#250). Unowned cards have the wishlist button in between.
+                        SectionHeader(
+                            stringResource(R.string.price_title),
+                            Modifier.padding(horizontal = ScreenPadding),
+                            first = detail.copies.isNotEmpty(),
+                        )
                         PriceBox(
                             prices = state.prices,
                             primary = state.source,

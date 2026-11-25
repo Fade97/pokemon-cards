@@ -113,6 +113,9 @@
     <string name="collections_open_collection">Open collection</string>
     <!-- After a count like "87/165" on the featured set cover. -->
     <string name="collections_collected">collected</string>
+    <!-- Set detail filters with no slot to show (#250). -->
+    <string name="collections_filter_owned_empty">None of these cards is in your collection yet.</string>
+    <string name="collections_filter_missing_empty">Nothing missing: every card here is in your collection.</string>
     <!-- Spoken form of a set's count, e.g. "87 of 165 collected". -->
     <string name="collections_progress_description">%1$d of %2$d collected</string>
     <!-- Owned secret rares above the printed total, shown apart from a count like "160/165" (#132). -->
@@ -242,8 +245,8 @@
     <string name="history_refused">The price service did not accept this device for Pro.</string>
     <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
-    <string name="weekly_change">%1$s in 7 days</string>
-    <string name="weekly_change_flat">No change in 7 days</string>
+    <string name="weekly_change">%1$s over the last 7 days</string>
+    <string name="weekly_change_flat">No change over the last 7 days</string>
     <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
     <string name="weekly_change_short">%1$s · 7 days</string>
     <string name="weekly_change_short_flat">No change · 7 days</string>
@@ -261,8 +264,8 @@
         <item quantity="other">for %1$d of %2$d copies</item>
     </plurals>
     <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
-    <string name="weekly_direction_up">Up in 7 days</string>
-    <string name="weekly_direction_down">Down in 7 days</string>
+    <string name="weekly_direction_up">Up over the last 7 days</string>
+    <string name="weekly_direction_down">Down over the last 7 days</string>
     <string name="weekly_direction_up_description">Up over the last 7 days</string>
     <string name="weekly_direction_down_description">Down over the last 7 days</string>
 
@@ -744,6 +747,9 @@
     <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
     <string name="review_confirm_adds">Confirm adds %1$s.</string>
     <string name="review_confirm_adds_defaults">Confirm adds %1$s, the defaults.</string>
+    <!-- With the chosen card first, e.g. "Confirm adds 025/165 Pikachu: 1× Normal, Near mint." (#250). -->
+    <string name="review_confirm_adds_card">Confirm adds %1$s: %2$s.</string>
+    <string name="review_confirm_adds_card_defaults">Confirm adds %1$s: %2$s, the defaults.</string>
     <!-- A value in the Confirm summary that is still the default while others were picked, e.g. "Normal (default)". -->
     <string name="review_default_mark">%1$s (default)</string>
     <string name="review_change_description">Change finish, edition, condition and quantity</string>

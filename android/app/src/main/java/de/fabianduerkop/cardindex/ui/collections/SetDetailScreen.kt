@@ -131,7 +131,11 @@ fun SetDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val detail = state.detail
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val selected = detail?.slots?.firstOrNull { it.localId == selectedKey }
+    // Only a slot the grid shows can be selected: a filter that hides it closes its bar (#250).
+    val selected = detail?.slots?.filteredBy(state.filter)?.firstOrNull { it.localId == selectedKey }
+    LaunchedEffect(detail != null && selected == null) {
+        if (detail != null && selected == null) selectedKey = null
+    }
     val wantedNumbers by viewModel.wantedNumbers.collectAsStateWithLifecycle()
     val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val newSlots by viewModel.newSlots.collectAsStateWithLifecycle()
@@ -276,6 +280,19 @@ private fun SetGrid(
                         Modifier.padding(bottom = Spacing.sm),
                     )
                 }
+            }
+        }
+        if (shown.isEmpty() && state.filter != SlotFilter.ALL) {
+            // A filter with no slot says so instead of leaving an empty grid (#250).
+            header {
+                Text(
+                    stringResource(
+                        if (state.filter == SlotFilter.OWNED) R.string.collections_filter_owned_empty else R.string.collections_filter_missing_empty,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = Spacing.lg),
+                )
             }
         }
         items(shown, key = { it.localId }) { slot ->
