@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -87,11 +90,26 @@ fun LumifoilTopAppBar(
     }
 }
 
-/** The title of a bar: one line, ellipsized, so a long set name never pushes the actions off screen. */
+/**
+ * The title of a bar: one line, so a long set name never pushes the actions off screen. At a large font it first
+ * shrinks to fit ("Delta-Herrschaft" whole at 1.3x on a 360 dp phone, #250); the ellipsis is the last resort.
+ */
 @Composable
 fun AppBarTitle(text: String) {
-    Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val style = LocalTextStyle.current
+    Text(
+        text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = with(LocalDensity.current) { TitleMinSize.toSp() },
+            maxFontSize = style.fontSize,
+        ),
+    )
 }
+
+/** The smallest a bar title shrinks to, in dp so a large font setting cannot undo it. */
+private val TitleMinSize = 16.dp
 
 /** Back arrow for a bar. Does the same as Android Back; [onClick] usually pops the back stack. */
 @Composable

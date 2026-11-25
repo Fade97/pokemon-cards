@@ -231,12 +231,18 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
     state.syncError?.takeIf { !state.syncing && state.catalog == CatalogStatus.Ready }?.let {
         StatusNotice(stringResource(R.string.packs_sync_failed, it), tone = NoticeTone.ERROR)
     }
-    SecondaryButton(
-        stringResource(R.string.packs_add),
-        onClick = { adding = true },
-        enabled = state.addable.any { it.available },
-        icon = R.drawable.ic_add,
-    )
+    if (state.catalog == CatalogStatus.Ready && state.addable.none { it.available }) {
+        // Nothing left to add: said in words, not as a disabled button next to the mobile-data switch, which made
+        // the connection look like the reason (#250).
+        SettingsHint(stringResource(R.string.packs_all_installed))
+    } else {
+        SecondaryButton(
+            stringResource(R.string.packs_add),
+            onClick = { adding = true },
+            enabled = state.addable.any { it.available },
+            icon = R.drawable.ic_add,
+        )
+    }
     // Room between the button and the switch, as between the other settings groups (#218).
     Spacer(Modifier.height(Spacing.sm))
     MobileDataSwitch(state.mobileData, viewModel::setMobileData)

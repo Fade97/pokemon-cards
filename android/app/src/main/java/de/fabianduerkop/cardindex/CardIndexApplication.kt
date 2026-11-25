@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex
 
+import de.fabianduerkop.cardindex.ui.UiLocale
 import android.app.Application
 import coil3.ImageLoader
 import coil3.PlatformContext
@@ -21,6 +22,7 @@ class CardIndexApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
+        UiLocale.init(this)
         // After a restore to a new phone, the collection comes from the backup snapshot (AndroidBackup), not the
         // database, which isn't backed up. Runs once per install.
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch {

@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Foilark</string>
+    <!-- The language of this file's texts (BCP 47). Language names are written in it (UiLocale, #250); a translation
+         sets its own. -->
+    <string name="ui_locale">en</string>
 
     <string name="nav_scan">Scan</string>
     <string name="nav_collections">Collections</string>
@@ -360,6 +363,11 @@
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
+    <!-- Above the results with more than two languages: the list itself is in the hint under an empty field (#250). -->
+    <plurals name="search_scope_count">
+        <item quantity="one">Searches the cards of %1$d language on this device.</item>
+        <item quantity="other">Searches the cards of %1$d languages on this device.</item>
+    </plurals>
     <!-- Examples on lines of their own, so the combined query is not buried in a paragraph (#221). -->
     <string name="search_hint">Type a card name, a set, a set code or a collector number:</string>
     <!-- Shown joined with " · ", breaking only between examples (#250). -->
@@ -467,6 +475,8 @@
     <string name="settings_languages">Card languages</string>
     <string name="packs_section_hint">Cards are recognized in the languages installed here. Downloads continue in the background and new sets arrive as small updates.</string>
     <string name="packs_none">No language installed yet, so scanning can\'t recognize cards.</string>
+    <!-- In place of a disabled "Add languages" when every pack in the catalog is installed (#250). -->
+    <string name="packs_all_installed">All available card languages are installed.</string>
     <string name="packs_add">Add languages</string>
     <string name="packs_remove">Remove</string>
     <string name="packs_remove_language">Remove %1$s</string>
@@ -703,15 +713,12 @@
     <string name="set_share_legend_any_language">A copy in any of these languages fills a square.</string>
     <!-- The slot map caption under the preview when it covers more than one language (#250). -->
     <string name="set_share_map_caption_languages">%1$s: a copy in any of these languages fills a square. Numbers only, no card pictures.</string>
-    <!-- Spoken after the slot map's counts (#250). -->
-    <string name="set_share_owned_numbers">Owned: %1$s</string>
     <!-- Under the share preview: its numbers as app text, on request (#250). -->
     <string name="set_share_show_numbers">Show the numbers</string>
     <string name="set_share_hide_numbers">Hide the numbers</string>
     <string name="set_share_numbers_owned">Owned (%1$d)</string>
     <string name="set_share_numbers_missing">Missing (%1$d)</string>
-    <string name="set_share_missing_numbers">Missing: %1$s</string>
-    <string name="set_share_wanted_numbers">On the wishlist: %1$s</string>
+    <string name="set_share_numbers_wanted">On the wishlist (%1$d)</string>
     <string name="set_share_legend_owned">Owned</string>
     <string name="set_share_legend_missing">Missing</string>
     <string name="set_share_legend_wanted">Wanted most</string>

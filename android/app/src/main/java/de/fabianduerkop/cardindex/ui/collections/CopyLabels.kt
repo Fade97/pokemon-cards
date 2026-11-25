@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.collections
 
+import de.fabianduerkop.cardindex.ui.UiLocale
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
@@ -59,7 +60,7 @@ fun copyDescription(copy: OwnedCopyEntity): String {
 }
 
 /** Language code to its name in the UI language: `de` → "German". */
-fun languageName(code: String, locale: Locale = Locale.getDefault()): String =
+fun languageName(code: String, locale: Locale = UiLocale.current): String =
     Locale.forLanguageTag(code).getDisplayLanguage(locale).ifEmpty { code }
         .replaceFirstChar { it.titlecase(locale) }
 

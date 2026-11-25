@@ -81,12 +81,16 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     val chooserTitle = stringResource(R.string.set_share_chooser)
     val text = checklistText(data)
     val description = if (mapTab) mapDescription(data) else missingDescription(data)
+    // The preview and its numbers scroll; the share actions stay at the bottom, never under a long number list or
+    // cut off at a large font (#250).
+    Column(Modifier.fillMaxWidth()) {
     Column(
         Modifier
+            .weight(1f, fill = false)
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = Spacing.gutter)
-            .padding(bottom = Spacing.xl),
+            .padding(bottom = Spacing.md),
         verticalArrangement = Arrangement.spacedBy(Spacing.md),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
@@ -128,6 +132,15 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
         // The image's numbers are small in the preview: on request the same numbers as app text, at the system font
         // size, in groups TalkBack can step through (#250).
         ImageNumbers(data, mapTab)
+    }
+    Column(
+        Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.gutter)
+            .padding(top = Spacing.sm, bottom = Spacing.lg),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
         ShareImageButton(
             stringResource(R.string.set_share_image),
             layer = layer,
@@ -143,6 +156,7 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             )
         }
         TextAction(stringResource(R.string.receipt_close), onClick = onDone)
+    }
     }
 }
 
@@ -202,12 +216,20 @@ private fun ImageNumbers(data: SetShareData, mapTab: Boolean) {
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            if (mapTab && data.anyWanted) {
+            val wanted = data.slots.filter { it.wanted }.map { it.label }
+            if (mapTab && wanted.isNotEmpty()) {
                 Text(
-                    stringResource(R.string.set_share_wanted_numbers, data.slots.filter { it.wanted }.joinToString(", ") { it.label }),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    stringResource(R.string.set_share_numbers_wanted, wanted.size),
+                    style = MaterialTheme.typography.titleSmall,
+                    modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
                 )
+                wanted.chunked(NumberGroup).forEach { group ->
+                    Text(
+                        group.joinToString(", "),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
             } else if (!mapTab && data.anyWanted) {
                 Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
@@ -530,21 +552,10 @@ private fun mapDescription(data: SetShareData): String {
         },
     )
     val rule = if (data.multilingual) stringResource(R.string.set_share_legend_any_language) else null
-    // Which numbers are filled, so TalkBack users can check a slot without leaving the sheet (#250): the shorter of
-    // the owned and the missing list, then the wishlist ones.
-    val owned = data.slots.filter { it.owned }.map { it.label }
-    val open = data.slots.filterNot { it.owned }.map { it.label }
-    val numbers = when {
-        owned.isEmpty() -> null
-        owned.size <= open.size -> stringResource(R.string.set_share_owned_numbers, owned.joinToString(", "))
-        else -> stringResource(R.string.set_share_missing_numbers, open.joinToString(", "))
-    }
-    val wanted = data.slots.filter { it.wanted }.map { it.label }.takeIf { it.isNotEmpty() }
-        ?.let { stringResource(R.string.set_share_wanted_numbers, it.joinToString(", ")) }
+    // Identity, progress and language rule only: the numbers themselves are in "Show the numbers", ten to a TalkBack
+    // stop, not read out twice (#250).
     return listOfNotNull(
         stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")),
-        numbers,
-        wanted,
         rule,
     ).joinToString(". ")
 }

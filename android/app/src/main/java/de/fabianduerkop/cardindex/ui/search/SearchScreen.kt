@@ -155,7 +155,13 @@ fun SearchScreen(
                     val languages = state.languages
                     if (!languages.isNullOrEmpty()) {
                         Text(
-                            stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                            // Up to two languages by name; more as a count, so the pinned block stays one line and
+                            // results fit above the keyboard at a large font. The names are in the hint (#250).
+                            if (languages.size <= 2) {
+                                stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and)))
+                            } else {
+                                pluralStringResource(R.plurals.search_scope_count, languages.size, languages.size)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.sm),
@@ -183,6 +189,7 @@ fun SearchScreen(
                     }
                     else -> results(
                         state.results,
+                        languages = state.languages.orEmpty(),
                         currentQuery = current,
                         onOpenCard = onOpenCard,
                         onRetry = viewModel::retry,
@@ -219,6 +226,7 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, onSearch
 
 private fun LazyListScope.results(
     results: SearchResults,
+    languages: List<String>,
     currentQuery: String,
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
@@ -226,7 +234,7 @@ private fun LazyListScope.results(
     onShowMore: () -> Unit,
 ) {
     when (results) {
-        SearchResults.Idle -> item { SearchHint() }
+        SearchResults.Idle -> item { SearchHint(languages) }
         SearchResults.Loading -> item { Note(stringResource(R.string.search_loading)) }
         SearchResults.Failed -> item {
             StatusNotice(
@@ -295,7 +303,7 @@ private fun Note(text: String) {
 
 /** What the field takes, with examples that break only between them (#250). */
 @Composable
-private fun SearchHint() {
+private fun SearchHint(languages: List<String>) {
     val style = MaterialTheme.typography.bodyMedium
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.xl)) {
@@ -303,6 +311,15 @@ private fun SearchHint() {
         JoinedText(stringArrayResource(R.array.search_hint_examples).toList(), style = style, color = color)
         Text(stringResource(R.string.search_hint_narrow), style = style, color = color, modifier = Modifier.padding(top = Spacing.lg))
         JoinedText(stringArrayResource(R.array.search_hint_narrow_examples).toList(), style = style, color = color)
+        // With more than two languages the line above the results gives a count; the names are here (#250).
+        if (languages.size > 2) {
+            Text(
+                stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                style = style,
+                color = color,
+                modifier = Modifier.padding(top = Spacing.lg),
+            )
+        }
     }
 }
 
