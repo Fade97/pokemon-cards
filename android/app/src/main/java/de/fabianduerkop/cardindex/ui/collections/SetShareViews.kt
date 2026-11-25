@@ -112,6 +112,9 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
         val missing = data.missingLines.size
         Text(
             when {
+                // The language rule also in the sheet's own text, which follows the system font size (#250).
+                mapTab && data.multilingual && data.languages != null ->
+                    stringResource(R.string.set_share_map_caption_languages, data.languages)
                 mapTab -> stringResource(R.string.set_share_map_no_art)
                 missing <= NamedLines -> stringResource(R.string.set_share_no_art)
                 fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
@@ -226,14 +229,17 @@ internal fun SlotMapImage(data: SetShareData) {
             }
             // With more than one language on the map, a filled square means a copy in any of them, not in each (#250).
             if (data.multilingual) {
-                Text(stringResource(R.string.set_share_legend_any_language), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
+                Text(
+                    stringResource(R.string.set_share_legend_any_language),
+                    Modifier.padding(top = Spacing.xxs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                )
             }
         }
     }
 }
 
-/** The map covers more than one language ("DE, EN"). */
-private val SetShareData.multilingual: Boolean get() = languages?.contains(',') == true
 
 @Composable
 private fun SlotCell(slot: ShareSlot, size: Dp) {
@@ -469,8 +475,23 @@ private fun mapDescription(data: SetShareData): String {
         },
     )
     val rule = if (data.multilingual) stringResource(R.string.set_share_legend_any_language) else null
-    return listOfNotNull(stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")), rule)
-        .joinToString(". ")
+    // Which numbers are filled, so TalkBack users can check a slot without leaving the sheet (#250): the shorter of
+    // the owned and the missing list, then the wishlist ones.
+    val owned = data.slots.filter { it.owned }.map { it.label }
+    val open = data.slots.filterNot { it.owned }.map { it.label }
+    val numbers = when {
+        owned.isEmpty() -> null
+        owned.size <= open.size -> stringResource(R.string.set_share_owned_numbers, owned.joinToString(", "))
+        else -> stringResource(R.string.set_share_missing_numbers, open.joinToString(", "))
+    }
+    val wanted = data.slots.filter { it.wanted }.map { it.label }.takeIf { it.isNotEmpty() }
+        ?.let { stringResource(R.string.set_share_wanted_numbers, it.joinToString(", ")) }
+    return listOfNotNull(
+        stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")),
+        numbers,
+        wanted,
+        rule,
+    ).joinToString(". ")
 }
 
 @Composable

@@ -701,6 +701,12 @@
     </plurals>
     <!-- Under the legend of a slot map with more than one language (#250). -->
     <string name="set_share_legend_any_language">A copy in any of these languages fills a square.</string>
+    <!-- The slot map caption under the preview when it covers more than one language (#250). -->
+    <string name="set_share_map_caption_languages">%1$s: a copy in any of these languages fills a square. Numbers only, no card pictures.</string>
+    <!-- Spoken after the slot map's counts (#250). -->
+    <string name="set_share_owned_numbers">Owned: %1$s</string>
+    <string name="set_share_missing_numbers">Missing: %1$s</string>
+    <string name="set_share_wanted_numbers">On the wishlist: %1$s</string>
     <string name="set_share_legend_owned">Owned</string>
     <string name="set_share_legend_missing">Missing</string>
     <string name="set_share_legend_wanted">Wanted most</string>

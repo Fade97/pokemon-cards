@@ -45,6 +45,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
@@ -230,8 +232,17 @@ private fun ViewerBar(
     Row(
         modifier
             .fillMaxWidth()
+            // A dark scrim under the bar and the status bar: zoomed art passes behind them, and Close and the foil
+            // note must keep their contrast over a bright card (#250).
+            .background(
+                Brush.verticalGradient(
+                    0f to camera.background.copy(alpha = 0.92f),
+                    0.7f to camera.background.copy(alpha = 0.8f),
+                    1f to Color.Transparent,
+                ),
+            )
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-            .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
+            .padding(start = Spacing.xs, end = Spacing.xs, top = Spacing.xs, bottom = Spacing.lg),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(

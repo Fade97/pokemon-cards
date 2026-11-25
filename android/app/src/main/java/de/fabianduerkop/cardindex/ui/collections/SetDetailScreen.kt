@@ -183,7 +183,15 @@ fun SetDetailScreen(
                 // The set as the screen shows it now: its chosen languages, or all of them.
                 val languages = languageChipLabel(detail.languages, state.selectedLanguages)
                     ?: detail.languages.joinToString(", ") { it.uppercase() }.ifEmpty { null }
-                SetShareSheet(SetShare.build(detail, languages, wantedNumbers), onDone = { sharing = false })
+                SetShareSheet(
+                    SetShare.build(
+                        detail,
+                        languages,
+                        wantedNumbers,
+                        languageCount = state.selectedLanguages.ifEmpty { detail.languages.toSet() }.size,
+                    ),
+                    onDone = { sharing = false },
+                )
             }
         }
         when {
