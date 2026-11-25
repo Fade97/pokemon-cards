@@ -78,6 +78,8 @@ class SearchViewModel(
                 delay(DEBOUNCE_MS)
                 try {
                     search.observe(terms, languages, limit = CardSearch.PAGE * shown, query = q).collect { page ->
+                        // The raw field text: the screen compares it with the field to tell stale results apart, so
+                        // it must never be trimmed or normalised here (#250).
                         _state.update { it.copy(results = SearchResults.Found(page.hits, page.more, q)) }
                     }
                 } catch (e: CancellationException) {

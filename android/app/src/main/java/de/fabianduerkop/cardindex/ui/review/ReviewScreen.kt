@@ -45,6 +45,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -149,8 +150,16 @@ fun ReviewScreen(
                         if (item != null) {
                             Footer(
                                 state.draft,
-                                card = item.candidates.firstOrNull { it.rank == state.draft.rank }
-                                    ?.let { "${numberWithTotal(it.card.localId, it.set.printedTotal)} ${it.card.name}" },
+                                card = item.candidates.firstOrNull { it.rank == state.draft.rank }?.let { chosen ->
+                                    // The set or language too when that is what tells the matches apart, so two
+                                    // prints of "025/165 Pikachu" never read the same here (#250).
+                                    val differences = candidateDifferences(item.candidates)
+                                    listOfNotNull(
+                                        "${numberWithTotal(chosen.card.localId, chosen.set.printedTotal)} ${chosen.card.name}",
+                                        chosen.set.name.takeIf { differences.set },
+                                        languageName(chosen.card.language).takeIf { differences.language },
+                                    ).joinToString(", ")
+                                },
                                 target = target?.name,
                                 onChange = { scope.launch { choices.bringIntoView() } },
                                 onSkip = viewModel::skip,
@@ -419,6 +428,8 @@ private fun CandidateRow(
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
+            // Dimmed while the card is being saved, like the chips and buttons around it (#250).
+            .alpha(if (enabled) 1f else DisabledAlpha)
             .focusRing(shape)
             .selectable(selected = selected, enabled = enabled, onClick = onClick, role = Role.RadioButton)
             // One label: merged, the number's own description would replace the name, set and language (#218).
@@ -670,7 +681,11 @@ private fun QuantityButton(icon: Int, description: String, enabled: Boolean = tr
         enabled = enabled,
         modifier = Modifier.focusRing(shape).size(Spacing.touchTarget).semantics { contentDescription = description },
         shape = shape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        // A disabled button's outline dims with its icon, as on the secondary buttons (#250).
+        border = BorderStroke(
+            1.dp,
+            if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+        ),
         contentPadding = PaddingValues(0.dp),
     ) {
         Icon(painterResource(icon), contentDescription = null)
@@ -740,3 +755,6 @@ internal fun conditionLabel(c: Condition): Int = when (c) {
     Condition.HEAVILY_PLAYED -> R.string.review_condition_hp
     Condition.POOR -> R.string.review_condition_poor
 }
+
+/** Material's alpha for disabled content, for a whole row that is off. */
+private const val DisabledAlpha = 0.38f

@@ -413,13 +413,9 @@ private fun LiveScan(
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .focusRing(RectangleShape)
-                        .clickable(
-                            interactionSource = null,
-                            indication = null,
-                            onClickLabel = refocusLabel,
-                            role = Role.Button,
-                        ) {
+                        // Inside the edge: the preview clips anything drawn outside it (#250).
+                        .focusRing(RectangleShape, gap = (-4).dp)
+                        .clickable(interactionSource = null, indication = null, role = Role.Button) {
                             controller.focusOnGuide()
                             focusTaps++
                         }

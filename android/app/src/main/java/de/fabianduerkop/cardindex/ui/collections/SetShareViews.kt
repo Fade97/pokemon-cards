@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -217,11 +218,17 @@ private fun SlotCell(slot: ShareSlot, size: Dp) {
             Text(
                 slot.label,
                 color = if (slot.owned) colors.onPrimary else colors.onSurfaceVariant,
-                // The share canvas has font scale 1, so a dp value works as sp here.
-                fontSize = (size.value * if (slot.label.length > 3) 0.26f else 0.34f).sp,
                 fontWeight = if (slot.owned) FontWeight.SemiBold else FontWeight.Normal,
                 maxLines = 1,
                 softWrap = false,
+                // As large as the cell allows, so the numbers read at a glance in the image and its preview; longer
+                // ids (TG05, SWSH001) shrink to fit (#250). The share canvas has font scale 1: dp values work as sp.
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = (size.value * 0.2f).sp,
+                    maxFontSize = (size.value * 0.44f).sp,
+                    stepSize = (size.value * 0.02f).coerceAtLeast(0.25f).sp,
+                ),
+                modifier = Modifier.padding(horizontal = gap),
             )
         }
     }
