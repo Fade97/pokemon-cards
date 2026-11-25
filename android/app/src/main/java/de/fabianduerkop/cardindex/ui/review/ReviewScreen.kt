@@ -630,7 +630,8 @@ private fun Footer(
                     mark(stringResource(edition.label()), draft.editionChosen) + " " + finishText
                 }
                 // The condition in the form's words ("Near mint"), so the summary matches the chips below (#218).
-                val condition = mark(stringResource(conditionLabel(draft.condition)), draft.conditionChosen)
+                // "Near mint" stays on one line (#250).
+                val condition = mark(stringResource(conditionLabel(draft.condition)).replace(' ', '\u00A0'), draft.conditionChosen)
                 val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, $condition")
                 val summary = when {
                     card == null -> stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved)

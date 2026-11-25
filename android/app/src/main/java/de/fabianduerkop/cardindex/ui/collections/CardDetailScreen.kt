@@ -263,9 +263,11 @@ fun CardDetailScreen(
                             onClick = { editing = item.copy },
                         )
                     }
-                    if (detail.copies.isNotEmpty()) {
+                    // An owned card is rarely wished for: a quiet action after its copies (#250). Not offered for a
+                    // print the user owns in this language, where a want would read "You own it now" at once; one
+                    // already on the wishlist can still be taken off.
+                    if (detail.copies.isNotEmpty() && (wanted || detail.ownedHereAndElsewhere().first == 0)) {
                         item {
-                            // An owned card is rarely wished for: a quiet action after its copies (#250).
                             WishlistToggle(
                                 wanted,
                                 owned = true,

@@ -165,11 +165,26 @@ internal fun SlotMapImage(data: SetShareData) {
         val colors = MaterialTheme.colorScheme
         Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             // Complete, the slot map is the certificate (#169): every square filled, and the day it was done.
+            // With secret rares still open the main set is what is complete, so the image never says "Set complete"
+            // above 42 empty squares (#250).
             val completedOn = data.completedOn
-            ShareHeader(data, stringResource(if (completedOn != null) R.string.set_share_certificate_overline else R.string.set_share_map_overline))
+            val mainOnly = data.missing.secret > 0
+            ShareHeader(
+                data,
+                stringResource(
+                    when {
+                        completedOn == null -> R.string.set_share_map_overline
+                        mainOnly -> R.string.set_share_certificate_main_overline
+                        else -> R.string.set_share_certificate_overline
+                    },
+                ),
+            )
             if (completedOn != null) {
                 Text(
-                    stringResource(R.string.set_share_completed_on, formatDate(completedOn)),
+                    stringResource(
+                        if (mainOnly) R.string.set_share_main_completed_on else R.string.set_share_completed_on,
+                        formatDate(completedOn),
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.primary,
                 )

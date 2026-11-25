@@ -686,7 +686,10 @@
     </plurals>
     <string name="set_share_certificate">Certificate</string>
     <string name="set_share_certificate_overline">Set complete</string>
+    <!-- The main set is complete but secret rares are still missing (#250). -->
+    <string name="set_share_certificate_main_overline">Main set complete</string>
     <string name="set_share_completed_on">Completed %1$s</string>
+    <string name="set_share_main_completed_on">Main set completed %1$s</string>
     <string name="set_share_missing_overline">Still missing</string>
     <!-- e.g. "87 of 165" -->
     <string name="set_share_progress">%1$d/%2$d</string>
@@ -757,7 +760,7 @@
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
-    <string name="review_why_number_not_read">Number not read. Pick the right card.</string>
+    <string name="review_why_number_not_read">Number not read. Check the match.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
     <!-- When the matches differ only in their language (#221): the clue to check on the card. -->
