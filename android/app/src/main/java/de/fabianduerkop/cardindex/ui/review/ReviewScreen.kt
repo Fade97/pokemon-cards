@@ -649,8 +649,9 @@ private fun Footer(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // "Edit copy", not "Change": it opens the copy's details, not another match (#250).
             TextAction(
-                stringResource(R.string.scan_variant_change),
+                stringResource(R.string.review_edit_copy),
                 onClick = onChange,
                 enabled = enabled,
                 modifier = Modifier.offset(x = TextActionInset),
