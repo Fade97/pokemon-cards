@@ -42,6 +42,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.runtime.remember
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.Constraints
@@ -83,94 +88,114 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     val text = checklistText(data)
     val description = if (mapTab) mapDescription(data) else missingDescription(data)
     var numbersShown by rememberSaveable { mutableStateOf(false) }
-    // The preview and its numbers scroll; the share actions stay at the bottom, never under a long number list or
-    // cut off at a large font (#250).
+    // How many numbers the missing-list image fits, as measured when it is laid out (#250).
+    var fitted by remember(data) { mutableIntStateOf(-1) }
+    val scroll = rememberScrollState()
+    val numbersStart = remember { BringIntoViewRequester() }
+    // Opened, the numbers come into view at once instead of waiting below the fold (#250).
+    LaunchedEffect(numbersShown, tab) { if (numbersShown) numbersStart.bringIntoView() }
+    // The heading, preview and numbers scroll; caption and actions stay in a footer, whole at any font size. The
+    // preview is sized to the room the sheet actually has above the footer, measured, not a share of the window, so
+    // nothing in view is cut (#250).
     Column(Modifier.fillMaxWidth()) {
-    Column(
-        Modifier
-            .weight(1f, fill = false)
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.gutter)
-            .padding(bottom = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            stringResource(R.string.set_share_title),
-            Modifier.fillMaxWidth().semantics { heading() },
-            style = MaterialTheme.typography.titleLarge,
-        )
-        ViewSwitch(
-            labels = listOf(
-                stringResource(if (data.completedOn != null) R.string.set_share_certificate else R.string.set_share_map),
-                stringResource(R.string.set_share_missing),
-            ),
-            selectedIndex = tab,
-            onSelect = { tab = it },
-        )
-        // How many numbers the missing-list image fits, as measured when it is laid out (#250).
-        var fitted by remember(data) { mutableIntStateOf(-1) }
-        ShareImagePreview(layer, description) {
-            if (mapTab) SlotMapImage(data) else MissingListImage(data, onFitted = { fitted = it })
+        BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
+            val room = maxHeight
+            var headerHeight by remember { mutableStateOf(0.dp) }
+            val density = LocalDensity.current
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(scroll)
+                    .padding(horizontal = Spacing.gutter)
+                    .padding(bottom = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Column(
+                    Modifier.onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    Text(
+                        stringResource(R.string.set_share_title),
+                        Modifier.fillMaxWidth().semantics { heading() },
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    ViewSwitch(
+                        labels = listOf(
+                            stringResource(if (data.completedOn != null) R.string.set_share_certificate else R.string.set_share_map),
+                            stringResource(R.string.set_share_missing),
+                        ),
+                        selectedIndex = tab,
+                        onSelect = { tab = it },
+                    )
+                }
+                ShareImagePreview(
+                    layer,
+                    description,
+                    maxHeight = if (room == Dp.Infinity) null else (room - headerHeight - Spacing.md - Spacing.sm).coerceAtLeast(PreviewMin),
+                ) {
+                    if (mapTab) SlotMapImage(data) else MissingListImage(data, onFitted = { fitted = it })
+                }
+                // The image's numbers are small in the preview: on request the same numbers as app text, at the
+                // system font size, in groups TalkBack can step through (#250).
+                if (numbersShown) ImageNumbers(data, mapTab, Modifier.bringIntoViewRequester(numbersStart))
+            }
         }
-        // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
-        // more, and when not all of them fit it says how many it shows and that the text has them all (#221, #250).
-        val missing = data.missingLines.size
-        val multilingualCaption = mapTab && data.multilingual && data.languages != null
-        // The preview's spoken summary already ends with the language rule: the caption then adds only "no pictures".
-        val captionSpoken = stringResource(R.string.set_share_map_no_art)
-        Text(
-            when {
-                // The language rule also in the sheet's own text, which follows the system font size (#250).
-                mapTab && data.multilingual && data.languages != null ->
-                    stringResource(R.string.set_share_map_caption_languages, data.languages)
-                mapTab -> stringResource(R.string.set_share_map_no_art)
-                missing <= NamedLines -> stringResource(R.string.set_share_no_art)
-                fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
-                else -> stringResource(R.string.set_share_map_no_art)
-            },
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-            modifier = if (multilingualCaption) Modifier.semantics { contentDescription = captionSpoken } else Modifier,
-        )
-        // The image's numbers are small in the preview: on request the same numbers as app text, at the system font
-        // size, in groups TalkBack can step through (#250). The toggle sits in the footer, always in view.
-        if (numbersShown) ImageNumbers(data, mapTab)
-    }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.gutter)
-            .padding(top = Spacing.sm, bottom = Spacing.lg),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        if (hasNumbers(data, mapTab)) {
-            TextAction(
-                stringResource(if (numbersShown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
-                onClick = { numbersShown = !numbersShown },
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.gutter)
+                .padding(top = Spacing.sm, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
+            // more, and when not all of them fit it says how many it shows and that the text has them all (#221, #250).
+            val missing = data.missingLines.size
+            val multilingualCaption = mapTab && data.multilingual && data.languages != null
+            // The preview's spoken summary already ends with the language rule: the caption then adds only "no pictures".
+            val captionSpoken = stringResource(R.string.set_share_map_no_art)
+            Text(
+                when {
+                    // The language rule also in the sheet's own text, which follows the system font size (#250).
+                    multilingualCaption -> stringResource(R.string.set_share_map_caption_languages, data.languages!!)
+                    mapTab -> stringResource(R.string.set_share_map_no_art)
+                    missing <= NamedLines -> stringResource(R.string.set_share_no_art)
+                    fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
+                    else -> stringResource(R.string.set_share_map_no_art)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = if (multilingualCaption) Modifier.semantics { contentDescription = captionSpoken } else Modifier,
             )
-        }
-        ShareImageButton(
-            stringResource(R.string.set_share_image),
-            layer = layer,
-            fileName = "foilark-" + (if (mapTab) "slots-" else "missing-") + data.setName.filter { it.isLetterOrDigit() }.lowercase(),
-            chooserTitle = chooserTitle,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (!mapTab && data.missingLines.isNotEmpty()) {
-            SecondaryButton(
-                stringResource(R.string.set_share_text),
-                onClick = { context.startActivity(ImageShare.textIntent(text, chooserTitle)) },
+            if (hasNumbers(data, mapTab)) {
+                TextAction(
+                    stringResource(if (numbersShown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
+                    onClick = { numbersShown = !numbersShown },
+                )
+            }
+            ShareImageButton(
+                stringResource(R.string.set_share_image),
+                layer = layer,
+                fileName = "foilark-" + (if (mapTab) "slots-" else "missing-") + data.setName.filter { it.isLetterOrDigit() }.lowercase(),
+                chooserTitle = chooserTitle,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (!mapTab && data.missingLines.isNotEmpty()) {
+                SecondaryButton(
+                    stringResource(R.string.set_share_text),
+                    onClick = { context.startActivity(ImageShare.textIntent(text, chooserTitle)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            TextAction(stringResource(R.string.receipt_close), onClick = onDone)
         }
-        TextAction(stringResource(R.string.receipt_close), onClick = onDone)
-    }
     }
 }
+
+/** The smallest the share preview gets on a very short window: still a recognisable picture. */
+private val PreviewMin = 160.dp
 
 /** Wordmark, set name with its languages, and how far the set is: the top of both images. */
 @Composable
@@ -199,16 +224,17 @@ private fun ShareHeader(data: SetShareData, overline: String) {
  * TalkBack stop, so a slot can be checked without zooming into the preview (#250).
  */
 @Composable
-private fun ImageNumbers(data: SetShareData, mapTab: Boolean) {
+private fun ImageNumbers(data: SetShareData, mapTab: Boolean, modifier: Modifier = Modifier) {
     val owned = data.slots.filter { it.owned }.map { it.label }
     val missing = data.missingLines.map { it.number.substringBefore('/') + if (it.wanted) " " + SetShare.WANTED_MARK else "" }
+    // The slot map lists the shorter non-empty list: owned on a complete set, never an empty "Missing (0)" (#250).
     val (heading, numbers) = when {
         !mapTab -> R.string.set_share_numbers_missing to missing
-        owned.isNotEmpty() && owned.size <= missing.size -> R.string.set_share_numbers_owned to owned
+        missing.isEmpty() || (owned.isNotEmpty() && owned.size <= missing.size) -> R.string.set_share_numbers_owned to owned
         else -> R.string.set_share_numbers_missing to missing
     }
     if (numbers.isEmpty()) return
-    Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         Text(
             stringResource(heading, numbers.size),
             style = MaterialTheme.typography.titleSmall,
