@@ -14,18 +14,20 @@ active, and they give Fabian answers for the production form.
 
 ## 1. Roadmap
 
-Day 0 = closed track released and the opt-in link works for a non-manager account.
+Day 0 = the invitation day. It needs three things: the closed track is live, a dry run with a second Google
+account (one that is **not** an internal tester) got through Group → opt-in → install from Play, and the 18
+promises are in. If Google releases earlier, the track just waits for the promises.
 
 | Phase | Days | Target | Exit criterion |
 |---|---|---|---|
-| Prep | −7 … −4 | — | Closed-track release **submitted for review** (it can take hours to days). `foilark.app/test` live (M1). Google Group created and set up (§4). Closed track on **all countries**. Tracking sheet ready (M6). Shop or league organizer asked (M5.3). |
+| Prep | −7 … −4 | — | Google Group created and set up (§4) and added under **Closed testing → Testers**. Closed track on **all countries**. Then the closed-track release **submitted for review** (it can take hours to days). `foilark.app/test` live (M1). Tracking sheet ready (M6). M2 printed. Shop or league organizer asked (M5.3). Anyone on the internal testing track who wants to join the closed test leaves internal testing first, otherwise they do not count. |
 | Promises | −5 … −1 | 18 yeses + 3 named reserves | DMs (M5.2) ask for a yes, **not** for the link yet: Android 8+, and they know which Google account their Play Store uses. The r/PokemonTCG Self Promo Sunday comment goes up on the last Sunday before day 0 and asks people to reply "interested". |
-| Activation | 0 … 2 | 18–20 opted in, ≥ 16 installed | Fabian has run the whole flow once with a second, non-manager Google account. Day-0 message (M5.5) sent to every yes and every "interested" reply. Store or league visit with the flyer (M2), so people join on the spot. Each tester has replied "installed". If fewer than 16 by day 2: message the reserves, then at most 3–5 people from r/AndroidClosedTesting. |
-| Retention | 3 … 13 | ≥ 14 still in | Day-7 message (M5.6) sent, with Mission 2, whether or not an update is out. If an update ships, it fixes tester reports. ≥ 8 testers have sent feedback. |
+| Activation | 0 … 2 | 18–20 opted in, ≥ 16 installed | Day-0 message (M5.5) sent by DM to every yes. The Reddit comment is edited to add `foilark.app/test`, and each "interested" gets a reply in the thread (DM only if asked). Store or league visit with the flyer (M2), so people join on the spot. Each tester has replied "installed". If fewer than 16 by day 2: message the reserves, then at most 3–5 people from r/AndroidClosedTesting. |
+| Retention | 3 … eligibility | ≥ 14 still in | Day-7 message (M5.6) sent, with Mission 2, whether or not an update is out. If an update ships, it fixes tester reports. ≥ 8 testers have sent feedback. If the count falls to 14 at any point: reserves first, then ask the existing testers for one more referral. |
 | Apply | the day the 12th tester reaches 14 days | ≥ 12 with 14 days | The Console confirms eligibility, then *Apply for production*, using the feedback log (§4). **Testers stay in until production is approved** (M5.7). |
 
 Every tester's 14 days start at their own opt-in, and leaving and rejoining starts them over. Someone who opts in
-on day 3 counts from day 17, so put the effort into days 0–2.
+on day 3 reaches 14 days on day 17, so put the effort into days 0–2.
 
 ## 2. Channels
 
@@ -45,7 +47,7 @@ platforms, which an Android-only app does not meet; **Assumption**, the delegate
 fetchable here), r/pkmntcgcollections (self-promotion banned), the #PKDE Discord (bans all self-promotion and
 unsolicited invites, even in DMs, [rules](https://pokemon-discord.de/regeln), checked 2026-11-27), BisaBoard and
 Pokéfans (advertising removed), PokéCardex (a competitor's community), r/fossdroid (the app uses ML Kit for the
-number OCR, DESIGN.md).
+number OCR, [DESIGN.md](../DESIGN.md)).
 
 **Never:** paid tester services, fake or second accounts, rewards for ratings or reviews.
 
@@ -55,7 +57,7 @@ Read each sidebar again before posting.
 
 | ID | Piece | Format | Content | Who | Used in |
 |---|---|---|---|---|---|
-| M1 | Tester page `foilark.app/test` (EN/DE) | New text-only route in `backend/src/site.ts`, like `/imprint` (no images, no JS) | One sentence on Foilark. "Why 14 days". Three steps: 1. join the Google Group, 2. open the opt-in link and tap **Become a tester**, 3. install **from Play**, all with **the same Google account as the Play Store** (at the top). "Stay in the Group and the test until Fabian gives the all-clear." The two missions. FAQ: no iPhone; Android 8+; "not available" (wrong account or country); English UI. Feedback: in-app (Settings → About), the private email link, the GitHub form (**public**). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Inputs from Fabian: Group URL. Opt-in link: `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. | Every channel after day 0 |
+| M1 | Tester page `foilark.app/test` (EN/DE) | New text-only route in `backend/src/site.ts`, like `/imprint` (no images, no JS) | One sentence on Foilark. "Why 14 days". Three steps: 1. join the Google Group, 2. open the opt-in link and tap **Become a tester**, 3. install **from Play**, all with **the same Google account as the Play Store** (at the top). "Stay in the Group and the test until Fabian gives the all-clear." The two missions. FAQ: no iPhone; Android 8+; "not available" (wrong account or country; right after opting in, wait about 30 minutes, **Assumption**); English UI; no cards at hand (browse sets and prices, send feedback on that). Feedback: in-app (Settings → About), the private email link, the GitHub form (**public**). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Inputs from Fabian: Group URL. Opt-in link: `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. | Every channel after day 0 |
 | M2 | Join card and flyer | 1080 × 1920 PNG for WhatsApp/Signal; A6 PDF with a QR code to `/test`. Source and output in `design/marketing/`, rendered HTML → PNG/PDF (the `marketing-images` skill). | The M1 steps, logo, disclaimer, two UI crops **without card art** (e.g. the price sheet, a set list) | Agent renders, Fabian prints | Store, DMs |
 | M3 | Post image | 1080 × 1350 PNG, same build as M2 | Pearl porcelain background, `foilark-horizontal.svg`, a phone frame with art-free UI, headline "Scan cards offline. No ads. No account in the app.", badge "Android testers wanted". No card art, no Pokéball, no bird, no Pokémon logo. | Agent | Reddit, socials |
 | M5 | Copy kit | Text, below | Recruiting post, DMs, organizer message, funnel messages | Agent drafts (done here), Fabian sends | All |
@@ -106,8 +108,9 @@ is **untested**; check it on the S25 before suggesting it.
 
 ### Funnel messages (M5.5–M5.7)
 
-Send each as a Group email **and** as a personal DM to anyone who did not react (Group mail can land in spam).
-Replies go to Fabian privately, never to the Group.
+Send M5.5 only by personal DM (nobody is in the Group yet). Send M5.6 and M5.7 as a Group email **and** as a
+personal DM to anyone who did not react (Group mail can land in spam). Replies go to Fabian privately, never to
+the Group.
 
 **M5.5 Day 0**
 
@@ -115,14 +118,16 @@ Replies go to Fabian privately, never to the Group.
 > https://play.google.com/apps/testing/de.fabianduerkop.foilark und tippe auf „Tester werden". 3. Installiere
 > Foilark aus dem Play Store. Immer mit demselben Google-Konto wie im Play Store.
 > **Mission 1:** Sprachpaket laden, Flugmodus an, 5 Karten scannen, eine unsichere Karte unter „Review"
-> bestätigen (falls eine dort landet), eine Karte in einen Ordner legen, Flugmodus wieder aus. Schreib mir kurz
+> bestätigen (falls eine dort landet), unter Collections → Binders → New einen Ordner anlegen und eine Karte
+> hineinlegen, Flugmodus wieder aus. Keine Karten zur Hand? Dann Sets und Preise ansehen und mir sagen, was auffällt. Schreib mir kurz
 > „installiert". Bitte bis zu meiner Entwarnung in der Gruppe und im Test bleiben und die App installiert lassen.
 
 > **EN:** The test is open! 1. Join the group: <Group link>. 2. Open
 > https://play.google.com/apps/testing/de.fabianduerkop.foilark and tap "Become a tester". 3. Install Foilark from
 > the Play Store. Always with the same Google account as your Play Store.
 > **Mission 1:** download your language pack, turn on airplane mode, scan 5 cards, confirm an unsure one under
-> "Review" (if one lands there), put one card in a binder, turn airplane mode off again. Send me a quick
+> "Review" (if one lands there), create a binder (Collections → Binders → New) and put one card in it, turn
+> airplane mode off again. No cards at hand? Browse sets and prices and tell me what stands out. Send me a quick
 > "installed". Please stay in the group and the test, with the app installed, until I give the all-clear.
 
 **M5.6 Day 7**
@@ -159,7 +164,7 @@ Mission 1 → day 7: Mission 2 and feedback → day 12 reminder → apply → al
 **Tracking sheet (M6):** name · channel · reserve yes/no · Group joined · opt-in date (self-reported) · installed
 ✓ · Mission 2 reply ✓ · feedback items · status. No email addresses or Google account names in the sheet. The
 Console shows only the opted-in **count**, not names, so compare it with the sheet every two days. If the count
-falls to 14, message the reserves at once.
+falls to 14, message the reserves at once, until the Console confirms eligibility.
 
 **Feedback log for the production form:** for each report, note the date, area (scan, prices, collections),
 the fix and the version that shipped it. The in-app feedback (Settings → About) pre-fills device and version.
