@@ -35,6 +35,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -102,7 +104,9 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     // The heading, preview and numbers scroll; caption and actions stay in a footer, whole at any font size. The
     // preview is sized to the room the sheet actually has above the footer, measured, not a share of the window, so
     // nothing in view is cut (#250).
-    Column(Modifier.fillMaxWidth()) {
+    // TalkBack order: heading, tabs, preview, caption, "Show the numbers", the numbers, then the share actions, though
+    // the numbers sit above the footer on screen (#250).
+    Column(Modifier.fillMaxWidth().semantics { isTraversalGroup = true }) {
         BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
             val room = maxHeight
             var headerHeight by remember { mutableStateOf(0.dp) }
@@ -143,7 +147,15 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
                 }
                 // The image's numbers are small in the preview: on request the same numbers as app text, at the
                 // system font size, in groups TalkBack can step through (#250).
-                if (numbersShown) ImageNumbers(data, mapTab, Modifier.bringIntoViewRequester(numbersStart))
+                if (numbersShown) {
+                    ImageNumbers(
+                        data,
+                        mapTab,
+                        Modifier
+                            .bringIntoViewRequester(numbersStart)
+                            .semantics { isTraversalGroup = true; traversalIndex = TraversalNumbers },
+                    )
+                }
             }
         }
         Column(
@@ -172,14 +184,23 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 textAlign = TextAlign.Center,
-                modifier = if (multilingualCaption) Modifier.semantics { contentDescription = captionSpoken } else Modifier,
+                modifier = Modifier.semantics {
+                    traversalIndex = TraversalCaption
+                    if (multilingualCaption) contentDescription = captionSpoken
+                },
             )
             if (hasNumbers(data, mapTab)) {
                 TextAction(
                     stringResource(if (numbersShown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
                     onClick = { numbersShown = !numbersShown },
+                    modifier = Modifier.semantics { traversalIndex = TraversalToggle },
                 )
             }
+            Column(
+                Modifier.fillMaxWidth().semantics { isTraversalGroup = true; traversalIndex = TraversalActions },
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
             ShareImageButton(
                 stringResource(R.string.set_share_image),
                 layer = layer,
@@ -195,9 +216,16 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
                 )
             }
             TextAction(stringResource(R.string.receipt_close), onClick = onDone)
+            }
         }
     }
 }
+
+/** TalkBack order in the share sheet; the heading, tabs and preview keep the default 0. */
+private const val TraversalCaption = 1f
+private const val TraversalToggle = 2f
+private const val TraversalNumbers = 3f
+private const val TraversalActions = 4f
 
 /** The smallest the share preview gets on a very short window: still a recognisable picture. */
 private val PreviewMin = 160.dp

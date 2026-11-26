@@ -4,6 +4,9 @@ package de.fabianduerkop.cardindex.ui.search
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -268,7 +271,8 @@ private fun LazyListScope.results(
                     // Announced as it changes, so TalkBack users typing in the field hear what the query found (#218).
                     modifier = Modifier
                         // A smaller gap than before (#221): with the keyboard open at large font, a third result fits.
-                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.md, bottom = Spacing.sm)
+                        // Tighter while the keyboard is up, so a third result shows whole at 1.3x (#250).
+                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = if (imeShown()) Spacing.sm else Spacing.md, bottom = Spacing.sm)
                         .semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
@@ -381,7 +385,7 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
             .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = Spacing.md),
+            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = if (imeShown()) Spacing.sm else Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CardImage(card = card, localId = card.localId, printedTotal = hit.printedTotal, modifier = Modifier.width(44.dp))
@@ -432,3 +436,8 @@ private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () ->
 }
 
 private const val STALE_ALPHA = 0.5f
+
+/** Whether the keyboard is on screen: result rows then sit closer, so more of them fit above it (#250). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun imeShown(): Boolean = WindowInsets.isImeVisible
