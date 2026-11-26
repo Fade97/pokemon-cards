@@ -114,6 +114,9 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             Column(
                 Modifier
                     .fillMaxWidth()
+                    // A scroll container is its own traversal group; this one must not be, so the numbers inside it
+                    // sort with the footer's caption, toggle and actions by their indices (#250).
+                    .semantics { isTraversalGroup = false }
                     .verticalScroll(scroll)
                     .padding(horizontal = Spacing.gutter)
                     .padding(bottom = Spacing.sm),
