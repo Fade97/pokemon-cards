@@ -105,8 +105,9 @@ fun ShareImagePreview(
 ) {
     // Less of the window at a large font: the sheet's text grows, so the preview gives up room and the caption and
     // actions under it stay in view (#250).
-    val share = LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare / LocalDensity.current.fontScale.coerceAtLeast(1f)
-    val maxHeight = if (maxHeight != null) minOf(share, maxHeight) else share
+    // A measured room wins: the caller knows what else must stay in view. Without one, the share of the window.
+    val maxHeight = maxHeight
+        ?: (LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare / LocalDensity.current.fontScale.coerceAtLeast(1f))
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val shown = minOf(maxWidth, ShareImageSize.Width, maxHeight * (ShareImageSize.Width / ShareImageSize.Height))
         val density = LocalDensity.current

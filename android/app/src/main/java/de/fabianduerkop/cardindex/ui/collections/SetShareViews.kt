@@ -92,8 +92,13 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     var fitted by remember(data) { mutableIntStateOf(-1) }
     val scroll = rememberScrollState()
     val numbersStart = remember { BringIntoViewRequester() }
-    // Opened, the numbers come into view at once instead of waiting below the fold (#250).
-    LaunchedEffect(numbersShown, tab) { if (numbersShown) numbersStart.bringIntoView() }
+    // Opened, the numbers come into view at once instead of waiting below the fold (#250). A new tab starts at its
+    // preview, with the numbers closed.
+    LaunchedEffect(numbersShown) { if (numbersShown) numbersStart.bringIntoView() }
+    LaunchedEffect(tab) {
+        numbersShown = false
+        scroll.scrollTo(0)
+    }
     // The heading, preview and numbers scroll; caption and actions stay in a footer, whole at any font size. The
     // preview is sized to the room the sheet actually has above the footer, measured, not a share of the window, so
     // nothing in view is cut (#250).
