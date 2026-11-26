@@ -6,10 +6,13 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.InlineTextContent
+import androidx.compose.foundation.text.appendInlineContent
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
@@ -22,7 +25,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.Placeholder
+import androidx.compose.ui.text.PlaceholderVerticalAlign
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.em
+import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /*
@@ -70,7 +78,8 @@ fun SecondaryButton(
         enabled = enabled,
         shape = shape,
         contentPadding = ButtonPadding,
-        border = BorderStroke(1.dp, if (enabled) colors.outlineVariant else colors.onSurface.copy(alpha = 0.12f)),
+        // Control boundaries use the outline role (≥3:1); outlineVariant stays for dividers (#221).
+        border = BorderStroke(1.dp, if (enabled) colors.outline else colors.onSurface.copy(alpha = 0.12f)),
         // Material's outlined label is grey now; Pearl's is sea-glass, or an enabled action reads as dimmed (#218).
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.primary),
     ) { ButtonContent(text, icon) }
@@ -91,7 +100,11 @@ fun TextAction(
     enabled: Boolean = true,
     contentDescription: String? = null,
     destructive: Boolean = false,
+    /** A quiet action in the muted text colour, for one that should not draw the eye (#221). */
+    muted: Boolean = false,
     alignToText: Boolean = false,
+    /** The link leaves the app (a market page, a website): a trailing open-in-new mark says so (#221). */
+    external: Boolean = false,
 ) {
     val shape = MaterialTheme.shapes.medium
     TextButton(
@@ -105,11 +118,32 @@ fun TextAction(
         shape = shape,
         colors = if (destructive) {
             ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+        } else if (muted) {
+            ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSurfaceVariant)
         } else {
             ButtonDefaults.textButtonColors()
         },
-    ) { Text(text) }
+    ) {
+        if (external) {
+            // The mark inside the text, so it follows the last word when the label wraps at large font, instead of
+            // drifting to the row's end (#221).
+            val label = buildAnnotatedString {
+                append(text)
+                append('\u00A0')
+                // Compose needs a non-empty stand-in text; a space adds nothing to what TalkBack reads.
+                appendInlineContent(EXTERNAL_MARK, " ")
+            }
+            val mark = InlineTextContent(Placeholder(1.em, 1.em, PlaceholderVerticalAlign.TextCenter)) {
+                Icon(painterResource(R.drawable.ic_open_in_new), contentDescription = null, modifier = Modifier.fillMaxSize())
+            }
+            Text(label, inlineContent = mapOf(EXTERNAL_MARK to mark))
+        } else {
+            Text(text)
+        }
+    }
 }
+
+private const val EXTERNAL_MARK = "external"
 
 /** A text button's own start padding (Material's 12 dp); [TextAction] with alignToText, or a row of them, moves back by it. */
 val TextActionInset = 12.dp

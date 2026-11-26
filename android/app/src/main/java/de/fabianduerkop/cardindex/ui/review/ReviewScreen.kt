@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.review
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -36,6 +38,7 @@ import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +47,7 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.layout.ContentScale
@@ -81,10 +85,13 @@ import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.ReviewReason
 import de.fabianduerkop.cardindex.model.finishOrder
+import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
 import de.fabianduerkop.cardindex.ui.components.FooterFade
+import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
+import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.SectionHeader
@@ -118,6 +125,9 @@ fun ReviewScreen(
     val target by viewModel.target.collectAsStateWithLifecycle()
     // The footer's Change scrolls the form to the finish, edition, condition and quantity choices (#218).
     val choices = remember { BringIntoViewRequester() }
+    // "Edit copy" also moves keyboard and D-pad focus to the first choice, so the next key press is in the form, not
+    // on Review later or Confirm (#250).
+    val firstChoice = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
     DetailScaffold(
         title = stringResource(R.string.review_title),
@@ -145,10 +155,27 @@ fun ReviewScreen(
                         if (item != null) {
                             Footer(
                                 state.draft,
+                                card = item.candidates.firstOrNull { it.rank == state.draft.rank }?.let { chosen ->
+                                    // The set or language too when that is what tells the matches apart, so two
+                                    // prints of "025/165 Pikachu" never read the same here (#250).
+                                    val differences = candidateDifferences(item.candidates)
+                                    listOfNotNull(
+                                        "${numberWithTotal(chosen.card.localId, chosen.set.printedTotal)} ${chosen.card.name}",
+                                        chosen.set.name.takeIf { differences.set },
+                                        languageName(chosen.card.language).takeIf { differences.language },
+                                    ).joinToString(", ")
+                                },
                                 target = target?.name,
-                                onChange = { scope.launch { choices.bringIntoView() } },
+                                onChange = {
+                                    scope.launch {
+                                        choices.bringIntoView()
+                                        runCatching { firstChoice.requestFocus() }
+                                    }
+                                },
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
+                                saving = state.saving,
+                                saveFailed = state.saveFailed,
                             )
                         }
                     }
@@ -162,7 +189,19 @@ fun ReviewScreen(
                 state.loading -> Unit
                 item == null -> Done(state, onBack, viewModel::reviewSkippedAgain, viewModel::addSampleItems)
                 // Each item starts at the top; its own scroll state, not the previous card's.
-                else -> key(item.entity.id) { ItemForm(item, state.draft, viewModel, choices, onFindCard = { onFindCard(item) }) }
+                else -> key(item.entity.id) {
+                    // Starts the item's short settle time, so a tap meant for the last card can't act on it (#248).
+                    LaunchedEffect(item.entity.id) { viewModel.onShown(item.entity.id) }
+                    ItemForm(
+                        item,
+                        state.draft,
+                        viewModel,
+                        choices,
+                        firstChoice = firstChoice,
+                        onFindCard = { onFindCard(item) },
+                        saving = state.saving,
+                    )
+                }
             }
             if (item != null) FooterFade(Modifier.align(Alignment.BottomCenter))
         }
@@ -175,6 +214,8 @@ private fun ItemForm(
     draft: ReviewDraft,
     viewModel: ReviewViewModel,
     choices: BringIntoViewRequester,
+    firstChoice: FocusRequester? = null,
+    saving: Boolean = false,
     onFindCard: () -> Unit,
 ) {
     val chosen = item.candidates.firstOrNull { it.rank == draft.rank } ?: item.candidates.firstOrNull()
@@ -188,17 +229,23 @@ private fun ItemForm(
         Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.lg)) {
             // Tap to see the scan large, next to the card Confirm would add (#161).
             val enlargeLabel = stringResource(R.string.review_crop_enlarge)
-            AsyncImage(
-                model = item.cropFile,
-                contentDescription = stringResource(R.string.review_crop),
-                modifier = Modifier
-                    .width(88.dp)
-                    .aspectRatio(63f / 88f)
-                    .focusRing(MaterialTheme.shapes.small)
-                    .clip(MaterialTheme.shapes.small)
-                    .clickable(onClickLabel = enlargeLabel, role = Role.Button) { comparing = true },
-                contentScale = ContentScale.Crop,
-            )
+            // The expand mark says the scan opens the side-by-side comparison, not only to TalkBack (#221).
+            Box {
+                AsyncImage(
+                    model = item.cropFile,
+                    contentDescription = stringResource(R.string.review_crop),
+                    modifier = Modifier
+                        // 76 dp, not 88: so all three matches clear the footer at 1.3x font; the expand mark
+                        // opens the scan large (#250).
+                        .width(76.dp)
+                        .aspectRatio(63f / 88f)
+                        .focusRing(MaterialTheme.shapes.small)
+                        .clip(MaterialTheme.shapes.small)
+                        .clickable(onClickLabel = enlargeLabel, role = Role.Button) { comparing = true },
+                    contentScale = ContentScale.Crop,
+                )
+                ExpandMark(Modifier.align(Alignment.BottomEnd).padding(Spacing.xs), size = 14.dp)
+            }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 if (chosen != null) {
                     // The card that Confirm will add, number first: the easiest thing to check against the card.
@@ -225,24 +272,39 @@ private fun ItemForm(
                 }
             }
         }
-        StatusNotice(stringResource(reasonExplanation(item.entity.reason)))
+        // Similar matches that differ only in their language get the one clue to check (#221).
+        val languageOnly = item.entity.reason == ReviewReason.SIMILAR_CARDS &&
+            differences.language && !differences.number && !differences.set
+        StatusNotice(stringResource(if (languageOnly) R.string.review_why_language_only else reasonExplanation(item.entity.reason)))
 
         // None of the matches is right (#129): search for the card, keeping this scan and the choices below. Next to
         // the heading, so the way out shows on the first screen at any font size (#218).
         SectionHeader(
             stringResource(if (item.candidates.size > 1) R.string.review_best_matches else R.string.review_card),
+            // The notice above already sets it apart; its own top kept the third match under the fade at 1.3x (#250).
+            snug = true,
             action = {
                 TextAction(
                     stringResource(R.string.review_find_card_short),
                     onClick = onFindCard,
+                    // Off while this card is being saved, like every other choice on it (#250).
+                    enabled = !saving,
                     modifier = Modifier.offset(x = TextActionInset),
                     contentDescription = stringResource(R.string.review_find_card_description),
                 )
             },
         )
-        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        // A tighter gap than the form's: with the two-line notice, all three matches still clear the footer at 1.3x
+        // (#250).
+        Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             item.candidates.forEach { c ->
-                CandidateRow(c, differences, selected = c.rank == draft.rank, onClick = { viewModel.selectCandidate(c.rank) })
+                CandidateRow(
+                    c,
+                    differences,
+                    selected = c.rank == draft.rank,
+                    onClick = { viewModel.selectCandidate(c.rank) },
+                    enabled = !saving,
+                )
             }
         }
 
@@ -265,14 +327,18 @@ private fun ItemForm(
                 onFinish = viewModel::setFinish,
                 onEdition = viewModel::setEdition,
                 onCondition = viewModel::setCondition,
+                enabled = !saving,
+                firstChoice = firstChoice,
             )
-            QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm))
+            QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm), enabled = !saving)
         }
 
         TextAction(
             stringResource(R.string.review_discard),
             onClick = viewModel::discard,
-            modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else Spacing.lg),
+            enabled = !saving,
+            // The last action ends clear of the footer fade at the end of the scroll (#221).
+            modifier = Modifier.padding(top = Spacing.sm, bottom = if (viewModel.collectsNotCards) 0.dp else FooterFadeHeight),
             alignToText = true,
         )
         // Debug builds only (#244): the crop goes to training as a negative, apart from "Remove", which also covers
@@ -281,7 +347,8 @@ private fun ItemForm(
             TextAction(
                 stringResource(R.string.review_not_a_card),
                 onClick = viewModel::notACard,
-                modifier = Modifier.padding(bottom = Spacing.lg),
+                enabled = !saving,
+                modifier = Modifier.padding(bottom = FooterFadeHeight),
                 alignToText = true,
             )
         }
@@ -307,17 +374,30 @@ internal fun VariantChoices(
     onFinish: (Finish) -> Unit,
     onEdition: (Edition) -> Unit,
     onCondition: (Condition) -> Unit,
+    /** False while the card is being saved: the chips look and read as off, as they are (#250). */
+    enabled: Boolean = true,
+    /** Attached to the first finish chip, so a caller can move focus into the choices (#250). */
+    firstChoice: FocusRequester? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish)
-        ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition)
-        ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition)
+        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish, enabled, firstChoice)
+        ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition, enabled)
+        ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition, enabled)
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: Boolean, label: (T) -> Int, onSelect: (T) -> Unit) {
+private fun <T> ChoiceGroup(
+    title: Int,
+    values: List<T>,
+    selected: T?,
+    chosen: Boolean,
+    label: (T) -> Int,
+    onSelect: (T) -> Unit,
+    enabled: Boolean,
+    firstChoice: FocusRequester? = null,
+) {
     val state = when {
         selected == null -> R.string.variant_state_check
         chosen -> R.string.variant_state_chosen
@@ -336,7 +416,15 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
         Modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        values.forEach { v -> ChoiceChip(selected = v == selected, onClick = { onSelect(v) }, label = stringResource(label(v))) }
+        values.forEachIndexed { index, v ->
+            ChoiceChip(
+                selected = v == selected,
+                onClick = { onSelect(v) },
+                label = stringResource(label(v)),
+                enabled = enabled,
+                modifier = if (index == 0 && firstChoice != null) Modifier.focusRequester(firstChoice) else Modifier,
+            )
+        }
     }
 }
 
@@ -345,7 +433,13 @@ private fun <T> ChoiceGroup(title: Int, values: List<T>, selected: T?, chosen: B
  * ([differences]) in strong type (#161). No similarity score: it reads as precision it doesn't have; Lab keeps it.
  */
 @Composable
-private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, selected: Boolean, onClick: () -> Unit) {
+private fun CandidateRow(
+    c: ReviewCandidate,
+    differences: CandidateDifferences,
+    selected: Boolean,
+    onClick: () -> Unit,
+    enabled: Boolean = true,
+) {
     val colors = MaterialTheme.colorScheme
     val shape = MaterialTheme.shapes.medium
     val spoken = listOf(
@@ -358,8 +452,10 @@ private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, 
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 64.dp)
+            // Dimmed while the card is being saved, like the chips and buttons around it (#250).
+            .alpha(if (enabled) 1f else DisabledAlpha)
             .focusRing(shape)
-            .selectable(selected = selected, onClick = onClick, role = Role.RadioButton)
+            .selectable(selected = selected, enabled = enabled, onClick = onClick, role = Role.RadioButton)
             // One label: merged, the number's own description would replace the name, set and language (#218).
             .clearAndSetSemantics {
                 contentDescription = spoken
@@ -367,10 +463,12 @@ private fun CandidateRow(c: ReviewCandidate, differences: CandidateDifferences, 
             },
         shape = shape,
         color = if (selected) colors.secondaryContainer else colors.surfaceContainerLow,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outlineVariant),
+        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outline),
     ) {
+        // Little vertical padding: the three lines and the 64 dp minimum already give the row its height, and at
+        // 1.3x all three matches then clear the footer under the two-line notice (#250).
         Row(
-            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
@@ -493,10 +591,10 @@ private fun UndoBar(undo: ReviewUndo, onUndo: () -> Unit) {
 
 /** How many of the card to add; in the form under the choices, so the footer keeps only what Confirm saves. */
 @Composable
-private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modifier = Modifier) {
+private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modifier = Modifier, enabled: Boolean = true) {
     Row(modifier, verticalAlignment = Alignment.CenterVertically) {
         Text(stringResource(R.string.review_quantity), Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-        QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = quantity > 1) {
+        QuantityButton(R.drawable.ic_remove, stringResource(R.string.review_quantity_less), enabled = enabled && quantity > 1) {
             onQuantity(-1)
         }
         Text(
@@ -505,7 +603,7 @@ private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modi
             style = MaterialTheme.typography.titleLarge,
             textAlign = TextAlign.Center,
         )
-        QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more)) { onQuantity(1) }
+        QuantityButton(R.drawable.ic_add, stringResource(R.string.review_quantity_more), enabled = enabled) { onQuantity(1) }
     }
 }
 
@@ -516,11 +614,18 @@ private fun QuantityRow(quantity: Int, onQuantity: (Int) -> Unit, modifier: Modi
 @Composable
 private fun Footer(
     draft: ReviewDraft,
+    /** The chosen card, "025/165 Pikachu": named in the summary, so it shows while the form is scrolled (#250). */
+    card: String?,
     target: String?,
     onChange: () -> Unit,
     onSkip: () -> Unit,
     onConfirm: () -> Unit,
+    /** The item's confirmation is being written: the buttons wait and Confirm says so (#248, #250). */
+    saving: Boolean = false,
+    /** The last confirmation of this item failed: said right above Confirm, where the user tapped (#248, #250). */
+    saveFailed: Boolean = false,
 ) {
+    val enabled = !saving
     // Little top padding: the Change button's 48 dp touch height already spaces the summary line (#218).
     Column(
         Modifier.padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xs, bottom = Spacing.md),
@@ -551,18 +656,26 @@ private fun Footer(
                     mark(stringResource(edition.label()), draft.editionChosen) + " " + finishText
                 }
                 // The condition in the form's words ("Near mint"), so the summary matches the chips below (#218).
-                val condition = mark(stringResource(conditionLabel(draft.condition)), draft.conditionChosen)
+                // "Near mint" stays on one line (#250).
+                val condition = mark(stringResource(conditionLabel(draft.condition)).replace(' ', '\u00A0'), draft.conditionChosen)
                 val saved = stringResource(R.string.collections_copy_line, draft.quantity, "$print, $condition")
+                val summary = when {
+                    card == null -> stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved)
+                    defaults -> stringResource(R.string.review_confirm_adds_card_defaults, card, saved)
+                    else -> stringResource(R.string.review_confirm_adds_card, card, saved)
+                }
                 Text(
-                    stringResource(if (defaults) R.string.review_confirm_adds_defaults else R.string.review_confirm_adds, saved),
+                    summary,
                     Modifier.weight(1f),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
+            // "Edit copy", not "Change": it opens the copy's details, not another match (#250).
             TextAction(
-                stringResource(R.string.scan_variant_change),
+                stringResource(R.string.review_edit_copy),
                 onClick = onChange,
+                enabled = enabled,
                 modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.review_change_description),
             )
@@ -575,9 +688,15 @@ private fun Footer(
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        if (saveFailed) StatusNotice(stringResource(R.string.review_confirm_failed), tone = NoticeTone.ERROR)
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f))
-            PrimaryButton(stringResource(R.string.review_confirm), onConfirm, Modifier.weight(1f), enabled = draft.canConfirm)
+            SecondaryButton(stringResource(R.string.review_skip), onSkip, Modifier.weight(1f), enabled = enabled)
+            PrimaryButton(
+                stringResource(if (saving) R.string.review_confirm_saving else R.string.review_confirm),
+                onConfirm,
+                Modifier.weight(1f),
+                enabled = enabled && draft.canConfirm,
+            )
         }
     }
 }
@@ -590,7 +709,11 @@ private fun QuantityButton(icon: Int, description: String, enabled: Boolean = tr
         enabled = enabled,
         modifier = Modifier.focusRing(shape).size(Spacing.touchTarget).semantics { contentDescription = description },
         shape = shape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        // A disabled button's outline dims with its icon, as on the secondary buttons (#250).
+        border = BorderStroke(
+            1.dp,
+            if (enabled) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.12f),
+        ),
         contentPadding = PaddingValues(0.dp),
     ) {
         Icon(painterResource(icon), contentDescription = null)
@@ -660,3 +783,6 @@ internal fun conditionLabel(c: Condition): Int = when (c) {
     Condition.HEAVILY_PLAYED -> R.string.review_condition_hp
     Condition.POOR -> R.string.review_condition_poor
 }
+
+/** Material's alpha for disabled content, for a whole row that is off. */
+private const val DisabledAlpha = 0.38f

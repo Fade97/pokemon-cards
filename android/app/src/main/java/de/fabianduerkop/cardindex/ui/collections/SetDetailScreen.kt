@@ -28,6 +28,7 @@ import androidx.compose.foundation.lazy.grid.GridItemSpan
 import androidx.compose.foundation.lazy.grid.LazyGridScope
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.CornerSize
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -71,6 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import de.fabianduerkop.cardindex.R
+import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.data.collections.Milestone
 import de.fabianduerkop.cardindex.data.collections.Milestones
 import de.fabianduerkop.cardindex.data.collections.SetDetail
@@ -80,6 +82,7 @@ import de.fabianduerkop.cardindex.data.images.OwnPhotos
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.CardImage
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
 import de.fabianduerkop.cardindex.ui.components.MenuChip
 import de.fabianduerkop.cardindex.ui.components.CompletionBar
@@ -128,8 +131,11 @@ fun SetDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val detail = state.detail
     var selectedKey by rememberSaveable { mutableStateOf<String?>(null) }
-    val selected = detail?.slots?.firstOrNull { it.localId == selectedKey }
-    val wantedNumbers by viewModel.wantedNumbers.collectAsStateWithLifecycle()
+    // Only a slot the grid shows can be selected: a filter that hides it closes its bar (#250).
+    val selected = detail?.slots?.filteredBy(state.filter)?.firstOrNull { it.localId == selectedKey }
+    LaunchedEffect(detail != null && selected == null) {
+        if (detail != null && selected == null) selectedKey = null
+    }
     val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val newSlots by viewModel.newSlots.collectAsStateWithLifecycle()
     var sharing by rememberSaveable { mutableStateOf(false) }
@@ -176,7 +182,15 @@ fun SetDetailScreen(
                 // The set as the screen shows it now: its chosen languages, or all of them.
                 val languages = languageChipLabel(detail.languages, state.selectedLanguages)
                     ?: detail.languages.joinToString(", ") { it.uppercase() }.ifEmpty { null }
-                SetShareSheet(SetShare.build(detail, languages, wantedNumbers), onDone = { sharing = false })
+                SetShareSheet(
+                    SetShare.build(
+                        detail,
+                        languages,
+                        state.wantedNumbers,
+                        languageCodes = state.selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted(),
+                    ),
+                    onDone = { sharing = false },
+                )
             }
         }
         when {
@@ -252,9 +266,13 @@ private fun SetGrid(
         // One header with its own spacing: the grid's row gap differs between Compact and Cards, and as separate grid
         // items the filters moved under the thumb when the view toggle was tapped (#218).
         header {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // The header-to-grid gap is the same in both views: Compact's tighter row gap is made up below it (#221).
+            Column(
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.padding(bottom = if (compact) Spacing.md - Spacing.xs else 0.dp),
+            ) {
                 milestone?.let { reached -> MilestoneBanner(reached, onShare = onShare, onDismiss = onDismissMilestone) }
-                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate)
+                SetHeader(detail, state.selectedLanguages, state.value, state.priceDate, state.source)
                 FilterRow(
                     state = state,
                     detail = detail,
@@ -269,6 +287,19 @@ private fun SetGrid(
                         Modifier.padding(bottom = Spacing.sm),
                     )
                 }
+            }
+        }
+        if (shown.isEmpty() && state.filter != SlotFilter.ALL) {
+            // A filter with no slot says so instead of leaving an empty grid (#250).
+            header {
+                Text(
+                    stringResource(
+                        if (state.filter == SlotFilter.OWNED) R.string.collections_filter_owned_empty else R.string.collections_filter_missing_empty,
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = Spacing.lg),
+                )
             }
         }
         items(shown, key = { it.localId }) { slot ->
@@ -303,7 +334,13 @@ private fun LazyGridScope.header(content: @Composable () -> Unit) {
  * owned secret rares beyond it show apart as "+N secret" (#132).
  */
 @Composable
-private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: CollectionValue?, priceDate: Instant?) {
+private fun SetHeader(
+    detail: SetDetail,
+    selectedLanguages: Set<String>,
+    value: CollectionValue?,
+    priceDate: Instant?,
+    source: PriceSource,
+) {
     val languages = selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted()
     val progress = detail.progress
     val languageLabel = if (selectedLanguages.isEmpty() && languages.size != 1) {
@@ -312,8 +349,8 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
         stringResource(R.string.collections_languages_label, languageList(languages, stringResource(R.string.collections_and)))
     }
     Column(Modifier.padding(top = Spacing.sm, bottom = Spacing.md)) {
-        Text(
-            text = listOfNotNull(detail.set.series.takeIf { it.isNotBlank() }, languageLabel).joinToString(" · "),
+        JoinedText(
+            listOfNotNull(detail.set.series.takeIf { it.isNotBlank() }, languageLabel),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -348,7 +385,8 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     // Part of the count's spoken description above.
                     Text(
                         it,
-                        style = MaterialTheme.typography.labelLarge,
+                        // Quieter than the count it explains, like the series line above (#221).
+                        style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.clearAndSetSemantics {},
                     )
@@ -360,29 +398,50 @@ private fun SetHeader(detail: SetDetail, selectedLanguages: Set<String>, value: 
                     horizontalAlignment = Alignment.End,
                     modifier = Modifier.weight(1f).padding(start = Spacing.md, top = Spacing.xs),
                 ) {
+                    // Above a partial sum, so it never reads as the set's whole worth, as on Collections (#221).
+                    if (priced.unpricedCopies > 0) {
+                        Text(
+                            stringResource(R.string.collections_priced_copies),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                        )
+                    }
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
                     // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
                     // many copies it covers when not all (#176, #218). The date never splits.
-                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+                    // Its oldest price once it sums more than one copy, as on Collections (#250).
+                    // The calendar date never splits; "oldest price" may wrap before it (#250).
+                    val date = priceDate?.let { d ->
+                        val day = formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0')
+                        if (priced.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
+                    }
                     val coverage = if (priced.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
                     } else {
                         null
                     }
-                    Text(
-                        listOfNotNull(
-                            listOfNotNull(stringResource(priced.source.marketName()), date).joinToString(", "),
-                            coverage,
-                        ).joinToString("\n"),
+                    // Market and date on one line while they fit, else on two, never "TCGplayer," alone (#250).
+                    JoinedText(
+                        listOfNotNull(stringResource(priced.source.valueBasisName()), date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
+                        separator = ", ",
                     )
+                    coverage?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                        )
+                    }
                 }
             } else if (detail.copies.isNotEmpty()) {
-                // Owned copies but no price in this market: say so, as the set's row on Collections does (#218).
+                // Owned copies but no price in this market: say so, naming it, as the set's row on Collections does (#218).
                 Text(
-                    stringResource(R.string.collections_not_priced),
+                    stringResource(R.string.collections_not_priced, stringResource(source.marketName())),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     textAlign = TextAlign.End,
@@ -547,16 +606,26 @@ private fun CompactSlot(slot: SetSlot, printedTotal: Int, selected: Boolean, onC
             },
         contentAlignment = Alignment.Center,
     ) {
+        val style = numberStyle(MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold))
         Text(
             text = padCollectorNumber(slot.localId, printedTotal),
-            style = numberStyle(MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold)),
+            style = style,
             color = if (slot.owned) extra.onOwnedSlot else extra.onMissingSlot,
             maxLines = 1,
             overflow = TextOverflow.Clip,
+            // Long numbers (TG05, SWSH001) shrink to fit the slot at large font instead of being cut off (#250);
+            // "006" keeps its size.
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = with(LocalDensity.current) { SlotNumberMinSize.toSp() },
+                maxFontSize = style.fontSize,
+            ),
             modifier = Modifier.padding(horizontal = Spacing.xxs),
         )
     }
 }
+
+/** The smallest a long collector number shrinks to in a compact slot, in dp so a large font cannot undo it. */
+private val SlotNumberMinSize = 9.dp
 
 /**
  * A slot in the Cards view: owned cards in full colour, missing ones grey and faded with the hollow slot outline and
@@ -644,7 +713,9 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = if (slot.card == null) {
+                        text = if (slot.otherLanguagesOnly) {
+                            stringResource(R.string.collections_slot_other_languages)
+                        } else if (slot.card == null) {
                             stringResource(R.string.collections_slot_unknown)
                         } else {
                             stringResource(R.string.collections_slot_missing)

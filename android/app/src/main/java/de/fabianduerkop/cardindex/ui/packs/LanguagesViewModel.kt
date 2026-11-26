@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.packs
 
+import de.fabianduerkop.cardindex.ui.UiLocale
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import de.fabianduerkop.cardindex.data.AppContainer
@@ -26,9 +27,12 @@ import java.util.Locale
  */
 val PACK_LANGUAGES = listOf("en", "de", "fr", "it", "es", "pt", "nl", "pl", "ja", "zh-tw", "ko")
 
-/** The language's name in the phone's language, e.g. "German" for `de`, "Chinese (Traditional)" for `zh-tw`. */
+/**
+ * The language's name in the app's language ([UiLocale]), e.g. "German" for `de`, "Chinese (Traditional)" for
+ * `zh-tw`: in the language of the sentence around it, not "Searches the Deutsch, Englisch … cards" (#250).
+ */
 fun languageName(code: String): String {
-    val here = Locale.getDefault()
+    val here = UiLocale.current
     // TCGdex's zh-tw covers Taiwan and Hong Kong: name the script, not one region.
     val name = if (code == TRADITIONAL_CHINESE) {
         Locale.forLanguageTag("zh-Hant").getDisplayName(here)

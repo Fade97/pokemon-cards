@@ -97,7 +97,7 @@ fun SettingsScreen(
                 .padding(horizontal = Spacing.gutter)
                 .padding(bottom = Spacing.xl),
         ) {
-            SettingsSection(stringResource(R.string.settings_languages)) { LanguagesSection() }
+            SettingsSection(stringResource(R.string.settings_languages), first = true) { LanguagesSection() }
             SettingsSection(stringResource(R.string.settings_prices)) {
                 PriceSourcePicker(state, viewModel::setPriceSource)
                 SettingsHint(stringResource(R.string.settings_price_hint))
@@ -110,7 +110,8 @@ fun SettingsScreen(
                     if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
                 when (val result = state.refreshResult) {
-                    is RefreshResult.Updated -> StatusNotice(stringResource(R.string.settings_price_refreshed, result.cards))
+                    // Announced: the result of the refresh the user just started (#250).
+                    is RefreshResult.Updated -> StatusNotice(stringResource(R.string.settings_price_refreshed, result.cards), announce = true)
                     is RefreshResult.Failed -> StatusNotice(stringResource(R.string.settings_price_failed), tone = NoticeTone.ERROR)
                     null -> Unit
                 }
@@ -178,6 +179,7 @@ fun SettingsScreen(
                 when (val message = state.backupMessage) {
                     is BackupMessage.Exported -> StatusNotice(
                         pluralStringResource(R.plurals.settings_exported, message.copies, message.copies),
+                        announce = true,
                     )
                     is BackupMessage.Imported -> {
                         val result = message.result
@@ -198,7 +200,7 @@ fun SettingsScreen(
                         } else {
                             null
                         }
-                        StatusNotice(listOfNotNull(copies, alerts).joinToString("\n"))
+                        StatusNotice(listOfNotNull(copies, alerts).joinToString("\n"), announce = true)
                     }
                     is BackupMessage.Failed -> StatusNotice(
                         stringResource(R.string.settings_backup_failed, message.reason),
@@ -341,7 +343,8 @@ private fun TesterFeedbackLink() {
 internal fun ExternalLink(url: String, label: String, noBrowser: String, modifier: Modifier = Modifier, alignToText: Boolean = false) {
     val uriHandler = LocalUriHandler.current
     val context = LocalContext.current
-    TextAction(label, modifier = modifier, alignToText = alignToText, onClick = {
+    // Web pages get the leaving-the-app mark; an e-mail link opens the mail app, which the label already says.
+    TextAction(label, modifier = modifier, alignToText = alignToText, external = !url.startsWith("mailto:"), onClick = {
         // With no app for web links (no browser, or it is disabled) openUri throws instead of opening nothing:
         // Compose wraps the ActivityNotFoundException in an IllegalArgumentException.
         val opened = try {

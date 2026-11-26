@@ -33,6 +33,8 @@ fun StatusNotice(
     tone: NoticeTone = NoticeTone.INFO,
     actionLabel: String? = null,
     onAction: () -> Unit = {},
+    /** Announce it when it appears, also as information: the result of something the user just started (#250). */
+    announce: Boolean = tone != NoticeTone.INFO,
 ) {
     val colors = MaterialTheme.colorScheme
     val (container: Color, content: Color) = when (tone) {
@@ -45,7 +47,7 @@ fun StatusNotice(
             .fillMaxWidth()
             .background(container, MaterialTheme.shapes.medium)
             .padding(horizontal = Spacing.lg, vertical = Spacing.md)
-            .then(if (tone == NoticeTone.INFO) Modifier else Modifier.semantics { liveRegion = LiveRegionMode.Polite }),
+            .then(if (announce) Modifier.semantics { liveRegion = LiveRegionMode.Polite } else Modifier),
         verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
         CompositionLocalProvider(LocalContentColor provides content) {

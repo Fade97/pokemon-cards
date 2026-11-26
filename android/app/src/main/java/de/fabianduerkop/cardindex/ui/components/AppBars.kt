@@ -1,6 +1,9 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -40,6 +43,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
@@ -55,6 +59,8 @@ fun LumifoilTopAppBar(
     navigationIcon: @Composable () -> Unit = {},
     actions: @Composable RowScope.() -> Unit = {},
     scrollBehavior: TopAppBarScrollBehavior? = null,
+    /** A pinned block under the bar (search field, view switch) takes the tint and draws the edge itself (#221). */
+    pinnedBelow: Boolean = false,
 ) {
     val colors = MaterialTheme.colorScheme
     Column(modifier) {
@@ -74,15 +80,38 @@ fun LumifoilTopAppBar(
         // A hairline once content runs under the bar, like the bottom bars have, so a half-hidden row has an edge to
         // pass under (#218). Always laid out, only coloured, so nothing below moves when it shows.
         val scrolled = (scrollBehavior?.state?.overlappedFraction ?: 0f) > 0.01f
-        HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
+        // Under a pinned block it takes the raised tint, so no 1 dp strip of the page shows between the two (#221).
+        HorizontalDivider(
+            color = when {
+                !scrolled -> Color.Transparent
+                pinnedBelow -> colors.surfaceContainer
+                else -> colors.outlineVariant
+            },
+        )
     }
 }
 
-/** The title of a bar: one line, ellipsized, so a long set name never pushes the actions off screen. */
+/**
+ * The title of a bar: one line, so a long set name never pushes the actions off screen. At a large font it first
+ * shrinks to fit ("Delta-Herrschaft" whole at 1.3x on a 360 dp phone, #250); the ellipsis is the last resort.
+ */
 @Composable
 fun AppBarTitle(text: String) {
-    Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    val style = LocalTextStyle.current
+    Text(
+        text,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        autoSize = TextAutoSize.StepBased(
+            // Never above the full size: at a font scale under 0.8 the 16 dp floor would exceed it, which StepBased rejects.
+            minFontSize = minOf(with(LocalDensity.current) { TitleMinSize.toSp() }.value, style.fontSize.value).sp,
+            maxFontSize = style.fontSize,
+        ),
+    )
 }
+
+/** The smallest a bar title shrinks to, in dp so a large font setting cannot undo it. */
+private val TitleMinSize = 16.dp
 
 /** Back arrow for a bar. Does the same as Android Back; [onClick] usually pops the back stack. */
 @Composable
@@ -103,6 +132,7 @@ fun TopLevelScaffold(
     modifier: Modifier = Modifier,
     wordmark: Boolean = false,
     actions: @Composable RowScope.() -> Unit = {},
+    pinnedBelow: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     PearlScaffold(
@@ -119,6 +149,7 @@ fun TopLevelScaffold(
                 },
                 actions = actions,
                 scrollBehavior = scrollBehavior,
+                pinnedBelow = pinnedBelow,
             )
         },
         content = content,
@@ -138,6 +169,7 @@ fun DetailScaffold(
     backDescription: String = stringResource(R.string.action_back),
     actions: @Composable RowScope.() -> Unit = {},
     bottomBar: @Composable () -> Unit = {},
+    pinnedBelow: Boolean = false,
     content: @Composable (PaddingValues) -> Unit,
 ) {
     PearlScaffold(
@@ -149,6 +181,7 @@ fun DetailScaffold(
                 navigationIcon = { BackButton(onBack, contentDescription = backDescription) },
                 actions = actions,
                 scrollBehavior = scrollBehavior,
+                pinnedBelow = pinnedBelow,
             )
         },
         bottomBar = bottomBar,
@@ -211,7 +244,7 @@ fun ScanShortcut(onClick: () -> Unit, modifier: Modifier = Modifier) {
         onClick = onClick,
         modifier = modifier.padding(horizontal = Spacing.xs).focusRing(shape).heightIn(min = Spacing.touchTarget),
         shape = shape,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         // Sea-glass like the other header actions (#218).
         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.primary),
         contentPadding = PaddingValues(start = 12.dp, end = 16.dp),

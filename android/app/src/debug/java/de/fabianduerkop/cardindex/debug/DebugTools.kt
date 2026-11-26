@@ -130,9 +130,11 @@ object DebugTools {
             own("sv08-057", "en", finish = Finish.HOLO, condition = Condition.MODERATELY_PLAYED)
             own("SV2a-025", "ja")
 
-            val binder = db.collectionDao().insert(
-                CollectionEntity(name = "Trade binder", kind = CollectionKind.CUSTOM, updatedAt = Instant.now()),
-            )
+            // Adding the sample twice reuses its binder, so the list never shows two with the same name.
+            val binder = db.collectionDao().allCustom().firstOrNull { it.name == "Trade binder" }?.id
+                ?: db.collectionDao().insert(
+                    CollectionEntity(name = "Trade binder", kind = CollectionKind.CUSTOM, updatedAt = Instant.now()),
+                )
             db.collectionDao().addCopy(CollectionCopyCrossRef(binder, charizard))
             db.collectionDao().addCopy(CollectionCopyCrossRef(binder, pikachu))
 

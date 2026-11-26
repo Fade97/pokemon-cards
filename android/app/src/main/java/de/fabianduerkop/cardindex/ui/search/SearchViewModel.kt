@@ -27,8 +27,11 @@ sealed interface SearchResults {
     /** The first search for this text is still running. */
     data object Loading : SearchResults
 
-    /** [hits] may be empty (no match); [more] when the list was cut at one page. */
-    data class Found(val hits: List<CardSearchHit>, val more: Boolean) : SearchResults
+    /**
+     * [hits] may be empty (no match); [more] when the list was cut at one page. [query] is the text they were found
+     * for: while the field already holds newer text, the list is stale and cannot be picked from (#221).
+     */
+    data class Found(val hits: List<CardSearchHit>, val more: Boolean, val query: String = "") : SearchResults
 
     /** The local catalog could not be read. */
     data object Failed : SearchResults
@@ -75,7 +78,9 @@ class SearchViewModel(
                 delay(DEBOUNCE_MS)
                 try {
                     search.observe(terms, languages, limit = CardSearch.PAGE * shown, query = q).collect { page ->
-                        _state.update { it.copy(results = SearchResults.Found(page.hits, page.more)) }
+                        // The raw field text: the screen compares it with the field to tell stale results apart, so
+                        // it must never be trimmed or normalised here (#250).
+                        _state.update { it.copy(results = SearchResults.Found(page.hits, page.more, q)) }
                     }
                 } catch (e: CancellationException) {
                     throw e
@@ -87,7 +92,7 @@ class SearchViewModel(
     }
 
     fun setQuery(text: String) {
-        val next = text.take(MAX_QUERY)
+        val next = text.take(MAX_QUERY_LENGTH)
         if (next != query.value) pages.value = 1
         saved[KEY_QUERY] = next
     }
@@ -103,7 +108,9 @@ class SearchViewModel(
 
     private companion object {
         const val KEY_QUERY = "query"
-        const val MAX_QUERY = 60
         const val DEBOUNCE_MS = 150L
     }
 }
+
+/** The longest query the search reads; the field takes no more, so it never shows text the search ignores (#250). */
+internal const val MAX_QUERY_LENGTH = 60

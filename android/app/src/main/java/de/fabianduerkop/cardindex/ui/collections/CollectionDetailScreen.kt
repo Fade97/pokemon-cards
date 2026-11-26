@@ -155,8 +155,10 @@ fun CollectionDetailScreen(
     }
 
     if (editing && collection != null) {
+        val takenNames by viewModel.otherBinderNames.collectAsStateWithLifecycle()
         CollectionSheet(
             initial = collection,
+            takenNames = takenNames,
             onDismiss = { editing = false },
             onSave = { name, description, cover ->
                 viewModel.update(name, description, cover)

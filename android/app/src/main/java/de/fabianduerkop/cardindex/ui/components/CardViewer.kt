@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.foundation.focusable
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -35,15 +42,20 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.structuralEqualityPolicy
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.geometry.center
@@ -229,8 +241,21 @@ private fun ViewerBar(
     Row(
         modifier
             .fillMaxWidth()
+            // A dark scrim under the bar and the status bar: zoomed art passes behind them, and Close and the foil
+            // note must keep their contrast over a bright card (#250).
+            // At least 85 % behind the whole bar, fading only in the padding under it.
+            .drawBehind {
+                val fadeFrom = ((size.height - ScrimFade.toPx()) / size.height).coerceIn(0f, 1f)
+                drawRect(
+                    Brush.verticalGradient(
+                        0f to camera.background.copy(alpha = 0.92f),
+                        fadeFrom to camera.background.copy(alpha = 0.85f),
+                        1f to Color.Transparent,
+                    ),
+                )
+            }
             .windowInsetsPadding(WindowInsets.safeDrawing.only(WindowInsetsSides.Top + WindowInsetsSides.Horizontal))
-            .padding(horizontal = Spacing.xs, vertical = Spacing.xs),
+            .padding(start = Spacing.xs, end = Spacing.xs, top = Spacing.xs, bottom = ScrimFade),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         IconButton(
@@ -254,6 +279,9 @@ private fun ViewerBar(
         }
     }
 }
+
+/** The scrim under the viewer's bar fades out over this much padding below the bar's content. */
+private val ScrimFade = Spacing.lg
 
 /** The dialog's window draws behind the system bars; on the dark surface their icons must be light in both themes. */
 @Composable
@@ -292,6 +320,12 @@ private fun ZoomablePage(
     val failedText = stringResource(if (image.ownPhoto) R.string.viewer_photo_failed else R.string.viewer_image_failed)
     val zoomIn = stringResource(R.string.viewer_zoom_in)
     val zoomReset = stringResource(R.string.viewer_zoom_reset)
+    val panLabels = listOf(
+        stringResource(R.string.viewer_pan_left),
+        stringResource(R.string.viewer_pan_right),
+        stringResource(R.string.viewer_pan_up),
+        stringResource(R.string.viewer_pan_down),
+    )
     // Read in composition only when they flip, not on every frame of a pinch.
     val zoomed by remember { derivedStateOf { ViewerZoom.isZoomed(scale) } }
     val canZoomIn by remember { derivedStateOf { scale < ViewerZoom.MAX_SCALE } }
@@ -307,6 +341,23 @@ private fun ZoomablePage(
         // Until the image has loaded, assume a card's shape, so the first gestures already have the right bounds.
         val content = ViewerZoom.fit(if (intrinsic.isFinite()) intrinsic else Size(CARD_ASPECT, 1f), area)
         val contentDp: Pair<Dp, Dp> = with(density) { content.width.toDp() to content.height.toDp() }
+
+        val panSteps = listOf(
+            Offset(container.width / 4, 0f),
+            Offset(-container.width / 4, 0f),
+            Offset(0f, container.height / 4),
+            Offset(0f, -container.height / 4),
+        )
+        // Bit i is set while pan step i would still move the zoomed image; read in composition, so the TalkBack
+        // actions follow the image as it reaches an edge.
+        val canPan by remember(content, container) {
+            derivedStateOf(structuralEqualityPolicy()) {
+                panSteps.foldIndexed(0) { index, mask, step ->
+                    if (ViewerZoom.clampOffset(offset + step, scale, content, container) != offset) mask or (1 shl index) else mask
+                }
+            }
+        }
+        val panMask = canPan
 
         fun apply(newScale: Float, newOffset: Offset) {
             scale = newScale
@@ -330,19 +381,69 @@ private fun ZoomablePage(
             }
         }
 
+        // A page that fails to load has nothing to zoom or pan: stop a zoom still animating and drop any zoom, so the
+        // pager and the next photo stay reachable by swipe and by the arrow keys (#250).
+        LaunchedEffect(failed) {
+            if (failed) {
+                animation?.cancel()
+                animation = null
+                apply(ViewerZoom.MIN_SCALE, Offset.Zero)
+            }
+        }
+
         Box(
             Modifier
                 .fillMaxSize()
+                // Keyboard and D-pad (#250): the image takes focus; +/- or Enter zoom, 0 or Escape resets, and the arrow
+                // keys pan a zoomed card by the same quarter-screen steps as TalkBack's actions. Unzoomed, the arrows
+                // are left to the pager, so they still turn the pages.
+                .focusRing(RectangleShape, gap = (-4).dp)
+                .onKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown || failed) return@onKeyEvent false
+                    val pan = when (event.key) {
+                        Key.DirectionLeft -> panSteps[0]
+                        Key.DirectionRight -> panSteps[1]
+                        Key.DirectionUp -> panSteps[2]
+                        Key.DirectionDown -> panSteps[3]
+                        else -> null
+                    }
+                    when {
+                        pan != null && ViewerZoom.isZoomed(scale) -> {
+                            animation?.cancel()
+                            apply(scale, offset + pan)
+                            true
+                        }
+                        event.key == Key.Plus || event.key == Key.Equals || event.key == Key.NumPadAdd ||
+                            event.key == Key.Enter || event.key == Key.DirectionCenter -> {
+                            if (scale < ViewerZoom.MAX_SCALE) zoomTo((scale * 2f).coerceAtMost(ViewerZoom.MAX_SCALE), Offset.Zero)
+                            true
+                        }
+                        event.key == Key.Minus || event.key == Key.NumPadSubtract -> {
+                            zoomTo((scale / 2f).coerceAtLeast(ViewerZoom.MIN_SCALE), Offset.Zero)
+                            true
+                        }
+                        (event.key == Key.Zero || event.key == Key.Escape) && ViewerZoom.isZoomed(scale) -> {
+                            zoomTo(ViewerZoom.MIN_SCALE, Offset.Zero)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                .focusable()
                 .pointerInput(content, container) {
-                    detectTapGestures(onDoubleTap = { tap -> zoomTo(ViewerZoom.doubleTapTarget(scale), tap - container.center) })
+                    detectTapGestures(onDoubleTap = { tap ->
+                        if (!failed) zoomTo(ViewerZoom.doubleTapTarget(scale), tap - container.center)
+                    })
                 }
                 .pointerInput(content, container) {
                     detectViewerGestures(
                         isZoomed = { ViewerZoom.isZoomed(scale) },
                         onTransform = { focus, pan, zoom ->
-                            animation?.cancel()
-                            val newScale = ViewerZoom.clampScale(scale * zoom)
-                            apply(newScale, ViewerZoom.zoomAround(offset, scale, newScale, focus) + pan)
+                            if (!failed) {
+                                animation?.cancel()
+                                val newScale = ViewerZoom.clampScale(scale * zoom)
+                                apply(newScale, ViewerZoom.zoomAround(offset, scale, newScale, focus) + pan)
+                            }
                         },
                         onDismissDrag = onDismissDrag,
                         onDismissEnd = onDismissEnd,
@@ -367,6 +468,19 @@ private fun ZoomablePage(
                                     true
                                 },
                             )
+                            // Panning was touch-only, so a zoomed card's corners were out of TalkBack's reach (#221):
+                            // a quarter of the screen per step, within the same bounds as a drag. Only the
+                            // directions that can still move are offered, so none reports a move at an edge (#250).
+                            panSteps.forEachIndexed { index, step ->
+                                if (panMask and (1 shl index) == 0) return@forEachIndexed
+                                add(
+                                    CustomAccessibilityAction(panLabels[index]) {
+                                        animation?.cancel()
+                                        apply(scale, offset + step)
+                                        true
+                                    },
+                                )
+                            }
                         }
                     }
                 },

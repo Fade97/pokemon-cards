@@ -17,6 +17,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -40,11 +41,15 @@ fun SectionHeader(
     trailing: String? = null,
     dense: Boolean = false,
     action: (@Composable RowScope.() -> Unit)? = null,
+    /** The first heading on a screen sits 8 dp under the bar, as content does on the other tabs (#221). */
+    first: Boolean = false,
+    /** A heading right under a notice that already sets it apart: no padding of its own above (#250). */
+    snug: Boolean = false,
 ) {
     val tight = dense || action != null
     Row(
         modifier.fillMaxWidth().padding(
-            top = if (tight) Spacing.md else Spacing.xl,
+            top = if (snug) 0.dp else if (first) Spacing.sm else if (tight) Spacing.md else Spacing.xl,
             bottom = if (tight) Spacing.xs else Spacing.md,
         ),
         verticalAlignment = Alignment.CenterVertically,
@@ -69,14 +74,18 @@ fun SectionHeader(
  * instead of being cut when the font is large.
  */
 @Composable
-fun DataRow(label: String, value: String, modifier: Modifier = Modifier) {
+fun DataRow(label: String, value: String, modifier: Modifier = Modifier) = DataRow(listOf(label), value, modifier)
+
+/** A [DataRow] whose label has facts joined with " · " ([JoinedText]): "Cardmarket trend · All printings". */
+@Composable
+fun DataRow(label: List<String>, value: String, modifier: Modifier = Modifier) {
     Column(modifier.fillMaxWidth()) {
         Row(
             Modifier.fillMaxWidth().heightIn(min = Spacing.touchTarget).padding(vertical = Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
         ) {
-            Text(
+            JoinedText(
                 label,
                 Modifier.weight(1f),
                 style = MaterialTheme.typography.bodyMedium,
@@ -95,9 +104,16 @@ fun DataRow(label: String, value: String, modifier: Modifier = Modifier) {
 
 /** A thin completion bar for a set, e.g. 87 of 165. The surrounding text says the numbers; this repeats them for TalkBack. */
 @Composable
-fun CompletionBar(owned: Int, total: Int, modifier: Modifier = Modifier, marks: List<Float> = emptyList()) {
+fun CompletionBar(
+    owned: Int,
+    total: Int,
+    modifier: Modifier = Modifier,
+    marks: List<Float> = emptyList(),
+    /** The rest of the set: a visible tone on the page and on raised covers alike, not the divider one (#221). */
+    trackColor: Color = MaterialTheme.colorScheme.outline.copy(alpha = 0.40f),
+) {
     val fraction = if (total > 0) (owned.toFloat() / total).coerceIn(0f, 1f) else 0f
-    val track = MaterialTheme.colorScheme.outlineVariant
+    val track = trackColor
     val fill = MaterialTheme.colorScheme.primary
     val gap = MaterialTheme.colorScheme.background
     Canvas(

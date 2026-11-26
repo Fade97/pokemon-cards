@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import java.time.Instant
 import de.fabianduerkop.cardindex.data.db.CachedPriceEntity
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.data.prices.PriceQuote
@@ -93,6 +94,8 @@ data class ScanTray(
      * market, so the session total still counts them (#162).
      */
     val settled: Map<PriceSource, CollectionValue> = emptyMap(),
+    /** The oldest price date among [settled]'s priced copies, per market, for the session total's date (#250). */
+    val settledDates: Map<PriceSource, Instant> = emptyMap(),
 ) {
     val latest: LastScan? get() = history.lastOrNull()
 
@@ -109,10 +112,20 @@ data class ScanTray(
             sum + scan.value(source)
         }
 
+    /** The oldest price date among the session's priced copies in [source], as totals elsewhere (#250). */
+    fun priceDate(source: PriceSource): Instant? =
+        (history.filterIsInstance<LastScan.Added>().mapNotNull { it.marketQuote(source)?.priceDate } + listOfNotNull(settledDates[source]))
+            .minOrNull()
+
     fun record(scan: LastScan): ScanTray = copy(
         history = (history + scan).takeLast(MAX_UNDO),
         settled = (history + scan).dropLast(MAX_UNDO).filterIsInstance<LastScan.Added>().fold(settled) { values, gone ->
             PriceSource.entries.associateWith { source -> (values[source] ?: CollectionValue.empty(source)) + gone.value(source) }
+        },
+        settledDates = (history + scan).dropLast(MAX_UNDO).filterIsInstance<LastScan.Added>().fold(settledDates) { dates, gone ->
+            PriceSource.entries.mapNotNull { source ->
+                listOfNotNull(dates[source], gone.marketQuote(source)?.priceDate).minOrNull()?.let { source to it }
+            }.toMap()
         },
         added = added + if (scan is LastScan.Added) 1 else 0,
         queued = queued + if (scan is LastScan.Queued) 1 else 0,

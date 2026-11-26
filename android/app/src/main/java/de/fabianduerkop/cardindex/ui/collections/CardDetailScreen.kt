@@ -24,13 +24,17 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -39,9 +43,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -71,8 +78,10 @@ import de.fabianduerkop.cardindex.ui.components.CardViewer
 import de.fabianduerkop.cardindex.ui.components.CardViewerImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.ExpandMark
 import de.fabianduerkop.cardindex.ui.components.FooterFade
 import de.fabianduerkop.cardindex.ui.components.FooterFadeHeight
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.PlaceholderText
 import de.fabianduerkop.cardindex.ui.components.PrimaryButton
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -84,6 +93,7 @@ import de.fabianduerkop.cardindex.ui.components.padCollectorNumber
 import de.fabianduerkop.cardindex.ui.containerViewModelFactory
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.io.File
+import java.time.ZoneId
 
 /**
  * Card detail (Pearl study "Card details", #99): the art as the hero, the collector number first under it with the
@@ -133,8 +143,19 @@ fun CardDetailScreen(
         pickingFor = null
     }
 
+    val listState = rememberLazyListState()
+    // The set while the hero shows the card's name; once the name has passed under the bar, the bar names the card,
+    // so the prices and copies below never lose whose they are (#221). Measured on the name itself: on a short page
+    // the list can stop before the whole hero item leaves, so its index alone never changed at the default font.
+    var listTop by remember { mutableFloatStateOf(0f) }
+    var nameBottom by remember { mutableFloatStateOf(Float.MAX_VALUE) }
+    val heroGone by remember { derivedStateOf { listState.firstVisibleItemIndex > 0 || nameBottom <= listTop } }
     DetailScaffold(
-        title = detail?.set?.name ?: detail?.card?.name.orEmpty(),
+        title = when {
+            detail == null -> ""
+            heroGone -> padCollectorNumber(detail.card.localId, detail.set?.printedTotal) + " " + detail.card.name
+            else -> detail.set?.name ?: detail.card.name
+        },
         onBack = onBack,
         bottomBar = { if (detail != null) AddCopyBar(onAdd = { editing = newCopyOf(detail.card) }) },
     ) { padding ->
@@ -147,27 +168,46 @@ fun CardDetailScreen(
             else -> BoxWithConstraints(Modifier.fillMaxSize()) {
                 // What the list shows between the top bar and the Add a copy and navigation bars: the hero fits in it.
                 val viewport = maxHeight - padding.calculateTopPadding() - padding.calculateBottomPadding()
-                LazyColumn(Modifier.fillMaxSize(), contentPadding = padding) {
+                LazyColumn(
+                    Modifier.fillMaxSize().onGloballyPositioned { listTop = it.positionInRoot().y },
+                    state = listState,
+                    contentPadding = padding,
+                ) {
                     item {
                         CardHeader(
+                            onNamePositioned = { nameBottom = it },
                             viewport = viewport,
                             detail = detail,
                             photos = state.photos,
-                            heroDescription = pages?.getOrNull(images?.heroIndex ?: 0)?.description,
+                            // Without art the placeholder stands in; other prints' photos open from it, named as such.
+                            heroDescription = when {
+                                pages.isNullOrEmpty() -> null
+                                images?.heroIndex == null -> stringResource(R.string.card_detail_placeholder_photos)
+                                else -> pages.getOrNull(images.heroIndex)?.description
+                            },
+                            openLabel = stringResource(
+                                if (images?.heroIndex == null) R.string.viewer_open_photos else R.string.viewer_open,
+                            ),
                             onView = { viewing = images?.heroIndex ?: 0 },
                             wanted = wanted,
                             onWanted = { viewModel.setWanted(detail.card, it) },
                         )
                     }
                     item {
-                        // Price the printing the user owns in this language, or the plain print if they own none.
-                        val owned = detail.pricedCopy()
-                        SectionHeader(stringResource(R.string.price_title), Modifier.padding(horizontal = ScreenPadding))
+                        // Price the printing the user owns in this language, or the print's default if they own none.
+                        val (finish, edition) = detail.pricedPrinting()
+                        // Right under an owned card's name the header's fade room is the gap already; the heading's
+                        // own top would double it (#250). Unowned cards have the wishlist button in between.
+                        SectionHeader(
+                            stringResource(R.string.price_title),
+                            Modifier.padding(horizontal = ScreenPadding),
+                            first = detail.copies.isNotEmpty(),
+                        )
                         PriceBox(
                             prices = state.prices,
                             primary = state.source,
-                            finish = owned?.finish ?: Finish.NORMAL,
-                            edition = owned?.edition ?: Edition.UNLIMITED,
+                            finish = finish,
+                            edition = edition,
                             cardLanguage = detail.card.language,
                             modifier = Modifier.padding(horizontal = ScreenPadding),
                             load = state.priceLoad,
@@ -186,12 +226,12 @@ fun CardDetailScreen(
                     }
                     alerts?.let { list ->
                         item {
-                            val owned = detail.pricedCopy()
+                            val (finish, edition) = detail.pricedPrinting()
                             val (main, secondary) = PriceSelection.pair(
                                 state.prices,
                                 state.source,
-                                owned?.finish ?: Finish.NORMAL,
-                                owned?.edition ?: Edition.UNLIMITED,
+                                finish,
+                                edition,
                                 detail.card.language,
                             )
                             SectionHeader(stringResource(R.string.alerts_title), Modifier.padding(horizontal = ScreenPadding))
@@ -207,24 +247,45 @@ fun CardDetailScreen(
                         }
                     }
                     item {
+                        val (here, elsewhere) = detail.ownedHereAndElsewhere()
                         SectionHeader(
-                            stringResource(R.string.collections_your_copies, detail.copies.sumOf { it.copy.quantity }),
+                            stringResource(
+                                if (elsewhere > 0) R.string.collections_your_copies_all_languages else R.string.collections_your_copies,
+                                here + elsewhere,
+                            ),
                             Modifier.padding(horizontal = ScreenPadding),
                         )
                         if (detail.copies.isNotEmpty()) {
                             HorizontalDivider(Modifier.padding(horizontal = ScreenPadding), color = MaterialTheme.colorScheme.outlineVariant)
                         }
                     }
+                    // Rows that would read the same (same printing, condition, binders, language and day) get a number.
+                    val ordinals = copyOrdinals(detail.copies, state.memberships)
                     items(detail.copies, key = { it.copy.id }) { item ->
                         CopyRow(
+                            ordinal = ordinals[item.copy.id],
+                            shownLanguage = detail.card.language,
                             item = item,
                             memberships = state.memberships[item.copy.id].orEmpty(),
                             showCard = false,
                             onClick = { editing = item.copy },
                         )
                     }
+                    // An owned card is rarely wished for: a quiet action after its copies (#250). Not offered for a
+                    // print the user owns in this language, where a want would read "You own it now" at once; one
+                    // already on the wishlist can still be taken off.
+                    if (detail.copies.isNotEmpty() && (wanted || detail.ownedHereAndElsewhere().first == 0)) {
+                        item {
+                            WishlistToggle(
+                                wanted,
+                                owned = true,
+                                onChange = { viewModel.setWanted(detail.card, it) },
+                                modifier = Modifier.padding(horizontal = ScreenPadding).padding(top = Spacing.sm),
+                            )
+                        }
+                    }
                     // At least the fade's height, so the last row rests clear of it.
-                    item { Spacer(Modifier.height(Spacing.xl)) }
+                    item { Spacer(Modifier.height(FooterFadeHeight)) }
                 }
                 // As on Review: the list fades into the Add bar instead of a line being cut at it (#218).
                 FooterFade(Modifier.align(Alignment.BottomCenter).padding(bottom = padding.calculateBottomPadding()))
@@ -325,10 +386,11 @@ private fun AddCopyBar(onAdd: () -> Unit) {
 
 /**
  * Wishlist (#134) for the shown print, in the identity block under the name (#166): a quieter button, since wanting a
- * card adds no copy. When it is on the wishlist, a line says so above the button that takes it off.
+ * card adds no copy. When it is on the wishlist, a line says so above the button that takes it off. For a card the
+ * user already owns it is a text action: it is rarely wanted then and should not sit above the price (#250).
  */
 @Composable
-private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
+private fun WishlistToggle(wanted: Boolean, owned: Boolean, onChange: (Boolean) -> Unit, modifier: Modifier = Modifier) {
     Column(modifier) {
         if (wanted) {
             Text(
@@ -338,11 +400,16 @@ private fun WishlistToggle(wanted: Boolean, onChange: (Boolean) -> Unit, modifie
                 modifier = Modifier.padding(bottom = Spacing.xs),
             )
         }
-        SecondaryButton(
-            stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add),
-            onClick = { onChange(!wanted) },
-            icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
-        )
+        val label = stringResource(if (wanted) R.string.wishlist_remove else R.string.wishlist_add)
+        if (owned) {
+            TextAction(label, onClick = { onChange(!wanted) }, alignToText = true)
+        } else {
+            SecondaryButton(
+                label,
+                onClick = { onChange(!wanted) },
+                icon = if (wanted) R.drawable.ic_remove else R.drawable.ic_add,
+            )
+        }
     }
 }
 
@@ -370,16 +437,17 @@ private fun cardTitle(detail: CardDetail): String {
  */
 @Composable
 private fun CardHeader(
+    onNamePositioned: (bottomInRoot: Float) -> Unit,
     viewport: Dp,
     detail: CardDetail,
     photos: OwnPhotos,
     heroDescription: String?,
+    openLabel: String,
     onView: () -> Unit,
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
     val shape = MaterialTheme.shapes.small
-    val openLabel = stringResource(R.string.viewer_open)
     Column {
         // The collector number, the card's name and its print line show under the art without scrolling, at any font
         // and display size and in landscape: the name is what the screen is about, and the bar only names the set.
@@ -394,29 +462,36 @@ private fun CardHeader(
                     .padding(top = Spacing.sm),
                 contentAlignment = Alignment.Center,
             ) {
-                CardImage(
-                    card = detail.card,
-                    localId = detail.card.localId,
-                    printedTotal = detail.set?.printedTotal,
-                    // No fillMaxWidth: the card's aspect ratio then fits the widest card the height allows.
-                    modifier = Modifier
-                        .widthIn(max = HeroMaxWidth)
-                        .then(
-                            if (heroDescription != null) {
-                                Modifier
-                                    .focusRing(shape)
-                                    .clip(shape)
-                                    .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
-                                    .clearAndSetSemantics { contentDescription = heroDescription }
-                            } else {
-                                Modifier
-                            },
-                        ),
-                    // The newest photo of a copy in the shown language, else of any copy of the card.
-                    ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
-                    preferOwnPhoto = photos.preferOwn,
-                    quality = ImageQuality.HIGH,
-                )
+                // Sized by the art, so the expand mark sits on the card's own corner, not the column's.
+                Box {
+                    CardImage(
+                        card = detail.card,
+                        localId = detail.card.localId,
+                        printedTotal = detail.set?.printedTotal,
+                        // No fillMaxWidth: the card's aspect ratio then fits the widest card the height allows.
+                        modifier = Modifier
+                            .widthIn(max = HeroMaxWidth)
+                            .then(
+                                if (heroDescription != null) {
+                                    Modifier
+                                        .focusRing(shape)
+                                        .clip(shape)
+                                        .clickable(onClickLabel = openLabel, role = Role.Button, onClick = onView)
+                                        .clearAndSetSemantics { contentDescription = heroDescription }
+                                } else {
+                                    Modifier
+                                },
+                            ),
+                        // The newest photo of a copy in the shown language, else of any copy of the card.
+                        // Only a photo of a copy in the shown language: under this print's name and language, another
+                        // language's copy would pass for it. Those photos stay in the viewer, labelled (#250).
+                        ownPhoto = photos.firstOf(detail.copies.filter { it.card.language == detail.card.language }.map { it.copy.uuid }),
+                        preferOwnPhoto = photos.preferOwn,
+                        quality = ImageQuality.HIGH,
+                    )
+                    // A quiet mark that the art opens larger (#221); the tap goes to the art under it.
+                    if (heroDescription != null) ExpandMark(Modifier.align(Alignment.BottomEnd).padding(Spacing.sm))
+                }
             }
             Column(
                 Modifier
@@ -432,7 +507,11 @@ private fun CardHeader(
                 Text(
                     detail.card.name,
                     style = MaterialTheme.typography.headlineMedium,
-                    modifier = Modifier.padding(top = Spacing.sm).semantics { heading() },
+                    modifier = Modifier
+                        .padding(top = Spacing.sm)
+                        .semantics { heading() }
+                        // Unclipped position: bounds in root stop at the list's edge, so they never pass above it.
+                        .onGloballyPositioned { onNamePositioned(it.positionInRoot().y + it.size.height) },
                 )
                 Text(
                     stringResource(
@@ -444,14 +523,53 @@ private fun CardHeader(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(top = Spacing.xs),
                 )
+                // Owned or not, without scrolling to "Your copies" under the prices (#221). A check and plain text, not
+                // the sea-glass of the links, since it is a fact, not an action.
+                // Copies of this print, in its language, as Search counts them; copies in other languages are
+                // named apart, so the count never changes between the two screens (#250).
+                val (here, elsewhere) = detail.ownedHereAndElsewhere()
+                if (here + elsewhere > 0) {
+                    Row(Modifier.padding(top = Spacing.xs), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(18.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                        JoinedText(
+                            listOfNotNull(
+                                if (here > 0) pluralStringResource(R.plurals.card_owned_copies, here, here) else null,
+                                when {
+                                    elsewhere == 0 -> null
+                                    here > 0 -> pluralStringResource(R.plurals.card_owned_more_languages, elsewhere, elsewhere)
+                                    else -> pluralStringResource(R.plurals.card_owned_other_languages, elsewhere, elsewhere)
+                                },
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
         }
-        WishlistToggle(
-            wanted,
-            onChange = onWanted,
-            modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.sm),
-        )
+        // Under the card it belongs to while the user owns none; for an owned card it moves under "Your copies", so
+        // the prices follow the card's name directly (#250).
+        if (detail.copies.isEmpty()) {
+            WishlistToggle(
+                wanted,
+                owned = false,
+                onChange = onWanted,
+                modifier = Modifier.padding(horizontal = ScreenPadding).padding(bottom = Spacing.lg),
+            )
+        }
     }
+}
+
+/** Copies of the shown print in its language, and of the same card in the user's other languages. */
+internal fun CardDetail.ownedHereAndElsewhere(): Pair<Int, Int> {
+    val (here, elsewhere) = copies.partition { it.card.language == card.language }
+    return here.sumOf { it.copy.quantity } to elsewhere.sumOf { it.copy.quantity }
 }
 
 /** The hero never gets wider than this (tablets, foldables) … */
@@ -505,6 +623,10 @@ internal fun CopyRow(
     showCard: Boolean,
     onClick: () -> Unit,
     trailing: @Composable ((stacked: Boolean) -> Unit)? = null,
+    /** "Copy 2" when this row would otherwise read exactly like another one in the list (#221). */
+    ordinal: Int? = null,
+    /** The language the screen already names (card detail's print): said again only for a copy in another one. */
+    shownLanguage: String? = null,
 ) {
     val copy = item.copy
     val fontScale = LocalDensity.current.fontScale
@@ -542,19 +664,33 @@ internal fun CopyRow(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    val details = buildList {
+                    // Where the copy is, then where it came from: when they do not fit one line, each group gets
+                    // its own, so "added Nov 18, 2026 · copy 1" stays together and no "·" ends a line (#250).
+                    val where = buildList {
                         if (showCard) {
                             add(item.set.name)
                             add(stringResource(R.string.collections_copy_line, copy.quantity, copyDescription(copy)))
                         } else {
                             add(memberships.joinToString(", ").ifEmpty { stringResource(R.string.collections_in_no_binder) })
                         }
-                        add(languageName(item.card.language))
-                        copy.purchaseDate?.let { add(stringResource(R.string.collections_bought_on, formatDate(it))) }
+                        if (item.card.language != shownLanguage) add(languageName(item.card.language))
+                    }
+                    val provenance = buildList {
+                        // Bought on, else added on: two otherwise equal copies are then told apart (#221). Dates
+                        // never split across lines.
+                        val bought = copy.purchaseDate
+                        if (bought != null) {
+                            add(stringResource(R.string.collections_bought_on, formatDate(bought).replace(' ', '\u00A0')))
+                        } else if (!showCard) {
+                            val added = formatDate(copy.createdAt.atZone(ZoneId.systemDefault()).toLocalDate())
+                            add(stringResource(R.string.collections_added_on, added.replace(' ', '\u00A0')))
+                        }
+                        ordinal?.let { add(stringResource(R.string.collections_copy_ordinal, it)) }
                     }
                     // No line limit: at 1.3x font size two lines cut off the purchase date (#101).
-                    Text(
-                        details.joinToString(", "),
+                    JoinedText(
+                        // " · " between facts, as in every other list's meta line (#221).
+                        listOf(where, provenance),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
@@ -574,6 +710,26 @@ internal fun CopyRow(
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
         }
     }
+}
+
+/**
+ * "Copy 1", "Copy 2" for copies whose rows would otherwise be identical: same printing and condition, binders,
+ * language and day bought or added. Copies that differ get none.
+ */
+internal fun copyOrdinals(copies: List<CopyWithCard>, memberships: Map<Long, List<String>>): Map<Long, Int> {
+    val zone = ZoneId.systemDefault()
+    return copies
+        .groupBy { item ->
+            val copy = item.copy
+            listOf(
+                copy.quantity, copy.finish, copy.edition, copy.condition, copy.grader, copy.grade, item.card.language,
+                memberships[copy.id].orEmpty(), copy.purchaseDate ?: copy.createdAt.atZone(zone).toLocalDate(),
+            )
+        }
+        .values
+        .filter { it.size > 1 }
+        .flatMap { group -> group.mapIndexed { index, item -> item.copy.id to index + 1 } }
+        .toMap()
 }
 
 /** The trailing price of a [CopyRow]: the caller's [trailing], else what the copy was bought for. */

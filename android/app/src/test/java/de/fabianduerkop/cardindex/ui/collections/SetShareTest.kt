@@ -33,10 +33,11 @@ class SetShareTest {
     fun slotMapListsEverySlotInPrintOrder_withSecretRaresAndWishlistMarks() {
         val data = SetShare.build(detail, "EN", wantedKeys = setOf("2"))
 
-        assertEquals(listOf("1", "2", "3", "4", "5", "6"), data.slots.map { it.label })
+        // Padded like the set grid (#221).
+        assertEquals(listOf("001", "002", "003", "004", "005", "006"), data.slots.map { it.label })
         assertEquals(listOf(true, false, true, false, false, false), data.slots.map { it.owned })
-        assertEquals(listOf("6"), data.slots.filter { it.secret }.map { it.label })
-        assertEquals(listOf("2"), data.slots.filter { it.wanted }.map { it.label })
+        assertEquals(listOf("006"), data.slots.filter { it.secret }.map { it.label })
+        assertEquals(listOf("002"), data.slots.filter { it.wanted }.map { it.label })
         assertEquals(SetMissing(base = 3, secret = 1), data.missing)
         assertTrue(data.anyWanted)
     }
@@ -56,6 +57,15 @@ class SetShareTest {
         val data = SetShare.build(detail, null, wantedKeys = setOf("1"))
         assertFalse(data.anyWanted)
         assertTrue(data.slots.none { it.wanted })
+    }
+
+    @Test
+    fun secretRaresStartTheirOwnRowsAfterAGap() {
+        // 165 main + 42 secret in 12 columns: 14 rows, the gap, then 4 rows.
+        assertEquals(14f + SetShare.SECRET_GAP + 4f, SetShare.rows(207, 12, secret = 42), 0.001f)
+        // Without a main set the secret slots are just the grid.
+        assertEquals(4f, SetShare.rows(42, 12, secret = 42), 0.001f)
+        assertEquals(18f, SetShare.rows(207, 12), 0.001f)
     }
 
     @Test
@@ -93,5 +103,21 @@ class SetShareTest {
 
         assertEquals(java.time.LocalDate.of(2026, 11, 7), SetShare.build(complete, "EN", emptySet(), java.time.ZoneOffset.UTC).completedOn)
         assertEquals(null, SetShare.build(detail, "EN", emptySet()).completedOn)
+    }
+
+    @Test
+    fun aSetCompleteOnlyInAnotherLanguageIsNoCertificate() {
+        fun copy(localId: String, language: String) = CopyWithCard(
+            OwnedCopyEntity(cardId = "s-$localId", cardLanguage = language, createdAt = Instant.EPOCH),
+            card("s-$localId", "s", localId, language),
+            set,
+        )
+        // Complete in English, only 001 in German: the German map has gaps, so it is no certificate (#221).
+        val owned = listOf("001", "002", "003", "004", "005").map { copy(it, "en") } + copy("001", "de")
+        val german = SetDetail(set, listOf("de", "en"), buildSetSlots(5, catalog, owned, setOf("de")), owned)
+        val english = SetDetail(set, listOf("de", "en"), buildSetSlots(5, catalog, owned, setOf("en")), owned)
+
+        assertEquals(null, SetShare.build(german, "DE", emptySet()).completedOn)
+        assertTrue(SetShare.build(english, "EN", emptySet()).completedOn != null)
     }
 }

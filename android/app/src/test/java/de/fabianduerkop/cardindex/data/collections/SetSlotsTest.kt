@@ -66,6 +66,16 @@ class SetSlotsTest {
     }
 
     @Test
+    fun aNumberOnlyPrintedInOtherLanguages_showsNoOtherPrint() {
+        val catalog = listOf(card("s-001", "s", "001", "en"), card("s-001", "s", "001", "de"))
+        val french = buildSetSlots(5, catalog, emptyList(), setOf("fr"))
+        assertNull(french[0].card)
+        assertTrue(french[0].otherLanguagesOnly)
+        assertEquals("001", french[0].localId)
+        assertFalse(french[1].otherLanguagesOnly) // 002: printed in no language here
+    }
+
+    @Test
     fun slotForAnUnknownNumber_hasNoCard() {
         assertNull(buildSetSlots(5, emptyList(), listOf(owned("001", "en")), null)[1].card)
         assertEquals(EnergyType.FIRE, buildSetSlots(5, emptyList(), listOf(owned("001", "en")), null)[0].energyType)

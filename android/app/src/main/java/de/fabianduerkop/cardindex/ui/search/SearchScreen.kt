@@ -1,10 +1,14 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.search
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.consumeWindowInsets
@@ -18,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -28,15 +33,21 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringArrayResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.Role
@@ -60,6 +71,7 @@ import de.fabianduerkop.cardindex.ui.collections.languageName
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.DetailScaffold
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
@@ -102,24 +114,43 @@ fun SearchScreen(
 
     val scaffold: @Composable (@Composable (PaddingValues) -> Unit) -> Unit = { content ->
         if (onBack != null) {
-            DetailScaffold(title = title, onBack = onBack, modifier = modifier, content = content)
+            DetailScaffold(title = title, onBack = onBack, modifier = modifier, pinnedBelow = true, content = content)
         } else {
-            TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, content = content)
+            TopLevelScaffold(title = stringResource(R.string.nav_search), modifier = modifier, pinnedBelow = true, content = content)
+        }
+    }
+    val current by viewModel.query.collectAsStateWithLifecycle()
+    val listState = rememberLazyListState()
+    val scrolled by remember { derivedStateOf { listState.canScrollBackward } }
+    // A new query's results start at their best match; "Show more" and coming back from a card keep the place (#221).
+    val foundQuery = (state.results as? SearchResults.Found)?.query
+    var shownQuery by rememberSaveable { mutableStateOf<String?>(null) }
+    LaunchedEffect(foundQuery) {
+        if (foundQuery != null && foundQuery != shownQuery) {
+            if (shownQuery != null) listState.scrollToItem(0)
+            shownQuery = foundQuery
         }
     }
     scaffold { padding ->
-        LazyColumn(
-            Modifier.fillMaxSize().consumeWindowInsets(padding).imePadding(),
-            contentPadding = padding,
+        // The field stays pinned above the results, so a new query is one tap away after scrolling (#221).
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(top = padding.calculateTopPadding())
+                .consumeWindowInsets(padding)
+                .imePadding(),
         ) {
-            item {
-                // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
-                Column(Modifier.padding(horizontal = Spacing.gutter)) {
+            // No headline under the bar: it named the screen a second time ("Search", then "Find a card", #218).
+            // With results under it, the field takes the bar's raised tint and the edge moves below it, where the
+            // rows actually pass (#221).
+            val colors = MaterialTheme.colorScheme
+            Column(Modifier.fillMaxWidth().background(if (scrolled) colors.surfaceContainer else colors.background)) {
+                Column(Modifier.padding(horizontal = Spacing.gutter).padding(bottom = Spacing.sm)) {
                     SearchField(
                         value = text,
                         onValueChange = {
-                            text = it
-                            viewModel.setQuery(it)
+                            text = it.take(MAX_QUERY_LENGTH)
+                            viewModel.setQuery(text)
                         },
                         onSearch = { keyboard?.hide() },
                         modifier = Modifier.padding(top = Spacing.sm),
@@ -127,33 +158,48 @@ fun SearchScreen(
                     val languages = state.languages
                     if (!languages.isNullOrEmpty()) {
                         Text(
-                            stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                            // Up to two languages by name; more as a count, so the pinned block stays one line and
+                            // results fit above the keyboard at a large font. The names are in the hint (#250).
+                            if (languages.size <= 2) {
+                                stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and)))
+                            } else {
+                                pluralStringResource(R.plurals.search_scope_count, languages.size, languages.size)
+                            },
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(top = Spacing.sm),
                         )
                     }
                 }
+                HorizontalDivider(color = if (scrolled) colors.outlineVariant else Color.Transparent)
             }
-            val languages = state.languages
-            when {
-                languages == null -> Unit
-                languages.isEmpty() -> item {
-                    StatusNotice(
-                        stringResource(R.string.search_no_languages),
-                        tone = NoticeTone.WARNING,
-                        actionLabel = stringResource(R.string.search_choose_languages),
-                        onAction = onOpenLanguages,
-                        modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+            LazyColumn(
+                Modifier.weight(1f).fillMaxWidth(),
+                state = listState,
+                contentPadding = PaddingValues(bottom = padding.calculateBottomPadding()),
+            ) {
+                val languages = state.languages
+                when {
+                    languages == null -> Unit
+                    languages.isEmpty() -> item {
+                        StatusNotice(
+                            stringResource(R.string.search_no_languages),
+                            tone = NoticeTone.WARNING,
+                            actionLabel = stringResource(R.string.search_choose_languages),
+                            onAction = onOpenLanguages,
+                            modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
+                        )
+                    }
+                    else -> results(
+                        state.results,
+                        languages = state.languages.orEmpty(),
+                        currentQuery = current,
+                        onOpenCard = onOpenCard,
+                        onRetry = viewModel::retry,
+                        onOpenScan = onOpenScan,
+                        onShowMore = viewModel::showMore,
                     )
                 }
-                else -> results(
-                    state.results,
-                    onOpenCard = onOpenCard,
-                    onRetry = viewModel::retry,
-                    onOpenScan = onOpenScan,
-                    onShowMore = viewModel::showMore,
-                )
             }
         }
     }
@@ -183,13 +229,15 @@ private fun SearchField(value: String, onValueChange: (String) -> Unit, onSearch
 
 private fun LazyListScope.results(
     results: SearchResults,
+    languages: List<String>,
+    currentQuery: String,
     onOpenCard: (String, String) -> Unit,
     onRetry: () -> Unit,
     onOpenScan: (() -> Unit)?,
     onShowMore: () -> Unit,
 ) {
     when (results) {
-        SearchResults.Idle -> item { Note(stringResource(R.string.search_hint)) }
+        SearchResults.Idle -> item { SearchHint(languages) }
         SearchResults.Loading -> item { Note(stringResource(R.string.search_loading)) }
         SearchResults.Failed -> item {
             StatusNotice(
@@ -200,12 +248,20 @@ private fun LazyListScope.results(
                 modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
             )
         }
-        is SearchResults.Found -> if (results.hits.isEmpty()) {
+        // An older query's "No cards found" never stands under new text: the search is still running (#250).
+        is SearchResults.Found -> if (results.hits.isEmpty() && results.query != currentQuery) {
+            item { Note(stringResource(R.string.search_loading)) }
+        } else if (results.hits.isEmpty()) {
             item { NoMatch(onOpenScan) }
         } else {
+            // Hits of older text while the next search runs: shown faded, not pickable, so a tap never opens a card
+            // the field no longer asks for (#221). Their count is not said for the new text either (#250).
+            val stale = results.query != currentQuery
             item {
                 Text(
-                    if (results.more) {
+                    if (stale) {
+                        stringResource(R.string.search_loading)
+                    } else if (results.more) {
                         pluralStringResource(R.plurals.search_more, results.hits.size, results.hits.size)
                     } else {
                         pluralStringResource(R.plurals.search_count, results.hits.size, results.hits.size)
@@ -214,13 +270,15 @@ private fun LazyListScope.results(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     // Announced as it changes, so TalkBack users typing in the field hear what the query found (#218).
                     modifier = Modifier
-                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = Spacing.xl, bottom = Spacing.sm)
+                        // A smaller gap than before (#221): with the keyboard open at large font, a third result fits.
+                        // Tighter while the keyboard is up, so a third result shows whole at 1.3x (#250).
+                        .padding(start = Spacing.gutter, end = Spacing.gutter, top = if (imeShown()) Spacing.sm else Spacing.md, bottom = Spacing.sm)
                         .semantics { liveRegion = LiveRegionMode.Polite },
                 )
                 HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
             }
             items(results.hits, key = { it.card.id + "/" + it.card.language }) { hit ->
-                SearchResultRow(hit, onClick = { onOpenCard(hit.card.id, hit.card.language) })
+                SearchResultRow(hit, enabled = !stale, onClick = { onOpenCard(hit.card.id, hit.card.language) })
             }
             // The list is cut at a page: the next page of the same query, so a broad query never hides a match (#218).
             if (results.more) {
@@ -228,6 +286,7 @@ private fun LazyListScope.results(
                     SecondaryButton(
                         stringResource(R.string.search_show_more),
                         onClick = onShowMore,
+                        enabled = !stale,
                         modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.lg),
                     )
                 }
@@ -244,6 +303,28 @@ private fun Note(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.xl),
     )
+}
+
+/** What the field takes, with examples that break only between them (#250). */
+@Composable
+private fun SearchHint(languages: List<String>) {
+    val style = MaterialTheme.typography.bodyMedium
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Column(Modifier.padding(horizontal = Spacing.gutter, vertical = Spacing.xl)) {
+        Text(stringResource(R.string.search_hint), style = style, color = color)
+        JoinedText(stringArrayResource(R.array.search_hint_examples).toList(), style = style, color = color)
+        Text(stringResource(R.string.search_hint_narrow), style = style, color = color, modifier = Modifier.padding(top = Spacing.lg))
+        JoinedText(stringArrayResource(R.array.search_hint_narrow_examples).toList(), style = style, color = color)
+        // With more than two languages the line above the results gives a count; the names are here (#250).
+        if (languages.size > 2) {
+            Text(
+                stringResource(R.string.search_scope, languageList(languages, stringResource(R.string.collections_and))),
+                style = style,
+                color = color,
+                modifier = Modifier.padding(top = Spacing.lg),
+            )
+        }
+    }
 }
 
 @Composable
@@ -285,7 +366,7 @@ private fun NoMatch(onOpenScan: (() -> Unit)?) {
  * set and language, and how many copies of this print the user owns. One button for TalkBack.
  */
 @Composable
-private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
+private fun SearchResultRow(hit: CardSearchHit, enabled: Boolean, onClick: () -> Unit) {
     val card = hit.card
     // One label for the whole row: merged, the number's own description would replace the name, set and language.
     val spoken = listOfNotNull(
@@ -293,45 +374,55 @@ private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
         card.name,
         hit.setName,
         languageName(card.language),
-        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.search_owned, it, it) },
+        hit.owned.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.card_owned_copies, it, it) },
     ).joinToString(", ")
     Column(
         Modifier
             .fillMaxWidth()
+            .alpha(if (enabled) 1f else STALE_ALPHA)
             .focusRing(MaterialTheme.shapes.small, gap = (-2).dp)
-            .clickable(role = Role.Button, onClick = onClick)
+            .clickable(enabled = enabled, role = Role.Button, onClick = onClick)
             .clearAndSetSemantics { contentDescription = spoken },
     ) {
         Row(
-            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = Spacing.md),
+            Modifier.fillMaxWidth().heightIn(min = 72.dp).padding(horizontal = Spacing.gutter, vertical = if (imeShown()) Spacing.sm else Spacing.md),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             CardImage(card = card, localId = card.localId, printedTotal = hit.printedTotal, modifier = Modifier.width(44.dp))
             Spacer(Modifier.width(Spacing.md))
             Column(Modifier.weight(1f)) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    CollectorNumber(
-                        localId = card.localId,
-                        printedTotal = hit.printedTotal,
-                        style = MaterialTheme.typography.titleMedium,
-                        modifier = Modifier.weight(1f, fill = false),
-                    )
-                    if (hit.owned > 0) {
-                        Text(
-                            pluralStringResource(R.plurals.search_owned, hit.owned, hit.owned),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                        )
-                    }
-                }
+                CollectorNumber(
+                    localId = card.localId,
+                    printedTotal = hit.printedTotal,
+                    style = MaterialTheme.typography.titleMedium,
+                )
                 Text(card.name, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                // "151, English" as on Review's candidates and the card's own screen (#250).
                 Text(
-                    listOfNotNull(hit.setName, languageName(card.language)).joinToString(" · "),
+                    hit.setName?.let { stringResource(R.string.review_set_language, it, languageName(card.language)) } ?: languageName(card.language),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
+                if (hit.owned > 0) {
+                    // Last, with the check, as on the card's own screen: number and name stay together at any font
+                    // size, and the count reads as a fact about the print, not as part of "/165" (#250).
+                    Row(Modifier.padding(top = Spacing.xxs), verticalAlignment = Alignment.CenterVertically) {
+                        Icon(
+                            painterResource(R.drawable.ic_check),
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(16.dp),
+                        )
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(
+                            pluralStringResource(R.plurals.card_owned_copies, hit.owned, hit.owned),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurface,
+                        )
+                    }
+                }
             }
             Icon(
                 painterResource(R.drawable.ic_chevron_right),
@@ -343,3 +434,10 @@ private fun SearchResultRow(hit: CardSearchHit, onClick: () -> Unit) {
         HorizontalDivider(Modifier.padding(horizontal = Spacing.gutter), color = MaterialTheme.colorScheme.outlineVariant)
     }
 }
+
+private const val STALE_ALPHA = 0.5f
+
+/** Whether the keyboard is on screen: result rows then sit closer, so more of them fit above it (#250). */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun imeShown(): Boolean = WindowInsets.isImeVisible

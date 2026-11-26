@@ -33,8 +33,8 @@ import de.fabianduerkop.cardindex.ui.theme.Spacing
 
 /** One topic of Settings: a heading, then its rows. */
 @Composable
-internal fun SettingsSection(title: String, content: @Composable ColumnScope.() -> Unit) {
-    SectionHeader(title)
+internal fun SettingsSection(title: String, first: Boolean = false, content: @Composable ColumnScope.() -> Unit) {
+    SectionHeader(title, first = first)
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm), content = content)
 }
 
@@ -60,13 +60,16 @@ internal fun SwitchRow(title: String, hint: String, checked: Boolean, onCheckedC
             .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
             .heightIn(min = Spacing.touchTarget)
             .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(Modifier.weight(1f).padding(end = Spacing.md)) {
-            Text(title, style = MaterialTheme.typography.titleSmall)
+        // The switch sits with its title, and the hint takes the full width under both: centred on the whole block,
+        // the switch sat lines below its label at a large font (#250).
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(title, Modifier.weight(1f).padding(end = Spacing.md), style = MaterialTheme.typography.titleSmall)
+                Switch(checked = checked, onCheckedChange = null)
+            }
             SettingsHint(hint)
         }
-        Switch(checked = checked, onCheckedChange = null)
     }
 }
 
@@ -104,12 +107,14 @@ internal fun ConfirmDialog(
     confirmLabel: String,
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
+    /** The confirm word in the error colour, where the loss is decided (#221). */
+    destructive: Boolean = false,
 ) {
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(title) },
         text = { Text(text, style = MaterialTheme.typography.bodyMedium) },
-        confirmButton = { TextAction(confirmLabel, onClick = onConfirm) },
+        confirmButton = { TextAction(confirmLabel, onClick = onConfirm, destructive = destructive) },
         dismissButton = { TextAction(stringResource(android.R.string.cancel), onClick = onDismiss) },
         // Material's dialog already uses the 22 dp sheet corner (shapes.extraLarge) and a raised container.
     )

@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -38,7 +37,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -63,6 +61,7 @@ import de.fabianduerkop.cardindex.data.collections.SetProgress
 import de.fabianduerkop.cardindex.data.prices.CollectionValue
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.focusRing
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import de.fabianduerkop.cardindex.ui.theme.TabularFigures
@@ -87,13 +86,23 @@ internal fun LanguageChips(
         modifier = modifier.fillMaxWidth().padding(horizontal = horizontalPadding),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
+        // "All" beside the codes: "All languages" left JA alone on a second line at 1.3x font (#221); TalkBack still
+        // hears the full words.
         ChoiceChip(
             selected = selected.isEmpty(),
             onClick = { onToggle(null) },
-            label = stringResource(R.string.collections_all_languages),
+            label = stringResource(R.string.collections_all_languages_short),
+            contentDescription = stringResource(R.string.collections_all_languages),
         )
         languages.forEach { code ->
-            ChoiceChip(selected = code in selected, onClick = { onToggle(code) }, label = code.uppercase())
+            ChoiceChip(
+                selected = code in selected,
+                onClick = { onToggle(code) },
+                label = code.uppercase(),
+                // The visible code first, then the language: "DE, German", so voice control finds the chip by what it
+                // shows (label in name, #250) and TalkBack still says the language.
+                contentDescription = stringResource(R.string.collections_language_chip_description, code.uppercase(), languageName(code)),
+            )
         }
     }
 }
@@ -146,13 +155,16 @@ internal fun ValueSummary(
             }
             // "Prices from Nov 20, 2026" wraps as a whole, never with the date split over two lines (#218).
             priceDate?.let {
-                add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0'))
+                // A total's date is its oldest price (Prices.totalDate): said so once more than one copy is priced (#250).
+                val date = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())
+                val res = if ((value?.pricedCopies ?: 0) > 1) R.string.price_oldest_as_of else R.string.price_as_of
+                add(stringResource(res, date).replace(' ', '\u00A0'))
             }
         }
         if (details.isNotEmpty()) {
-            Text(
-                // One line at 1x; at a large font each part on its own line, never a lone "·" at a line end (#218).
-                details.joinToString(if (LocalDensity.current.fontScale > 1.15f) "\n" else " · "),
+            JoinedText(
+                // One line while it fits, else each part on its own line: never a lone "·" at a line end (#218, #250).
+                details,
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 modifier = Modifier.padding(top = Spacing.xs),
@@ -252,6 +264,8 @@ internal fun ListRow(
     below: (@Composable () -> Unit)? = null,
     leading: (@Composable () -> Unit)? = null,
     subtitleMaxLines: Int = Int.MAX_VALUE,
+    /** Instead of [subtitle]: lines of facts, each joined with " · " as far as it fits ([JoinedText], #250). */
+    subtitleLines: List<List<String>>? = null,
     trailing: @Composable () -> Unit = {},
 ) {
     Column(
@@ -286,7 +300,15 @@ internal fun ListRow(
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
-                if (subtitle != null) {
+                if (subtitleLines != null) {
+                    JoinedText(
+                        subtitleLines,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(top = Spacing.xxs),
+                        groupLines = true,
+                    )
+                } else if (subtitle != null) {
                     Text(
                         subtitle,
                         style = MaterialTheme.typography.bodySmall,
@@ -342,7 +364,11 @@ internal fun ViewSwitch(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    Row(modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup()) {
+    // Overlapped by spacing rather than offsets, so the last segment still ends on the gutter (#221).
+    Row(
+        modifier.fillMaxWidth().height(IntrinsicSize.Min).selectableGroup(),
+        horizontalArrangement = Arrangement.spacedBy((-1).dp),
+    ) {
         labels.forEachIndexed { index, label ->
             val selected = index == selectedIndex
             val shape = SegmentedButtonDefaults.itemShape(index, labels.size, MaterialTheme.shapes.medium)
@@ -350,9 +376,8 @@ internal fun ViewSwitch(
             Box(
                 Modifier
                     .weight(1f)
-                    // Neighbours share one outline, as in Material's segmented buttons; the selected one draws on top,
-                    // and a focused one above that, so no neighbour covers its focus ring.
-                    .offset(x = (-1).dp * index)
+                    // Neighbours share one outline, as in Material's segmented buttons (the row's -1 dp spacing); the
+                    // selected one draws on top, and a focused one above that, so no neighbour covers its focus ring.
                     .zIndex(if (focused) 2f else if (selected) 1f else 0f)
                     .onFocusChanged { focused = it.isFocused }
                     .fillMaxHeight()
@@ -361,7 +386,8 @@ internal fun ViewSwitch(
                     .clip(shape)
                     // Unselected segments show the surface beneath, the page or a sheet, instead of painting the page colour.
                     .background(if (selected) colors.secondaryContainer else Color.Transparent)
-                    .border(1.dp, if (selected) colors.primary else colors.outlineVariant, shape)
+                    // A thicker outline marks the selected segment, not its colour alone (#250).
+                    .border(if (selected) 2.dp else 1.dp, if (selected) colors.primary else colors.outline, shape)
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelect(index) })
                     .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
                 contentAlignment = Alignment.Center,

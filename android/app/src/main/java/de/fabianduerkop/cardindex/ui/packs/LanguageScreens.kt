@@ -136,7 +136,7 @@ fun LanguagePickerScreen(onDone: () -> Unit, viewModel: LanguagesViewModel = lan
 private fun MobileDataSwitch(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
     SwitchRow(
         title = stringResource(R.string.packs_mobile_data),
-        hint = stringResource(R.string.packs_mobile_data_hint),
+        hint = stringResource(if (checked) R.string.packs_mobile_data_hint_on else R.string.packs_mobile_data_hint),
         checked = checked,
         onCheckedChange = onCheckedChange,
     )
@@ -231,12 +231,18 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
     state.syncError?.takeIf { !state.syncing && state.catalog == CatalogStatus.Ready }?.let {
         StatusNotice(stringResource(R.string.packs_sync_failed, it), tone = NoticeTone.ERROR)
     }
-    SecondaryButton(
-        stringResource(R.string.packs_add),
-        onClick = { adding = true },
-        enabled = state.addable.any { it.available },
-        icon = R.drawable.ic_add,
-    )
+    if (state.catalog == CatalogStatus.Ready && state.addable.none { it.available }) {
+        // Nothing left to add: said in words, not as a disabled button next to the mobile-data switch, which made
+        // the connection look like the reason (#250).
+        SettingsHint(stringResource(R.string.packs_all_installed))
+    } else {
+        SecondaryButton(
+            stringResource(R.string.packs_add),
+            onClick = { adding = true },
+            enabled = state.addable.any { it.available },
+            icon = R.drawable.ic_add,
+        )
+    }
     // Room between the button and the switch, as between the other settings groups (#218).
     Spacer(Modifier.height(Spacing.sm))
     MobileDataSwitch(state.mobileData, viewModel::setMobileData)
@@ -248,8 +254,10 @@ fun LanguagesSection(viewModel: LanguagesViewModel = languagesViewModel()) {
     removing?.let { code ->
         ConfirmDialog(
             title = stringResource(R.string.packs_remove_title, languageName(code)),
-            text = stringResource(R.string.packs_remove_text),
+            // The last language stops scanning altogether: say so, not only that its cards go unrecognized (#221).
+            text = stringResource(if (installed.size <= 1) R.string.packs_remove_last_text else R.string.packs_remove_text),
             confirmLabel = stringResource(R.string.packs_remove),
+            destructive = true,
             onConfirm = {
                 viewModel.remove(code)
                 removing = null
@@ -273,13 +281,14 @@ private fun InstalledLanguageRow(row: LanguageRow, mobileData: Boolean, onRemove
                     color = if (failed) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
-            // Ends on the right edge like the switches below it, in the error colour: it removes recognition (#218).
+            // Ends on the right edge like the switches below it (#218). A quiet action: a red word beside every language
+            // was louder than the section heading; the confirmation says what removing costs (#221).
             TextAction(
                 stringResource(R.string.packs_remove),
                 onClick = onRemove,
                 modifier = Modifier.offset(x = TextActionInset),
                 contentDescription = stringResource(R.string.packs_remove_language, name),
-                destructive = true,
+                muted = true,
             )
         }
         (row.progress as? LanguageProgress.Downloading)?.let { p ->

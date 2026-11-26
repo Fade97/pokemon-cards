@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
@@ -28,8 +29,10 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -62,6 +65,7 @@ import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.Region
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CompletionBar
 import de.fabianduerkop.cardindex.ui.components.FoilCover
@@ -138,10 +142,13 @@ fun CollectionsScreen(
         if (pastSwitch) scope.launch { listState.scrollToItem(SWITCH_INDEX) }
     }
 
+    // While the view switch is pinned under the bar, the two read as one raised block; the switch draws the edge.
+    val switchPinned by remember { derivedStateOf { listState.firstVisibleItemIndex >= SWITCH_INDEX } }
     TopLevelScaffold(
         title = stringResource(R.string.nav_collections),
         modifier = modifier,
         wordmark = true,
+        pinnedBelow = switchPinned,
         actions = {
             ScanShortcut(onClick = onOpenScan)
             TextAction(
@@ -167,10 +174,11 @@ fun CollectionsScreen(
             if (!state.loading && state.totalCopies == 0) {
                 item { EmptyCollections(onOpenScan) }
                 // Collections made before the first card stay reachable, so they can be renamed or deleted; so does
-                // a wishlist (#134), which needs no owned card.
-                if (state.collections.isNotEmpty() || wanted > 0) {
-                    item { YoursHeader(state.collections.size + if (wanted > 0) 1 else 0) }
-                    if (wanted > 0) item { WishlistRow(wanted, onOpenWishlist) }
+                // the wishlist (#134), which needs no owned card: shown even when empty, so a new collector finds it
+                // and its "Find a card" (#250).
+                item { YoursHeader(state.collections.size + 1) }
+                item { WishlistRow(wanted, onOpenWishlist) }
+                run {
                     items(state.collections, key = { "col-" + it.id }) { collection ->
                         CollectionRow(collection, cover = null, photos = state.photos, onClick = { onOpenCollection(collection.id) })
                     }
@@ -189,7 +197,7 @@ fun CollectionsScreen(
                     }
                 }
                 stickyHeader(key = "view-switch") {
-                    CollectionsSwitch(view, onSelect = show)
+                    CollectionsSwitch(view, onSelect = show, pinned = switchPinned)
                 }
                 when (view) {
                     CollectionsView.SETS -> setItems(
@@ -224,6 +232,7 @@ fun CollectionsScreen(
     if (creating) {
         CollectionSheet(
             initial = null,
+            takenNames = state.collections.mapTo(HashSet()) { binderNameKey(it.name) },
             onDismiss = { creating = false },
             onSave = { name, description, _ ->
                 viewModel.createCollection(name, description)
@@ -235,6 +244,9 @@ fun CollectionsScreen(
     }
 }
 
+/** Width of a set row's completion track, the widest common count ("100/165") at the default font. */
+private val SetRowBarMin = 72.dp
+
 /** List index of the switch: right after the value header. */
 private const val SWITCH_INDEX = 1
 
@@ -243,7 +255,7 @@ private const val SWITCH_INDEX = 1
  * divider that closes the value header below it.
  */
 @Composable
-private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView) -> Unit) {
+private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView) -> Unit, pinned: Boolean) {
     val labels = CollectionsView.entries.map { entry ->
         stringResource(
             when (entry) {
@@ -253,19 +265,20 @@ private fun CollectionsSwitch(view: CollectionsView, onSelect: (CollectionsView)
             },
         )
     }
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .background(MaterialTheme.colorScheme.background)
-            .padding(horizontal = ScreenPadding),
-    ) {
+    // Pinned under the app bar, it takes the bar's scrolled surface and a full-width hairline, so the two read as one
+    // raised block over the list instead of a strip floating on it (#221).
+    val colors = MaterialTheme.colorScheme
+    Column(Modifier.fillMaxWidth().background(if (pinned) colors.surfaceContainer else colors.background)) {
         ViewSwitch(
             labels = labels,
             selectedIndex = view.ordinal,
             onSelect = { onSelect(CollectionsView.entries[it]) },
-            modifier = Modifier.padding(vertical = Spacing.sm),
+            modifier = Modifier.padding(horizontal = ScreenPadding, vertical = Spacing.sm),
         )
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        HorizontalDivider(
+            Modifier.padding(horizontal = if (pinned) 0.dp else ScreenPadding),
+            color = colors.outlineVariant,
+        )
     }
 }
 
@@ -374,15 +387,20 @@ private fun ValueHeader(
     onPortfolioRange: (HistoryRange) -> Unit,
     onOpenAll: () -> Unit,
 ) {
-    Column(Modifier.padding(horizontal = ScreenPadding)) {
+    // The same 8 dp under the bar as the set screen and Search (#221).
+    Column(Modifier.padding(horizontal = ScreenPadding).padding(top = Spacing.sm)) {
+        // "Value of priced copies" while some copies have no price, so the big number never reads as the whole
+        // collection's worth before the coverage line under it is read (#221).
+        val partial = (state.value?.unpricedCopies ?: 0) > 0
         ValueSummary(
             value = state.value,
             caption = pluralStringResource(R.plurals.collections_summary, state.totalCopies, state.totalCopies),
             label = stringResource(
-                if (state.source == PriceSource.CARDMARKET) {
-                    R.string.collections_value_label_cardmarket
-                } else {
-                    R.string.collections_value_label_tcgplayer
+                when {
+                    state.source == PriceSource.CARDMARKET && partial -> R.string.collections_value_label_cardmarket_partial
+                    state.source == PriceSource.CARDMARKET -> R.string.collections_value_label_cardmarket
+                    partial -> R.string.collections_value_label_tcgplayer_partial
+                    else -> R.string.collections_value_label_tcgplayer
                 },
             ),
             priceDate = state.priceDate,
@@ -409,11 +427,18 @@ private fun ValueHeader(
 private fun valueCoverage(row: SetRowUi): String? {
     val value = row.value
     return when {
-        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) -> stringResource(R.string.collections_not_priced)
+        row.completion.copies > 0 && (value == null || value.amountMinor <= 0) ->
+            stringResource(R.string.collections_not_priced, stringResource(row.source.marketName()))
         value != null && value.unpricedCopies > 0 ->
             pluralStringResource(R.plurals.collections_set_value_coverage, value.totalCopies, value.pricedCopies, value.totalCopies)
         else -> null
     }
+}
+
+/** Some of the set's copies are priced and some are not: its value covers only part of them. */
+private fun partial(row: SetRowUi): Boolean {
+    val value = row.value ?: return false
+    return value.amountMinor > 0 && value.unpricedCopies > 0
 }
 
 /**
@@ -421,12 +446,21 @@ private fun valueCoverage(row: SetRowUi): String? {
  * basis stays in view once the collection header has scrolled away (#218). Null without a price.
  */
 @Composable
-private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
+private fun valueSource(row: SetRowUi): String? = valueSourceParts(row)?.joinToString(",\u00A0")
+
+/** [valueSource] as its market and its date, for a narrow column that puts the date under the market (#250). */
+@Composable
+private fun valueSourceParts(row: SetRowUi): List<String>? {
     val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
-    val date = row.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    // The set's oldest price date (Prices.totalDate), said so when it sums more than one copy (#250).
+    // The calendar date never splits; "oldest price" may wrap before it in a narrow column (#250).
+    val date = row.priceDate?.let {
+        val day = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0')
+        if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
+    }
     // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
-    // cover's narrow value column it may break after the comma, or the year would split.
-    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(if (keepTogether) ",\u00A0" else ", ")
+    // cover's narrow value column market and date go on two lines when they don't fit one, never "TCGplayer," alone.
+    return listOfNotNull(stringResource(value.source.valueBasisName()), date)
 }
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
@@ -436,11 +470,16 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
     val progress = row.progress
     val parts = listOfNotNull(
         pluralStringResource(R.plurals.collections_set_row, set.printedTotal, set.name, progress.base, set.printedTotal),
+        stringResource(R.string.collections_main_set_description),
+        // The copies too, as the row shows them ("30 copies"): the slot count alone loses them (#250).
+        set.copies.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_cards_count, it, it) },
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
+        // A partial value says how much it covers before its amount, as the cover shows it (#250).
+        valueCoverage(row).takeIf { partial(row) },
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
         valueSource(row),
-        valueCoverage(row),
+        valueCoverage(row).takeIf { !partial(row) },
         change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
@@ -496,34 +535,59 @@ private fun FeaturedSet(
             CardFan(row.art, set.printedTotal, Modifier.padding(vertical = Spacing.md))
             // Top-aligned: the count lines up with the value, not between it and its coverage line (#218).
             Row(verticalAlignment = Alignment.Top) {
-                Text(
-                    progressText(
-                        row.progress.base,
-                        set.printedTotal,
-                        countColor = MaterialTheme.colorScheme.onSurface,
-                        suffix = listOfNotNull(stringResource(R.string.collections_collected), secretText(row.progress))
-                            .joinToString(" · "),
-                    ),
-                    style = MaterialTheme.typography.labelLarge,
-                    // Its natural width (measured first, unweighted): the count never breaks; the value takes the rest.
-                )
+                // "collected" and "+N secret" under the count, not after it: the value column keeps the width to show
+                // its source on one line at large font (#221). Natural width (unweighted): the count never breaks.
+                Column {
+                    Text(
+                        progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
+                        style = MaterialTheme.typography.labelLarge,
+                    )
+                    // The copies count under it, so "10 of 20 copies priced" on the right refers to something (#250).
+                    Text(
+                        listOfNotNull(
+                            // The count is the main set's; secret rares are counted apart, as on the set screen (#250).
+                            stringResource(R.string.collections_main_collected),
+                            pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies).takeIf { set.copies > 0 },
+                            secretText(row.progress),
+                        ).joinToString("\n"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 val priced = row.value?.takeIf { it.amountMinor > 0 }
                 if (priced != null) {
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
+                        // A partial value says so before its amount, as set detail's "Value of priced copies" does:
+                        // $35.86 opposite "21 copies" read as all of them (#250).
+                        val coverage = valueCoverage(row)
+                        coverage?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                            )
+                        }
                         Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.labelLarge)
                         // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
                         // worth, from no market in particular (#218).
-                        Text(
-                            listOfNotNull(valueSource(row, keepTogether = false), valueCoverage(row)).joinToString("\n"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.End,
-                        )
+                        valueSourceParts(row)?.let {
+                            JoinedText(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                                separator = ", ",
+                            )
+                        }
+
+                        // With the value it describes, right-aligned, not over the completion bar (#250).
+                        change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs), textAlign = TextAlign.End) }
                     }
                 } else if (set.copies > 0) {
                     // Owned but unpriced: said here too, as in the rows and on the set screen, where a price would be.
                     Text(
-                        stringResource(R.string.collections_not_priced),
+                        stringResource(R.string.collections_not_priced, stringResource(row.source.marketName())),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -531,7 +595,6 @@ private fun FeaturedSet(
                     )
                 }
             }
-            change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
             CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
         }
     }
@@ -576,23 +639,34 @@ private val FanHeight = 132.dp
 private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val set = row.completion
     val description = setDescription(row, change = change)
-    val subtitle = listOfNotNull(
+    val amount = row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) }
+    // A partial value moves to the coverage line and follows it ("10 of 21 copies priced · $35.86 · TCGplayer, …"), so
+    // it never sits next to the full copy count as if it were theirs (#250).
+    val facts = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
-        row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
-        valueSource(row),
-        valueCoverage(row),
+        amount.takeIf { !partial(row) },
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
-    ).joinToString(" · ")
+    )
+    // Where the value comes from and how much it covers on a line of its own: run on after "·", it broke mid-way at
+    // large font and left a "·" dangling at a line end (#221). Each line breaks only between its facts (#250).
+    val basis = if (partial(row)) {
+        listOfNotNull(valueCoverage(row), amount, valueSource(row))
+    } else {
+        listOfNotNull(valueSource(row), valueCoverage(row))
+    }
     ListRow(
         title = set.name,
-        subtitle = subtitle,
+        subtitle = null,
+        subtitleLines = listOf(facts, basis),
         onClick = onClick,
         onClickLabel = stringResource(R.string.collections_open_set),
         contentDescription = description,
         below = change?.let { { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xxs)) } },
         trailing = {
-            Column(Modifier.width(IntrinsicSize.Max), horizontalAlignment = Alignment.End) {
+            // One track width down the list, so 1/16 and 10/103 compare by their bars, not by their digits (#221);
+            // a wider count at large font still widens it.
+            Column(Modifier.width(IntrinsicSize.Max).widthIn(min = SetRowBarMin), horizontalAlignment = Alignment.End) {
                 Text(
                     progressText(row.progress.base, set.printedTotal, countColor = MaterialTheme.colorScheme.onSurface),
                     style = MaterialTheme.typography.titleMedium,
@@ -657,7 +731,7 @@ private fun CollectionRow(
 private fun WishlistRow(wanted: Int, onClick: () -> Unit) {
     ListRow(
         title = stringResource(R.string.wishlist_title),
-        subtitle = pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted),
+        subtitle = if (wanted > 0) pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted) else stringResource(R.string.wishlist_row_empty),
         onClick = onClick,
         // Hollow like a missing slot (wanted cards are not owned yet), and in line with the binder covers below.
         leading = { CoverThumb(null, OwnPhotos()) },

@@ -41,6 +41,7 @@ import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.DpSize
 import androidx.compose.ui.unit.dp
 import androidx.core.graphics.scale
@@ -94,8 +95,19 @@ fun ShareCanvas(content: @Composable () -> Unit) {
  * the share button under it is in view when the sheet opens (#218).
  */
 @Composable
-fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare
+fun ShareImagePreview(
+    layer: GraphicsLayer,
+    description: String,
+    modifier: Modifier = Modifier,
+    /** The room the caller measured for the preview; it never gets taller than this either (#250). */
+    maxHeight: Dp? = null,
+    content: @Composable () -> Unit,
+) {
+    // Less of the window at a large font: the sheet's text grows, so the preview gives up room and the caption and
+    // actions under it stay in view (#250).
+    // A measured room wins: the caller knows what else must stay in view. Without one, the share of the window.
+    val maxHeight = maxHeight
+        ?: (LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare / LocalDensity.current.fontScale.coerceAtLeast(1f))
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val shown = minOf(maxWidth, ShareImageSize.Width, maxHeight * (ShareImageSize.Width / ShareImageSize.Height))
         val density = LocalDensity.current

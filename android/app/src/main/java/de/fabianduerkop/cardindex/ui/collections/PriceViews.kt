@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.material3.HorizontalDivider
@@ -35,14 +36,14 @@ import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.PriceVariant
 import de.fabianduerkop.cardindex.ui.components.DataRow
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
 import de.fabianduerkop.cardindex.ui.components.StatusNotice
 import de.fabianduerkop.cardindex.ui.components.TextAction
+import de.fabianduerkop.cardindex.ui.components.TextActionInset
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 import java.time.Instant
 import java.time.ZoneId
-import androidx.compose.foundation.layout.offset
-import de.fabianduerkop.cardindex.ui.components.TextActionInset
 
 @StringRes
 internal fun PriceSource.label(): Int =
@@ -52,6 +53,14 @@ internal fun PriceSource.label(): Int =
 @StringRes
 internal fun PriceSource.marketName(): Int =
     if (this == PriceSource.CARDMARKET) R.string.settings_price_cardmarket_name else R.string.settings_price_tcgplayer_name
+
+/**
+ * The market as the basis of a summed value: "Cardmarket trend, all languages" (its trend pools the languages, so a
+ * language-filtered set must not read as language-specific prices, #250), else the market's name.
+ */
+@StringRes
+internal fun PriceSource.valueBasisName(): Int =
+    if (this == PriceSource.CARDMARKET) R.string.price_cardmarket_value_basis else marketName()
 
 /** Just the market's name, for a choice between the two. */
 @StringRes
@@ -69,13 +78,17 @@ internal fun PriceVariant.label(): Int = when (this) {
 
 /**
  * "TCGplayer market · Holo": a market's label with the printing its price is for. Cardmarket's plain trend is the
- * card's price across its printings, not a "Normal" one, so it gets no printing; its reverse holo trend does (#218).
+ * card's price across its printings, not a "Normal" one, so it says "All printings" (#221); its reverse holo trend
+ * names its printing (#218).
  */
 @Composable
-internal fun quoteLabel(quote: PriceQuote): String {
+internal fun quoteLabel(quote: PriceQuote): List<String> {
     val market = stringResource(quote.source.label())
     val plainTrend = quote.source == PriceSource.CARDMARKET && quote.variant == PriceVariant.NORMAL
-    return if (plainTrend) market else market + " · " + stringResource(quote.variant.label())
+    // The plain trend says so, now that the note under the prices no longer claims one printing for both (#221).
+    val printing = if (plainTrend) stringResource(R.string.price_all_printings) else stringResource(quote.variant.label())
+    // Shown with [JoinedText]: on one line while it fits, the printing on its own line when not (#250).
+    return listOf(market, printing)
 }
 
 private fun Instant.toLocalDate() = atZone(ZoneId.systemDefault()).toLocalDate()
@@ -104,8 +117,8 @@ internal fun QuoteColumn(
         Column {
             Text(price, style = MaterialTheme.typography.titleSmall, color = priceColor)
             change?.let { WeeklyChangeLine(it) }
-            Text(
-                listOfNotNull(secondLine, notInTotal).joinToString(" · "),
+            JoinedText(
+                listOfNotNull(secondLine, notInTotal),
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
@@ -213,7 +226,7 @@ internal fun PriceBox(
             val second = secondary.takeIf { main != null }
             Column(Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
                 // The printing it prices goes with the label, not in a note under the other market's row (#218).
-                Text(
+                JoinedText(
                     quoteLabel(first),
                     style = MaterialTheme.typography.bodySmall,
                     color = muted,
@@ -231,9 +244,11 @@ internal fun PriceBox(
             val datesText = if (dates.map { it.date.toLocalDate() }.distinct().size == 1) {
                 stringResource(R.string.price_as_of, formatDate(dates.first().date.toLocalDate()))
             } else {
+                // One line per market, the date unbreakable: no "·" stranded at a line end, no date split (#221).
                 dates.map {
-                    stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), formatDate(it.date.toLocalDate()))
-                }.joinToString(" · ")
+                    val date = formatDate(it.date.toLocalDate()).replace(' ', '\u00A0')
+                    stringResource(R.string.price_market_as_of, stringResource(it.source.marketName()), date)
+                }.joinToString("\n")
             }
             val notes = buildList {
                 add(datesText)
@@ -268,6 +283,7 @@ internal fun PriceBox(
                             stringResource(R.string.price_open_cardmarket)
                         },
                         onClick = { open(MarketLinks.cardmarket(cardmarketId, cardLanguage)) },
+                        external = true,
                     )
                 }
             }
@@ -276,6 +292,7 @@ internal fun PriceBox(
                     TextAction(
                         stringResource(R.string.price_open_tcgplayer),
                         onClick = { open(MarketLinks.tcgplayer(tcgplayerId)) },
+                        external = true,
                     )
                 }
             }

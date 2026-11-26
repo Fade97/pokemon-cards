@@ -1,6 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">Foilark</string>
+    <!-- The language of this file's texts (BCP 47). Language names are written in it (UiLocale, #250); a translation
+         sets its own. -->
+    <string name="ui_locale">en</string>
 
     <string name="nav_scan">Scan</string>
     <string name="nav_collections">Collections</string>
@@ -53,9 +56,15 @@
     </plurals>
     <string name="collections_value_label_cardmarket">Collection value, Cardmarket trend, all languages</string>
     <string name="collections_value_label_tcgplayer">Collection value, TCGplayer market price</string>
+    <!-- While some copies have no price in that market (#221). -->
+    <!-- Above a set's value while some of its copies have no price (#221). -->
+    <string name="collections_priced_copies">Value of priced copies</string>
+    <string name="collections_value_label_cardmarket_partial">Priced copies, Cardmarket trend, all languages</string>
+    <string name="collections_value_label_tcgplayer_partial">Priced copies, TCGplayer market price</string>
     <!-- What the value line covers (#161): priced copies of all copies; the quantity is the total. -->
     <!-- Under a set's value when some owned copies have no price in that market (#218). -->
-    <string name="collections_not_priced">No price</string>
+    <!-- %1$s: the market, "TCGplayer" or "Cardmarket" (#221): the header naming it may have scrolled away. -->
+    <string name="collections_not_priced">No %1$s price</string>
     <string name="collections_missing_slot_open">Show this missing card</string>
     <plurals name="collections_set_value_coverage">
         <item quantity="one">%1$d of %2$d copy priced</item>
@@ -69,6 +78,8 @@
     <string name="collections_new">New</string>
     <string name="collections_new_description">New collection</string>
     <string name="collections_all_languages">All languages</string>
+    <!-- The first chip of the language chips on Collections; TalkBack says "All languages" (#221). -->
+    <string name="collections_all_languages_short">All</string>
     <string name="collections_sets">Sets</string>
     <string name="collections_yours">Your collections</string>
     <!-- Collections home switch (#164); read by TalkBack as tabs. -->
@@ -105,6 +116,15 @@
     <string name="collections_open_collection">Open collection</string>
     <!-- After a count like "87/165" on the featured set cover. -->
     <string name="collections_collected">collected</string>
+    <!-- Under the featured cover's count: it counts the main set; secret rares are apart (#250). -->
+    <string name="collections_main_collected">main set</string>
+    <!-- Spoken after "151, 7 of 165 cards" (#250). -->
+    <string name="collections_main_set_description">main set</string>
+    <!-- A language chip for TalkBack: its visible code, then the language, e.g. "DE, German" (#250). -->
+    <string name="collections_language_chip_description">%1$s, %2$s</string>
+    <!-- Set detail filters with no slot to show (#250). -->
+    <string name="collections_filter_owned_empty">None of these cards is in your collection yet.</string>
+    <string name="collections_filter_missing_empty">Nothing missing: every card here is in your collection.</string>
     <!-- Spoken form of a set's count, e.g. "87 of 165 collected". -->
     <string name="collections_progress_description">%1$d of %2$d collected</string>
     <!-- Owned secret rares above the printed total, shown apart from a count like "160/165" (#132). -->
@@ -126,22 +146,43 @@
     <string name="collections_view_show_compact">Show numbers only</string>
     <string name="collections_legend_toggle">What the slots mean</string>
     <string name="collections_languages_title">Languages</string>
-    <!-- Spoken form of the language chip, e.g. "Languages: All languages". -->
-    <string name="collections_languages_chip_description">Languages: %1$s</string>
+    <!-- Spoken form of the language chip: its visible text first (label in name, #250), e.g. "DE, change languages". -->
+    <string name="collections_languages_chip_description">%1$s, change languages</string>
     <string name="collections_filter_all_count">All %1$d</string>
     <string name="collections_filter_owned">Owned %1$d</string>
     <string name="collections_filter_missing">Missing %1$d</string>
     <string name="collections_slot_missing">Missing</string>
     <string name="collections_slot_unknown">Not in your installed cards yet</string>
+    <!-- A number printed only in languages outside the set filter (#250). -->
+    <string name="collections_slot_other_languages">Not printed in the chosen languages</string>
     <string name="collections_slot_close">Close</string>
     <string name="collections_slot_owned_description">%1$s, owned</string>
     <string name="collections_slot_missing_description">%1$s, missing</string>
     <string name="collections_set_unknown">This set is not on this device.</string>
     <string name="collections_print">%1$s, %2$s print</string>
     <string name="collections_your_copies">Your copies (%1$d)</string>
+    <!-- The list holds copies of the card in more than one language (#250). -->
+    <string name="collections_your_copies_all_languages">Your copies, all languages (%1$d)</string>
+    <!-- Under the card's name on its detail screen, when the user owns it (#221). -->
+    <plurals name="card_owned_copies">
+        <item quantity="one">%1$d copy in your collection</item>
+        <item quantity="other">%1$d copies in your collection</item>
+    </plurals>
+    <!-- After "2 copies in your collection": copies of the same card in the user's other languages (#250). -->
+    <plurals name="card_owned_more_languages">
+        <item quantity="one">%1$d more in another language</item>
+        <item quantity="other">%1$d more in other languages</item>
+    </plurals>
+    <!-- No copy of the shown print's language, but some in others (#250). -->
+    <plurals name="card_owned_other_languages">
+        <item quantity="one">%1$d copy in another language</item>
+        <item quantity="other">%1$d copies in other languages</item>
+    </plurals>
     <string name="collections_add_copy">Add a copy</string>
     <!-- Wishlist (#134): wanted cards, not copies. -->
     <string name="wishlist_title">Wishlist</string>
+    <!-- The wishlist row on an empty Collections screen (#250). -->
+    <string name="wishlist_row_empty">Cards you want, to find later</string>
     <plurals name="wishlist_wanted_count">
         <item quantity="one">%1$d wanted</item>
         <item quantity="other">%1$d wanted</item>
@@ -156,11 +197,15 @@
     <string name="wishlist_remove_short">Remove</string>
     <string name="wishlist_remove_description">Remove %1$s from the wishlist</string>
     <string name="collections_open_card">Open card</string>
-    <string name="collections_copy_line">%1$d× %2$s</string>
+    <string name="collections_copy_line">%1$d×&#160;%2$s</string>
     <string name="collections_only_all_cards">All cards only</string>
     <!-- A copy's line on the card screen when it is in no collection of the user's own. -->
     <string name="collections_in_no_binder">Not in a binder</string>
-    <string name="collections_bought_on">bought %1$s</string>
+    <string name="collections_bought_on">Bought&#160;%1$s</string>
+    <!-- A copy's row on its card's screen when no purchase date is set (#221). -->
+    <string name="collections_added_on">Added&#160;%1$s</string>
+    <!-- Numbers copies whose rows would otherwise read the same (#221). -->
+    <string name="collections_copy_ordinal">Copy&#160;%1$d</string>
     <string name="collections_paid_each">paid each</string>
     <string name="collections_paid_each_inline">%1$s paid each</string>
     <string name="collections_sort_by">Sort by</string>
@@ -176,15 +221,21 @@
     <string name="price_title">Market price</string>
     <string name="price_no_browser">No app here opens web links.</string>
     <!-- Under a card's prices: they are for the printing, whatever the owned copy's state (#218). -->
-    <string name="price_not_condition">For the printing; not adjusted for condition or grade.</string>
+    <string name="price_not_condition">Not adjusted for condition or grade.</string>
+    <!-- After "Cardmarket trend, all languages" when the trend is the card's across all its printings (#221). -->
+    <string name="price_all_printings">All printings</string>
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
     <string name="price_as_of">Prices from %1$s</string>
+    <!-- A total over several copies: its date is the oldest of their prices (#250). -->
+    <string name="price_oldest_as_of">Oldest price from %1$s</string>
+    <!-- After the market in a set's value line: "TCGplayer, oldest price Nov 24, 2026" (#250). -->
+    <string name="price_oldest_short">oldest price %1$s</string>
     <!-- One market's price date when both markets are shown, e.g. "Cardmarket prices from 17 Nov 2026" (#133). -->
     <string name="price_market_as_of">%1$s prices from %2$s</string>
     <string name="price_none">No price yet</string>
     <string name="price_none_hint">Prices come from the price service when you are online and stay saved for offline use. Some cards and printings have no market price.</string>
-    <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s offers)</string>
+    <string name="price_open_cardmarket_language">Open on Cardmarket (%1$s&#160;offers)</string>
     <string name="price_open_cardmarket">Open on Cardmarket</string>
     <string name="price_open_tcgplayer">Open on TCGplayer</string>
     <string name="price_currencies">Each market\'s price is in its own currency. Prices are never converted.</string>
@@ -211,33 +262,35 @@
     <string name="history_refused">The price service did not accept this device for Pro.</string>
     <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
-    <string name="weekly_change">%1$s in 7 days</string>
-    <string name="weekly_change_flat">No change in 7 days</string>
+    <string name="weekly_change">7-day price trend %1$s</string>
+    <string name="weekly_change_flat">7-day price trend: no change</string>
     <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
     <string name="weekly_change_short">%1$s · 7 days</string>
     <string name="weekly_change_short_flat">No change · 7 days</string>
     <!-- Which copies the change covers, when some have no week of price history -->
     <plurals name="weekly_change_covered">
-        <item quantity="one">%1$d of %2$d copy</item>
-        <item quantity="other">%1$d of %2$d copies</item>
+        <item quantity="one">%1$d of %2$d priced copy</item>
+        <item quantity="other">%1$d of %2$d priced copies</item>
     </plurals>
     <!-- Screen-reader text. %1$s: "1,20 € (12 %)" without a sign -->
-    <string name="weekly_change_up_description">Up %1$s over the last 7 days</string>
-    <string name="weekly_change_down_description">Down %1$s over the last 7 days</string>
-    <string name="weekly_change_flat_description">No price change over the last 7 days</string>
+    <string name="weekly_change_up_description">7-day price trend up %1$s</string>
+    <string name="weekly_change_down_description">7-day price trend down %1$s</string>
+    <string name="weekly_change_flat_description">7-day price trend: no change</string>
     <plurals name="weekly_change_covered_description">
-        <item quantity="one">for %1$d of %2$d copy</item>
-        <item quantity="other">for %1$d of %2$d copies</item>
+        <item quantity="one">for %1$d of %2$d priced copy</item>
+        <item quantity="other">for %1$d of %2$d priced copies</item>
     </plurals>
     <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
-    <string name="weekly_direction_up">Up in 7 days</string>
-    <string name="weekly_direction_down">Down in 7 days</string>
-    <string name="weekly_direction_up_description">Up over the last 7 days</string>
-    <string name="weekly_direction_down_description">Down over the last 7 days</string>
+    <string name="weekly_direction_up">7-day price trend is up</string>
+    <string name="weekly_direction_down">7-day price trend is down</string>
+    <string name="weekly_direction_up_description">7-day price trend is up</string>
+    <string name="weekly_direction_down_description">7-day price trend is down</string>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>
     <string name="collection_new_hint">For binders, trade piles or anything you want to keep together.</string>
+    <!-- Under the binder name when another binder already has it (#221). -->
+    <string name="collection_name_taken">You already have a binder with this name.</string>
     <string name="collection_name">Name</string>
     <string name="collection_name_placeholder">e.g. Fire binder</string>
     <string name="collection_description">Description (optional)</string>
@@ -285,6 +338,9 @@
     <string name="viewer_title">Card viewer</string>
     <!-- Click label TalkBack reads as "double-tap to view full screen", for the card art and a copy's photo. -->
     <string name="viewer_open">view full screen</string>
+    <!-- The card detail's placeholder when the print has no art but the user has photos of other-language copies (#250). -->
+    <string name="viewer_open_photos">view photos</string>
+    <string name="card_detail_placeholder_photos">No image of this print. Photos of your copies in other languages</string>
     <!-- %1$s: the card, e.g. "025/165 Pikachu, Surging Sparks". -->
     <string name="viewer_official_description">Card image of %1$s</string>
     <!-- %1$s: the copy, e.g. "1× Holo, NM, English". -->
@@ -295,6 +351,11 @@
     <string name="viewer_position">%1$d of %2$d</string>
     <string name="viewer_zoom_in">Zoom in</string>
     <string name="viewer_zoom_reset">Reset zoom</string>
+    <!-- TalkBack actions while zoomed in (#221): show more of that side of the card. -->
+    <string name="viewer_pan_left">Show more to the left</string>
+    <string name="viewer_pan_right">Show more to the right</string>
+    <string name="viewer_pan_up">Show more above</string>
+    <string name="viewer_pan_down">Show more below</string>
     <string name="viewer_image_failed">This image could not be loaded. It needs a connection the first time.</string>
     <string name="viewer_photo_failed">This photo could not be loaded. It may have been moved or deleted.</string>
     <!-- Tilt light (#167, ADR 0015): under the image name whenever the app draws its own light over the card, so it
@@ -317,7 +378,25 @@
     <string name="search_field">Name, set or number</string>
     <string name="search_clear">Clear search</string>
     <string name="search_scope">Searches the %1$s cards on this device.</string>
-    <string name="search_hint">Type a card name such as Pikachu, a set such as Surging Sparks, a set code such as 30C, or a collector number such as 25 or 025/165. Put a number after a name or set code to narrow it down: Pikachu 25, 30C 25.</string>
+    <!-- Above the results with more than two languages: the list itself is in the hint under an empty field (#250). -->
+    <plurals name="search_scope_count">
+        <item quantity="one">Searches the cards of %1$d language on this device.</item>
+        <item quantity="other">Searches the cards of %1$d languages on this device.</item>
+    </plurals>
+    <!-- Examples on lines of their own, so the combined query is not buried in a paragraph (#221). -->
+    <string name="search_hint">Type a card name, a set, a set code or a collector number:</string>
+    <!-- Shown joined with " · ", breaking only between examples (#250). -->
+    <string-array name="search_hint_examples">
+        <item>Pikachu</item>
+        <item>Surging Sparks</item>
+        <item>30C</item>
+        <item>025/165</item>
+    </string-array>
+    <string name="search_hint_narrow">Add a number to narrow it down:</string>
+    <string-array name="search_hint_narrow_examples">
+        <item>Pikachu 25</item>
+        <item>30C 25</item>
+    </string-array>
     <string name="search_loading">Searching…</string>
     <string name="search_none_title">No cards found</string>
     <string name="search_none_hint">Check the spelling, or search for the collector number alone, such as 25.</string>
@@ -331,12 +410,8 @@
     </plurals>
     <string name="search_show_more">Show more cards</string>
     <plurals name="search_more">
-        <item quantity="one">The first %1$d card. Type more to narrow it down, or show more below.</item>
-        <item quantity="other">The first %1$d cards. Type more to narrow it down, or show more below.</item>
-    </plurals>
-    <plurals name="search_owned">
-        <item quantity="one">%1$d owned</item>
-        <item quantity="other">%1$d owned</item>
+        <item quantity="one">Showing the first %1$d card</item>
+        <item quantity="other">Showing the first %1$d cards</item>
     </plurals>
     <!-- The non-affiliation notice of the store listing (docs/release/play-launch.md, #130). %1$s is the app name. -->
     <string name="settings_disclaimer">%1$s is an unofficial fan-made app. It is not affiliated with, endorsed, sponsored or approved by Nintendo, Creatures Inc., GAME FREAK inc. or The Pokémon Company. Pokémon and all related names are trademarks of their respective owners.</string>
@@ -375,7 +450,9 @@
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_follows">Light or dark follows your phone\'s setting.</string>
     <string name="settings_debug_title">Debug tools (debug build)</string>
-    <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
+    <string name="settings_price_hint">Cardmarket\'s trend price pools all card languages, so offers for one language can be higher or lower. The card screen links to the offers in your card\'s language.</string>
+    <!-- The basis of a summed Cardmarket value: its trend pools the languages (#250). -->
+    <string name="price_cardmarket_value_basis">Cardmarket trend, all languages</string>
     <string name="settings_price_refresh">Update prices now</string>
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
     <string name="settings_price_failed">The price service is not reachable. Saved prices stay.</string>
@@ -384,7 +461,7 @@
     <string name="settings_debug_check_alerts">Check price alerts now</string>
     <string name="settings_debug_pro_hint">Shows price history, portfolio charts and price alerts before sign-in and billing exist. The price service needs the test token from the Gradle property cardindex.proTestToken.</string>
     <string name="settings_backup">Backup</string>
-    <string name="settings_backup_hint">Save your copies and collections to a file, free. JSON restores your copies and collections, but not your own photos (Android\'s backup does not keep them either). CSV opens in a spreadsheet. Importing a file twice adds nothing twice.</string>
+    <string name="settings_backup_hint">Save your collection to a file, free. Use JSON to back up your copies, binders and wishlist; it does not hold your own photos (Android\'s backup does not keep them either). Use CSV to open your copies in a spreadsheet. Importing a file twice adds nothing twice.</string>
     <string name="settings_export_json">Export JSON</string>
     <string name="settings_export_csv">Export CSV</string>
     <string name="settings_import">Import</string>
@@ -415,11 +492,15 @@
     <string name="settings_languages">Card languages</string>
     <string name="packs_section_hint">Cards are recognized in the languages installed here. Downloads continue in the background and new sets arrive as small updates.</string>
     <string name="packs_none">No language installed yet, so scanning can\'t recognize cards.</string>
+    <!-- In place of a disabled "Add languages" when every pack in the catalog is installed (#250). -->
+    <string name="packs_all_installed">All available card languages are installed.</string>
     <string name="packs_add">Add languages</string>
     <string name="packs_remove">Remove</string>
     <string name="packs_remove_language">Remove %1$s</string>
     <string name="packs_remove_title">Remove %1$s?</string>
     <string name="packs_remove_text">Cards in this language are no longer recognized. Your copies and collections stay.</string>
+    <!-- Removing the only installed language (#221). -->
+    <string name="packs_remove_last_text">This is your only card language: scanning stops until you add one. Your copies and collections stay.</string>
     <string name="packs_download_again">Download again</string>
     <!-- Version number, storage size -->
     <string name="packs_installed">Version %1$d · %2$s</string>
@@ -429,7 +510,9 @@
     <string name="packs_waiting_wifi">Waiting for Wi-Fi</string>
     <!-- Language packs over mobile data (#137): off by default, all packs together are about 110 MB. -->
     <string name="packs_mobile_data">Use mobile data for language packs</string>
-    <string name="packs_mobile_data_hint">Off: language packs and their updates download only on Wi-Fi or another network without a data limit.</string>
+    <!-- Follows the switch (#221). -->
+    <string name="packs_mobile_data_hint">Language packs and their updates download only on Wi-Fi or another network without a data limit.</string>
+    <string name="packs_mobile_data_hint_on">Language packs and their updates also download over mobile data.</string>
     <string name="packs_failed">Download failed: %1$s</string>
     <string name="packs_broken">Damaged, so recognition skips this language. Download it again.</string>
     <string name="packs_model_storage">Recognition model: %1$s</string>
@@ -448,10 +531,10 @@
     <!-- Scan contributions (issue #14) -->
     <string name="contribute_section">Improve recognition</string>
     <string name="contribute_toggle">Contribute my scans</string>
-    <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card you confirm is sent to help train and test the card recognition. The pictures are not published.</string>
+    <string name="contribute_toggle_hint">Off by default. When on, the cropped picture of each card the app adds, automatically or after you confirm it in Review, is sent to help train and test the card recognition. The pictures are not published.</string>
     <string name="contribute_mine">My contributions</string>
     <string name="contribute_consent_title">Contribute scans</string>
-    <string name="contribute_consent_body">When you confirm a scanned card (added automatically, or confirmed in Review), the app uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
+    <string name="contribute_consent_body">When the app adds a scanned card, automatically or after you confirm it in Review, it uploads the cropped picture of that card together with the card id and the card\'s language. Nothing else: no location, no device or account data, and the picture is saved without any metadata.\n\nThe pictures are used only to train and test the card recognition. They are not published: the card artwork belongs to The Pokémon Company, so only what the models learn from the pictures is released as open source.\n\nYou can withdraw a picture or all of them at any time under My contributions. A withdrawn picture is deleted from the server right away and not used again. Models trained before keep what they learned from it.\n\nScans waiting for a connection are sent later. Turning this off deletes the ones not sent yet.</string>
     <!-- Version of the consent text, sent with every upload -->
     <string name="contribute_consent_version">Consent text version %1$s</string>
     <string name="contribute_age_confirm">I am 16 or older, or a parent or guardian agreed.</string>
@@ -479,12 +562,13 @@
     <string name="scan_light_off">Light off</string>
     <string name="scan_hint_looking">Hold a card inside the frame</string>
     <string name="scan_hint_hold_still">Hold still</string>
-    <string name="scan_hint_unknown">Card not recognized. Is its language pack installed?</string>
+    <!-- Retry first: most misses are blur or glare; the language pack only when it keeps failing (#221). -->
+    <string name="scan_hint_unknown">Not recognized. Tap to refocus or add languages in Settings.</string>
     <!-- Card name, set name, language, e.g. "Glurak ex, 151, German" -->
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->
     <string name="scan_nothing_to_review">Nothing to review</string>
-    <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning. Blurry? Tap the picture to refocus.</string>
+    <string name="scan_tray_empty">Confident matches are added automatically. Unsure matches wait in Review, so you can keep scanning. Blurry? Tap the picture to refocus.</string>
     <!-- Set name, language -->
     <string name="scan_added">Added: %1$s, %2$s</string>
     <string name="scan_queued">Saved for review: %1$s</string>
@@ -517,6 +601,8 @@
     <string name="scan_undo_queued_description">Undo saving %1$s for review</string>
     <string name="scan_title">Scan cards</string>
     <string name="scan_live">Live · on device</string>
+    <!-- Status chip while the camera reports an error (#250). -->
+    <string name="scan_camera_off">Camera unavailable</string>
     <string name="scan_starting">Starting · on device</string>
     <string name="scan_hint_reading">Reading the number…</string>
     <string name="scan_hint_added">Added. Take the next card.</string>
@@ -599,6 +685,8 @@
     <string name="set_share_missing">Missing list</string>
     <string name="set_share_no_art">Numbers and names only, no card pictures.</string>
     <string name="set_share_map_no_art">Numbers only, no card pictures.</string>
+    <!-- The missing list image shows as many numbers as fit (#221, #250). -->
+    <string name="set_share_cut_note">Numbers only, the first %1$d. Share as text for the full list.</string>
     <string name="set_share_image">Share image</string>
     <string name="set_share_text">Share as text</string>
     <string name="set_share_chooser">Share set</string>
@@ -627,7 +715,10 @@
     </plurals>
     <string name="set_share_certificate">Certificate</string>
     <string name="set_share_certificate_overline">Set complete</string>
+    <!-- The main set is complete but secret rares are still missing (#250). -->
+    <string name="set_share_certificate_main_overline">Main set complete</string>
     <string name="set_share_completed_on">Completed %1$s</string>
+    <string name="set_share_main_completed_on">Main set completed %1$s</string>
     <string name="set_share_missing_overline">Still missing</string>
     <!-- e.g. "87 of 165" -->
     <string name="set_share_progress">%1$d/%2$d</string>
@@ -635,6 +726,18 @@
         <item quantity="one">%1$d secret rare</item>
         <item quantity="other">%1$d secret rares</item>
     </plurals>
+    <!-- Under the legend of a slot map with more than one language (#250). -->
+    <string name="set_share_legend_any_language">A copy in any of these languages fills a square.</string>
+    <!-- The slot map caption under the preview when it covers more than one language (#250). -->
+    <string name="set_share_map_caption_languages">%1$s: a copy in any of these languages fills a square. Numbers only, no card pictures.</string>
+    <!-- Under the share preview: its numbers as app text, on request (#250). -->
+    <string name="set_share_show_owned_numbers">Show owned numbers</string>
+    <string name="set_share_hide_owned_numbers">Hide owned numbers</string>
+    <string name="set_share_show_missing_numbers">Show missing numbers</string>
+    <string name="set_share_hide_missing_numbers">Hide missing numbers</string>
+    <string name="set_share_numbers_owned">Owned (%1$d)</string>
+    <string name="set_share_numbers_missing">Missing (%1$d)</string>
+    <string name="set_share_numbers_wanted">On the wishlist (%1$d)</string>
     <string name="set_share_legend_owned">Owned</string>
     <string name="set_share_legend_missing">Missing</string>
     <string name="set_share_legend_wanted">Wanted most</string>
@@ -648,11 +751,13 @@
     <!-- First line of the text checklist, e.g. "151 (EN): 9 cards missing" -->
     <string name="set_share_text_heading">%1$s: %2$s</string>
     <string name="set_share_text_footer">From my Foilark collection</string>
-    <string name="set_share_map_description">Slot map of %1$s: %2$s owned</string>
+    <string name="set_share_map_description">Slot map of %1$s: %2$s</string>
+    <string name="set_share_main_owned_description">%1$d of %2$d main-set cards owned</string>
+    <string name="set_share_secret_owned_description">%1$d of %2$d secret rares owned</string>
     <string name="set_share_missing_description">Missing list of %1$s: %2$s</string>
     <string name="receipt_empty">Nothing from this session is in your collection any more.</string>
     <string name="scan_review">Review</string>
-    <string name="scan_review_empty_description">Review queue, nothing waiting</string>
+    <string name="scan_review_empty_description">Nothing to review, open the review queue</string>
     <plurals name="scan_review_description">
         <item quantity="one">Review, %1$d scan waiting</item>
         <item quantity="other">Review, %1$d scans waiting</item>
@@ -687,17 +792,24 @@
     <!-- Scan target collection (#139) -->
     <!-- Above Skip and Confirm: what Confirm will save, e.g. "Confirm adds 1× Holo, NM." -->
     <string name="review_confirm_adds">Confirm adds %1$s.</string>
-    <string name="review_confirm_adds_defaults">Confirm adds %1$s, the defaults.</string>
+    <string name="review_confirm_adds_defaults">Confirm adds %1$s (defaults).</string>
+    <!-- With the chosen card first, e.g. "Confirm adds 025/165 Pikachu: 1× Normal, Near mint." (#250). -->
+    <string name="review_confirm_adds_card">Confirm adds %1$s: %2$s.</string>
+    <string name="review_confirm_adds_card_defaults">Confirm adds %1$s: %2$s (defaults).</string>
     <!-- A value in the Confirm summary that is still the default while others were picked, e.g. "Normal (default)". -->
     <string name="review_default_mark">%1$s (default)</string>
-    <string name="review_change_description">Change finish, edition, condition and quantity</string>
+    <string name="review_edit_copy">Edit copy</string>
+    <!-- Starts with the visible "Edit copy", so voice control finds it (label in name). -->
+    <string name="review_change_description">Edit copy: finish, edition, condition and quantity</string>
     <string name="review_adds_to">Confirm adds it to All cards and %1$s.</string>
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
-    <string name="review_why_number_not_read">The number couldn\'t be read. Pick the right card.</string>
+    <string name="review_why_number_not_read">Scan number unreadable. Showing the selected match.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
+    <!-- When the matches differ only in their language (#221): the clue to check on the card. -->
+    <string name="review_why_language_only">Choose the language printed on your card.</string>
     <string name="review_why_check_variant">Card found. This set has 1st edition prints, which look alike in photos, so check the variant.</string>
     <string name="review_best_matches">Best matches</string>
     <string name="review_card">Card</string>
@@ -713,8 +825,13 @@
     <string name="review_quantity">Quantity</string>
     <string name="review_quantity_less">One less</string>
     <string name="review_quantity_more">One more</string>
-    <string name="review_skip">Skip</string>
+    <!-- The scan stays in the queue for a later pass (#221). -->
+    <string name="review_skip">Review later</string>
     <string name="review_confirm">Confirm</string>
+    <!-- On Confirm while the copy is being written (#250). -->
+    <string name="review_confirm_saving">Adding…</string>
+    <!-- On the card when adding it failed (#248); it stays in the queue. -->
+    <string name="review_confirm_failed">This card could not be added. Try Confirm again.</string>
     <string name="review_discard">Remove this scan</string>
     <!-- Debug builds only (#244). -->
     <string name="review_not_a_card" translatable="false">Not a card: remove and send for training</string>

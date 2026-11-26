@@ -7,8 +7,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,11 +17,13 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -33,7 +33,10 @@ import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.traversalIndex
+import androidx.compose.ui.semantics.isTraversalGroup
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -41,6 +44,19 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.foundation.relocation.bringIntoViewRequester
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.runtime.remember
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.SubcomposeLayout
+import androidx.compose.ui.unit.em
+import androidx.compose.ui.text.style.LineHeightStyle
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.material3.LocalTextStyle
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.components.LumifoilWordmark
 import de.fabianduerkop.cardindex.ui.components.SecondaryButton
@@ -73,55 +89,159 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     val chooserTitle = stringResource(R.string.set_share_chooser)
     val text = checklistText(data)
     val description = if (mapTab) mapDescription(data) else missingDescription(data)
-    Column(
-        Modifier
-            .fillMaxWidth()
-            .verticalScroll(rememberScrollState())
-            .padding(horizontal = Spacing.gutter)
-            .padding(bottom = Spacing.xl),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        horizontalAlignment = Alignment.CenterHorizontally,
-    ) {
-        Text(
-            stringResource(R.string.set_share_title),
-            Modifier.fillMaxWidth().semantics { heading() },
-            style = MaterialTheme.typography.titleLarge,
-        )
-        ViewSwitch(
-            labels = listOf(
-                stringResource(if (data.completedOn != null) R.string.set_share_certificate else R.string.set_share_map),
-                stringResource(R.string.set_share_missing),
-            ),
-            selectedIndex = tab,
-            onSelect = { tab = it },
-        )
-        ShareImagePreview(layer, description) {
-            if (mapTab) SlotMapImage(data) else MissingListImage(data)
+    var numbersShown by rememberSaveable { mutableStateOf(false) }
+    // How many numbers the missing-list image fits, as measured when it is laid out (#250).
+    var fitted by remember(data) { mutableIntStateOf(-1) }
+    val scroll = rememberScrollState()
+    val numbersStart = remember { BringIntoViewRequester() }
+    // Opened, the numbers come into view at once instead of waiting below the fold (#250). A new tab starts at its
+    // preview, with the numbers closed.
+    LaunchedEffect(numbersShown) { if (numbersShown) numbersStart.bringIntoView() }
+    LaunchedEffect(tab) {
+        numbersShown = false
+        scroll.scrollTo(0)
+    }
+    // The heading, preview and numbers scroll; caption and actions stay in a footer, whole at any font size. The
+    // preview is sized to the room the sheet actually has above the footer, measured, not a share of the window, so
+    // nothing in view is cut (#250).
+    // TalkBack order: heading, tabs, preview, caption, the numbers toggle, the numbers, then the share actions, though
+    // the numbers sit above the footer on screen (#250).
+    Column(Modifier.fillMaxWidth().semantics { isTraversalGroup = true }) {
+        BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
+            val room = maxHeight
+            var headerHeight by remember { mutableStateOf(0.dp) }
+            val density = LocalDensity.current
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    // A scroll container is its own traversal group; this one must not be, so the numbers inside it
+                    // sort with the footer's caption, toggle and actions by their indices (#250).
+                    .semantics { isTraversalGroup = false }
+                    .verticalScroll(scroll)
+                    .padding(horizontal = Spacing.gutter)
+                    .padding(bottom = Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Column(
+                    Modifier.onSizeChanged { headerHeight = with(density) { it.height.toDp() } },
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                ) {
+                    Text(
+                        stringResource(R.string.set_share_title),
+                        Modifier.fillMaxWidth().semantics { heading() },
+                        style = MaterialTheme.typography.titleLarge,
+                    )
+                    ViewSwitch(
+                        labels = listOf(
+                            stringResource(if (data.completedOn != null) R.string.set_share_certificate else R.string.set_share_map),
+                            stringResource(R.string.set_share_missing),
+                        ),
+                        selectedIndex = tab,
+                        onSelect = { tab = it },
+                    )
+                }
+                ShareImagePreview(
+                    layer,
+                    description,
+                    maxHeight = if (room == Dp.Infinity) null else (room - headerHeight - Spacing.md - Spacing.sm).coerceAtLeast(PreviewMin),
+                ) {
+                    if (mapTab) SlotMapImage(data) else MissingListImage(data, onFitted = { fitted = it })
+                }
+                // The image's numbers are small in the preview: on request the same numbers as app text, at the
+                // system font size, in groups TalkBack can step through (#250).
+                if (numbersShown) {
+                    ImageNumbers(
+                        data,
+                        mapTab,
+                        Modifier
+                            .bringIntoViewRequester(numbersStart)
+                            .semantics { isTraversalGroup = true; traversalIndex = TraversalNumbers },
+                    )
+                }
+            }
         }
-        Text(
-            // The slot map has numbers only; the missing list has names too (#218).
-            stringResource(if (mapTab) R.string.set_share_map_no_art else R.string.set_share_no_art),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
-        )
-        ShareImageButton(
-            stringResource(R.string.set_share_image),
-            layer = layer,
-            fileName = "foilark-" + (if (mapTab) "slots-" else "missing-") + data.setName.filter { it.isLetterOrDigit() }.lowercase(),
-            chooserTitle = chooserTitle,
-            modifier = Modifier.fillMaxWidth(),
-        )
-        if (!mapTab && data.missingLines.isNotEmpty()) {
-            SecondaryButton(
-                stringResource(R.string.set_share_text),
-                onClick = { context.startActivity(ImageShare.textIntent(text, chooserTitle)) },
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Spacing.gutter)
+                .padding(top = Spacing.sm, bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            // The slot map has numbers only; the missing list has names while they fit (#218), numbers when there are
+            // more, and when not all of them fit it says how many it shows and that the text has them all (#221, #250).
+            val missing = data.missingLines.size
+            val multilingualCaption = mapTab && data.multilingual && data.languages != null
+            // The preview's spoken summary already ends with the language rule: the caption then adds only "no pictures".
+            val captionSpoken = stringResource(R.string.set_share_map_no_art)
+            Text(
+                when {
+                    // The language rule also in the sheet's own text, which follows the system font size (#250).
+                    // The languages by name in the sheet ("German and English"); the image keeps the short codes (#250).
+                    multilingualCaption -> stringResource(R.string.set_share_map_caption_languages, spokenLanguages(data))
+                    mapTab -> stringResource(R.string.set_share_map_no_art)
+                    missing <= NamedLines -> stringResource(R.string.set_share_no_art)
+                    fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
+                    else -> stringResource(R.string.set_share_map_no_art)
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.semantics {
+                    traversalIndex = TraversalCaption
+                    if (multilingualCaption) contentDescription = captionSpoken
+                },
+            )
+            if (hasNumbers(data, mapTab)) {
+                // Says which list it opens, owned or missing, by the same rule that picks it (#250).
+                val ownedList = listsOwned(data, mapTab)
+                TextAction(
+                    stringResource(
+                        when {
+                            ownedList && numbersShown -> R.string.set_share_hide_owned_numbers
+                            ownedList -> R.string.set_share_show_owned_numbers
+                            numbersShown -> R.string.set_share_hide_missing_numbers
+                            else -> R.string.set_share_show_missing_numbers
+                        },
+                    ),
+                    onClick = { numbersShown = !numbersShown },
+                    modifier = Modifier.semantics { traversalIndex = TraversalToggle },
+                )
+            }
+            Column(
+                Modifier.fillMaxWidth().semantics { isTraversalGroup = true; traversalIndex = TraversalActions },
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+            ShareImageButton(
+                stringResource(R.string.set_share_image),
+                layer = layer,
+                fileName = "foilark-" + (if (mapTab) "slots-" else "missing-") + data.setName.filter { it.isLetterOrDigit() }.lowercase(),
+                chooserTitle = chooserTitle,
                 modifier = Modifier.fillMaxWidth(),
             )
+            if (!mapTab && data.missingLines.isNotEmpty()) {
+                SecondaryButton(
+                    stringResource(R.string.set_share_text),
+                    onClick = { context.startActivity(ImageShare.textIntent(text, chooserTitle)) },
+                    modifier = Modifier.fillMaxWidth(),
+                )
+            }
+            TextAction(stringResource(R.string.receipt_close), onClick = onDone)
+            }
         }
-        TextAction(stringResource(R.string.receipt_close), onClick = onDone)
     }
 }
+
+/** TalkBack order in the share sheet; the heading, tabs and preview keep the default 0. */
+private const val TraversalCaption = 1f
+private const val TraversalToggle = 2f
+private const val TraversalNumbers = 3f
+private const val TraversalActions = 4f
+
+/** The smallest the share preview gets on a very short window: still a recognisable picture. */
+private val PreviewMin = 160.dp
 
 /** Wordmark, set name with its languages, and how far the set is: the top of both images. */
 @Composable
@@ -145,6 +265,72 @@ private fun ShareHeader(data: SetShareData, overline: String) {
 }
 
 /**
+ * the numbers toggle: the image's numbers as wrapping app text. The slot map lists the shorter of its owned and
+ * missing numbers, the missing list all missing ones; wishlist numbers carry the star. Ten to a group, each its own
+ * TalkBack stop, so a slot can be checked without zooming into the preview (#250).
+ */
+@Composable
+private fun ImageNumbers(data: SetShareData, mapTab: Boolean, modifier: Modifier = Modifier) {
+    val owned = data.slots.filter { it.owned }.map { it.label }
+    val missing = data.missingLines.map { it.number.substringBefore('/') + if (it.wanted) " " + SetShare.WANTED_MARK else "" }
+    val (heading, numbers) = if (listsOwned(data, mapTab)) {
+        R.string.set_share_numbers_owned to owned
+    } else {
+        R.string.set_share_numbers_missing to missing
+    }
+    if (numbers.isEmpty()) return
+    Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(
+            stringResource(heading, numbers.size),
+            style = MaterialTheme.typography.titleSmall,
+            modifier = Modifier.semantics { heading() },
+        )
+        numbers.chunked(NumberGroup).forEach { group ->
+            Text(
+                group.joinToString(", "),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+        val wanted = data.slots.filter { it.wanted }.map { it.label }
+        if (mapTab && wanted.isNotEmpty()) {
+            Text(
+                stringResource(R.string.set_share_numbers_wanted, wanted.size),
+                style = MaterialTheme.typography.titleSmall,
+                modifier = Modifier.padding(top = Spacing.xs).semantics { heading() },
+            )
+            wanted.chunked(NumberGroup).forEach { group ->
+                Text(
+                    group.joinToString(", "),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        } else if (!mapTab && data.anyWanted) {
+            Text(stringResource(R.string.set_share_wanted_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+/**
+ * Whether the numbers list shows owned numbers (else missing ones): the slot map lists the shorter non-empty list,
+ * owned on a complete set, never an empty "Missing (0)"; the missing list always lists missing ones (#250).
+ */
+private fun listsOwned(data: SetShareData, mapTab: Boolean): Boolean {
+    if (!mapTab) return false
+    val owned = data.slots.count { it.owned }
+    val missing = data.missingLines.size
+    return missing == 0 || (owned > 0 && owned <= missing)
+}
+
+/** Whether the numbers toggle has any to show for this tab. */
+private fun hasNumbers(data: SetShareData, mapTab: Boolean): Boolean =
+    if (mapTab) data.slots.isNotEmpty() else data.missingLines.isNotEmpty()
+
+/** Numbers per line of the numbers toggle: one TalkBack stop each. */
+private const val NumberGroup = 10
+
+/**
  * The slot map: every number of the set as a square, owned filled in sea-glass, missing hollow, wishlist ones with a
  * sea-glass outline. The squares grow to fill the page, so small sets read at thumbnail size.
  */
@@ -154,23 +340,45 @@ internal fun SlotMapImage(data: SetShareData) {
         val colors = MaterialTheme.colorScheme
         Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             // Complete, the slot map is the certificate (#169): every square filled, and the day it was done.
+            // With secret rares still open the main set is what is complete, so the image never says "Set complete"
+            // above 42 empty squares (#250).
             val completedOn = data.completedOn
-            ShareHeader(data, stringResource(if (completedOn != null) R.string.set_share_certificate_overline else R.string.set_share_map_overline))
+            val mainOnly = data.missing.secret > 0
+            ShareHeader(
+                data,
+                stringResource(
+                    when {
+                        completedOn == null -> R.string.set_share_map_overline
+                        mainOnly -> R.string.set_share_certificate_main_overline
+                        else -> R.string.set_share_certificate_overline
+                    },
+                ),
+            )
             if (completedOn != null) {
                 Text(
-                    stringResource(R.string.set_share_completed_on, formatDate(completedOn)),
+                    stringResource(
+                        if (mainOnly) R.string.set_share_main_completed_on else R.string.set_share_completed_on,
+                        formatDate(completedOn),
+                    ),
                     style = MaterialTheme.typography.titleMedium,
                     color = colors.primary,
                 )
             }
             Spacer(Modifier.height(Spacing.sm))
             BoxWithConstraints(Modifier.fillMaxWidth().weight(1f)) {
-                val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value)
-                val cell = SetShare.cellSize(data.slots.size, columns, maxWidth.value, maxHeight.value).dp
+                // Secret rares start a row of their own after a small gap, so the map shows where 165 ends (#250).
+                val (main, secret) = data.slots.partition { !it.secret }
+                val secretCount = if (main.isEmpty()) 0 else secret.size
+                val columns = SetShare.gridColumns(data.slots.size, maxWidth.value, maxHeight.value, secretCount)
+                val cell = SetShare.cellSize(data.slots.size, columns, maxWidth.value, maxHeight.value, secretCount).dp
                 // A height-bound grid is narrower than the page: centred, like the legend's page margins.
                 Column(Modifier.align(Alignment.TopCenter)) {
-                    data.slots.chunked(columns).forEach { row ->
-                        Row { row.forEach { SlotCell(it, cell) } }
+                    val groups = if (secretCount > 0) listOf(main, secret) else listOf(data.slots)
+                    groups.forEachIndexed { index, slots ->
+                        if (index > 0) Spacer(Modifier.height(cell * SetShare.SECRET_GAP))
+                        slots.chunked(columns).forEach { row ->
+                            Row { row.forEach { SlotCell(it, cell) } }
+                        }
                     }
                 }
             }
@@ -186,9 +394,19 @@ internal fun SlotMapImage(data: SetShareData) {
                     Text(stringResource(R.string.set_share_legend_wanted), style = MaterialTheme.typography.labelMedium, color = colors.onSurfaceVariant)
                 }
             }
+            // With more than one language on the map, a filled square means a copy in any of them, not in each (#250).
+            if (data.multilingual) {
+                Text(
+                    stringResource(R.string.set_share_legend_any_language),
+                    Modifier.padding(top = Spacing.xxs),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = colors.onSurfaceVariant,
+                )
+            }
         }
     }
 }
+
 
 @Composable
 private fun SlotCell(slot: ShareSlot, size: Dp) {
@@ -211,11 +429,24 @@ private fun SlotCell(slot: ShareSlot, size: Dp) {
             Text(
                 slot.label,
                 color = if (slot.owned) colors.onPrimary else colors.onSurfaceVariant,
-                // The share canvas has font scale 1, so a dp value works as sp here.
-                fontSize = (size.value * if (slot.label.length > 3) 0.26f else 0.34f).sp,
                 fontWeight = if (slot.owned) FontWeight.SemiBold else FontWeight.Normal,
+                // A line exactly one font size high, without font padding: the theme's fixed line height is taller
+                // than a cell, so the auto-size shrank the numbers to fit it instead of the cell's width (#250).
+                style = LocalTextStyle.current.copy(
+                    lineHeight = 1.em,
+                    platformStyle = PlatformTextStyle(includeFontPadding = false),
+                    lineHeightStyle = LineHeightStyle(LineHeightStyle.Alignment.Center, LineHeightStyle.Trim.Both),
+                ),
                 maxLines = 1,
                 softWrap = false,
+                // As large as the cell allows, so the numbers read at a glance in the image and its preview; longer
+                // ids (TG05, SWSH001) shrink to fit (#250). The share canvas has font scale 1: dp values work as sp.
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = (size.value * 0.2f).sp,
+                    maxFontSize = (size.value * 0.44f).sp,
+                    stepSize = (size.value * 0.02f).coerceAtLeast(0.25f).sp,
+                ),
+                modifier = Modifier.padding(horizontal = gap / 2),
             )
         }
     }
@@ -242,9 +473,8 @@ private fun LegendSquare(filled: Boolean, wanted: Boolean = false) {
  * The missing list: "These are the ones I need", then each missing card with its name (few missing) or a grid of
  * numbers (many). Wishlist ones carry a star. A complete set says so instead.
  */
-@OptIn(ExperimentalLayoutApi::class)
 @Composable
-internal fun MissingListImage(data: SetShareData) {
+internal fun MissingListImage(data: SetShareData, onFitted: (Int) -> Unit = {}) {
     ShareCanvas {
         val colors = MaterialTheme.colorScheme
         Column(Modifier.fillMaxSize().padding(PagePadding), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -278,27 +508,7 @@ internal fun MissingListImage(data: SetShareData) {
                         }
                     }
                 } else {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        lines.take(NumberChips).forEach { line ->
-                            Text(
-                                line.number.substringBefore('/') + if (line.wanted) " " + SetShare.WANTED_MARK else "",
-                                Modifier
-                                    .border(1.dp, if (line.wanted) colors.primary else colors.outlineVariant, RoundedCornerShape(4.dp))
-                                    .padding(horizontal = 4.dp, vertical = 1.dp),
-                                style = numberStyle(MaterialTheme.typography.labelSmall),
-                                color = colors.onSurface,
-                            )
-                        }
-                    }
-                    val more = lines.size - NumberChips
-                    if (more > 0) {
-                        Text(
-                            pluralStringResource(R.plurals.receipt_more, more, more),
-                            Modifier.padding(top = Spacing.xs),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = colors.onSurfaceVariant,
-                        )
-                    }
+                    FittedChips(lines, onFitted, Modifier.fillMaxSize())
                 }
             }
             if (data.anyWanted) {
@@ -306,6 +516,75 @@ internal fun MissingListImage(data: SetShareData) {
             }
         }
     }
+}
+
+/**
+ * The missing numbers as chips, as many as the image has room for, then "+ 40 more prints": measured, not a fixed
+ * count, so long ids (SWSH050) never overfill the page (#250). [onFitted] gets how many it shows, for the caption.
+ */
+@Composable
+private fun FittedChips(lines: List<MissingLine>, onFitted: (Int) -> Unit, modifier: Modifier = Modifier) {
+    val colors = MaterialTheme.colorScheme
+    SubcomposeLayout(modifier) { constraints ->
+        val gap = Spacing.xs.roundToPx()
+        val width = constraints.maxWidth
+        val loose = Constraints(maxWidth = width)
+        val chips = subcompose("chips") {
+            lines.take(NumberChips).forEach { line ->
+                Text(
+                    line.number.substringBefore('/') + if (line.wanted) " " + SetShare.WANTED_MARK else "",
+                    Modifier
+                        .border(1.dp, if (line.wanted) colors.primary else colors.outlineVariant, RoundedCornerShape(4.dp))
+                        .padding(horizontal = 4.dp, vertical = 1.dp),
+                    style = numberStyle(MaterialTheme.typography.labelSmall),
+                    color = colors.onSurface,
+                )
+            }
+        }.map { it.measure(loose) }
+        // Where each chip goes, row by row, and the bottom of the rows so far after each chip.
+        val positions = ArrayList<IntOffset>(chips.size)
+        val bottoms = IntArray(chips.size)
+        var x = 0
+        var y = 0
+        var rowHeight = 0
+        chips.forEachIndexed { index, chip ->
+            if (x > 0 && x + chip.width > width) {
+                y += rowHeight + gap
+                x = 0
+                rowHeight = 0
+            }
+            positions += IntOffset(x, y)
+            x += chip.width + gap
+            rowHeight = maxOf(rowHeight, chip.height)
+            bottoms[index] = y + rowHeight
+        }
+        val moreHeight = subcompose("probe") { MoreLine(lines.size) }.first().measure(loose).height + gap
+        val maxHeight = constraints.maxHeight
+        fun fits(count: Int): Boolean {
+            if (count == 0) return true
+            val bottom = bottoms[count - 1]
+            return if (count == lines.size) bottom <= maxHeight else bottom + moreHeight <= maxHeight
+        }
+        var shown = chips.size
+        while (shown > 0 && !fits(shown)) shown--
+        onFitted(shown)
+        val rest = lines.size - shown
+        val more = if (rest > 0) subcompose("more") { MoreLine(rest) }.first().measure(loose) else null
+        val chipsBottom = if (shown > 0) bottoms[shown - 1] else 0
+        layout(width, if (constraints.hasBoundedHeight) maxHeight else chipsBottom + (more?.let { it.height + gap } ?: 0)) {
+            for (index in 0 until shown) chips[index].place(positions[index])
+            more?.place(0, chipsBottom + if (shown > 0) gap else 0)
+        }
+    }
+}
+
+@Composable
+private fun MoreLine(count: Int) {
+    Text(
+        pluralStringResource(R.plurals.receipt_more, count, count),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
 }
 
 /**
@@ -327,7 +606,7 @@ private fun progressText(data: SetShareData): String {
 /** The plain-text checklist (#170): a heading line, every missing card, the star's meaning, and where it came from. */
 @Composable
 private fun checklistText(data: SetShareData): String {
-    val name = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
+    val name = scopedName(data)
     val count = pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size)
     return buildList {
         add(stringResource(R.string.set_share_text_heading, name, count))
@@ -337,14 +616,54 @@ private fun checklistText(data: SetShareData): String {
     }.joinToString("\n")
 }
 
+/** The set's name with the languages the picture covers, "151 (DE, EN)", as the preview shows them (#221). */
+private fun scopedName(data: SetShareData): String = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
+
+/** The map's languages by name, "German and English", for the sheet's own text and TalkBack (#250). */
 @Composable
-private fun mapDescription(data: SetShareData): String =
-    stringResource(R.string.set_share_map_description, data.setName, progressText(data))
+private fun spokenLanguages(data: SetShareData): String =
+    languageList(data.languageCodes, stringResource(R.string.collections_and))
+
+/** [scopedName] with the languages by name, for TalkBack: "151, German and English". */
+@Composable
+private fun spokenName(data: SetShareData): String =
+    if (data.languageCodes.isEmpty()) scopedName(data) else "${data.setName}, ${spokenLanguages(data)}"
+
+/**
+ * What TalkBack says for the slot map (#250): counts in words, not "7/165", and on a certificate its status and date:
+ * "Slot map of 151 (DE, EN): 7 of 165 main-set cards owned, 0 of 42 secret rares owned".
+ */
+@Composable
+private fun mapDescription(data: SetShareData): String {
+    val progress = data.progress
+    val secretTotal = progress.secret + data.missing.secret
+    val parts = listOfNotNull(
+        stringResource(R.string.set_share_main_owned_description, progress.base, progress.printedTotal),
+        when {
+            data.missing.secret > 0 -> stringResource(R.string.set_share_secret_owned_description, progress.secret, secretTotal)
+            progress.secret > 0 -> pluralStringResource(R.plurals.set_share_secret, progress.secret, progress.secret)
+            else -> null
+        },
+        data.completedOn?.let { date ->
+            stringResource(
+                if (data.missing.secret > 0) R.string.set_share_main_completed_on else R.string.set_share_completed_on,
+                formatDate(date),
+            )
+        },
+    )
+    val rule = if (data.multilingual) stringResource(R.string.set_share_legend_any_language) else null
+    // Identity, progress and language rule only: the numbers themselves are in the numbers toggle, ten to a TalkBack
+    // stop, not read out twice (#250).
+    return listOfNotNull(
+        stringResource(R.string.set_share_map_description, spokenName(data), parts.joinToString(", ")),
+        rule,
+    ).joinToString(". ")
+}
 
 @Composable
 private fun missingDescription(data: SetShareData): String =
     stringResource(
         R.string.set_share_missing_description,
-        data.setName,
+        spokenName(data),
         pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size),
     )

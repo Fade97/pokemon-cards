@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import de.fabianduerkop.cardindex.ui.collections.valueBasisName
+import java.time.Instant
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -16,6 +18,7 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.camera.core.CameraInfo
 import androidx.camera.core.CameraSelector
+import androidx.camera.core.TorchState
 import androidx.camera.core.CameraState
 import androidx.camera.core.ImageAnalysis
 import androidx.camera.core.resolutionselector.AspectRatioStrategy
@@ -29,11 +32,12 @@ import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.drawOutline
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.toArgb
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.mutableIntStateOf
-import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -81,6 +85,9 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.clickable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
@@ -124,6 +131,7 @@ import de.fabianduerkop.cardindex.recognition.RefCard
 import de.fabianduerkop.cardindex.recognition.ScanGuide
 import de.fabianduerkop.cardindex.ui.collections.formatDate
 import de.fabianduerkop.cardindex.ui.components.ChoiceChip
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.CollectorNumber
 import de.fabianduerkop.cardindex.ui.components.CountBadge
 import de.fabianduerkop.cardindex.ui.components.NoticeTone
@@ -326,7 +334,6 @@ private fun LiveScan(
     val paused by viewModel.paused.collectAsStateWithLifecycle()
     val tray by viewModel.tray.collectAsStateWithLifecycle()
     val priceSource by viewModel.priceSource.collectAsStateWithLifecycle()
-    var torch by remember { mutableStateOf(false) }
     var problem by remember { mutableStateOf<CameraProblem?>(null) }
     // The hit on screen, once its copy is saved: its price and whether it was wanted (#162).
     val hit = hitFor(tray.latest, viewfinder.decision)
@@ -358,6 +365,15 @@ private fun LiveScan(
         onDispose { controller.unbind() }
     }
     val cameraInfo = CameraProblemWatcher(controller, lifecycleOwner) { problem = it }
+    // The light as the camera reports it, not as last tapped: a failed or refused request never reads "Light off" (#250).
+    var torch by remember { mutableStateOf(false) }
+    DisposableEffect(cameraInfo, lifecycleOwner) {
+        val info = cameraInfo ?: return@DisposableEffect onDispose {}
+        val observer = Observer<Int> { torch = it == TorchState.ON }
+        info.torchState.observe(lifecycleOwner, observer)
+        onDispose { info.torchState.removeObserver(observer) }
+    }
+    val hasFlash = cameraInfo?.hasFlashUnit() == true
     GuideCamera(controller, cameraInfo, lifecycleOwner)
     var focusTaps by remember { mutableIntStateOf(0) }
 
@@ -393,25 +409,19 @@ private fun LiveScan(
                     )
                 }
                 // Over the picture, under the buttons: a tap anywhere refocuses on the guide (#197). TalkBack gets the
-                // same as a named action, since the hint under the picture tells everyone to tap it (#218).
+                // same as a named action, since the hint under the picture tells everyone to tap it (#218), and a
+                // keyboard or D-pad can focus and press it too (#250). No ripple: the focus cue answers the tap.
                 val refocusLabel = stringResource(R.string.scan_refocus)
                 Box(
                     Modifier
                         .fillMaxSize()
-                        .pointerInput(controller) {
-                            detectTapGestures {
-                                controller.focusOnGuide()
-                                focusTaps++
-                            }
+                        // Inside the edge: the preview clips anything drawn outside it (#250).
+                        .focusRing(RectangleShape, gap = (-4).dp)
+                        .clickable(interactionSource = null, indication = null, role = Role.Button) {
+                            controller.focusOnGuide()
+                            focusTaps++
                         }
-                        .semantics {
-                            contentDescription = refocusLabel
-                            onClick(label = refocusLabel) {
-                                controller.focusOnGuide()
-                                focusTaps++
-                                true
-                            }
-                        },
+                        .semantics { contentDescription = refocusLabel },
                 )
                 FocusCue(focusTaps, Modifier.align(Alignment.Center))
                 // The status chip, then the reading under it: stacked, so a larger font moves the reading down instead
@@ -421,7 +431,7 @@ private fun LiveScan(
                     Modifier.align(Alignment.TopCenter).fillMaxWidth().padding(horizontal = Spacing.gutter, vertical = Spacing.md),
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, Modifier.align(Alignment.Start))
+                    LiveStatus(paused, ready = engine !is ScanEngineState.Loading, cameraOff = problem != null, Modifier.align(Alignment.Start))
                     CameraReading(
                         engine,
                         viewfinder,
@@ -448,10 +458,14 @@ private fun LiveScan(
                     icon = if (paused) R.drawable.ic_play else R.drawable.ic_pause,
                     onClick = { viewModel.setPaused(!paused) },
                 )
-                CameraButton(
-                    stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
-                    onClick = { torch = !torch; controller.enableTorch(torch) },
-                )
+                // Only on a camera with a flash, and off while the camera reports an error (#250).
+                if (hasFlash) {
+                    CameraButton(
+                        stringResource(if (torch) R.string.scan_light_off else R.string.scan_light),
+                        onClick = { controller.enableTorch(!torch) },
+                        enabled = problem == null,
+                    )
+                }
                 if (onOpenLab != null) CameraButton(stringResource(R.string.scan_open_lab), onClick = onOpenLab)
             }
             // On the camera's dark ground, so the tray's rounded top corners show under the button strip (#218).
@@ -574,7 +588,7 @@ private fun problemOf(code: Int): CameraProblem = when (code) {
  * outline, so it reads on a bright photo and on the black letterbox alike.
  */
 @Composable
-private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
+private fun LiveStatus(paused: Boolean, ready: Boolean, cameraOff: Boolean, modifier: Modifier) {
     val camera = LumifoilTheme.colors.camera
     Row(
         modifier
@@ -585,10 +599,12 @@ private fun LiveStatus(paused: Boolean, ready: Boolean, modifier: Modifier) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         // Green and "Live" only once recognition is loaded: before that a card can't be added yet (#218).
-        Box(Modifier.size(8.dp).background(if (paused || !ready) camera.muted else camera.live, CircleShape))
+        // A camera error comes first: the chip never says "Live" while no picture arrives (#250).
+        Box(Modifier.size(8.dp).background(if (paused || !ready || cameraOff) camera.muted else camera.live, CircleShape))
         Text(
             stringResource(
                 when {
+                    cameraOff -> R.string.scan_camera_off
                     paused -> R.string.scan_paused
                     !ready -> R.string.scan_starting
                     else -> R.string.scan_live
@@ -735,7 +751,8 @@ private fun HintPill(text: String, dot: Color? = null) {
 }
 
 /** A hint's corner: half the height of a one-line hint, so one line is still a pill. */
-private val HintCorner = 20.dp
+/** Pearl's chip radius: a hint that wraps to two lines at large font stays compact over the guide (#221). */
+private val HintCorner = 14.dp
 
 /** Hints wrap before they reach across the whole picture. */
 private val HintMaxWidth = 320.dp
@@ -745,14 +762,20 @@ private val HintMaxWidth = 320.dp
  * letterbox too), 48 dp high, with the focus ring.
  */
 @Composable
-private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null) {
+private fun CameraButton(text: String, onClick: () -> Unit, icon: Int? = null, enabled: Boolean = true) {
     val camera = LumifoilTheme.colors.camera
     val shape = CircleShape
     Button(
         onClick = onClick,
         modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget),
+        enabled = enabled,
         shape = shape,
-        colors = ButtonDefaults.buttonColors(containerColor = camera.scrim, contentColor = camera.content),
+        colors = ButtonDefaults.buttonColors(
+            containerColor = camera.scrim,
+            contentColor = camera.content,
+            disabledContainerColor = camera.scrim,
+            disabledContentColor = camera.muted,
+        ),
         border = BorderStroke(1.dp, camera.faint),
         contentPadding = PaddingValues(horizontal = Spacing.lg, vertical = Spacing.sm),
     ) {
@@ -815,7 +838,18 @@ private fun Tray(
     var showingReceipt by remember { mutableStateOf(false) }
 
     val sheetShape = MaterialTheme.shapes.extraLarge.copy(bottomStart = CornerSize(0.dp), bottomEnd = CornerSize(0.dp))
-    Surface(modifier, color = MaterialTheme.colorScheme.surface, shape = sheetShape) {
+    // The sheet's rounded top gets a hairline: in dark mode the page and the camera ground are nearly the same, and
+    // the sheet's edge vanished (#221). Only the top, so it never doubles the navigation bar's own line below.
+    val edge = MaterialTheme.colorScheme.outlineVariant
+    Surface(
+        modifier.drawWithContent {
+            drawContent()
+            val outline = sheetShape.createOutline(size, layoutDirection, this)
+            clipRect(bottom = SheetEdgeHeight.toPx()) { drawOutline(outline, edge, style = Stroke(1.dp.toPx())) }
+        },
+        color = MaterialTheme.colorScheme.surface,
+        shape = sheetShape,
+    ) {
         Column(
             Modifier
                 .fillMaxWidth()
@@ -829,13 +863,14 @@ private fun Tray(
             milestone?.let { MilestoneCard(it, onOpenSet = { onOpenSet(it.set.id) }) }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Column(Modifier.weight(1f)) {
-                    Text(
+                    // Both lines break only between their facts (#250).
+                    JoinedText(
                         sessionCount(tray),
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    sessionValue(tray.value(priceSource))?.let {
-                        Text(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
+                    sessionValue(tray.value(priceSource), tray.priceDate(priceSource))?.let {
+                        JoinedText(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
                 ReviewQueueButton(toReview, onOpenReview)
@@ -898,14 +933,18 @@ private fun Tray(
  * none there. With no price at all it says only "3 without a EUR price", never €0.00; null before anything was added.
  */
 @Composable
-private fun sessionValue(value: CollectionValue): String? {
+private fun sessionValue(value: CollectionValue, date: Instant?): List<String>? {
     val unpriced = value.unpricedCopies.takeIf { it > 0 }?.let {
         pluralStringResource(R.plurals.scan_session_unpriced, it, it, value.currency)
     }
     // Nothing priced yet (offline, or only cards this market doesn't price): still say how many have no price.
-    if (value.pricedCopies == 0) return unpriced
-    val amount = Money.format(value.amountMinor, value.currency)
-    return if (unpriced == null) amount else "$amount · $unpriced"
+    if (value.pricedCopies == 0) return unpriced?.let { listOf(it) }
+    // Its market and date, as every other total says them: "€48.20 · Cardmarket trend, all languages, oldest price
+    // Nov 24, 2026" (#250). The date is the oldest of the session's priced copies.
+    val day = date?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    val dated = day?.let { if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, it) else it }
+    val basis = listOfNotNull(stringResource(value.source.valueBasisName()), dated).joinToString(", ")
+    return listOfNotNull(Money.format(value.amountMinor, value.currency), basis, unpriced)
 }
 
 /**
@@ -1005,11 +1044,10 @@ private fun FirstGoalCard(goal: FirstGoal.State, onOpenCollections: () -> Unit) 
 
 /** "37 added this session · 3 need checking" (#161): added and queued cards apart, the queued part only when any. */
 @Composable
-private fun sessionCount(tray: ScanTray): String {
-    val added = pluralStringResource(R.plurals.scan_session_added, tray.added, tray.added)
-    if (tray.queued == 0) return added
-    return added + " · " + pluralStringResource(R.plurals.scan_session_queued, tray.queued, tray.queued)
-}
+private fun sessionCount(tray: ScanTray): List<String> = listOfNotNull(
+    pluralStringResource(R.plurals.scan_session_added, tray.added, tray.added),
+    if (tray.queued == 0) null else pluralStringResource(R.plurals.scan_session_queued, tray.queued, tray.queued),
+)
 
 /**
  * "Scanning into: All cards" (#139): where the next scans go, and the way to change it. A quiet outlined control
@@ -1019,14 +1057,15 @@ private fun sessionCount(tray: ScanTray): String {
 private fun ScanTargetChip(target: String?, onClick: () -> Unit) {
     val name = target ?: stringResource(R.string.collections_all_cards)
     val description = stringResource(R.string.scan_target_description, name)
-    val shape = MaterialTheme.shapes.small
+    // The same corners as the Review button beside it (#221).
+    val shape = MaterialTheme.shapes.medium
     val colors = MaterialTheme.colorScheme
     OutlinedButton(
         onClick = onClick,
         modifier = Modifier.focusRing(shape).heightIn(min = Spacing.touchTarget).semantics { contentDescription = description },
         shape = shape,
         colors = ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurfaceVariant),
-        border = BorderStroke(1.dp, if (target != null) colors.primary else colors.outlineVariant),
+        border = BorderStroke(1.dp, if (target != null) colors.primary else colors.outline),
         contentPadding = PaddingValues(start = Spacing.md, end = Spacing.sm),
     ) {
         Text(stringResource(R.string.scan_target_label), style = MaterialTheme.typography.labelLarge)
@@ -1108,7 +1147,7 @@ private fun ReviewQueueButton(count: Int, onOpen: () -> Unit) {
         } else {
             ButtonDefaults.outlinedButtonColors(contentColor = colors.onSurfaceVariant)
         },
-        border = BorderStroke(1.dp, if (count > 0) colors.primary else colors.outlineVariant),
+        border = BorderStroke(1.dp, if (count > 0) colors.primary else colors.outline),
         contentPadding = PaddingValues(start = Spacing.lg, end = if (count > 0) Spacing.md else Spacing.lg),
     ) {
         Text(stringResource(if (count > 0) R.string.scan_review else R.string.scan_nothing_to_review))
@@ -1281,3 +1320,6 @@ private fun outlineColor(hint: ScanHint, camera: CameraColors): Color = when (hi
     ScanHint.QUEUED -> camera.warning
     else -> camera.faint
 }
+
+/** How far down the sheet's top hairline reaches: the rounded corners and the top edge. */
+private val SheetEdgeHeight = 22.dp
