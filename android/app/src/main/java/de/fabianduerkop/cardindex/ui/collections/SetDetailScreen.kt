@@ -411,7 +411,11 @@ private fun SetHeader(
                     Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.titleMedium)
                     // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
                     // many copies it covers when not all (#176, #218). The date never splits.
-                    val date = priceDate?.let { d -> formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+                    // Its oldest price once it sums more than one copy, as on Collections (#250).
+                    val date = priceDate?.let { d ->
+                        val day = formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate())
+                        if (priced.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
+                    }?.replace(' ', '\u00A0')
                     val coverage = if (priced.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
                     } else {
