@@ -1,6 +1,13 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.components
 
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.ui.input.key.type
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.foundation.focusable
 import androidx.compose.animation.core.animate
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
@@ -376,6 +383,42 @@ private fun ZoomablePage(
         Box(
             Modifier
                 .fillMaxSize()
+                // Keyboard and D-pad (#250): the image takes focus; +/- or Enter zoom, 0 or Escape resets, and the arrow
+                // keys pan a zoomed card by the same quarter-screen steps as TalkBack's actions. Unzoomed, the arrows
+                // are left to the pager, so they still turn the pages.
+                .focusRing(RectangleShape, gap = (-4).dp)
+                .onKeyEvent { event ->
+                    if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                    val pan = when (event.key) {
+                        Key.DirectionLeft -> panSteps[0]
+                        Key.DirectionRight -> panSteps[1]
+                        Key.DirectionUp -> panSteps[2]
+                        Key.DirectionDown -> panSteps[3]
+                        else -> null
+                    }
+                    when {
+                        pan != null && ViewerZoom.isZoomed(scale) -> {
+                            animation?.cancel()
+                            apply(scale, offset + pan)
+                            true
+                        }
+                        event.key == Key.Plus || event.key == Key.Equals || event.key == Key.NumPadAdd ||
+                            event.key == Key.Enter || event.key == Key.DirectionCenter -> {
+                            if (scale < ViewerZoom.MAX_SCALE) zoomTo((scale * 2f).coerceAtMost(ViewerZoom.MAX_SCALE), Offset.Zero)
+                            true
+                        }
+                        event.key == Key.Minus || event.key == Key.NumPadSubtract -> {
+                            zoomTo((scale / 2f).coerceAtLeast(ViewerZoom.MIN_SCALE), Offset.Zero)
+                            true
+                        }
+                        (event.key == Key.Zero || event.key == Key.Escape) && ViewerZoom.isZoomed(scale) -> {
+                            zoomTo(ViewerZoom.MIN_SCALE, Offset.Zero)
+                            true
+                        }
+                        else -> false
+                    }
+                }
+                .focusable()
                 .pointerInput(content, container) {
                     detectTapGestures(onDoubleTap = { tap -> zoomTo(ViewerZoom.doubleTapTarget(scale), tap - container.center) })
                 }

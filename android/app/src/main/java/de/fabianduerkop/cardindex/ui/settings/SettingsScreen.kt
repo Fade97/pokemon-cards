@@ -110,7 +110,8 @@ fun SettingsScreen(
                     if (state.refreshing) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp)
                 }
                 when (val result = state.refreshResult) {
-                    is RefreshResult.Updated -> StatusNotice(stringResource(R.string.settings_price_refreshed, result.cards))
+                    // Announced: the result of the refresh the user just started (#250).
+                    is RefreshResult.Updated -> StatusNotice(stringResource(R.string.settings_price_refreshed, result.cards), announce = true)
                     is RefreshResult.Failed -> StatusNotice(stringResource(R.string.settings_price_failed), tone = NoticeTone.ERROR)
                     null -> Unit
                 }
@@ -178,6 +179,7 @@ fun SettingsScreen(
                 when (val message = state.backupMessage) {
                     is BackupMessage.Exported -> StatusNotice(
                         pluralStringResource(R.plurals.settings_exported, message.copies, message.copies),
+                        announce = true,
                     )
                     is BackupMessage.Imported -> {
                         val result = message.result
@@ -198,7 +200,7 @@ fun SettingsScreen(
                         } else {
                             null
                         }
-                        StatusNotice(listOfNotNull(copies, alerts).joinToString("\n"))
+                        StatusNotice(listOfNotNull(copies, alerts).joinToString("\n"), announce = true)
                     }
                     is BackupMessage.Failed -> StatusNotice(
                         stringResource(R.string.settings_backup_failed, message.reason),

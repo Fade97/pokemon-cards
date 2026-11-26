@@ -60,7 +60,9 @@ fun ChoiceChip(
             // The control role, not the divider one: at least 3:1 against the page in both themes (#221).
             borderColor = colors.outline,
             selectedBorderColor = colors.primary,
-            selectedBorderWidth = 1.dp,
+            // Twice as thick when selected, as Review's chosen match: the choice shows without telling colours apart
+            // (#250).
+            selectedBorderWidth = 2.dp,
         ),
     )
 }
@@ -93,6 +95,6 @@ fun MenuChip(
             labelColor = if (active) colors.primary else colors.onSurface,
             trailingIconContentColor = if (active) colors.primary else colors.onSurfaceVariant,
         ),
-        border = BorderStroke(1.dp, if (active) colors.primary else colors.outline),
+        border = BorderStroke(if (active) 2.dp else 1.dp, if (active) colors.primary else colors.outline),
     )
 }

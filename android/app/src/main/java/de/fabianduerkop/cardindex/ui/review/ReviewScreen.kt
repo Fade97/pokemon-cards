@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.review
 
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -123,6 +125,9 @@ fun ReviewScreen(
     val target by viewModel.target.collectAsStateWithLifecycle()
     // The footer's Change scrolls the form to the finish, edition, condition and quantity choices (#218).
     val choices = remember { BringIntoViewRequester() }
+    // "Edit copy" also moves keyboard and D-pad focus to the first choice, so the next key press is in the form, not
+    // on Review later or Confirm (#250).
+    val firstChoice = remember { FocusRequester() }
     val scope = rememberCoroutineScope()
     DetailScaffold(
         title = stringResource(R.string.review_title),
@@ -161,7 +166,12 @@ fun ReviewScreen(
                                     ).joinToString(", ")
                                 },
                                 target = target?.name,
-                                onChange = { scope.launch { choices.bringIntoView() } },
+                                onChange = {
+                                    scope.launch {
+                                        choices.bringIntoView()
+                                        runCatching { firstChoice.requestFocus() }
+                                    }
+                                },
                                 onSkip = viewModel::skip,
                                 onConfirm = viewModel::confirm,
                                 saving = state.saving,
@@ -187,6 +197,7 @@ fun ReviewScreen(
                         state.draft,
                         viewModel,
                         choices,
+                        firstChoice = firstChoice,
                         onFindCard = { onFindCard(item) },
                         saving = state.saving,
                     )
@@ -203,6 +214,7 @@ private fun ItemForm(
     draft: ReviewDraft,
     viewModel: ReviewViewModel,
     choices: BringIntoViewRequester,
+    firstChoice: FocusRequester? = null,
     saving: Boolean = false,
     onFindCard: () -> Unit,
 ) {
@@ -316,6 +328,7 @@ private fun ItemForm(
                 onEdition = viewModel::setEdition,
                 onCondition = viewModel::setCondition,
                 enabled = !saving,
+                firstChoice = firstChoice,
             )
             QuantityRow(draft.quantity, viewModel::changeQuantity, Modifier.padding(top = Spacing.sm), enabled = !saving)
         }
@@ -363,9 +376,11 @@ internal fun VariantChoices(
     onCondition: (Condition) -> Unit,
     /** False while the card is being saved: the chips look and read as off, as they are (#250). */
     enabled: Boolean = true,
+    /** Attached to the first finish chip, so a caller can move focus into the choices (#250). */
+    firstChoice: FocusRequester? = null,
 ) {
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish, enabled)
+        ChoiceGroup(R.string.variant_finish, finishes, finish, finishChosen, ::finishLabel, onFinish, enabled, firstChoice)
         ChoiceGroup(R.string.variant_edition, Edition.entries, edition, editionChosen, ::editionLabel, onEdition, enabled)
         ChoiceGroup(R.string.variant_condition, Condition.entries, condition, conditionChosen, ::conditionLabel, onCondition, enabled)
     }
@@ -381,6 +396,7 @@ private fun <T> ChoiceGroup(
     label: (T) -> Int,
     onSelect: (T) -> Unit,
     enabled: Boolean,
+    firstChoice: FocusRequester? = null,
 ) {
     val state = when {
         selected == null -> R.string.variant_state_check
@@ -400,8 +416,14 @@ private fun <T> ChoiceGroup(
         Modifier.selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        values.forEach { v ->
-            ChoiceChip(selected = v == selected, onClick = { onSelect(v) }, label = stringResource(label(v)), enabled = enabled)
+        values.forEachIndexed { index, v ->
+            ChoiceChip(
+                selected = v == selected,
+                onClick = { onSelect(v) },
+                label = stringResource(label(v)),
+                enabled = enabled,
+                modifier = if (index == 0 && firstChoice != null) Modifier.focusRequester(firstChoice) else Modifier,
+            )
         }
     }
 }

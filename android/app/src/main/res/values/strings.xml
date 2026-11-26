@@ -181,6 +181,8 @@
     <string name="collections_add_copy">Add a copy</string>
     <!-- Wishlist (#134): wanted cards, not copies. -->
     <string name="wishlist_title">Wishlist</string>
+    <!-- The wishlist row on an empty Collections screen (#250). -->
+    <string name="wishlist_row_empty">Cards you want, to find later</string>
     <plurals name="wishlist_wanted_count">
         <item quantity="one">%1$d wanted</item>
         <item quantity="other">%1$d wanted</item>

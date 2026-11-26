@@ -174,10 +174,11 @@ fun CollectionsScreen(
             if (!state.loading && state.totalCopies == 0) {
                 item { EmptyCollections(onOpenScan) }
                 // Collections made before the first card stay reachable, so they can be renamed or deleted; so does
-                // a wishlist (#134), which needs no owned card.
-                if (state.collections.isNotEmpty() || wanted > 0) {
-                    item { YoursHeader(state.collections.size + if (wanted > 0) 1 else 0) }
-                    if (wanted > 0) item { WishlistRow(wanted, onOpenWishlist) }
+                // the wishlist (#134), which needs no owned card: shown even when empty, so a new collector finds it
+                // and its "Find a card" (#250).
+                item { YoursHeader(state.collections.size + 1) }
+                item { WishlistRow(wanted, onOpenWishlist) }
+                run {
                     items(state.collections, key = { "col-" + it.id }) { collection ->
                         CollectionRow(collection, cover = null, photos = state.photos, onClick = { onOpenCollection(collection.id) })
                     }
@@ -730,7 +731,7 @@ private fun CollectionRow(
 private fun WishlistRow(wanted: Int, onClick: () -> Unit) {
     ListRow(
         title = stringResource(R.string.wishlist_title),
-        subtitle = pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted),
+        subtitle = if (wanted > 0) pluralStringResource(R.plurals.wishlist_wanted_count, wanted, wanted) else stringResource(R.string.wishlist_row_empty),
         onClick = onClick,
         // Hollow like a missing slot (wanted cards are not owned yet), and in line with the binder covers below.
         leading = { CoverThumb(null, OwnPhotos()) },
