@@ -8,125 +8,158 @@ production form asks about engagement. Target **18–20 opted in by day 2**, so 
 below 12. This plan is not the public launch campaign.
 
 **Short version:** about three quarters of the testers should come from Fabian's own network and one local game
-store or league. Reddit only tops up, through the channels that allow it. Two short "missions" and a real update
-on day 7 keep testers active, and they give Fabian answers for the production form.
+store or league. Before the test opens, collect promises; once the opt-in link works, everyone joins in one
+sitting. Reddit gives a few extra collectors. Two short "missions" and a real update around day 7 keep testers
+active, and they give Fabian answers for the production form.
 
 ## 1. Roadmap
 
-Day 0 = closed track released and the opt-in link works.
+Day 0 = closed track released and the opt-in link works for a non-manager account.
 
 | Phase | Days | Target | Exit criterion |
 |---|---|---|---|
-| Prep | −7 … −4 | — | `foilark.app/test` live (M1). Google Group created (§4). Closed track set to **all countries**. Tracking sheet ready. Modmail to r/PokemonTCG_DE sent. Shop or league organizer asked. |
-| Warm pool | −5 … −1 | 15 in the Group | 15 people (personal DMs plus the shop) have joined the Group **with the Google account their Play Store uses** |
-| Activation | 0 … 2 | 18–20 opted in, ≥ 16 installed | Day 0 message sent. Each tester has replied "installed". The Console count is ≥ 16. If it is below 16 on day 2: Self Promo Sunday post, then at most 3–5 people from tester-exchange channels. |
-| Retention | 3 … 13 | ≥ 14 still in | Update shipped on day 6–7 with fixes from tester reports. Day 7 message sent. ≥ 8 testers have replied with feedback. |
-| Apply | 14 + latest opt-in | ≥ 12 with 14 days | The Console confirms eligibility, then *Apply for production*, using the feedback log (§4). **Testers stay opted in until production is approved.** |
+| Prep | −7 … −4 | — | Closed-track release **submitted for review** (it can take hours to days). `foilark.app/test` live (M1). Google Group created and set up (§4). Closed track on **all countries**. Tracking sheet ready (M6). Shop or league organizer asked (M5.3). |
+| Promises | −5 … −1 | 18 yeses + 3 named reserves | DMs (M5.2) ask for a yes, **not** for the link yet: Android 8+, and they know which Google account their Play Store uses. The r/PokemonTCG Self Promo Sunday comment goes up on the last Sunday before day 0 and asks people to reply "interested". |
+| Activation | 0 … 2 | 18–20 opted in, ≥ 16 installed | Fabian has run the whole flow once with a second, non-manager Google account. Day-0 message (M5.5) sent to every yes and every "interested" reply. Store or league visit with the flyer (M2), so people join on the spot. Each tester has replied "installed". If fewer than 16 by day 2: message the reserves, then at most 3–5 people from r/AndroidClosedTesting. |
+| Retention | 3 … 13 | ≥ 14 still in | Day-7 message (M5.6) sent, with Mission 2, whether or not an update is out. If an update ships, it fixes tester reports. ≥ 8 testers have sent feedback. |
+| Apply | the day the 12th tester reaches 14 days | ≥ 12 with 14 days | The Console confirms eligibility, then *Apply for production*, using the feedback log (§4). **Testers stay in until production is approved** (M5.7). |
 
 Every tester's 14 days start at their own opt-in, and leaving and rejoining starts them over. Someone who opts in
 on day 3 counts from day 17, so put the effort into days 0–2.
 
 ## 2. Channels
 
-Yields are **Assumptions** for planning (engaged testers per hour of Fabian's time, follow-up included).
+Yields are **Assumptions** for planning (engaged testers per hour of Fabian's time, follow-up included). By
+day −2, count the real yeses before relying on the split.
 
 | # | Channel | Yield/h | Rules | Ask |
 |---|---|---|---|---|
-| 1 | Personal DMs: friends, family, colleagues with Android. Ask each yes for one more Android-owning collector. | 4–6 | none | Message M5.2 |
-| 2 | One local game store, league or trade night (DE). [Event finder](https://play.pokemon.com/de-de/local-tournaments/tcg/) | 2–4 | Ask the owner or organizer first. Then either leave the flyer (M2) on the counter or have the organizer share it in the store chat. | Live demo of an offline scan, then the QR code. These collectors bring real DE/EN cards, the best scan feedback. |
-| 3 | Own channels: README line "Become a tester", Fabian's socials | 1–2 | own | Link to `/test` |
-| 4 | r/PokemonTCG, weekly **Self Promo Sunday** thread only | 1–3 | Apps only in that thread ([mod post](https://www.reddit.com/r/PokemonTCG/comments/lrnn1s/changes_to_the_rules_regarding_self_promotion_and/)) | Post M5.1, ask for Android collectors with German or Japanese cards |
-| 5 | r/PokemonTCG_DE | 1–3 | Promotion only with explicit mod approval ([rules update](https://www.reddit.com/r/PokemonTCG_DE/comments/1r4txjx/community_update_werberegeln_mehr_mitspracherecht/)). Send modmail M5.4 on day −4. | Post M5.1 in German, only after a yes |
-| 6 | r/AndroidClosedTesting, r/GooglePlayDeveloper tester thread | many, low quality | Reciprocal: you test their apps daily. Quick-bounce testers risk the "testers not engaged" rejection. | **Top-up only, at most 3–5 people**, and only if below 16 on day 2 |
+| 1 | Personal DMs: friends, family, colleagues with Android. Ask each yes for one more Android-owning collector. | 4–6 | none | M5.2 |
+| 2 | One local game store, league or trade night (DE). [Event finder](https://play.pokemon.com/de-de/local-tournaments/tcg/) | 2–4 | Ask the owner or organizer first (M5.3). Visit **after day 0**, so the QR code works end to end. | Live demo of an offline scan, then the flyer (M2). These collectors bring real DE/EN cards, the best scan feedback. |
+| 3 | Own channels: a "Become a tester" line in the README, Fabian's socials | 1–2 | own | Link to `/test` (after day 0) |
+| 4 | r/PokemonTCG, weekly **Self Promo Sunday** thread only | 1–3 | Apps only in that thread ([rules wiki](https://www.reddit.com/r/PokemonTCG/wiki/rules/)) | M5.1 as a comment, ask for Android collectors with German or Japanese cards |
+| 5 | r/AndroidClosedTesting | many, low quality | Reciprocal: you test their apps. Quick-bounce testers risk the "testers not engaged" rejection. | **Top-up only, at most 3–5 people**, only if below 16 on day 2 after the reserves |
 
-**Skip:** r/pkmntcgcollections (self-promotion banned), the #PKDE Discord (bans all self-promotion and unsolicited
-invites, even in DMs, [rules](https://pokemon-discord.de/regeln), checked 2026-11-27), BisaBoard and Pokéfans
-(advertising removed), PokéCardex (a competitor's community), r/fossdroid (the app ships ML Kit, DESIGN.md §2).
+**Skip:** r/PokemonTCG_DE (promotion needs mod approval, and its app rule asks for support of common mobile
+platforms, which an Android-only app does not meet; **Assumption**, the delegates read it, Reddit was not
+fetchable here), r/pkmntcgcollections (self-promotion banned), the #PKDE Discord (bans all self-promotion and
+unsolicited invites, even in DMs, [rules](https://pokemon-discord.de/regeln), checked 2026-11-27), BisaBoard and
+Pokéfans (advertising removed), PokéCardex (a competitor's community), r/fossdroid (the app uses ML Kit for the
+number OCR, DESIGN.md).
 
 **Never:** paid tester services, fake or second accounts, rewards for ratings or reviews.
 
-Reddit could not be fetched directly while drafting, so the Reddit rules come from the delegates' sources. Read
-each sidebar before posting.
+Read each sidebar again before posting.
 
 ## 3. Marketing material
 
 | ID | Piece | Format | Content | Who | Used in |
 |---|---|---|---|---|---|
-| M1 | Tester page `foilark.app/test` (EN/DE) | New route in `backend/src/site.ts`, like `/imprint`, no JS | One sentence on Foilark. "Why 14 days". Three steps: join Group → open opt-in link → install **from Play**. The two missions. FAQ: no iPhone; **same Google account as the Play Store** (at the top); "not available" fix; Android 8+. Feedback links (in-app, GitHub form, email). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Fabian fills in the Group URL and deploys. | Every channel, the one link |
-| M2 | Join card and flyer | 1080 × 1920 PNG for WhatsApp/Signal; A6 PDF with a QR code to `/test` | The steps from M1 with two small UI crops, logo, disclaimer | Agent renders (`marketing-images`), Fabian prints | DMs, store |
-| M3 | Post image | 1080 × 1350 PNG; also 1200 × 630 as the OG image of `/test` | Pearl porcelain background, `foilark-horizontal.svg`, a phone frame with the scan or binder UI (small thumbnails only), headline "Scan cards offline. No account. No ads.", badge "Android testers wanted". No card art as the main visual, no Pokéball, no bird, no Pokémon logo. | Agent | Reddit, socials, store chat |
-| M4 | Demo clip (optional) | 15–20 s, 9:16 MP4 ≤ 8 MB, burned-in captions | Airplane mode on → scan → card found → price → add to binder | Fabian records on the S25, agent cuts and captions | Reddit, socials |
-| M5 | Copy kit | Text, below | Recruiting post, DMs, modmail, funnel messages | Agent drafts (done here), Fabian sends | All |
+| M1 | Tester page `foilark.app/test` (EN/DE) | New text-only route in `backend/src/site.ts`, like `/imprint` (no images, no JS) | One sentence on Foilark. "Why 14 days". Three steps: 1. join the Google Group, 2. open the opt-in link and tap **Become a tester**, 3. install **from Play**, all with **the same Google account as the Play Store** (at the top). "Stay in the Group and the test until Fabian gives the all-clear." The two missions. FAQ: no iPhone; Android 8+; "not available" (wrong account or country); English UI. Feedback: in-app (Settings → About), the private email link, the GitHub form (**public**). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Inputs from Fabian: Group URL. Opt-in link: `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. | Every channel after day 0 |
+| M2 | Join card and flyer | 1080 × 1920 PNG for WhatsApp/Signal; A6 PDF with a QR code to `/test`. Source and output in `design/marketing/`, rendered HTML → PNG/PDF (the `marketing-images` skill). | The M1 steps, logo, disclaimer, two UI crops **without card art** (e.g. the price sheet, a set list) | Agent renders, Fabian prints | Store, DMs |
+| M3 | Post image | 1080 × 1350 PNG, same build as M2 | Pearl porcelain background, `foilark-horizontal.svg`, a phone frame with art-free UI, headline "Scan cards offline. No ads. No account in the app.", badge "Android testers wanted". No card art, no Pokéball, no bird, no Pokémon logo. | Agent | Reddit, socials |
+| M5 | Copy kit | Text, below | Recruiting post, DMs, organizer message, funnel messages | Agent drafts (done here), Fabian sends | All |
 | M6 | Tracking sheet | Private spreadsheet, not in the repo | Columns in §4 | Fabian | Funnel |
 
-M3 can share its layout with the Play feature graphic (1024 × 500, play-launch.md §3), but the feature graphic stays
-a separate file. Screenshots in M1–M3 come from the release build.
+Screenshots for M2 and M3 come from the release build. A demo video and an OG image were left out on purpose:
+they do not move the tester count.
 
 ### M5.1 Recruiting post (EN)
 
-> **Looking for ~15 Android testers: free, offline scanner for Pokémon TCG cards (open source, no ads, no account)**
+> **Looking for ~15 Android testers: free scanner for Pokémon TCG cards that works offline (open source, no ads)**
 >
-> I'm a solo developer in Germany. Foilark recognises cards on the phone itself, so scanning works without
-> internet and has no scan limit. It sorts cards into sets, binders, a trade pile and a wishlist and shows
-> Cardmarket (EUR) and TCGplayer (USD) prices. The app is in English; it recognises cards in many languages.
+> I'm a solo developer in Germany. Foilark recognises cards on the phone itself: after a one-time language pack
+> download, scanning works without internet and has no scan limit. It sorts cards into sets, binders, a trade
+> pile and a wishlist, and shows Cardmarket (EUR) prices and, for English cards, TCGplayer (USD) prices when
+> you're online. No account in the app. The app is in English and recognises cards in many languages.
 >
 > Google needs 12 testers who stay in a closed test for 14 days before I can publish. **You'd:** join a Google
-> Group, install the app from Play, scan a few of your cards twice in two weeks, and tell me what broke.
-> Android 8+ and a Google account. All steps: **foilark.app/test**. Code: github.com/Fade97/pokemon-cards
+> Group, become a tester on Play and install the app (about five minutes, same Google account as your Play
+> Store), scan a few of your cards twice in two weeks, and tell me what went wrong. Android 8+.
+> Reply "interested" and I'll send the steps as soon as the test opens. Code: github.com/Fade97/pokemon-cards
 >
 > Unofficial fan project, not affiliated with or endorsed by Nintendo, The Pokémon Company, Cardmarket or TCGplayer.
 
-DE version for r/PokemonTCG_DE: translate one to one and add "Die App selbst ist auf Englisch."
+After day 0, replace the "Reply interested" sentence with "All steps: foilark.app/test".
 
-### M5.2 Friends message
+### M5.2 Friends message (before day 0)
 
-> **DE:** Hey! Ich bringe meine App Foilark in den Play Store: Pokémon-Karten offline scannen und sammeln,
-> kostenlos. Google verlangt vorher 12 Tester, die 14 Tage am Stück dabeibleiben. Hilfst du mir? Du brauchst ein
-> Android-Handy, es dauert 2 Minuten: foilark.app/test. Wichtig: dasselbe Google-Konto wie im Play Store, und bitte
-> nicht vor meiner Entwarnung deinstallieren, sonst zählt es nicht. Zweimal ein paar Karten scannen und mir sagen,
-> was hakt, reicht völlig.
+> **DE:** Hey! Ich bringe meine App Foilark in den Play Store: Pokémon-Karten scannen und sammeln, auch offline,
+> kostenlos. Google verlangt vorher 12 Tester, die 14 Tage am Stück dabeibleiben. Wärst du dabei? Du brauchst ein
+> Android-Handy und etwa 5 Minuten. Zweimal ein paar Karten scannen und mir sagen, was hakt, reicht völlig. Wenn
+> ja, schicke ich dir den Link, sobald der Test offen ist.
 
-> **EN:** Hey! I'm getting my app Foilark into the Play Store: scan and collect Pokémon cards offline, free.
-> Google first needs 12 testers who stay in for 14 days straight. Could you help? You need an Android phone and two
-> minutes: foilark.app/test. Please use the same Google account as your Play Store, and don't uninstall until I
-> give the all-clear, or it won't count. Scanning a few cards twice and telling me what's awkward is plenty.
+> **EN:** Hey! I'm getting my app Foilark into the Play Store: scan and collect Pokémon cards, offline too, free.
+> Google first needs 12 testers who stay in for 14 days straight. Would you join? You need an Android phone and
+> about five minutes. Scanning a few cards twice and telling me what's awkward is plenty. If you're in, I'll send
+> the link as soon as the test opens.
 
-Friends without cards: say they can still test onboarding, browsing sets and prices. Scanning card pictures shown on
-another screen is **untested**; check it on the S25 before suggesting it.
+Friends without cards can still test onboarding, browsing sets and prices. Scanning card pictures on another screen
+is **untested**; check it on the S25 before suggesting it.
 
 ### M5.3 Store or league organizer (DE)
 
 > Hallo! Ich entwickle Foilark, eine kostenlose Open-Source-App, die Pokémon-Karten offline scannt und Cardmarket-
 > Preise zeigt. Für die Veröffentlichung im Play Store brauche ich ein paar Android-Sammler, die zwei Wochen testen.
 > Darf ich beim nächsten Liga- oder Tauschabend kurz zeigen, wie sie funktioniert, und einen Flyer mit QR-Code
-> hinlegen? Es gibt nichts zu kaufen, keine Werbung, keine Anmeldung.
+> hinlegen? Es gibt nichts zu kaufen, keine Werbung, kein Konto in der App.
 
-### M5.4 Modmail (r/PokemonTCG_DE; same idea for any other sub)
+### Funnel messages (M5.5–M5.7)
 
-> Hallo Mod-Team, ich bin Hobby-Entwickler aus Deutschland. Meine App Foilark (kostenlos, Open Source unter GPLv3,
-> keine Werbung, kein Konto) scannt Pokémon-Karten offline und zeigt Cardmarket-Preise. Für die Freigabe im Play
-> Store brauche ich 12 Tester für 14 Tage. Dürfte ich dazu einmalig einen Beitrag posten? Den Entwurf hänge ich an.
-> Wenn nicht, kein Problem, danke fürs Lesen.
+Send each as a Group email **and** as a personal DM to anyone who did not react (Group mail can land in spam).
+Replies go to Fabian privately, never to the Group.
+
+**M5.5 Day 0**
+
+> **DE:** Der Test ist offen! 1. Tritt der Gruppe bei: <Group-Link>. 2. Öffne
+> https://play.google.com/apps/testing/de.fabianduerkop.foilark und tippe auf „Tester werden". 3. Installiere
+> Foilark aus dem Play Store. Immer mit demselben Google-Konto wie im Play Store.
+> **Mission 1:** Sprachpaket laden, Flugmodus an, 5 Karten scannen, eine unsichere Karte unter „Review"
+> bestätigen (falls eine dort landet), eine Karte in einen Ordner legen, Flugmodus wieder aus. Schreib mir kurz
+> „installiert". Bitte bis zu meiner Entwarnung in der Gruppe und im Test bleiben und die App installiert lassen.
+
+> **EN:** The test is open! 1. Join the group: <Group link>. 2. Open
+> https://play.google.com/apps/testing/de.fabianduerkop.foilark and tap "Become a tester". 3. Install Foilark from
+> the Play Store. Always with the same Google account as your Play Store.
+> **Mission 1:** download your language pack, turn on airplane mode, scan 5 cards, confirm an unsure one under
+> "Review" (if one lands there), put one card in a binder, turn airplane mode off again. Send me a quick
+> "installed". Please stay in the group and the test, with the app installed, until I give the all-clear.
+
+**M5.6 Day 7**
+
+> **DE:** Halbzeit, danke! [Falls ein Update draußen ist: Version <x> ist im Play Store, mit <tatsächlicher Fix>.]
+> **Mission 2:** Ordner wieder öffnen, einen Preis ansehen, eine Holo- oder Reverse-Holo-Karte scannen. Dann
+> antworte mir mit drei Dingen: Was ging schief? Was fehlt dir? Welches Handy hast du?
+
+> **EN:** Halfway, thank you! [If an update is out: version <x> is in the Play Store, with <actual fix>.]
+> **Mission 2:** reopen your binder, look at a price, scan a holo or reverse holo. Then reply with three things:
+> what went wrong, what's missing, which phone you have.
+
+**M5.7 Day 12 and after approval**
+
+> **DE (Tag 12):** Fast geschafft. Bitte bleib in der Gruppe und im Test, bis ich mich wieder melde.
+> **DE (nach Freigabe):** Geschafft, Foilark ist freigegeben. Danke! Du kannst den Test jetzt verlassen oder
+> dabeibleiben.
+
+> **EN (day 12):** Almost there. Please stay in the group and the test until I write again.
+> **EN (after approval):** Done, Foilark is approved. Thank you! You can leave the test now or stay in.
 
 ## 4. Funnel and retention
 
-**Google Group:** "Anyone can join" (no approval per person). Member list visible to **managers only**, posting
-by **managers only**, so testers don't see each other's addresses. **Assumption:** check the setting names in the
-Groups UI.
+**Google Group settings** (**Assumption:** check the exact names in the Groups UI):
 
-| When | Send | Content |
-|---|---|---|
-| On signup | — | Tester joins the Group from `/test` and tells Fabian (DM or the email link) under which name. Fabian adds them to the sheet. |
-| Day 0 | Group email + personal DMs | Opt-in link `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. **Mission 1:** download your language pack, switch to airplane mode, scan 5 cards, fix one with the review picker, save one to a binder. Reply "installed" (a screenshot of "You're a tester" helps). |
-| Day 2–3 | Personal DM | Only to people without "installed": help with the account or country problem. |
-| Day 6–7 | Group email, after the update is live | "Version 1.0.x is out, thanks to everyone who reported X." **Mission 2:** update, reopen your binder, check a price, try a holo or reverse holo. Reply with three answers: what broke, what's missing, phone model. |
-| Day 12 | Group email | "Almost there. Please stay in until I write again." |
-| After approval | Group email | Thanks and the all-clear. Testers may leave, or stay for open testing. |
+- Who can join: anyone (no approval per person).
+- Who can see members and member emails: managers only.
+- Who can post: managers only; replies go to the author, not the Group.
+- Default delivery for new members: each email.
 
-**Tracking sheet (M6):** name · channel · Group date · opt-in date (self-reported) · installed ✓ · day-7 reply ✓
-· feedback items · status. No email addresses or Google account names in the sheet. The Console shows only the
-opted-in **count**, not names, so compare it with the sheet every two days. If the count falls to 14, recruit 3
-more at once.
+**Order:** promise (DM or "interested") → day 0: Group → **Become a tester** → install from Play → "installed" →
+Mission 1 → day 7: Mission 2 and feedback → day 12 reminder → apply → all-clear after approval.
+
+**Tracking sheet (M6):** name · channel · reserve yes/no · Group joined · opt-in date (self-reported) · installed
+✓ · Mission 2 reply ✓ · feedback items · status. No email addresses or Google account names in the sheet. The
+Console shows only the opted-in **count**, not names, so compare it with the sheet every two days. If the count
+falls to 14, message the reserves at once.
 
 **Feedback log for the production form:** for each report, note the date, area (scan, prices, collections),
 the fix and the version that shipped it. The in-app feedback (Settings → About) pre-fills device and version.
@@ -135,23 +168,22 @@ the fix and the version that shipped it. The in-app feedback (Settings → About
 
 | Risk | Fix |
 |---|---|
-| Count drops below 12 | 18–20 by day 2, sheet vs. Console every two days, backups ready |
+| Count drops below 12 | 18 yeses + 3 reserves, sheet vs. Console every two days |
+| Closed-track review delays day 0, promises cool off | Submit on day −7; send the day-0 message within hours of release |
 | "Not available in your country" | Closed track on all countries before day 0 |
-| Group joined with one Google account, Play Store on another | Warning at the top of `/test`, the "installed" screenshot |
-| Rejected for low engagement | Missions, the day-7 update, the feedback log, no more than 5 exchange testers |
-| Post removed or ban | Only the channels in §2, modmail first, one post per sub, no DM spam |
-| Card art or trademark issues in images | UI thumbnails only, disclaimer on every piece |
-| Testers see each other's emails | Group member list managers-only |
+| Group joined with one Google account, Play Store on another | Warning at the top of M1 and in M5.5, the test run with a second account |
+| Rejected for low engagement | Missions, Mission-2 replies, the feedback log, no more than 5 exchange testers |
+| Post removed or ban | Only the channels in §2, one comment per week, no DM spam |
+| Card art or trademark issues in images | Art-free UI crops, disclaimer on every piece |
+| Testers see each other's emails or reply to everyone | Group settings above |
 
 ## 6. Only 3 evenings?
 
-Cut all cold community posts (Reddit, modmails), M3 and M4. Spend the evenings on:
+Cut Reddit and M3. Spend the evenings on:
 
-1. M1 (agent-built), Google Group, sheet, and 20–25 personal DMs.
-2. One store or league evening with M2.
+1. M1 (agent-built), Google Group, sheet, and 20–25 personal DMs (M5.2).
+2. One store or league evening with M2, after day 0.
 3. The day-0 send-out and helping the first testers through to "installed".
-
-The day-7 update still has to happen; it is a development task, not marketing.
 
 ## 7. Follow-up work
 
@@ -159,4 +191,4 @@ The day-7 update still has to happen; it is a development task, not marketing.
 |---|---|---|
 | M1 `/test` route (EN/DE) with tests | Agent | to file |
 | M2 and M3 images | Agent | to file |
-| Group, sheet, DMs, store, posts, day-0…day-12 messages | Fabian | #15 |
+| Group, sheet, DMs, store, posts, M5.5–M5.7 | Fabian | #15 |
