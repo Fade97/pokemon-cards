@@ -74,6 +74,15 @@ class CardDetailImagesTest {
     }
 
     @Test
+    fun `another language's photo never stands in for the shown print`() {
+        val images = detailImages(detail(copy("de1", "de")), photos("de1", preferOwn = true))
+
+        assertEquals(0, images.heroIndex)
+        assertTrue(images.images[0] is DetailImage.Official)
+        assertEquals("de1", (images.images[1] as DetailImage.OwnPhoto).copy.copy.uuid)
+    }
+
+    @Test
     fun `a card without CDN art shows the own photo as the hero`() {
         val images = detailImages(detail(copy("a"), imageUrl = null), photos("a"))
 

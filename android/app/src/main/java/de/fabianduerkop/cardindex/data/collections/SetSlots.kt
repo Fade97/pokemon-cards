@@ -18,6 +18,11 @@ data class SetSlot(
     val copies: Int,
     /** Uuids of those copies, newest first, to find the user's own photo of the card. */
     val copyUuids: List<String> = emptyList(),
+    /**
+     * The number is printed, but only in languages outside the filter: the slot shows no other language's card in
+     * its place, so "Open card" and the missing list never lead to a print that would not fill it (#250).
+     */
+    val otherLanguagesOnly: Boolean = false,
 ) {
     val energyType: EnergyType? get() = card?.energyType
 }
@@ -27,7 +32,7 @@ data class SetSlot(
  * copies know beyond that (secret rares like 180/165, or ids like `TG05`), in print order.
  *
  * EN/DE/FR prints of the same number share a slot, so [languages] (null = all) decides which copies fill it and
- * which print it shows: an owned print first, then a catalog print in a filtered language, then any print.
+ * which print it shows: an owned print first, then a catalog print in a filtered language; none from another language.
  */
 fun buildSetSlots(
     printedTotal: Int,
@@ -51,13 +56,13 @@ fun buildSetSlots(
         val candidates = printsByNumber[key].orEmpty()
         val card = owned.firstOrNull()?.card
             ?: candidates.firstOrNull { inFilter(it.language) }
-            ?: candidates.firstOrNull()
         SetSlot(
-            localId = card?.localId ?: key,
+            localId = card?.localId ?: candidates.firstOrNull()?.localId ?: key,
             card = card,
             owned = owned.isNotEmpty(),
             copies = owned.sumOf { it.copy.quantity },
             copyUuids = owned.map { it.copy.uuid },
+            otherLanguagesOnly = card == null && candidates.isNotEmpty(),
         )
     }
 }

@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0-or-later
 package de.fabianduerkop.cardindex.ui.scan
 
+import de.fabianduerkop.cardindex.ui.collections.valueBasisName
+import java.time.Instant
 import android.Manifest
 import android.app.Activity
 import android.content.Context
@@ -867,7 +869,7 @@ private fun Tray(
                         style = MaterialTheme.typography.titleMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                    sessionValue(tray.value(priceSource))?.let {
+                    sessionValue(tray.value(priceSource), tray.priceDate(priceSource))?.let {
                         JoinedText(it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurface)
                     }
                 }
@@ -931,13 +933,18 @@ private fun Tray(
  * none there. With no price at all it says only "3 without a EUR price", never €0.00; null before anything was added.
  */
 @Composable
-private fun sessionValue(value: CollectionValue): List<String>? {
+private fun sessionValue(value: CollectionValue, date: Instant?): List<String>? {
     val unpriced = value.unpricedCopies.takeIf { it > 0 }?.let {
         pluralStringResource(R.plurals.scan_session_unpriced, it, it, value.currency)
     }
     // Nothing priced yet (offline, or only cards this market doesn't price): still say how many have no price.
     if (value.pricedCopies == 0) return unpriced?.let { listOf(it) }
-    return listOfNotNull(Money.format(value.amountMinor, value.currency), unpriced)
+    // Its market and date, as every other total says them: "€48.20 · Cardmarket trend, all languages, oldest price
+    // Nov 24, 2026" (#250). The date is the oldest of the session's priced copies.
+    val day = date?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    val dated = day?.let { if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, it) else it }
+    val basis = listOfNotNull(stringResource(value.source.valueBasisName()), dated).joinToString(", ")
+    return listOfNotNull(Money.format(value.amountMinor, value.currency), basis, unpriced)
 }
 
 /**

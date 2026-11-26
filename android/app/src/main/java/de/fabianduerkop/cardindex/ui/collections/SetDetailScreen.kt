@@ -424,7 +424,7 @@ private fun SetHeader(
                     }
                     // Market and date on one line while they fit, else on two, never "TCGplayer," alone (#250).
                     JoinedText(
-                        listOfNotNull(stringResource(priced.source.marketName()), date),
+                        listOfNotNull(stringResource(priced.source.valueBasisName()), date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
@@ -714,7 +714,9 @@ private fun MissingSlotBar(slot: SetSlot, printedTotal: Int, onOpen: (() -> Unit
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
-                        text = if (slot.card == null) {
+                        text = if (slot.otherLanguagesOnly) {
+                            stringResource(R.string.collections_slot_other_languages)
+                        } else if (slot.card == null) {
                             stringResource(R.string.collections_slot_unknown)
                         } else {
                             stringResource(R.string.collections_slot_missing)

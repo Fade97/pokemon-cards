@@ -153,6 +153,8 @@
     <string name="collections_filter_missing">Missing %1$d</string>
     <string name="collections_slot_missing">Missing</string>
     <string name="collections_slot_unknown">Not in your installed cards yet</string>
+    <!-- A number printed only in languages outside the set filter (#250). -->
+    <string name="collections_slot_other_languages">Not printed in the chosen languages</string>
     <string name="collections_slot_close">Close</string>
     <string name="collections_slot_owned_description">%1$s, owned</string>
     <string name="collections_slot_missing_description">%1$s, missing</string>
@@ -443,7 +445,9 @@
     <string name="settings_appearance">Appearance</string>
     <string name="settings_theme_follows">Light or dark follows your phone\'s setting.</string>
     <string name="settings_debug_title">Debug tools (debug build)</string>
-    <string name="settings_price_hint">Cardmarket prices mix all card languages, so a German card often sells for less than its trend price. The card screen links to the offers in your card\'s language.</string>
+    <string name="settings_price_hint">Cardmarket\'s trend price pools all card languages, so offers for one language can be higher or lower. The card screen links to the offers in your card\'s language.</string>
+    <!-- The basis of a summed Cardmarket value: its trend pools the languages (#250). -->
+    <string name="price_cardmarket_value_basis">Cardmarket trend, all languages</string>
     <string name="settings_price_refresh">Update prices now</string>
     <string name="settings_price_refreshed">Prices updated for %1$d cards.</string>
     <string name="settings_price_failed">The price service is not reachable. Saved prices stay.</string>
@@ -559,7 +563,7 @@
     <string name="scan_card_line">%1$s, %2$s, %3$s</string>
     <!-- After the big count of cards scanned in this session -->
     <string name="scan_nothing_to_review">Nothing to review</string>
-    <string name="scan_tray_empty">Each card is added as soon as its number is read. Unsure cards wait in Review, so you can keep scanning. Blurry? Tap the picture to refocus.</string>
+    <string name="scan_tray_empty">Confident matches are added automatically. Unsure matches wait in Review, so you can keep scanning. Blurry? Tap the picture to refocus.</string>
     <!-- Set name, language -->
     <string name="scan_added">Added: %1$s, %2$s</string>
     <string name="scan_queued">Saved for review: %1$s</string>

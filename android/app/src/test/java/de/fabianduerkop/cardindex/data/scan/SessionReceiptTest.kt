@@ -56,7 +56,7 @@ class SessionReceiptTest {
         // The same total Collections shows for these copies.
         assertEquals(PriceSelection.total(session.map { it.copy }, prices, PriceSource.CARDMARKET), receipt.value)
         assertEquals("006", receipt.bestFind!!.card.localId)
-        assertEquals(Instant.parse("2026-11-18T02:00:00Z"), receipt.priceDate)
+        assertEquals(Instant.parse("2026-11-17T02:00:00Z"), receipt.priceDate) // the oldest of its quotes
         // Most valuable first, the unpriced print last; two copies of one print are one line.
         assertEquals(listOf("006" to 1, "025" to 2, "099" to 1), receipt.lines.map { it.card.localId to it.copies })
         assertNull(receipt.lines.last().quote)

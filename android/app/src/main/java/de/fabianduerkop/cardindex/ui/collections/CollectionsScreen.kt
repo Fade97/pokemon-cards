@@ -434,6 +434,12 @@ private fun valueCoverage(row: SetRowUi): String? {
     }
 }
 
+/** Some of the set's copies are priced and some are not: its value covers only part of them. */
+private fun partial(row: SetRowUi): Boolean {
+    val value = row.value ?: return false
+    return value.amountMinor > 0 && value.unpricedCopies > 0
+}
+
 /**
  * Where a set's value comes from: "TCGplayer, Nov 20, 2026". Next to the value on the cover and in each row, so the
  * basis stays in view once the collection header has scrolled away (#218). Null without a price.
@@ -453,7 +459,7 @@ private fun valueSourceParts(row: SetRowUi): List<String>? {
     }
     // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
     // cover's narrow value column market and date go on two lines when they don't fit one, never "TCGplayer," alone.
-    return listOfNotNull(stringResource(value.source.marketName()), date)
+    return listOfNotNull(stringResource(value.source.valueBasisName()), date)
 }
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
@@ -468,9 +474,11 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
         set.copies.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_cards_count, it, it) },
         secretDescription(progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp_description) else null,
+        // A partial value says how much it covers before its amount, as the cover shows it (#250).
+        valueCoverage(row).takeIf { partial(row) },
         row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
         valueSource(row),
-        valueCoverage(row),
+        valueCoverage(row).takeIf { !partial(row) },
         change?.let { weeklyChangeDescription(it) },
         if (pinned) stringResource(R.string.collections_featured_pinned_description) else null,
     )
@@ -630,15 +638,22 @@ private val FanHeight = 132.dp
 private fun SetRow(row: SetRowUi, change: WeeklyTrend?, onClick: () -> Unit) {
     val set = row.completion
     val description = setDescription(row, change = change)
+    val amount = row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) }
+    // A partial value moves to the coverage line and follows it ("10 of 21 copies priced · $35.86 · TCGplayer, …"), so
+    // it never sits next to the full copy count as if it were theirs (#250).
     val facts = listOfNotNull(
         pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies),
-        row.value?.takeIf { it.amountMinor > 0 }?.let { Money.format(it.amountMinor, it.currency) },
+        amount.takeIf { !partial(row) },
         secretText(row.progress),
         if (set.region == Region.JP) stringResource(R.string.collections_region_jp) else null,
     )
     // Where the value comes from and how much it covers on a line of its own: run on after "·", it broke mid-way at
     // large font and left a "·" dangling at a line end (#221). Each line breaks only between its facts (#250).
-    val basis = listOfNotNull(valueSource(row), valueCoverage(row))
+    val basis = if (partial(row)) {
+        listOfNotNull(valueCoverage(row), amount, valueSource(row))
+    } else {
+        listOfNotNull(valueSource(row), valueCoverage(row))
+    }
     ListRow(
         title = set.name,
         subtitle = null,

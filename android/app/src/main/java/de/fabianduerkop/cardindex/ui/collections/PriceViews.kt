@@ -54,6 +54,14 @@ internal fun PriceSource.label(): Int =
 internal fun PriceSource.marketName(): Int =
     if (this == PriceSource.CARDMARKET) R.string.settings_price_cardmarket_name else R.string.settings_price_tcgplayer_name
 
+/**
+ * The market as the basis of a summed value: "Cardmarket trend, all languages" (its trend pools the languages, so a
+ * language-filtered set must not read as language-specific prices, #250), else the market's name.
+ */
+@StringRes
+internal fun PriceSource.valueBasisName(): Int =
+    if (this == PriceSource.CARDMARKET) R.string.price_cardmarket_value_basis else marketName()
+
 /** Just the market's name, for a choice between the two. */
 @StringRes
 internal fun PriceSource.shortLabel(): Int =

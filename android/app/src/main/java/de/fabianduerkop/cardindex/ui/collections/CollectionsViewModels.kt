@@ -80,9 +80,12 @@ private fun <T> Flow<T>.stateIn(vm: ViewModel, initial: T): StateFlow<T> =
 /** Null selection in the UI means every language. */
 private fun Set<String>.orAll(): Set<String>? = ifEmpty { null }
 
-/** The copy whose printing the card detail prices: one in the shown language, else any; null if none is owned. */
+/**
+ * The copy whose printing the card detail prices: one in the shown language; null when none is, so the shown print
+ * is priced as itself (its default printing), never with another language's finish or edition (#250).
+ */
 internal fun CardDetail.pricedCopy(): OwnedCopyEntity? =
-    copies.firstOrNull { it.card.language == card.language }?.copy ?: copies.firstOrNull()?.copy
+    copies.firstOrNull { it.card.language == card.language }?.copy
 
 /**
  * Range and refresh of a Pro price chart (#17), shared by the card detail and the collections screen: while Pro is on,
@@ -521,18 +524,25 @@ class SetDetailViewModel(
         SetDetailUiState(selectedLanguages = chosen, mode = mode, filter = filter, photos = photos, pinned = pinnedId == setId)
     }
 
+    // The slots come with the languages they were built for: the header, values and share data read that pair, so
+    // a language change never shows the new language over the previous slot map (#250).
+    private val applied = selected.flatMapLatest { languages ->
+        repository.observeSetDetail(setId, languages.orAll()).map { languages to it }
+    }
+
     val state: StateFlow<SetDetailUiState> = combine(
-        selected.flatMapLatest { repository.observeSetDetail(setId, it.orAll()) },
+        applied,
         view,
         prices.observeAll(),
         primarySource,
         legend,
-    ) { detail, view, priceMap, source, legendShown ->
+    ) { (languages, detail), view, priceMap, source, legendShown ->
         val ownedCopies = detail?.copies.orEmpty()
-            .filter { view.selectedLanguages.isEmpty() || it.card.language in view.selectedLanguages }
+            .filter { languages.isEmpty() || it.card.language in languages }
         val owned = ownedCopies.map { it.copy }
         view.copy(
             loading = false,
+            selectedLanguages = languages,
             detail = detail,
             value = PriceSelection.total(owned, priceMap, source),
             priceDate = PriceSelection.totalDate(owned, priceMap, source),

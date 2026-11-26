@@ -475,7 +475,9 @@ private fun CardHeader(
                                 },
                             ),
                         // The newest photo of a copy in the shown language, else of any copy of the card.
-                        ownPhoto = photos.firstOf(heroCopyOrder(detail).map { it.copy.uuid }),
+                        // Only a photo of a copy in the shown language: under this print's name and language, another
+                        // language's copy would pass for it. Those photos stay in the viewer, labelled (#250).
+                        ownPhoto = photos.firstOf(detail.copies.filter { it.card.language == detail.card.language }.map { it.copy.uuid }),
                         preferOwnPhoto = photos.preferOwn,
                         quality = ImageQuality.HIGH,
                     )

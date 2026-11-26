@@ -45,7 +45,8 @@ internal fun detailImages(detail: CardDetail, photos: OwnPhotos): DetailImages {
     val official = cardImageUrl(detail.card.imageUrl, ImageQuality.HIGH)?.let { DetailImage.Official(it, officialFoil(detail)) }
     val own = heroCopyOrder(detail).mapNotNull { item -> photos.of(item.copy.uuid)?.let { DetailImage.OwnPhoto(it, item) } }
     val images = listOfNotNull(official) + own
-    val heroShowsOwn = own.isNotEmpty() && (photos.preferOwn || official == null)
+    // Only a photo of a copy in the shown language stands in for the print on the hero (#250); others stay pages.
+    val heroShowsOwn = own.firstOrNull()?.copy?.card?.language == detail.card.language && (photos.preferOwn || official == null)
     val heroIndex = if (heroShowsOwn && official != null) 1 else 0
     return DetailImages(images, heroIndex)
 }

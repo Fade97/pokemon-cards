@@ -77,7 +77,8 @@ data class SessionReceipt(
             return SessionReceipt(
                 cards = session.sumOf { it.copy.quantity },
                 value = value,
-                priceDate = lines.mapNotNull { it.quote?.priceDate }.maxOrNull(),
+                // The oldest quote's date, as the collection total and the "Oldest price from" label say (#250).
+                priceDate = lines.mapNotNull { it.quote?.priceDate }.minOrNull(),
                 newSlots = session.mapTo(HashSet()) { slot(it) }.count { it !in filledBefore },
                 sets = session.mapTo(HashSet()) { it.card.setId }.size,
                 bestFind = lines.firstOrNull { it.quote != null },
