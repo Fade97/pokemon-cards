@@ -135,13 +135,14 @@ the Group.
 **M5.6 Day 7**
 
 > **DE:** Halbzeit, danke! [Falls ein Update draußen ist: Version <x> ist im Play Store, mit <tatsächlicher Fix>.]
-> **Mission 2:** Ordner wieder öffnen, einen Preis ansehen, eine Holo- oder Reverse-Holo-Karte scannen (ohne
-> Karten: drei Karten unter Search suchen und ihre Preise vergleichen). Dann
-> antworte mir mit drei Dingen: Was ging schief? Was fehlt dir? Welches Handy hast du?
+> **Mission 2:** Ordner wieder öffnen, einen Preis ansehen, eine Holo- oder Reverse-Holo-Karte scannen. Ohne
+> Karten: online bleiben, unter Search drei Karten mit angezeigtem Marktpreis suchen und vergleichen (nicht jede
+> Karte hat einen). Dann antworte mir mit drei Dingen: Was ging schief? Was fehlt dir? Welches Handy hast du?
 
 > **EN:** Halfway, thank you! [If an update is out: version <x> is in the Play Store, with <actual fix>.]
-> **Mission 2:** reopen your binder, look at a price, scan a holo or reverse holo (no cards: look up three cards
-> under Search and compare their prices). Then reply with three things:
+> **Mission 2:** reopen your binder, look at a price, scan a holo or reverse holo. Without cards, stay online and
+> use Search to find three cards with a Market price shown, then compare them (not every card has one). Then reply
+> with three things:
 > what went wrong, what's missing, which phone you have.
 
 **M5.7 Day 12 and after approval**
