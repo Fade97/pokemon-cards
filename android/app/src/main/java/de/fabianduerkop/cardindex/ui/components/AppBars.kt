@@ -43,6 +43,7 @@ import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import de.fabianduerkop.cardindex.R
 import de.fabianduerkop.cardindex.ui.theme.Spacing
 
@@ -102,7 +103,8 @@ fun AppBarTitle(text: String) {
         maxLines = 1,
         overflow = TextOverflow.Ellipsis,
         autoSize = TextAutoSize.StepBased(
-            minFontSize = with(LocalDensity.current) { TitleMinSize.toSp() },
+            // Never above the full size: at a font scale under 0.8 the 16 dp floor would exceed it, which StepBased rejects.
+            minFontSize = minOf(with(LocalDensity.current) { TitleMinSize.toSp() }.value, style.fontSize.value).sp,
             maxFontSize = style.fontSize,
         ),
     )
