@@ -23,7 +23,7 @@ promises are in. If Google releases earlier, the track just waits for the promis
 | Prep | −7 … −4 | — | Google Group created and set up (§4) and added under **Closed testing → Testers**. Closed track on **all countries**. Then the closed-track release **submitted for review** (it can take hours to days). `foilark.app/test` live (M1). Tracking sheet ready (M6). M2 printed. Shop or league organizer asked (M5.3). Anyone on the internal testing track who wants to join the closed test leaves internal testing first, otherwise they do not count. |
 | Promises | −5 … −1 | 18 yeses + 3 named reserves | DMs (M5.2) ask for a yes, **not** for the link yet: Android 8+, and they know which Google account their Play Store uses. The r/PokemonTCG Self Promo Sunday comment goes up on the last Sunday before day 0 and asks people to reply "interested". |
 | Activation | 0 … 2 | 18–20 opted in, ≥ 16 installed | Day-0 message (M5.5) sent by DM to every yes. The Reddit comment is edited to add `foilark.app/test`, and each "interested" gets a reply in the thread (DM only if asked). Store or league visit with the flyer (M2), so people join on the spot. Each tester has replied "installed". If fewer than 16 by day 2: message the reserves, then at most 3–5 people from r/AndroidClosedTesting. |
-| Retention | 3 … eligibility | ≥ 14 still in | Day-7 message (M5.6) sent, with Mission 2, whether or not an update is out. If an update ships, it fixes tester reports. ≥ 8 testers have sent feedback. If the count falls to 14 at any point: reserves first, then ask the existing testers for one more referral. |
+| Retention | 3 … eligibility | ≥ 14 still in | Day-7 message (M5.6) sent, with Mission 2, whether or not an update is out. If an update ships, it fixes tester reports. ≥ 8 testers have sent feedback. If the count is 14 or fewer at any point: reserves first, then ask the existing testers for one more referral. |
 | Apply | the day the 12th tester reaches 14 days | ≥ 12 with 14 days | The Console confirms eligibility, then *Apply for production*, using the feedback log (§4). **Testers stay in until production is approved** (M5.7). |
 
 Every tester's 14 days start at their own opt-in, and leaving and rejoining starts them over. Someone who opts in
@@ -57,7 +57,7 @@ Read each sidebar again before posting.
 
 | ID | Piece | Format | Content | Who | Used in |
 |---|---|---|---|---|---|
-| M1 | Tester page `foilark.app/test` (EN/DE) | New text-only route in `backend/src/site.ts`, like `/imprint` (no images, no JS) | One sentence on Foilark. "Why 14 days". Three steps: 1. join the Google Group, 2. open the opt-in link and tap **Become a tester**, 3. install **from Play**, all with **the same Google account as the Play Store** (at the top). "Stay in the Group and the test until Fabian gives the all-clear." The two missions. FAQ: no iPhone; Android 8+; "not available" (wrong account or country; right after opting in, wait about 30 minutes, **Assumption**); English UI; no cards at hand (browse sets and prices, send feedback on that). Feedback: in-app (Settings → About), the private email link, the GitHub form (**public**). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Inputs from Fabian: Group URL. Opt-in link: `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. | Every channel after day 0 |
+| M1 | Tester page `foilark.app/test` (EN/DE) | New text-only route in `backend/src/site.ts`, like `/imprint` (no images, no JS) | One sentence on Foilark. "Why 14 days". Three steps: 1. join the Google Group, 2. open the opt-in link and tap **Become a tester**, 3. install **from Play**, all with **the same Google account as the Play Store** (at the top). "Stay in the Group and the test until Fabian gives the all-clear." The two missions. FAQ: no iPhone; Android 8+; "not available" (wrong account or country; right after opting in, wait about 30 minutes, **Assumption**); English UI; no cards at hand (download a language pack, look up cards under **Search**, open their **Market price**, send feedback on that; Sets only list sets you own cards from). Feedback: in-app (Settings → About), the private email link, the GitHub form (**public**). Disclaimer: not affiliated with Nintendo/TPC. | Agent builds. Inputs from Fabian: Group URL. Opt-in link: `https://play.google.com/apps/testing/de.fabianduerkop.foilark`. | Every channel after day 0 |
 | M2 | Join card and flyer | 1080 × 1920 PNG for WhatsApp/Signal; A6 PDF with a QR code to `/test`. Source and output in `design/marketing/`, rendered HTML → PNG/PDF (the `marketing-images` skill). | The M1 steps, logo, disclaimer, two UI crops **without card art** (e.g. the price sheet, a set list) | Agent renders, Fabian prints | Store, DMs |
 | M3 | Post image | 1080 × 1350 PNG, same build as M2 | Pearl porcelain background, `foilark-horizontal.svg`, a phone frame with art-free UI, headline "Scan cards offline. No ads. No account in the app.", badge "Android testers wanted". No card art, no Pokéball, no bird, no Pokémon logo. | Agent | Reddit, socials |
 | M5 | Copy kit | Text, below | Recruiting post, DMs, organizer message, funnel messages | Agent drafts (done here), Fabian sends | All |
@@ -96,7 +96,7 @@ After day 0, replace the "Reply interested" sentence with "All steps: foilark.ap
 > about five minutes. Scanning a few cards twice and telling me what's awkward is plenty. If you're in, I'll send
 > the link as soon as the test opens.
 
-Friends without cards can still test onboarding, browsing sets and prices. Scanning card pictures on another screen
+Friends without cards can still test onboarding, Search and prices. Scanning card pictures on another screen
 is **untested**; check it on the S25 before suggesting it.
 
 ### M5.3 Store or league organizer (DE)
@@ -119,7 +119,8 @@ the Group.
 > Foilark aus dem Play Store. Immer mit demselben Google-Konto wie im Play Store.
 > **Mission 1:** Sprachpaket laden, Flugmodus an, 5 Karten scannen, eine unsichere Karte unter „Review"
 > bestätigen (falls eine dort landet), unter Collections → Binders → New einen Ordner anlegen und eine Karte
-> hineinlegen, Flugmodus wieder aus. Keine Karten zur Hand? Dann Sets und Preise ansehen und mir sagen, was auffällt. Schreib mir kurz
+> hineinlegen, Flugmodus wieder aus. Keine Karten zur Hand? Sprachpaket laden, unter Search eine
+> Karte suchen, den Preis ansehen und mir sagen, was auffällt. Schreib mir kurz
 > „installiert". Bitte bis zu meiner Entwarnung in der Gruppe und im Test bleiben und die App installiert lassen.
 
 > **EN:** The test is open! 1. Join the group: <Group link>. 2. Open
@@ -127,17 +128,20 @@ the Group.
 > the Play Store. Always with the same Google account as your Play Store.
 > **Mission 1:** download your language pack, turn on airplane mode, scan 5 cards, confirm an unsure one under
 > "Review" (if one lands there), create a binder (Collections → Binders → New) and put one card in it, turn
-> airplane mode off again. No cards at hand? Browse sets and prices and tell me what stands out. Send me a quick
+> airplane mode off again. No cards at hand? Download a language pack, look up a card
+> under Search, check its price and tell me what stands out. Send me a quick
 > "installed". Please stay in the group and the test, with the app installed, until I give the all-clear.
 
 **M5.6 Day 7**
 
 > **DE:** Halbzeit, danke! [Falls ein Update draußen ist: Version <x> ist im Play Store, mit <tatsächlicher Fix>.]
-> **Mission 2:** Ordner wieder öffnen, einen Preis ansehen, eine Holo- oder Reverse-Holo-Karte scannen. Dann
+> **Mission 2:** Ordner wieder öffnen, einen Preis ansehen, eine Holo- oder Reverse-Holo-Karte scannen (ohne
+> Karten: drei Karten unter Search suchen und ihre Preise vergleichen). Dann
 > antworte mir mit drei Dingen: Was ging schief? Was fehlt dir? Welches Handy hast du?
 
 > **EN:** Halfway, thank you! [If an update is out: version <x> is in the Play Store, with <actual fix>.]
-> **Mission 2:** reopen your binder, look at a price, scan a holo or reverse holo. Then reply with three things:
+> **Mission 2:** reopen your binder, look at a price, scan a holo or reverse holo (no cards: look up three cards
+> under Search and compare their prices). Then reply with three things:
 > what went wrong, what's missing, which phone you have.
 
 **M5.7 Day 12 and after approval**
@@ -164,7 +168,7 @@ Mission 1 → day 7: Mission 2 and feedback → day 12 reminder → apply → al
 **Tracking sheet (M6):** name · channel · reserve yes/no · Group joined · opt-in date (self-reported) · installed
 ✓ · Mission 2 reply ✓ · feedback items · status. No email addresses or Google account names in the sheet. The
 Console shows only the opted-in **count**, not names, so compare it with the sheet every two days. If the count
-falls to 14, message the reserves at once, until the Console confirms eligibility.
+is 14 or fewer, message the reserves at once (then ask testers for referrals), until the Console confirms eligibility.
 
 **Feedback log for the production form:** for each report, note the date, area (scan, prices, collections),
 the fix and the version that shipped it. The in-app feedback (Settings → About) pre-fills device and version.
@@ -174,7 +178,7 @@ the fix and the version that shipped it. The in-app feedback (Settings → About
 | Risk | Fix |
 |---|---|
 | Count drops below 12 | 18 yeses + 3 reserves, sheet vs. Console every two days |
-| Closed-track review delays day 0, promises cool off | Submit on day −7; send the day-0 message within hours of release |
+| Closed-track review delays day 0, promises cool off | Submit on day −7; send the day-0 message as soon as all day-0 gates pass |
 | "Not available in your country" | Closed track on all countries before day 0 |
 | Group joined with one Google account, Play Store on another | Warning at the top of M1 and in M5.5, the test run with a second account |
 | Rejected for low engagement | Missions, Mission-2 replies, the feedback log, no more than 5 exchange testers |
@@ -187,8 +191,8 @@ the fix and the version that shipped it. The in-app feedback (Settings → About
 Cut Reddit and M3. Spend the evenings on:
 
 1. M1 (agent-built), Google Group, sheet, and 20–25 personal DMs (M5.2).
-2. One store or league evening with M2, after day 0.
-3. The day-0 send-out and helping the first testers through to "installed".
+2. The day-0 send-out and helping the first testers through to "installed".
+3. One store or league evening with M2, after the send-out.
 
 ## 7. Follow-up work
 
