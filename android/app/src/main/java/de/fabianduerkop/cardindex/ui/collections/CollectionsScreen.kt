@@ -548,6 +548,17 @@ private fun FeaturedSet(
                 val priced = row.value?.takeIf { it.amountMinor > 0 }
                 if (priced != null) {
                     Column(horizontalAlignment = Alignment.End, modifier = Modifier.weight(1f).padding(start = Spacing.sm)) {
+                        // A partial value says so before its amount, as set detail's "Value of priced copies" does:
+                        // $35.86 opposite "21 copies" read as all of them (#250).
+                        val coverage = valueCoverage(row)
+                        coverage?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                            )
+                        }
                         Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.labelLarge)
                         // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
                         // worth, from no market in particular (#218).
@@ -560,14 +571,7 @@ private fun FeaturedSet(
                                 separator = ", ",
                             )
                         }
-                        valueCoverage(row)?.let {
-                            Text(
-                                it,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.End,
-                            )
-                        }
+
                         // With the value it describes, right-aligned, not over the completion bar (#250).
                         change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs), textAlign = TextAlign.End) }
                     }

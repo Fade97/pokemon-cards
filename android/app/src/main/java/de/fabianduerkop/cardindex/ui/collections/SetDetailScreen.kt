@@ -188,7 +188,7 @@ fun SetDetailScreen(
                         detail,
                         languages,
                         wantedNumbers,
-                        languageCount = state.selectedLanguages.ifEmpty { detail.languages.toSet() }.size,
+                        languageCodes = state.selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted(),
                     ),
                     onDone = { sharing = false },
                 )

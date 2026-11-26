@@ -178,7 +178,8 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
             Text(
                 when {
                     // The language rule also in the sheet's own text, which follows the system font size (#250).
-                    multilingualCaption -> stringResource(R.string.set_share_map_caption_languages, data.languages!!)
+                    // The languages by name in the sheet ("German and English"); the image keeps the short codes (#250).
+                    multilingualCaption -> stringResource(R.string.set_share_map_caption_languages, spokenLanguages(data))
                     mapTab -> stringResource(R.string.set_share_map_no_art)
                     missing <= NamedLines -> stringResource(R.string.set_share_no_art)
                     fitted in 0 until missing -> stringResource(R.string.set_share_cut_note, fitted)
@@ -618,6 +619,16 @@ private fun checklistText(data: SetShareData): String {
 /** The set's name with the languages the picture covers, "151 (DE, EN)", as the preview shows them (#221). */
 private fun scopedName(data: SetShareData): String = data.languages?.let { "${data.setName} ($it)" } ?: data.setName
 
+/** The map's languages by name, "German and English", for the sheet's own text and TalkBack (#250). */
+@Composable
+private fun spokenLanguages(data: SetShareData): String =
+    languageList(data.languageCodes, stringResource(R.string.collections_and))
+
+/** [scopedName] with the languages by name, for TalkBack: "151, German and English". */
+@Composable
+private fun spokenName(data: SetShareData): String =
+    if (data.languageCodes.isEmpty()) scopedName(data) else "${data.setName}, ${spokenLanguages(data)}"
+
 /**
  * What TalkBack says for the slot map (#250): counts in words, not "7/165", and on a certificate its status and date:
  * "Slot map of 151 (DE, EN): 7 of 165 main-set cards owned, 0 of 42 secret rares owned".
@@ -644,7 +655,7 @@ private fun mapDescription(data: SetShareData): String {
     // Identity, progress and language rule only: the numbers themselves are in the numbers toggle, ten to a TalkBack
     // stop, not read out twice (#250).
     return listOfNotNull(
-        stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")),
+        stringResource(R.string.set_share_map_description, spokenName(data), parts.joinToString(", ")),
         rule,
     ).joinToString(". ")
 }
@@ -653,6 +664,6 @@ private fun mapDescription(data: SetShareData): String {
 private fun missingDescription(data: SetShareData): String =
     stringResource(
         R.string.set_share_missing_description,
-        scopedName(data),
+        spokenName(data),
         pluralStringResource(R.plurals.set_share_missing_count, data.missingLines.size, data.missingLines.size),
     )

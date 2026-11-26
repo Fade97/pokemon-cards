@@ -32,9 +32,11 @@ data class SetShareData(
      * missing; then the slot map is a progress picture, complete it is the certificate.
      */
     val completedOn: LocalDate? = null,
-    /** How many languages the map covers: with more than one, a copy in any of them fills a square (#250). */
-    val languageCount: Int = 1,
+    /** The language codes the map covers ("de", "en"): with more than one, a copy in any of them fills a square. */
+    val languageCodes: List<String> = emptyList(),
 ) {
+    /** How many languages the map covers (#250). */
+    val languageCount: Int get() = languageCodes.size.coerceAtLeast(1)
     val anyWanted: Boolean get() = missingLines.any { it.wanted }
     val multilingual: Boolean get() = languageCount > 1
 }
@@ -50,7 +52,7 @@ object SetShare {
         languages: String?,
         wantedKeys: Set<String>,
         zone: ZoneId = ZoneId.systemDefault(),
-        languageCount: Int = 1,
+        languageCodes: List<String> = emptyList(),
     ): SetShareData {
         val total = detail.set.printedTotal
         val slots = detail.slots.map { slot ->
@@ -75,7 +77,7 @@ object SetShare {
         // never titled a certificate because another language completed the set (#221).
         val shownUuids = detail.slots.flatMapTo(HashSet()) { it.copyUuids }
         val completedOn = Recaps.completionDate(detail.copies.filter { it.copy.uuid in shownUuids }, total, zone)
-        return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing, completedOn, languageCount)
+        return SetShareData(detail.set.name, languages, detail.progress, detail.missing, slots, missing, completedOn, languageCodes)
     }
 
     /** "003/165 Venusaur ★" per missing card, for the text checklist; wanted ones carry the star. */
