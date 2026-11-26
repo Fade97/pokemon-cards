@@ -250,8 +250,8 @@
     <string name="history_refused">The price service did not accept this device for Pro.</string>
     <string name="history_portfolio_hint">Your cards today, valued with each day\'s prices.</string>
     <!-- Pro weekly price change on set rows and copy lists (#173). %1$s: "+1,20 € (+12 %)" -->
-    <string name="weekly_change">%1$s over the last 7 days</string>
-    <string name="weekly_change_flat">Value unchanged over the last 7 days</string>
+    <string name="weekly_change">7-day price trend %1$s</string>
+    <string name="weekly_change_flat">7-day price trend: no change</string>
     <!-- Short form for a narrow price column, e.g. "+12 % · 7 days" -->
     <string name="weekly_change_short">%1$s · 7 days</string>
     <string name="weekly_change_short_flat">No change · 7 days</string>
@@ -261,18 +261,18 @@
         <item quantity="other">%1$d of %2$d priced copies</item>
     </plurals>
     <!-- Screen-reader text. %1$s: "1,20 € (12 %)" without a sign -->
-    <string name="weekly_change_up_description">Value up %1$s over the last 7 days</string>
-    <string name="weekly_change_down_description">Value down %1$s over the last 7 days</string>
-    <string name="weekly_change_flat_description">Value unchanged over the last 7 days</string>
+    <string name="weekly_change_up_description">7-day price trend up %1$s</string>
+    <string name="weekly_change_down_description">7-day price trend down %1$s</string>
+    <string name="weekly_change_flat_description">7-day price trend: no change</string>
     <plurals name="weekly_change_covered_description">
         <item quantity="one">for %1$d of %2$d priced copy</item>
         <item quantity="other">for %1$d of %2$d priced copies</item>
     </plurals>
     <!-- Free weekly direction (#186): only which way, no amount. "No change" uses weekly_change_flat. -->
-    <string name="weekly_direction_up">Value up over the last 7 days</string>
-    <string name="weekly_direction_down">Value down over the last 7 days</string>
-    <string name="weekly_direction_up_description">Value up over the last 7 days</string>
-    <string name="weekly_direction_down_description">Value down over the last 7 days</string>
+    <string name="weekly_direction_up">7-day price trend is up</string>
+    <string name="weekly_direction_down">7-day price trend is down</string>
+    <string name="weekly_direction_up_description">7-day price trend is up</string>
+    <string name="weekly_direction_down_description">7-day price trend is down</string>
 
     <string name="collection_new_title">New collection</string>
     <string name="collection_edit_title">Edit collection</string>
@@ -714,8 +714,10 @@
     <!-- The slot map caption under the preview when it covers more than one language (#250). -->
     <string name="set_share_map_caption_languages">%1$s: a copy in any of these languages fills a square. Numbers only, no card pictures.</string>
     <!-- Under the share preview: its numbers as app text, on request (#250). -->
-    <string name="set_share_show_numbers">Show the numbers</string>
-    <string name="set_share_hide_numbers">Hide the numbers</string>
+    <string name="set_share_show_owned_numbers">Show owned numbers</string>
+    <string name="set_share_hide_owned_numbers">Hide owned numbers</string>
+    <string name="set_share_show_missing_numbers">Show missing numbers</string>
+    <string name="set_share_hide_missing_numbers">Hide missing numbers</string>
     <string name="set_share_numbers_owned">Owned (%1$d)</string>
     <string name="set_share_numbers_missing">Missing (%1$d)</string>
     <string name="set_share_numbers_wanted">On the wishlist (%1$d)</string>

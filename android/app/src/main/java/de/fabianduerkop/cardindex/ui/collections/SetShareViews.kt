@@ -104,7 +104,7 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
     // The heading, preview and numbers scroll; caption and actions stay in a footer, whole at any font size. The
     // preview is sized to the room the sheet actually has above the footer, measured, not a share of the window, so
     // nothing in view is cut (#250).
-    // TalkBack order: heading, tabs, preview, caption, "Show the numbers", the numbers, then the share actions, though
+    // TalkBack order: heading, tabs, preview, caption, the numbers toggle, the numbers, then the share actions, though
     // the numbers sit above the footer on screen (#250).
     Column(Modifier.fillMaxWidth().semantics { isTraversalGroup = true }) {
         BoxWithConstraints(Modifier.weight(1f, fill = false).fillMaxWidth()) {
@@ -193,8 +193,17 @@ internal fun SetShareSheet(data: SetShareData, onDone: () -> Unit) {
                 },
             )
             if (hasNumbers(data, mapTab)) {
+                // Says which list it opens, owned or missing, by the same rule that picks it (#250).
+                val ownedList = listsOwned(data, mapTab)
                 TextAction(
-                    stringResource(if (numbersShown) R.string.set_share_hide_numbers else R.string.set_share_show_numbers),
+                    stringResource(
+                        when {
+                            ownedList && numbersShown -> R.string.set_share_hide_owned_numbers
+                            ownedList -> R.string.set_share_show_owned_numbers
+                            numbersShown -> R.string.set_share_hide_missing_numbers
+                            else -> R.string.set_share_show_missing_numbers
+                        },
+                    ),
                     onClick = { numbersShown = !numbersShown },
                     modifier = Modifier.semantics { traversalIndex = TraversalToggle },
                 )
@@ -255,7 +264,7 @@ private fun ShareHeader(data: SetShareData, overline: String) {
 }
 
 /**
- * "Show the numbers": the image's numbers as wrapping app text. The slot map lists the shorter of its owned and
+ * the numbers toggle: the image's numbers as wrapping app text. The slot map lists the shorter of its owned and
  * missing numbers, the missing list all missing ones; wishlist numbers carry the star. Ten to a group, each its own
  * TalkBack stop, so a slot can be checked without zooming into the preview (#250).
  */
@@ -263,11 +272,10 @@ private fun ShareHeader(data: SetShareData, overline: String) {
 private fun ImageNumbers(data: SetShareData, mapTab: Boolean, modifier: Modifier = Modifier) {
     val owned = data.slots.filter { it.owned }.map { it.label }
     val missing = data.missingLines.map { it.number.substringBefore('/') + if (it.wanted) " " + SetShare.WANTED_MARK else "" }
-    // The slot map lists the shorter non-empty list: owned on a complete set, never an empty "Missing (0)" (#250).
-    val (heading, numbers) = when {
-        !mapTab -> R.string.set_share_numbers_missing to missing
-        missing.isEmpty() || (owned.isNotEmpty() && owned.size <= missing.size) -> R.string.set_share_numbers_owned to owned
-        else -> R.string.set_share_numbers_missing to missing
+    val (heading, numbers) = if (listsOwned(data, mapTab)) {
+        R.string.set_share_numbers_owned to owned
+    } else {
+        R.string.set_share_numbers_missing to missing
     }
     if (numbers.isEmpty()) return
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -303,11 +311,22 @@ private fun ImageNumbers(data: SetShareData, mapTab: Boolean, modifier: Modifier
     }
 }
 
-/** Whether "Show the numbers" has any to show for this tab. */
+/**
+ * Whether the numbers list shows owned numbers (else missing ones): the slot map lists the shorter non-empty list,
+ * owned on a complete set, never an empty "Missing (0)"; the missing list always lists missing ones (#250).
+ */
+private fun listsOwned(data: SetShareData, mapTab: Boolean): Boolean {
+    if (!mapTab) return false
+    val owned = data.slots.count { it.owned }
+    val missing = data.missingLines.size
+    return missing == 0 || (owned > 0 && owned <= missing)
+}
+
+/** Whether the numbers toggle has any to show for this tab. */
 private fun hasNumbers(data: SetShareData, mapTab: Boolean): Boolean =
     if (mapTab) data.slots.isNotEmpty() else data.missingLines.isNotEmpty()
 
-/** Numbers per line of "Show the numbers": one TalkBack stop each. */
+/** Numbers per line of the numbers toggle: one TalkBack stop each. */
 private const val NumberGroup = 10
 
 /**
@@ -622,7 +641,7 @@ private fun mapDescription(data: SetShareData): String {
         },
     )
     val rule = if (data.multilingual) stringResource(R.string.set_share_legend_any_language) else null
-    // Identity, progress and language rule only: the numbers themselves are in "Show the numbers", ten to a TalkBack
+    // Identity, progress and language rule only: the numbers themselves are in the numbers toggle, ten to a TalkBack
     // stop, not read out twice (#250).
     return listOfNotNull(
         stringResource(R.string.set_share_map_description, scopedName(data), parts.joinToString(", ")),
