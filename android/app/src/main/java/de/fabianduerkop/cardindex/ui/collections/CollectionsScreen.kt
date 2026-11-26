@@ -446,10 +446,11 @@ private fun valueSource(row: SetRowUi): String? = valueSourceParts(row)?.joinToS
 private fun valueSourceParts(row: SetRowUi): List<String>? {
     val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
     // The set's oldest price date (Prices.totalDate), said so when it sums more than one copy (#250).
+    // The calendar date never splits; "oldest price" may wrap before it in a narrow column (#250).
     val date = row.priceDate?.let {
-        val day = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())
+        val day = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0')
         if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
-    }?.replace(' ', '\u00A0')
+    }
     // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
     // cover's narrow value column market and date go on two lines when they don't fit one, never "TCGplayer," alone.
     return listOfNotNull(stringResource(value.source.marketName()), date)
@@ -462,6 +463,7 @@ private fun setDescription(row: SetRowUi, pinned: Boolean = false, change: Weekl
     val progress = row.progress
     val parts = listOfNotNull(
         pluralStringResource(R.plurals.collections_set_row, set.printedTotal, set.name, progress.base, set.printedTotal),
+        stringResource(R.string.collections_main_set_description),
         // The copies too, as the row shows them ("30 copies"): the slot count alone loses them (#250).
         set.copies.takeIf { it > 0 }?.let { pluralStringResource(R.plurals.collections_cards_count, it, it) },
         secretDescription(progress),
@@ -534,7 +536,8 @@ private fun FeaturedSet(
                     // The copies count under it, so "10 of 20 copies priced" on the right refers to something (#250).
                     Text(
                         listOfNotNull(
-                            stringResource(R.string.collections_collected),
+                            // The count is the main set's; secret rares are counted apart, as on the set screen (#250).
+                            stringResource(R.string.collections_main_collected),
                             pluralStringResource(R.plurals.collections_cards_count, set.copies, set.copies).takeIf { set.copies > 0 },
                             secretText(row.progress),
                         ).joinToString("\n"),

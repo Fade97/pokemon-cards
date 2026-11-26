@@ -116,6 +116,10 @@
     <string name="collections_open_collection">Open collection</string>
     <!-- After a count like "87/165" on the featured set cover. -->
     <string name="collections_collected">collected</string>
+    <!-- Under the featured cover's count: it counts the main set; secret rares are apart (#250). -->
+    <string name="collections_main_collected">main set</string>
+    <!-- Spoken after "151, 7 of 165 cards" (#250). -->
+    <string name="collections_main_set_description">main set</string>
     <!-- A language chip for TalkBack: its visible code, then the language, e.g. "DE, German" (#250). -->
     <string name="collections_language_chip_description">%1$s, %2$s</string>
     <!-- Set detail filters with no slot to show (#250). -->

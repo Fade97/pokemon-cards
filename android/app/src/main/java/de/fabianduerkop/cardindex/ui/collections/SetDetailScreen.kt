@@ -412,10 +412,11 @@ private fun SetHeader(
                     // "TCGplayer, Nov 20, 2026", the same short form as the set's row and cover on Collections, and how
                     // many copies it covers when not all (#176, #218). The date never splits.
                     // Its oldest price once it sums more than one copy, as on Collections (#250).
+                    // The calendar date never splits; "oldest price" may wrap before it (#250).
                     val date = priceDate?.let { d ->
-                        val day = formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate())
+                        val day = formatDate(d.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0')
                         if (priced.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
-                    }?.replace(' ', '\u00A0')
+                    }
                     val coverage = if (priced.unpricedCopies > 0) {
                         pluralStringResource(R.plurals.collections_set_value_coverage, priced.totalCopies, priced.pricedCopies, priced.totalCopies)
                     } else {
