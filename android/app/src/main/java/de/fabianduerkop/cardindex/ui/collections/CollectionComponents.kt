@@ -155,7 +155,10 @@ internal fun ValueSummary(
             }
             // "Prices from Nov 20, 2026" wraps as a whole, never with the date split over two lines (#218).
             priceDate?.let {
-                add(stringResource(R.string.price_as_of, formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())).replace(' ', '\u00A0'))
+                // A total's date is its oldest price (Prices.totalDate): said so once more than one copy is priced (#250).
+                val date = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())
+                val res = if ((value?.pricedCopies ?: 0) > 1) R.string.price_oldest_as_of else R.string.price_as_of
+                add(stringResource(res, date).replace(' ', '\u00A0'))
             }
         }
         if (details.isNotEmpty()) {

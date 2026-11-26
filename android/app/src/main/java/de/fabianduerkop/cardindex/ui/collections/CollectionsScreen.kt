@@ -440,7 +440,11 @@ private fun valueCoverage(row: SetRowUi): String? {
 @Composable
 private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
     val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
-    val date = row.priceDate?.let { formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate()).replace(' ', '\u00A0') }
+    // The set's oldest price date (Prices.totalDate), said so when it sums more than one copy (#250).
+    val date = row.priceDate?.let {
+        val day = formatDate(it.atZone(ZoneId.systemDefault()).toLocalDate())
+        if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
+    }?.replace(' ', '\u00A0')
     // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
     // cover's narrow value column it may break after the comma, or the year would split.
     return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(if (keepTogether) ",\u00A0" else ", ")
@@ -545,6 +549,8 @@ private fun FeaturedSet(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.End,
                         )
+                        // With the value it describes, right-aligned, not over the completion bar (#250).
+                        change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs), textAlign = TextAlign.End) }
                     }
                 } else if (set.copies > 0) {
                     // Owned but unpriced: said here too, as in the rows and on the set screen, where a price would be.
@@ -557,7 +563,6 @@ private fun FeaturedSet(
                     )
                 }
             }
-            change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs)) }
             CompletionBar(row.progress.base, set.printedTotal, Modifier.padding(top = Spacing.md))
         }
     }

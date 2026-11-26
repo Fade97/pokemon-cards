@@ -219,6 +219,10 @@
     <string name="price_label_cardmarket">Cardmarket trend, all languages</string>
     <string name="price_label_tcgplayer">TCGplayer market</string>
     <string name="price_as_of">Prices from %1$s</string>
+    <!-- A total over several copies: its date is the oldest of their prices (#250). -->
+    <string name="price_oldest_as_of">Oldest price from %1$s</string>
+    <!-- After the market in a set's value line: "TCGplayer, oldest price Nov 24, 2026" (#250). -->
+    <string name="price_oldest_short">oldest price %1$s</string>
     <!-- One market's price date when both markets are shown, e.g. "Cardmarket prices from 17 Nov 2026" (#133). -->
     <string name="price_market_as_of">%1$s prices from %2$s</string>
     <string name="price_none">No price yet</string>

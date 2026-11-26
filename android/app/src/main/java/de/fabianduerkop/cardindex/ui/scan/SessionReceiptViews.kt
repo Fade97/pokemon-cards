@@ -141,7 +141,10 @@ private fun ReceiptValue(receipt: SessionReceipt) {
     Text(Money.format(value.amountMinor, value.currency), style = MaterialTheme.typography.headlineMedium, color = colors.onSurface)
     val details = buildList {
         add(stringResource(marketLabel(value.source)))
-        receipt.priceDate?.let { add(stringResource(R.string.price_as_of, formatDate(it.localDate()))) }
+        // The oldest of the session's prices: named so once it sums more than one copy (#250).
+        receipt.priceDate?.let {
+            add(stringResource(if (value.pricedCopies > 1) R.string.price_oldest_as_of else R.string.price_as_of, formatDate(it.localDate())))
+        }
         if (value.unpricedCopies > 0) {
             add(pluralStringResource(R.plurals.scan_session_unpriced, value.unpricedCopies, value.unpricedCopies, value.currency))
         }
