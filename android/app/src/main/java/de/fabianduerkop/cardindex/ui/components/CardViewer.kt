@@ -381,11 +381,12 @@ private fun ZoomablePage(
             }
         }
 
-        // A page that fails to load has nothing to zoom or pan: drop any zoom, so the pager and the next photo stay
-        // reachable by swipe and by the arrow keys (#250).
+        // A page that fails to load has nothing to zoom or pan: stop a zoom still animating and drop any zoom, so the
+        // pager and the next photo stay reachable by swipe and by the arrow keys (#250).
         LaunchedEffect(failed) {
-            if (failed && ViewerZoom.isZoomed(scale)) {
+            if (failed) {
                 animation?.cancel()
+                animation = null
                 apply(ViewerZoom.MIN_SCALE, Offset.Zero)
             }
         }
