@@ -421,15 +421,22 @@ private fun SetHeader(
                     } else {
                         null
                     }
-                    Text(
-                        listOfNotNull(
-                            listOfNotNull(stringResource(priced.source.marketName()), date).joinToString(", "),
-                            coverage,
-                        ).joinToString("\n"),
+                    // Market and date on one line while they fit, else on two, never "TCGplayer," alone (#250).
+                    JoinedText(
+                        listOfNotNull(stringResource(priced.source.marketName()), date),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         textAlign = TextAlign.End,
+                        separator = ", ",
                     )
+                    coverage?.let {
+                        Text(
+                            it,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            textAlign = TextAlign.End,
+                        )
+                    }
                 }
             } else if (detail.copies.isNotEmpty()) {
                 // Owned copies but no price in this market: say so, naming it, as the set's row on Collections does (#218).

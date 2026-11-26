@@ -792,7 +792,7 @@
     <string name="review_undo_description">Undo confirming %1$s</string>
     <string name="review_empty_title">Nothing to review</string>
     <string name="review_debug_sample">Add sample scans (debug build)</string>
-    <string name="review_why_number_not_read">Couldn\'t read your scan\'s number. Check the match.</string>
+    <string name="review_why_number_not_read">Scan number unreadable. Showing the selected match.</string>
     <string name="review_why_number_differs">The number doesn\'t match the best picture match. Pick the right card.</string>
     <string name="review_why_similar_cards">These cards look almost the same, often one card in two languages. Pick the right one.</string>
     <!-- When the matches differ only in their language (#221): the clue to check on the card. -->

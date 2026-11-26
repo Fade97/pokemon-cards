@@ -65,6 +65,7 @@ import de.fabianduerkop.cardindex.debug.DebugTools
 import de.fabianduerkop.cardindex.model.Money
 import de.fabianduerkop.cardindex.model.PriceSource
 import de.fabianduerkop.cardindex.model.Region
+import de.fabianduerkop.cardindex.ui.components.JoinedText
 import de.fabianduerkop.cardindex.ui.components.CardImage
 import de.fabianduerkop.cardindex.ui.components.CompletionBar
 import de.fabianduerkop.cardindex.ui.components.FoilCover
@@ -438,7 +439,11 @@ private fun valueCoverage(row: SetRowUi): String? {
  * basis stays in view once the collection header has scrolled away (#218). Null without a price.
  */
 @Composable
-private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
+private fun valueSource(row: SetRowUi): String? = valueSourceParts(row)?.joinToString(",\u00A0")
+
+/** [valueSource] as its market and its date, for a narrow column that puts the date under the market (#250). */
+@Composable
+private fun valueSourceParts(row: SetRowUi): List<String>? {
     val value = row.value?.takeIf { it.amountMinor > 0 } ?: return null
     // The set's oldest price date (Prices.totalDate), said so when it sums more than one copy (#250).
     val date = row.priceDate?.let {
@@ -446,8 +451,8 @@ private fun valueSource(row: SetRowUi, keepTogether: Boolean = true): String? {
         if (value.pricedCopies > 1) stringResource(R.string.price_oldest_short, day) else day
     }?.replace(' ', '\u00A0')
     // In a row's subtitle one unbreakable piece, so source and date move to the next line together (#218); in the
-    // cover's narrow value column it may break after the comma, or the year would split.
-    return listOfNotNull(stringResource(value.source.marketName()), date).joinToString(if (keepTogether) ",\u00A0" else ", ")
+    // cover's narrow value column market and date go on two lines when they don't fit one, never "TCGplayer," alone.
+    return listOfNotNull(stringResource(value.source.marketName()), date)
 }
 
 /** Spoken summary of a set: "151, 87 of 165 cards, plus 2 secret cards, 684,20 €". */
@@ -543,12 +548,23 @@ private fun FeaturedSet(
                         Text(Money.format(priced.amountMinor, priced.currency), style = MaterialTheme.typography.labelLarge)
                         // Its source and date, and how much it covers when not all: alone, $18.33 read as all copies'
                         // worth, from no market in particular (#218).
-                        Text(
-                            listOfNotNull(valueSource(row, keepTogether = false), valueCoverage(row)).joinToString("\n"),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.End,
-                        )
+                        valueSourceParts(row)?.let {
+                            JoinedText(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                                separator = ", ",
+                            )
+                        }
+                        valueCoverage(row)?.let {
+                            Text(
+                                it,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.End,
+                            )
+                        }
                         // With the value it describes, right-aligned, not over the completion bar (#250).
                         change?.let { WeeklyChangeLine(it, Modifier.padding(top = Spacing.xs), textAlign = TextAlign.End) }
                     }

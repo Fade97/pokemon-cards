@@ -30,16 +30,18 @@ fun JoinedText(
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
     groupLines: Boolean = false,
+    /** Between facts on one line; ", " for a market and its date. */
+    separator: String = PartSeparator,
 ) {
     val measurer = rememberTextMeasurer()
     BoxWithConstraints(modifier) {
         val max = constraints.maxWidth
-        val text = remember(groups, max, style, groupLines) {
+        val text = remember(groups, max, style, groupLines, separator) {
             val fits = { line: String ->
                 max == Constraints.Infinity ||
                     measurer.measure(line, style, softWrap = false, maxLines = 1).size.width <= max
             }
-            joinParts(groups.map { g -> g.filter { it.isNotEmpty() } }.filter { it.isNotEmpty() }, groupLines, fits)
+            joinParts(groups.map { g -> g.filter { it.isNotEmpty() } }.filter { it.isNotEmpty() }, groupLines, fits, separator)
         }
         Text(text, style = style, color = color, textAlign = textAlign)
     }
@@ -53,19 +55,25 @@ fun JoinedText(
     style: TextStyle = LocalTextStyle.current,
     color: Color = Color.Unspecified,
     textAlign: TextAlign? = null,
-) = JoinedText(listOf(parts), modifier, style, color, textAlign)
+    separator: String = PartSeparator,
+) = JoinedText(listOf(parts), modifier, style, color, textAlign, separator = separator)
 
 /** The lines of [JoinedText]: one line when it [fits], else each group packed greedily from a new line. */
-internal fun joinParts(groups: List<List<String>>, groupLines: Boolean, fits: (String) -> Boolean): String {
+internal fun joinParts(
+    groups: List<List<String>>,
+    groupLines: Boolean,
+    fits: (String) -> Boolean,
+    separator: String = PartSeparator,
+): String {
     if (!groupLines) {
-        val all = groups.flatten().joinToString(PartSeparator)
+        val all = groups.flatten().joinToString(separator)
         if (fits(all)) return all
     }
     return groups.flatMap { group ->
         buildList {
             var line = ""
             for (part in group) {
-                val longer = if (line.isEmpty()) part else line + PartSeparator + part
+                val longer = if (line.isEmpty()) part else line + separator + part
                 if (line.isEmpty() || fits(longer)) {
                     line = longer
                 } else {
