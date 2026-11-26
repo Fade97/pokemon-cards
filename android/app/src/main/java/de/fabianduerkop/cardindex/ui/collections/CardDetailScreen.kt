@@ -179,15 +179,23 @@ fun CardDetailScreen(
                             viewport = viewport,
                             detail = detail,
                             photos = state.photos,
-                            heroDescription = pages?.getOrNull(images?.heroIndex ?: 0)?.description,
+                            // Without art the placeholder stands in; other prints' photos open from it, named as such.
+                            heroDescription = when {
+                                pages.isNullOrEmpty() -> null
+                                images?.heroIndex == null -> stringResource(R.string.card_detail_placeholder_photos)
+                                else -> pages.getOrNull(images.heroIndex)?.description
+                            },
+                            openLabel = stringResource(
+                                if (images?.heroIndex == null) R.string.viewer_open_photos else R.string.viewer_open,
+                            ),
                             onView = { viewing = images?.heroIndex ?: 0 },
                             wanted = wanted,
                             onWanted = { viewModel.setWanted(detail.card, it) },
                         )
                     }
                     item {
-                        // Price the printing the user owns in this language, or the plain print if they own none.
-                        val owned = detail.pricedCopy()
+                        // Price the printing the user owns in this language, or the print's default if they own none.
+                        val (finish, edition) = detail.pricedPrinting()
                         // Right under an owned card's name the header's fade room is the gap already; the heading's
                         // own top would double it (#250). Unowned cards have the wishlist button in between.
                         SectionHeader(
@@ -198,8 +206,8 @@ fun CardDetailScreen(
                         PriceBox(
                             prices = state.prices,
                             primary = state.source,
-                            finish = owned?.finish ?: Finish.NORMAL,
-                            edition = owned?.edition ?: Edition.UNLIMITED,
+                            finish = finish,
+                            edition = edition,
                             cardLanguage = detail.card.language,
                             modifier = Modifier.padding(horizontal = ScreenPadding),
                             load = state.priceLoad,
@@ -218,12 +226,12 @@ fun CardDetailScreen(
                     }
                     alerts?.let { list ->
                         item {
-                            val owned = detail.pricedCopy()
+                            val (finish, edition) = detail.pricedPrinting()
                             val (main, secondary) = PriceSelection.pair(
                                 state.prices,
                                 state.source,
-                                owned?.finish ?: Finish.NORMAL,
-                                owned?.edition ?: Edition.UNLIMITED,
+                                finish,
+                                edition,
                                 detail.card.language,
                             )
                             SectionHeader(stringResource(R.string.alerts_title), Modifier.padding(horizontal = ScreenPadding))
@@ -434,12 +442,12 @@ private fun CardHeader(
     detail: CardDetail,
     photos: OwnPhotos,
     heroDescription: String?,
+    openLabel: String,
     onView: () -> Unit,
     wanted: Boolean,
     onWanted: (Boolean) -> Unit,
 ) {
     val shape = MaterialTheme.shapes.small
-    val openLabel = stringResource(R.string.viewer_open)
     Column {
         // The collector number, the card's name and its print line show under the art without scrolling, at any font
         // and display size and in landscape: the name is what the screen is about, and the bar only names the set.

@@ -44,6 +44,7 @@ import de.fabianduerkop.cardindex.data.prices.PriceRepository
 import de.fabianduerkop.cardindex.data.prices.PriceSelection
 import de.fabianduerkop.cardindex.data.prices.WeeklyPriceChange
 import de.fabianduerkop.cardindex.data.prices.WeeklyTrend
+import de.fabianduerkop.cardindex.data.scan.CopyDefaults
 import de.fabianduerkop.cardindex.model.Edition
 import de.fabianduerkop.cardindex.model.Finish
 import de.fabianduerkop.cardindex.model.PriceSource
@@ -86,6 +87,13 @@ private fun Set<String>.orAll(): Set<String>? = ifEmpty { null }
  */
 internal fun CardDetail.pricedCopy(): OwnedCopyEntity? =
     copies.firstOrNull { it.card.language == card.language }?.copy
+
+/**
+ * The finish and edition the card detail prices, charts and alerts: [pricedCopy]'s, else the shown print's default
+ * printing, the only finish it was printed in (a holo-only rare) or Normal, unlimited (#250).
+ */
+internal fun CardDetail.pricedPrinting(): Pair<Finish, Edition> =
+    pricedCopy()?.let { it.finish to it.edition } ?: (CopyDefaults.finishFor(card.printings) to CopyDefaults.edition)
 
 /**
  * Range and refresh of a Pro price chart (#17), shared by the card detail and the collections screen: while Pro is on,
@@ -480,6 +488,12 @@ data class SetDetailUiState(
     val pinned: Boolean = false,
     /** Whether the slot legend shows under the filter row: on the first visits, then by the info button (#165). */
     val legendShown: Boolean = false,
+    /**
+     * Numbers ([numberKey]) of this set's prints still on the wishlist (#134), in the languages of [detail]'s slots;
+     * the share images and checklist mark them (#170). Part of the same snapshot as the slots, so a language change
+     * never marks the previous grid with the new languages' wants (#250).
+     */
+    val wantedNumbers: Set<String> = emptySet(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -527,7 +541,12 @@ class SetDetailViewModel(
     // The slots come with the languages they were built for: the header, values and share data read that pair, so
     // a language change never shows the new language over the previous slot map (#250).
     private val applied = selected.flatMapLatest { languages ->
-        repository.observeSetDetail(setId, languages.orAll()).map { languages to it }
+        combine(repository.observeSetDetail(setId, languages.orAll()), repository.observeWishlist()) { detail, wanted ->
+            // Only prints in the languages shown: an English want never marks a slot of a German-only image (#250).
+            val numbers = wanted.filter { !it.found && it.set.id == setId && (languages.isEmpty() || it.card.language in languages) }
+                .mapTo(HashSet()) { numberKey(it.card.localId) }
+            Triple(languages, detail, numbers)
+        }
     }
 
     val state: StateFlow<SetDetailUiState> = combine(
@@ -536,7 +555,7 @@ class SetDetailViewModel(
         prices.observeAll(),
         primarySource,
         legend,
-    ) { (languages, detail), view, priceMap, source, legendShown ->
+    ) { (languages, detail, wanted), view, priceMap, source, legendShown ->
         val ownedCopies = detail?.copies.orEmpty()
             .filter { languages.isEmpty() || it.card.language in languages }
         val owned = ownedCopies.map { it.copy }
@@ -548,6 +567,7 @@ class SetDetailViewModel(
             priceDate = PriceSelection.totalDate(owned, priceMap, source),
             source = source,
             legendShown = legendShown,
+            wantedNumbers = wanted,
         )
     }.stateIn(this, SetDetailUiState())
 
@@ -596,16 +616,6 @@ class SetDetailViewModel(
             }
         }
     }
-
-    /**
-     * Numbers ([numberKey]) of this set's prints still on the wishlist (#134); the set's share images and checklist
-     * mark them (#170), so a friend sees which missing cards matter most. Only prints in the languages shown: an English
-     * want never marks a slot of a German-only image or list (#250).
-     */
-    val wantedNumbers: StateFlow<Set<String>> = combine(repository.observeWishlist(), selected) { wanted, languages ->
-        wanted.filter { !it.found && it.set.id == setId && (languages.isEmpty() || it.card.language in languages) }
-            .mapTo(HashSet()) { numberKey(it.card.localId) }
-    }.stateIn(this, emptySet())
 }
 
 data class CardDetailUiState(
@@ -659,9 +669,9 @@ class CardDetailViewModel(
     /** Pro (#17): the daily price of the printing the price box shows. Null without Pro. */
     val history: StateFlow<HistoryUiState?> = chart.state { from ->
         combine(historyRepository.observeCard(cardId, from), state) { rows, state ->
-            val copy = state.detail?.pricedCopy()
+            val (finish, edition) = state.detail?.pricedPrinting() ?: (CopyDefaults.finish to CopyDefaults.edition)
             val source = state.source.forLanguage(language)
-            PriceHistorySelection.series(rows, source, copy?.finish ?: Finish.NORMAL, copy?.edition ?: Edition.UNLIMITED)
+            PriceHistorySelection.series(rows, source, finish, edition)
                 .filter { !it.date.isBefore(from) } to source.currency
         }
     }.stateIn(this, null)

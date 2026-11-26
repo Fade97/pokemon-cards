@@ -136,7 +136,6 @@ fun SetDetailScreen(
     LaunchedEffect(detail != null && selected == null) {
         if (detail != null && selected == null) selectedKey = null
     }
-    val wantedNumbers by viewModel.wantedNumbers.collectAsStateWithLifecycle()
     val milestone by viewModel.milestone.collectAsStateWithLifecycle()
     val newSlots by viewModel.newSlots.collectAsStateWithLifecycle()
     var sharing by rememberSaveable { mutableStateOf(false) }
@@ -187,7 +186,7 @@ fun SetDetailScreen(
                     SetShare.build(
                         detail,
                         languages,
-                        wantedNumbers,
+                        state.wantedNumbers,
                         languageCodes = state.selectedLanguages.ifEmpty { detail.languages.toSet() }.sorted(),
                     ),
                     onDone = { sharing = false },

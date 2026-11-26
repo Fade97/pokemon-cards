@@ -28,9 +28,10 @@ internal sealed interface DetailImage {
 /**
  * The viewer's pages for a card detail and the one the hero shows, which the viewer opens on.
  *
- * @property heroIndex the page of [images] the detail's hero shows; 0 when [images] is empty.
+ * @property heroIndex the page of [images] the detail's hero shows; null when the hero shows the numbered placeholder
+ *   (no official art and no photo of a copy in the shown language), so it must not be described as any page (#250).
  */
-internal data class DetailImages(val images: List<DetailImage>, val heroIndex: Int) {
+internal data class DetailImages(val images: List<DetailImage>, val heroIndex: Int?) {
     /** The page of the photo of the copy with [copyUuid], if it has one. */
     fun indexOfPhoto(copyUuid: String): Int? =
         images.indexOfFirst { it is DetailImage.OwnPhoto && it.copy.copy.uuid == copyUuid }.takeIf { it >= 0 }
@@ -47,7 +48,11 @@ internal fun detailImages(detail: CardDetail, photos: OwnPhotos): DetailImages {
     val images = listOfNotNull(official) + own
     // Only a photo of a copy in the shown language stands in for the print on the hero (#250); others stay pages.
     val heroShowsOwn = own.firstOrNull()?.copy?.card?.language == detail.card.language && (photos.preferOwn || official == null)
-    val heroIndex = if (heroShowsOwn && official != null) 1 else 0
+    val heroIndex = when {
+        official != null -> if (heroShowsOwn) 1 else 0
+        heroShowsOwn -> 0
+        else -> null
+    }
     return DetailImages(images, heroIndex)
 }
 

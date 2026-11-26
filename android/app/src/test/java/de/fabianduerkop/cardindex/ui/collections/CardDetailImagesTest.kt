@@ -70,7 +70,7 @@ class CardDetailImagesTest {
         val images = detailImages(detail(copy("de1", "de"), copy("en1")), photos("de1", "en1", preferOwn = true))
 
         assertEquals(1, images.heroIndex)
-        assertEquals("en1", (images.images[images.heroIndex] as DetailImage.OwnPhoto).copy.copy.uuid)
+        assertEquals("en1", (images.images[images.heroIndex!!] as DetailImage.OwnPhoto).copy.copy.uuid)
     }
 
     @Test
@@ -96,7 +96,15 @@ class CardDetailImagesTest {
         val images = detailImages(detail(copy("a"), imageUrl = null), photos())
 
         assertTrue(images.images.isEmpty())
-        assertEquals(0, images.heroIndex)
+        assertNull(images.heroIndex)
+    }
+
+    @Test
+    fun `without art an other-language photo stays a page while the hero shows the placeholder`() {
+        val images = detailImages(detail(copy("de1", "de"), imageUrl = null), photos("de1", preferOwn = true))
+
+        assertEquals(1, images.images.size)
+        assertNull(images.heroIndex)
     }
 
     @Test

@@ -338,6 +338,9 @@
     <string name="viewer_title">Card viewer</string>
     <!-- Click label TalkBack reads as "double-tap to view full screen", for the card art and a copy's photo. -->
     <string name="viewer_open">view full screen</string>
+    <!-- The card detail's placeholder when the print has no art but the user has photos of other-language copies (#250). -->
+    <string name="viewer_open_photos">view photos</string>
+    <string name="card_detail_placeholder_photos">No image of this print. Photos of your copies in other languages</string>
     <!-- %1$s: the card, e.g. "025/165 Pikachu, Surging Sparks". -->
     <string name="viewer_official_description">Card image of %1$s</string>
     <!-- %1$s: the copy, e.g. "1× Holo, NM, English". -->

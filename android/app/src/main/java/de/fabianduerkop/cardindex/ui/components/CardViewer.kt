@@ -42,6 +42,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -380,6 +381,15 @@ private fun ZoomablePage(
             }
         }
 
+        // A page that fails to load has nothing to zoom or pan: drop any zoom, so the pager and the next photo stay
+        // reachable by swipe and by the arrow keys (#250).
+        LaunchedEffect(failed) {
+            if (failed && ViewerZoom.isZoomed(scale)) {
+                animation?.cancel()
+                apply(ViewerZoom.MIN_SCALE, Offset.Zero)
+            }
+        }
+
         Box(
             Modifier
                 .fillMaxSize()
@@ -388,7 +398,7 @@ private fun ZoomablePage(
                 // are left to the pager, so they still turn the pages.
                 .focusRing(RectangleShape, gap = (-4).dp)
                 .onKeyEvent { event ->
-                    if (event.type != KeyEventType.KeyDown) return@onKeyEvent false
+                    if (event.type != KeyEventType.KeyDown || failed) return@onKeyEvent false
                     val pan = when (event.key) {
                         Key.DirectionLeft -> panSteps[0]
                         Key.DirectionRight -> panSteps[1]
@@ -420,15 +430,19 @@ private fun ZoomablePage(
                 }
                 .focusable()
                 .pointerInput(content, container) {
-                    detectTapGestures(onDoubleTap = { tap -> zoomTo(ViewerZoom.doubleTapTarget(scale), tap - container.center) })
+                    detectTapGestures(onDoubleTap = { tap ->
+                        if (!failed) zoomTo(ViewerZoom.doubleTapTarget(scale), tap - container.center)
+                    })
                 }
                 .pointerInput(content, container) {
                     detectViewerGestures(
                         isZoomed = { ViewerZoom.isZoomed(scale) },
                         onTransform = { focus, pan, zoom ->
-                            animation?.cancel()
-                            val newScale = ViewerZoom.clampScale(scale * zoom)
-                            apply(newScale, ViewerZoom.zoomAround(offset, scale, newScale, focus) + pan)
+                            if (!failed) {
+                                animation?.cancel()
+                                val newScale = ViewerZoom.clampScale(scale * zoom)
+                                apply(newScale, ViewerZoom.zoomAround(offset, scale, newScale, focus) + pan)
+                            }
                         },
                         onDismissDrag = onDismissDrag,
                         onDismissEnd = onDismissEnd,
