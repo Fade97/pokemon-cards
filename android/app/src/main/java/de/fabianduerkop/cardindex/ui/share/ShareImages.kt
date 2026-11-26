@@ -95,7 +95,10 @@ fun ShareCanvas(content: @Composable () -> Unit) {
  */
 @Composable
 fun ShareImagePreview(layer: GraphicsLayer, description: String, modifier: Modifier = Modifier, content: @Composable () -> Unit) {
-    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare
+    // Less of the window at a large font: the sheet's text grows, so the preview gives up room and the caption and
+    // actions under it stay in view (#250).
+    val maxHeight = LocalConfiguration.current.screenHeightDp.dp * PreviewHeightShare /
+        LocalDensity.current.fontScale.coerceAtLeast(1f)
     BoxWithConstraints(modifier.fillMaxWidth(), contentAlignment = Alignment.TopCenter) {
         val shown = minOf(maxWidth, ShareImageSize.Width, maxHeight * (ShareImageSize.Width / ShareImageSize.Height))
         val density = LocalDensity.current
