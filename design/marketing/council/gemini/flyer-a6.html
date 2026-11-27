@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>Foilark — Android-Tester gesucht (A6 Print)</title>
+  <style>
+    @font-face {
+      font-family: 'Bricolage Grotesque';
+      src: url('assets/fonts/BricolageGrotesque.ttf') format('truetype');
+      font-weight: 200 800;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'Schibsted Grotesk';
+      src: url('../../../../android/app/src/main/res/font/schibsted_grotesk.ttf') format('truetype');
+      font-weight: 400 900;
+      font-style: normal;
+      font-display: block;
+    }
+    @font-face {
+      font-family: 'JetBrains Mono';
+      src: url('assets/fonts/JetBrainsMono.ttf') format('truetype');
+      font-weight: 400 800;
+      font-style: normal;
+      font-display: block;
+    }
+
+    :root {
+      --paper: #F3EFE6;
+      --paper-tint: #EAE4D7;
+      --ink: #131619;
+      --ink-soft: #3B434A;
+      --ink-muted: #565F67;
+      --rule: #CEC7B8;
+      --vermilion: #E6411A;
+      --foil-cyan: #7FDCD2;
+      --white: #FFFFFF;
+    }
+
+    @page {
+      size: 111mm 154mm;
+      margin: 0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      width: 111mm;
+      height: 154mm;
+      overflow: hidden;
+      background: var(--paper);
+      color: var(--ink);
+      font-family: 'Schibsted Grotesk', sans-serif;
+      -webkit-font-smoothing: antialiased;
+      print-color-adjust: exact;
+      -webkit-print-color-adjust: exact;
+    }
+
+    /* Trimmed preview mode (?trimmed=1): scale the inner 105x148mm trim box to 620x874px viewport (2x DPR -> 1240x1748px) */
+    html.trimmed,
+    html.trimmed body {
+      width: 620px;
+      height: 874px;
+      overflow: hidden;
+      background: var(--paper);
+    }
+
+    .sheet {
+      position: relative;
+      width: 111mm;
+      height: 154mm;
+      background: var(--paper);
+      overflow: hidden;
+    }
+
+    html.trimmed .sheet {
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform-origin: top left;
+      transform: scale(1.5623016) translate(-3mm, -3mm);
+    }
+
+    .paper-grain {
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.04;
+      background-image: radial-gradient(#131619 0.45px, transparent 0.45px);
+      background-size: 2.2mm 2.2mm;
+      z-index: 20;
+    }
+
+    /* All text stays >= 4.5mm inside the 3mm trim edge (i.e. >= 7.5mm from bleed edge) */
+    .page-stack {
+      position: relative;
+      z-index: 2;
+      width: 111mm;
+      height: 154mm;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* 1. Top Header Bar */
+    .header-bar {
+      padding-top: 7.5mm;
+      padding-bottom: 2.0mm;
+      margin-left: 8mm;
+      margin-right: 8mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 0.4mm solid var(--ink);
+      flex-shrink: 0;
+    }
+
+    .brand-logo {
+      display: block;
+      width: 25.5mm;
+      height: auto;
+      flex-shrink: 0;
+    }
+
+    .tester-stamp {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2mm;
+      background: var(--vermilion);
+      color: var(--white);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.9pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      padding: 1.15mm 2.2mm 1.05mm 2.0mm;
+      border-radius: 0.8mm;
+      line-height: 1;
+    }
+
+    .stamp-dot {
+      width: 1.35mm;
+      height: 1.35mm;
+      border-radius: 50%;
+      background: var(--white);
+      flex-shrink: 0;
+    }
+
+    /* 2. Hero Display Typography */
+    .hero-copy {
+      padding: 2.5mm 8mm 2.6mm;
+      flex-shrink: 0;
+    }
+
+    h1 {
+      font-family: 'Bricolage Grotesque', sans-serif;
+      font-weight: 800;
+      font-size: 20.6pt;
+      line-height: 0.94;
+      letter-spacing: -0.036em;
+      color: var(--ink);
+      margin-bottom: 1.8mm;
+    }
+
+    h1 .accent-dot {
+      color: var(--vermilion);
+    }
+
+    .lead {
+      font-size: 7.45pt;
+      line-height: 1.30;
+      font-weight: 500;
+      color: var(--ink-soft);
+    }
+
+    .lead strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    /* 3. Full-Bleed Macro Holo-Card Photographic Plate */
+    .photo-plate {
+      position: relative;
+      width: 111mm;
+      height: 36.5mm;
+      background: linear-gradient(180deg, #252D33 0%, #1A1F24 52%, #101418 100%);
+      overflow: hidden;
+      border-top: 0.4mm solid var(--ink);
+      border-bottom: 0.4mm solid var(--ink);
+      flex-shrink: 0;
+    }
+
+    /* Uncropped height-matched hero photo anchored flush to right bleed edge, seamlessly feathered into matching matte neoprene left */
+    .photo-plate img.hero-photo {
+      position: absolute;
+      top: 0;
+      right: 0;
+      height: 100%;
+      width: auto;
+      display: block;
+      -webkit-mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.4) 14%, #000 32%);
+      mask-image: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.4) 14%, #000 32%);
+    }
+
+    /* Optical viewfinder corner ticks framing the right-hand card without crossing bright reflections */
+    .scan-hud-svg {
+      position: absolute;
+      inset: 0;
+      width: 111mm;
+      height: 36.5mm;
+      pointer-events: none;
+    }
+
+    .plate-content {
+      position: relative;
+      z-index: 3;
+      height: 100%;
+      padding: 2.9mm 0 2.7mm 8mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      width: 57mm;
+    }
+
+    .hud-tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 1.2mm;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.2pt;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      color: var(--foil-cyan);
+    }
+
+    .hud-tag .live-dot {
+      width: 1.35mm;
+      height: 1.35mm;
+      border-radius: 50%;
+      background: var(--foil-cyan);
+      box-shadow: 0 0 1.4mm rgba(127, 220, 210, 0.85);
+    }
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.35mm;
+    }
+
+    .feature-list li {
+      display: flex;
+      align-items: baseline;
+      gap: 1.4mm;
+      font-size: 7.0pt;
+      line-height: 1.22;
+      color: #F4F1EA;
+      font-weight: 500;
+      white-space: nowrap;
+    }
+
+    .feature-list li strong {
+      color: var(--white);
+      font-weight: 700;
+    }
+
+    .feat-dash {
+      color: var(--vermilion);
+      font-family: 'JetBrains Mono', monospace;
+      font-weight: 800;
+      font-size: 6.8pt;
+      flex-shrink: 0;
+    }
+
+    .offline-note {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 4.9pt;
+      line-height: 1.25;
+      color: #B4C0C5;
+    }
+
+    /* 4. 12-Tester Set-Completion Strip */
+    .slots-section {
+      padding-top: 2.6mm;
+      padding-bottom: 2.4mm;
+      margin-left: 8mm;
+      margin-right: 8mm;
+      border-bottom: 0.3mm solid var(--rule);
+      flex-shrink: 0;
+    }
+
+    .slots-header {
+      display: flex;
+      align-items: baseline;
+      justify-content: space-between;
+      margin-bottom: 1.5mm;
+    }
+
+    .slots-title {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.8pt;
+      font-weight: 700;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      color: var(--ink);
+    }
+
+    .slots-cta {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.5pt;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      color: var(--vermilion);
+    }
+
+    .slot-grid {
+      display: grid;
+      grid-template-columns: repeat(12, 1fr);
+      gap: 1.2mm;
+      margin-bottom: 1.5mm;
+    }
+
+    .slot {
+      height: 6.4mm;
+      border-radius: 0.9mm;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.7pt;
+      font-weight: 700;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+
+    .slot.filled {
+      background: var(--ink);
+      color: var(--paper);
+      border: 0.3mm solid var(--ink);
+    }
+
+    .slot.yours {
+      background: var(--vermilion);
+      color: var(--white);
+      border: 0.3mm solid var(--vermilion);
+      box-shadow: 0 0.35mm 1.0mm rgba(230, 65, 26, 0.32);
+    }
+
+    .slot.open {
+      background: transparent;
+      color: var(--ink-muted);
+      border: 0.32mm solid #8B8579;
+    }
+
+    .slots-caption {
+      font-size: 6.35pt;
+      line-height: 1.28;
+      color: var(--ink-soft);
+    }
+
+    .slots-caption strong {
+      color: var(--ink);
+      font-weight: 700;
+    }
+
+    /* 5. Bottom Action Block: 3 Steps + QR Code */
+    .action-zone {
+      padding-top: 2.6mm;
+      padding-bottom: 2.2mm;
+      margin-left: 8mm;
+      margin-right: 8mm;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 3.2mm;
+      flex: 1;
+      min-height: 0;
+    }
+
+    .steps-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .steps-kicker {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.9pt;
+      font-weight: 800;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--vermilion);
+      margin-bottom: 1.6mm;
+    }
+
+    .steps-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 1.75mm;
+    }
+
+    .steps-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 1.8mm;
+      font-size: 7.0pt;
+      line-height: 1.25;
+      color: var(--ink);
+    }
+
+    .step-num {
+      flex-shrink: 0;
+      width: 4.1mm;
+      height: 4.1mm;
+      margin-top: 0.1mm;
+      border-radius: 0.75mm;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.8pt;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      line-height: 1;
+    }
+
+    .step-text strong {
+      font-weight: 700;
+      color: var(--ink);
+    }
+
+    .step-sub {
+      display: block;
+      font-size: 6.0pt;
+      color: var(--ink-muted);
+      margin-top: 0.2mm;
+      line-height: 1.2;
+    }
+
+    .req-strip {
+      margin-top: 2.3mm;
+      padding-top: 1.7mm;
+      border-top: 0.28mm dashed var(--rule);
+      display: flex;
+      flex-wrap: nowrap;
+      gap: 1.0mm;
+    }
+
+    .req-chip {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 4.75pt;
+      font-weight: 600;
+      color: var(--ink);
+      background: var(--paper-tint);
+      border: 0.26mm solid #C5BEB0;
+      border-radius: 0.65mm;
+      padding: 0.6mm 1.05mm;
+      line-height: 1;
+      white-space: nowrap;
+    }
+
+    .qr-col {
+      width: 28mm;
+      flex-shrink: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .qr-card {
+      width: 25.5mm;
+      background: var(--white);
+      border: 0.38mm solid var(--ink);
+      border-radius: 1.6mm;
+      padding: 2.1mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      box-shadow: 0.7mm 0.7mm 0 var(--ink);
+    }
+
+    .qr-svg {
+      display: block;
+      width: 20.5mm;
+      height: 20.5mm;
+      shape-rendering: crispEdges;
+    }
+
+    .qr-url-pill {
+      margin-top: 1.8mm;
+      background: var(--ink);
+      color: var(--paper);
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 5.15pt;
+      font-weight: 700;
+      letter-spacing: -0.025em;
+      padding: 0.9mm 1.4mm;
+      border-radius: 0.7mm;
+      text-align: center;
+      white-space: nowrap;
+    }
+
+    /* 6. Bottom Legal Disclaimer — safely >= 4.5mm inside the 3mm trim edge (>= 7.5mm from bleed bottom) */
+    .footer-disclaimer {
+      margin-left: 8mm;
+      margin-right: 8mm;
+      padding-top: 1.5mm;
+      padding-bottom: 7.5mm;
+      border-top: 0.3mm solid var(--rule);
+      font-size: 5.4pt;
+      line-height: 1.25;
+      color: var(--ink-muted);
+      text-align: left;
+      flex-shrink: 0;
+    }
+  </style>
+  <script>
+    if (new URLSearchParams(location.search).get('trimmed') === '1') {
+      document.documentElement.classList.add('trimmed');
+    }
+  </script>
+</head>
+<body>
+  <div class="sheet">
+    <div class="paper-grain" aria-hidden="true"></div>
+
+    <div class="page-stack">
+      <!-- 1. Brand + Tester Callout -->
+      <header class="header-bar">
+        <svg class="brand-logo" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 647 256" role="img" aria-label="Foilark logo">
+          <path fill="#131619" transform="translate(-46,0)" d="M87.96,230H72A18,18 0 0 1 54,212V40A18,18 0 0 1 72,22H184A18,18 0 0 1 202,40V86.93A230,230 0 0 0 87.96,230ZM202,114.58V127.64A195,195 0 0 0 124.46,230H112.93A206,206 0 0 1 202,114.58ZM202,138.57V212A18,18 0 0 1 184,230H133.94A186,186 0 0 1 202,138.57Z"/>
+          <path fill="#131619" transform="translate(204.52,230) scale(0.07222)" d="M191.3 0V-1247.5Q191.3 -1379.4 257.4 -1439.7Q323.4 -1500 471.4 -1500H670.2V-1296.7H517.5Q487 -1296.7 475.6 -1284.6Q464.2 -1272.5 464.2 -1240.7V0ZM44.8 -876.7V-1080H674.6V-876.7ZM1286.4 25.8Q1125.5 25.8 1002.6 -46Q879.8 -117.8 810.9 -245.4Q742.1 -373 742.1 -540.2Q742.1 -707.5 810.9 -834.9Q879.8 -962.3 1002.6 -1034.1Q1125.4 -1105.8 1286.4 -1105.8Q1447.9 -1105.8 1570.7 -1034.1Q1693.4 -962.4 1762.5 -835Q1831.6 -707.6 1831.6 -540.1Q1831.6 -372.5 1762.6 -245.1Q1693.6 -117.7 1570.5 -45.9Q1447.4 25.8 1286.4 25.8ZM1286.9 -178.4Q1406.4 -178.4 1475.4 -275.6Q1544.5 -372.8 1544.5 -540Q1544.5 -707.6 1475.4 -804.6Q1406.3 -901.6 1286.8 -901.6Q1167.3 -901.6 1098.2 -804.6Q1029.2 -707.6 1029.2 -540Q1029.2 -372.5 1098.3 -275.4Q1167.4 -178.4 1286.9 -178.4ZM1974.5 0V-1080H2247.4V0ZM2111 -1219Q2027.7 -1219 1976.3 -1270.4Q1924.9 -1321.8 1924.9 -1405.1Q1924.9 -1488.9 1976.3 -1540.1Q2027.7 -1591.2 2111 -1591.2Q2194.8 -1591.2 2246 -1540.1Q2297.1 -1488.9 2297.1 -1405.1Q2297.1 -1321.8 2246 -1270.4Q2194.8 -1219 2111 -1219ZM2685.2 0Q2575.6 0 2514.5 -55.4Q2453.4 -110.8 2453.4 -211.9V-1500H2726.2V-258.7Q2726.2 -225.5 2735.7 -214.4Q2745.2 -203.3 2776.2 -203.3H2863.6V0ZM3272.2 25.4Q3167.8 25.4 3082.2 -11.8Q2996.6 -49.1 2945.9 -121.3Q2895.2 -193.5 2895.2 -298.1Q2895.2 -410.4 2960.6 -491.8Q3026 -573.1 3152 -616.9Q3278.1 -660.8 3460.6 -660.8H3618L3600 -635.1V-696.8Q3600 -808.3 3558.6 -863.8Q3517.2 -919.2 3421 -919.2Q3329 -919.2 3280.3 -871.1Q3231.7 -822.9 3222.7 -736L2941.5 -786.6Q2956.4 -875.9 3016.4 -948.3Q3076.3 -1020.7 3181.4 -1063.7Q3286.5 -1106.7 3437 -1106.7Q3577.5 -1106.7 3673.4 -1060.4Q3769.2 -1014 3818.4 -913.6Q3867.5 -813.1 3867.5 -650V-258.7Q3867.5 -225.3 3877 -214.3Q3886.5 -203.3 3917.5 -203.3H3968.6V0H3833.1Q3726.2 0 3668.3 -55.6Q3610.3 -111.2 3610.3 -211.9V-267.6L3657.4 -251.8Q3643.7 -208.9 3617.5 -161.1Q3591.4 -113.3 3547 -70.8Q3502.5 -28.3 3435.2 -1.5Q3367.9 25.4 3272.2 25.4ZM3348.6 -165.7Q3421.2 -165.7 3478.4 -199.7Q3535.6 -233.7 3569 -302.5Q3602.3 -371.2 3602.3 -475.5V-496.2H3468.1Q3356.4 -496.2 3293.4 -466.9Q3230.5 -437.5 3205 -395.1Q3179.6 -352.6 3179.6 -311.6Q3179.6 -277.3 3195.6 -243.7Q3211.6 -210.2 3248.5 -188Q3285.5 -165.7 3348.6 -165.7ZM4092.8 0V-1080H4355.6V-839.7L4344.7 -870.2Q4395.4 -989 4488.9 -1047.4Q4582.5 -1105.8 4690.5 -1105.8Q4721.4 -1105.8 4752.5 -1100.8Q4783.6 -1095.8 4813.5 -1083.8L4791 -848.1Q4727.9 -866 4668.9 -866Q4622.7 -866 4569.9 -849.8Q4517.2 -833.5 4470.8 -791.2Q4424.5 -748.9 4395.1 -671.2Q4365.6 -593.4 4365.6 -470.8V0ZM4927.9 0V-1500H5200.7V-651.2L5634.9 -1080H5953.9L5539.5 -674.5L5967.9 0H5661.3L5354.7 -487L5200.7 -336.1V0Z"/>
+        </svg>
+        <div class="tester-stamp">
+          <span class="stamp-dot"></span>
+          <span>12 Android-Tester gesucht</span>
+        </div>
+      </header>
+
+      <!-- 2. Bold 3-Second Headline -->
+      <section class="hero-copy">
+        <h1>Pokémon-Karten<br/>offline scannen<span class="accent-dot">.</span></h1>
+        <p class="lead">
+          Die kostenlose <strong>Open-Source-App</strong> erkennt deine Karten am Handy, sortiert <strong>Sets, Binder &amp; Wunschliste</strong> und zeigt <strong>Cardmarket&#8209;Preise</strong>.
+        </p>
+      </section>
+
+      <!-- 3. Full-Bleed Macro Holo-Card Photographic Plate -->
+      <section class="photo-plate">
+        <img class="hero-photo" src="assets/holo-card-hero.jpg" alt="Blanko-Holokarte in klarem Toploader mit orangem Pull-Tab auf dunkler Matte" />
+
+        <!-- Delicate optical scanner brackets framing the card cleanly -->
+        <svg class="scan-hud-svg" viewBox="0 0 111 36.5" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <g stroke="#7FDCD2" stroke-width="0.30" stroke-opacity="0.72">
+            <path d="M68.5 5.4 L68.5 2.7 L71.2 2.7" />
+            <path d="M101.8 2.7 L104.5 2.7 L104.5 5.4" />
+            <path d="M68.5 31.1 L68.5 33.8 L71.2 33.8" />
+            <path d="M101.8 33.8 L104.5 33.8 L104.5 31.1" />
+          </g>
+        </svg>
+
+        <div class="plate-content">
+          <div class="hud-tag">
+            <span class="live-dot"></span>
+            <span>On-Device Scan · Gratis</span>
+          </div>
+
+          <ul class="feature-list">
+            <li><span class="feat-dash">/</span><span><strong>Keine Werbung</strong>, kein App-Konto</span></li>
+            <li><span class="feat-dash">/</span><span><strong>Cardmarket-Preise</strong> direkt dran</span></li>
+            <li><span class="feat-dash">/</span><span><strong>Sets, Binder &amp; Wunschliste</strong></span></li>
+            <li><span class="feat-dash">/</span><span><strong>Offline am Handy</strong> nutzbar*</span></li>
+          </ul>
+
+          <div class="offline-note">*nach 1× Sprachpaket-Download</div>
+        </div>
+      </section>
+
+      <!-- 4. Collector's 12-Tester Set-Completion Strip -->
+      <section class="slots-section">
+        <div class="slots-header">
+          <span class="slots-title">Play-Store-Start · Set 01–12</span>
+          <span class="slots-cta">Dein Slot fehlt →</span>
+        </div>
+        <div class="slot-grid" aria-hidden="true">
+          <div class="slot yours">01</div>
+          <div class="slot open">02</div>
+          <div class="slot open">03</div>
+          <div class="slot open">04</div>
+          <div class="slot open">05</div>
+          <div class="slot open">06</div>
+          <div class="slot open">07</div>
+          <div class="slot open">08</div>
+          <div class="slot open">09</div>
+          <div class="slot open">10</div>
+          <div class="slot open">11</div>
+          <div class="slot open">12</div>
+        </div>
+        <p class="slots-caption">
+          Google Play verlangt <strong>12 Tester für 14 Tage</strong> im geschlossenen Test, bevor Foilark öffentlich erscheinen darf.
+        </p>
+      </section>
+
+      <!-- 5. Action Zone: 3 Join Steps + High-Contrast QR -->
+      <section class="action-zone">
+        <div class="steps-col">
+          <div>
+            <div class="steps-kicker">In 3 Schritten dabei</div>
+            <ol class="steps-list">
+              <li>
+                <span class="step-num">1</span>
+                <span class="step-text">
+                  <strong>Google-Gruppe beitreten</strong>
+                  <span class="step-sub">Gleiches Google-Konto wie im Play Store</span>
+                </span>
+              </li>
+              <li>
+                <span class="step-num">2</span>
+                <span class="step-text"><strong>Auf Play „Tester werden“ tippen</strong></span>
+              </li>
+              <li>
+                <span class="step-num">3</span>
+                <span class="step-text"><strong>Foilark aus dem Play Store installieren</strong></span>
+              </li>
+            </ol>
+          </div>
+
+          <div class="req-strip">
+            <span class="req-chip">14 Tage bleiben</span>
+            <span class="req-chip">Android 8 oder neuer</span>
+            <span class="req-chip">App auf Englisch</span>
+          </div>
+        </div>
+
+        <div class="qr-col">
+          <div class="qr-card">
+            <svg class="qr-svg" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 25 25" role="img" aria-label="QR-Code zu https://foilark.app/test">
+              <path stroke="#131619" stroke-width="1" d="M0 0.5h7m1 0h2m2 0h2m1 0h2m1 0h7m-25 1h1m5 0h1m2 0h1m2 0h3m1 0h1m1 0h1m5 0h1m-25 1h1m1 0h3m1 0h1m3 0h2m3 0h2m1 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h1m4 0h4m1 0h1m1 0h3m1 0h1m-25 1h1m1 0h3m1 0h1m1 0h6m1 0h2m1 0h1m1 0h3m1 0h1m-25 1h1m5 0h1m1 0h1m4 0h2m3 0h1m5 0h1m-25 1h7m1 0h1m1 0h1m1 0h1m1 0h1m1 0h1m1 0h7m-17 1h1m1 0h2m-12 1h1m3 0h1m1 0h5m1 0h1m1 0h2m1 0h5m2 0h1m-25 1h2m1 0h1m1 0h1m2 0h1m1 0h2m2 0h2m4 0h2m1 0h1m-24 1h1m1 0h1m1 0h6m3 0h3m2 0h1m1 0h3m-23 1h2m3 0h1m3 0h1m1 0h2m1 0h1m1 0h1m1 0h2m2 0h2m-24 1h2m2 0h3m2 0h2m1 0h1m2 0h1m1 0h3m1 0h4m-25 1h1m2 0h3m1 0h3m3 0h1m1 0h2m3 0h1m2 0h1m-18 1h1m1 0h3m3 0h9m-21 1h2m3 0h1m4 0h1m3 0h1m2 0h2m1 0h2m-24 1h4m1 0h8m3 0h7m-15 1h2m2 0h5m3 0h1m-21 1h7m1 0h4m2 0h1m1 0h1m1 0h1m1 0h1m-21 1h1m5 0h1m4 0h1m2 0h1m1 0h1m3 0h4m-24 1h1m1 0h3m1 0h1m1 0h2m2 0h1m3 0h7m-23 1h1m1 0h3m1 0h1m3 0h1m1 0h2m1 0h1m1 0h3m2 0h3m-25 1h1m1 0h3m1 0h1m3 0h2m1 0h1m1 0h4m2 0h1m1 0h1m-24 1h1m5 0h1m4 0h2m1 0h2m2 0h6m-24 1h7m1 0h3m4 0h1m2 0h1m3 0h3"/>
+            </svg>
+          </div>
+          <div class="qr-url-pill">https://foilark.app/test</div>
+        </div>
+      </section>
+
+      <!-- 6. Mandatory Disclaimer -->
+      <footer class="footer-disclaimer">
+        Inoffizielles Fan-Projekt, nicht verbunden mit Nintendo oder The Pokémon Company.
+      </footer>
+    </div>
+  </div>
+</body>
+</html>

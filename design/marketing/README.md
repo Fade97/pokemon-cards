@@ -2,7 +2,8 @@
 
 M2 from [tester-recruiting.md](../../docs/release/tester-recruiting.md) (#261): the flyer for the store or league
 visit and the join card for WhatsApp/Signal. German, because both go to German collectors. Four styles to compare;
-pick one (or test two at different stores).
+pick one (or test two at different stores). Three more, designed independently by the council, are in
+[council/](council/README.md).
 
 | Variant | Style | Hook |
 |---|---|---|

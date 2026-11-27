@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="de">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Foilark · Karte vor die Linse</title>
+  <link rel="stylesheet" href="flyer.css">
+</head>
+<body>
+  <script>
+    const format = new URLSearchParams(location.search).get("format");
+    document.body.classList.add(format === "phone" ? "phone" : "print");
+  </script>
+  <div class="sheet">
+    <main class="artboard">
+      <header class="masthead">
+        <p class="brand">Foilark</p>
+        <p class="recruitment">Android-Tester gesucht</p>
+      </header>
+
+      <section class="hero" aria-labelledby="headline">
+        <div class="hero-content">
+          <img class="photo" src="card-screened.png" alt="">
+          <div class="viewfinder" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <h1 id="headline"><span>Karte vor</span><span>die Linse.</span></h1>
+          <p class="description">
+            <span>Pokémon-Karten scannen.</span>
+            <span>Sammlung sortieren.</span>
+            <span>Cardmarket-Preise sehen.</span>
+          </p>
+          <p class="offline">Offline-Scan nach einmaligem<br>Sprachpaket-Download.</p>
+          <p class="terms">Gratis &amp; Open Source.<br>Werbefrei. Ohne App-Konto.</p>
+        </div>
+      </section>
+
+      <section class="join" aria-labelledby="join-heading">
+        <h2 id="join-heading">Jetzt mittesten</h2>
+        <a class="join-url" href="https://foilark.app/test">https://foilark.app/test</a>
+        <div class="qr">
+          <img src="../../assets/qr-foilark-test.svg" alt="Anmeldung zum Foilark-Test öffnen">
+        </div>
+        <ol class="steps">
+          <li>Google-Gruppe beitreten.</li>
+          <li>Bei Play „Tester werden“ antippen.</li>
+          <li>Foilark im Play Store installieren.</li>
+        </ol>
+        <p class="conditions">
+          <span>Gleiches Google-Konto wie im Play Store.</span>
+          <strong>14 Tage im Test bleiben.</strong>
+          <span>Android 8 oder neuer · App auf Englisch.</span>
+        </p>
+        <p class="disclaimer">Inoffizielles Fan-Projekt, nicht verbunden<br>mit Nintendo oder The Pokémon Company.</p>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
