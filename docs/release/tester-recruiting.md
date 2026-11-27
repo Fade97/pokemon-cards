@@ -199,6 +199,6 @@ Cut Reddit and M3. Spend the evenings on:
 
 | What | Who | Issue |
 |---|---|---|
-| M1 `/test` route (EN/DE) with tests | Agent | to file |
-| M2 and M3 images | Agent | to file |
+| M1 `/test` route (EN/DE) with tests | Agent | #260 |
+| M2 and M3 images | Agent | #261 |
 | Group, sheet, DMs, store, posts, M5.5–M5.7 | Fabian | #15 |
