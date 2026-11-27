@@ -19,14 +19,20 @@ def green_mask(rgb: np.ndarray) -> np.ndarray:
 
 
 def corners(mask: np.ndarray) -> np.ndarray:
-    """Four corners (tl, tr, br, bl) of the green quad from its extreme points."""
+    """Four corners of the green quad in screen order (top-left, top-right, bottom-right, bottom-left).
+
+    Works for any rotation: the screen's long axis comes from the pixel spread (PCA), the corners are the extreme
+    points along the two diagonals of that frame, and the phone's top is the short edge that sits higher in the
+    image."""
     ys, xs = np.nonzero(mask > 0.5)
-    s, d = xs + ys, xs - ys
-    tl = (xs[s.argmin()], ys[s.argmin()])
-    br = (xs[s.argmax()], ys[s.argmax()])
-    tr = (xs[d.argmax()], ys[d.argmax()])
-    bl = (xs[d.argmin()], ys[d.argmin()])
-    quad = np.array([tl, tr, br, bl], dtype=np.float64)
+    pts = np.stack([xs, ys], axis=1).astype(np.float64)
+    centre = pts.mean(axis=0)
+    _, _, vt = np.linalg.svd(pts - centre, full_matrices=False)
+    up = vt[0] if vt[0][1] < 0 else -vt[0]  # long axis, pointing to the higher end
+    right = np.array([-up[1], up[0]])  # screen's right when looking at it
+    u, v = (pts - centre) @ up, (pts - centre) @ right
+    pick = lambda score: pts[score.argmax()]  # noqa: E731
+    quad = np.array([pick(u - v), pick(u + v), pick(-u + v), pick(-u - v)])
     # Rounded corners pull the extreme points inwards; grow the quad a little so the screenshot covers them.
     centre = quad.mean(axis=0)
     return centre + (quad - centre) * 1.035

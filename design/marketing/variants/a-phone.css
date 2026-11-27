@@ -1,29 +1,5 @@
-/* Tester flyer, dark full-bleed. Pearl tokens (ADR 0014) on the night scheme; sizes in cqw of .sheet, so one
-   layout serves A6, the A4 sheet and the join card. --bleed is the print-shop bleed (3 mm of 105 mm). */
-@font-face {
-  font-family: "Schibsted Grotesk";
-  src: url("../../android/app/src/main/res/font/schibsted_grotesk.ttf") format("truetype");
-  font-weight: 400 900;
-}
-
-:root {
-  --ink: #26353c;
-  --ink-2: #5e6a72;
-  --night: #111718;
-  --sea: #356c6c;
-  --sea-light: #8ccbc2;
-  --porcelain: #fafbfc;
-  --on-night: #e6ecee;
-  --on-night-2: #a9b6bb;
-}
-
-* { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: #fff; }
-body { font-family: "Schibsted Grotesk", sans-serif; -webkit-font-smoothing: antialiased; }
-
-.sheet { container-type: size; position: relative; --bleed: 0cqw; }
-.bleed .sheet { --bleed: 2.857cqw; }
-
+/* Variant A "Phone": dark full-bleed photo (hand with phone over holo cards), headline in the dark top, a porcelain
+ join panel at the bottom. */
 .flyer {
   position: relative;
   width: 100cqw;
@@ -130,25 +106,10 @@ footer {
 }
 footer .url { font-size: 3.4cqw; font-weight: 650; color: var(--sea-light); letter-spacing: -0.01em; }
 
-/* Join card (1080 × 1920): the photo covers by height, so it is wider than the card and centred on the phone. */
+/* Join card (1080 × 1920): the photo covers by height (118.5cqw wide), centred, or on the phone for A. */
 .story .flyer { padding: 10cqw 7cqw 7cqw; }
-.story .bg { width: auto; height: 100cqh; left: -14cqw; top: 0; }
+.story .bg { width: auto; height: 100cqh; left: -9.25cqw; top: 0; }
+.story .v-phone .bg { left: -14cqw; }
 .story .kicker { margin-top: 9cqw; font-size: 3.4cqw; }
 .story h1 { font-size: 11cqw; }
 .story .lede { font-size: 3.4cqw; max-width: 33cqw; }
-
-/* Print-shop A6 with 3 mm bleed: the page is 111 × 154 mm, the trimmed flyer sits 3 mm in. */
-.bleed .page { width: 111mm; height: 154mm; position: relative; overflow: hidden; }
-.bleed .page .sheet { position: absolute; left: 3mm; top: 3mm; width: 105mm; height: 148mm; }
-
-/* A4 sheet for printing at home: four flyers at 94 % with a hairline to cut along, inside the printable area. */
-.a4 {
-  width: 210mm;
-  height: 297mm;
-  display: grid;
-  grid-template-columns: repeat(2, 98.7mm);
-  grid-template-rows: repeat(2, 139.1mm);
-  gap: 4mm;
-  place-content: center;
-}
-.a4 .sheet { width: 98.7mm; height: 139.1mm; overflow: hidden; outline: 0.1mm solid #b8c2c7; }

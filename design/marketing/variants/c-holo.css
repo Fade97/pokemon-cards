@@ -1,0 +1,148 @@
+/* Variant C "Holo-Sticker": loud and playful. Brightened holo foil full bleed, a tilted giant headline with an
+   outlined echo behind it, rotated stickers, the QR code on a white card. Positions are absolute, in cqw. */
+.flyer {
+  position: relative;
+  width: 100cqw;
+  height: 100cqh;
+  background: var(--night);
+  color: #fff;
+}
+.flyer > * { position: absolute; }
+
+.bg {
+  z-index: 0;
+  left: calc(-1 * var(--bleed));
+  top: calc(-1 * var(--bleed));
+  width: calc(100cqw + 2 * var(--bleed));
+  height: calc(100cqh + 2 * var(--bleed));
+  object-fit: cover;
+}
+
+.logo { z-index: 2; left: 7cqw; top: 7cqw; width: 22cqw; height: auto; }
+
+.badge {
+  z-index: 3;
+  right: 6cqw;
+  top: 4.5cqw;
+  width: 23cqw;
+  height: 23cqw;
+  border-radius: 50%;
+  background: var(--sea-light);
+  color: var(--night);
+  border: 0.8cqw solid #fff;
+  box-shadow: 0 1.2cqw 3cqw rgba(0, 0, 0, 0.35);
+  transform: rotate(12deg);
+  display: grid;
+  place-content: center;
+  text-align: center;
+  font-size: 5.4cqw;
+  font-weight: 850;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+.badge small { display: block; margin-top: 0.8cqw; font-size: 2.6cqw; font-weight: 650; letter-spacing: 0.04em; }
+
+h1 {
+  z-index: 2;
+  left: 6cqw;
+  top: 24cqw;
+  width: 92cqw;
+  font-size: 19.5cqw;
+  line-height: 0.84;
+  font-weight: 860;
+  letter-spacing: -0.055em;
+  transform: rotate(-5deg);
+  transform-origin: left top;
+  text-shadow: 0 1cqw 4cqw rgba(0, 0, 0, 0.35);
+}
+/* The echo: the same words as an outline, offset down-right. */
+h1::before {
+  content: attr(data-text);
+  position: absolute;
+  z-index: -1;
+  left: 1.6cqw;
+  top: 1.6cqw;
+  color: transparent;
+  -webkit-text-stroke: 0.35cqw var(--sea-light);
+  text-shadow: none;
+}
+
+.stickers { z-index: 3; inset: 0; list-style: none; pointer-events: none; }
+.stickers li {
+  position: absolute;
+  padding: 1.6cqw 3.4cqw;
+  border-radius: 99cqw;
+  font-size: 3.6cqw;
+  font-weight: 750;
+  letter-spacing: -0.01em;
+  box-shadow: 0 1cqw 2.4cqw rgba(0, 0, 0, 0.3);
+}
+.s1 { left: 8cqw; top: 58cqw; background: #fff; color: var(--night); transform: rotate(-7deg); }
+.s2 { left: 42cqw; top: 62cqw; background: var(--night); color: #fff; transform: rotate(4deg); border: 0.3cqw solid var(--sea-light); }
+.s3 { left: 14cqw; top: 68.5cqw; background: var(--sea); color: #fff; transform: rotate(-2deg); }
+
+.qrcard {
+  z-index: 4;
+  left: 6cqw;
+  bottom: 16cqw;
+  width: 38cqw;
+  padding: 3cqw 3.4cqw 3.4cqw;
+  border-radius: 3.4cqw;
+  background: #fff;
+  color: var(--night);
+  transform: rotate(-4deg);
+  box-shadow: 0 1.6cqw 4cqw rgba(0, 0, 0, 0.4);
+}
+.qrcard p { font-size: 3.8cqw; font-weight: 850; letter-spacing: -0.02em; margin-bottom: 1.8cqw; }
+.qrcard .qr { display: block; width: 100%; height: auto; }
+
+.howto {
+  z-index: 3;
+  right: 6cqw;
+  bottom: 18cqw;
+  width: 48cqw;
+  padding: 3.4cqw;
+  border-radius: 3.4cqw;
+  background: rgba(17, 23, 24, 0.82);
+  border: 0.3cqw solid rgba(140, 203, 194, 0.4);
+  transform: rotate(2deg);
+}
+.howto .title { font-size: 3.1cqw; font-weight: 750; line-height: 1.25; letter-spacing: -0.01em; }
+.howto ol { list-style: none; counter-reset: step; margin-top: 2cqw; display: grid; gap: 1cqw; }
+.howto li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 4cqw 1fr;
+  font-size: 2.8cqw;
+  line-height: 1.25;
+  font-weight: 560;
+  color: var(--on-night);
+}
+.howto li::before { content: counter(step); color: var(--sea-light); font-weight: 800; }
+.howto .fine { margin-top: 2cqw; font-size: 2.1cqw; line-height: 1.35; color: var(--on-night-2); }
+
+footer {
+  z-index: 3;
+  left: 0;
+  right: 0;
+  bottom: calc(-1 * var(--bleed));
+  padding: 2.4cqw 7cqw calc(4cqw + var(--bleed));
+  margin: 0 calc(-1 * var(--bleed));
+  background: linear-gradient(0deg, rgba(17, 23, 24, 0.92) 55%, rgba(17, 23, 24, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 0.6cqw;
+  font-size: 2.1cqw;
+  line-height: 1.35;
+  color: var(--on-night-2);
+}
+footer .url { font-size: 3.6cqw; font-weight: 750; color: #fff; letter-spacing: -0.02em; }
+
+/* Join card: same layout, more room between headline, stickers and the cards. */
+.story h1 { top: 30cqw; font-size: 21cqw; }
+.story .s1 { top: 80cqw; }
+.story .s2 { top: 86cqw; }
+.story .s3 { top: 96cqw; }
+.story .qrcard { bottom: 22cqw; width: 40cqw; }
+.story .howto { bottom: 25cqw; }
+.story footer { padding-bottom: 6cqw; }

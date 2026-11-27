@@ -1,0 +1,114 @@
+/* Variant D "Tester-Karte": a collector card of Foilark's own design on a dark page with a teal glow. The holo
+   frame is a conic gradient, the face is porcelain so the QR code reads; "01/12" plays on the 12 testers. */
+.flyer {
+  position: relative;
+  width: 100cqw;
+  height: 100cqh;
+  padding: 6cqw 7cqw 4.5cqw;
+  background: var(--night);
+  color: var(--on-night);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+}
+.glow {
+  position: absolute;
+  inset: calc(-1 * var(--bleed));
+  background:
+    radial-gradient(60cqw 50cqw at 50% 62%, rgba(53, 108, 108, 0.75), rgba(17, 23, 24, 0) 70%),
+    radial-gradient(40cqw 30cqw at 20% 95%, rgba(140, 203, 194, 0.18), rgba(17, 23, 24, 0) 70%);
+}
+header, .card, footer { position: relative; z-index: 1; }
+
+.kicker { font-size: 2.8cqw; font-weight: 650; color: var(--sea-light); letter-spacing: 0.02em; }
+h1 { margin-top: 1.6cqw; font-size: 7.6cqw; line-height: 1; font-weight: 760; letter-spacing: -0.04em; color: #fff; }
+.lede { margin-top: 1.6cqw; font-size: 3.1cqw; color: var(--on-night-2); }
+
+/* The card: 63 × 88 like a real trading card, slightly tilted, with a holographic frame. */
+.card {
+  margin-top: 4cqw;
+  width: 72cqw;
+  aspect-ratio: 63 / 88;
+  padding: 1.8cqw;
+  border-radius: 4.2cqw;
+  background:
+    conic-gradient(from 210deg, #8ccbc2, #c8b8ff, #ffd2e6, #fff4c2, #b9f3d9, #8ccbc2, #6fb6d9, #c8b8ff, #8ccbc2);
+  box-shadow: 0 3cqw 8cqw rgba(0, 0, 0, 0.55), 0 0 6cqw rgba(140, 203, 194, 0.35);
+  transform: rotate(-2.5deg);
+}
+.face {
+  height: 100%;
+  border-radius: 2.8cqw;
+  padding: 2.6cqw;
+  background: linear-gradient(160deg, #ffffff 0%, var(--porcelain) 45%, #e9f2f1 100%);
+  color: var(--ink);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  gap: 1.8cqw;
+}
+.top { display: flex; align-items: center; gap: 1.6cqw; }
+.mark { width: 4.6cqw; height: auto; }
+.name { flex: 1; font-size: 4.4cqw; font-weight: 800; letter-spacing: -0.03em; }
+.no { font-size: 2.8cqw; font-weight: 700; color: var(--sea); font-variant-numeric: tabular-nums; }
+
+.art {
+  position: relative;
+  height: 31cqw;
+  border-radius: 1.8cqw;
+  overflow: hidden;
+  background: var(--night);
+  border: 0.5cqw solid #d9e1e5;
+}
+.art img { position: absolute; width: 100%; height: 100%; object-fit: cover; object-position: 55% 52%; }
+
+.type {
+  padding: 0.8cqw 2cqw;
+  border-radius: 99cqw;
+  background: #dfedeb;
+  color: var(--sea);
+  font-size: 2.2cqw;
+  font-weight: 700;
+  align-self: flex-start;
+}
+
+.abilities { display: grid; gap: 1cqw; }
+.abilities div { display: grid; grid-template-columns: 16.5cqw 1fr; align-items: baseline; gap: 1.2cqw;
+  padding-bottom: 1cqw; border-bottom: 0.2cqw solid #d9e1e5; }
+.abilities div:last-child { border-bottom: 0; padding-bottom: 0; }
+dt { font-size: 2.6cqw; font-weight: 800; white-space: nowrap; }
+dd { font-size: 2.3cqw; color: var(--ink-2); line-height: 1.25; }
+
+.join {
+  margin-top: auto;
+  display: flex;
+  align-items: center;
+  gap: 2.6cqw;
+  padding: 2cqw;
+  border-radius: 2cqw;
+  background: #fff;
+  border: 0.25cqw solid #d9e1e5;
+}
+.qr { width: 15cqw; height: 15cqw; flex: none; }
+.join ol { list-style: none; counter-reset: step; display: grid; gap: 0.5cqw; }
+.join li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 3cqw 1fr;
+  font-size: 2.3cqw;
+  line-height: 1.2;
+  font-weight: 600;
+}
+.join li::before { content: counter(step); color: var(--sea); font-weight: 800; }
+.join li.url { counter-increment: none; margin-top: 0.6cqw; font-size: 3cqw; font-weight: 800; color: var(--sea); letter-spacing: -0.02em; }
+.join li.url::before { content: ""; }
+
+footer { margin-top: auto; max-width: 80cqw; font-size: 2cqw; line-height: 1.4; color: var(--on-night-2); }
+
+/* Join card: a bigger card and a two-line headline. */
+.story .flyer { padding-top: 11cqw; }
+.story h1 { font-size: 10cqw; }
+.story .lede { font-size: 3.6cqw; }
+.story .card { margin-top: 8cqw; width: 82cqw; }
+.story .art { height: 38cqw; }
