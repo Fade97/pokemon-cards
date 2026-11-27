@@ -1,4 +1,5 @@
-/* Tester flyer. Pearl tokens (ADR 0014); sizes in cqw of .sheet so one layout serves A6 and the join card. */
+/* Tester flyer, dark full-bleed. Pearl tokens (ADR 0014) on the night scheme; sizes in cqw of .sheet, so one
+   layout serves A6, the A4 sheet and the join card. --bleed is the print-shop bleed (3 mm of 105 mm). */
 @font-face {
   font-family: "Schibsted Grotesk";
   src: url("../../android/app/src/main/res/font/schibsted_grotesk.ttf") format("truetype");
@@ -8,117 +9,146 @@
 :root {
   --ink: #26353c;
   --ink-2: #5e6a72;
+  --night: #111718;
   --sea: #356c6c;
-  --tint: #dfedeb;
-  --line: #d9e1e5;
-  --page: #ffffff;
+  --sea-light: #8ccbc2;
+  --porcelain: #fafbfc;
+  --on-night: #e6ecee;
+  --on-night-2: #a9b6bb;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
-html, body { background: var(--page); }
-body { font-family: "Schibsted Grotesk", sans-serif; color: var(--ink); -webkit-font-smoothing: antialiased; }
+html, body { background: #fff; }
+body { font-family: "Schibsted Grotesk", sans-serif; -webkit-font-smoothing: antialiased; }
 
-.sheet { container-type: size; overflow: hidden; background: var(--page); position: relative; }
+.sheet { container-type: size; position: relative; --bleed: 0cqw; }
+.bleed .sheet { --bleed: 2.857cqw; }
 
 .flyer {
-  display: flex;
-  flex-direction: column;
+  position: relative;
   width: 100cqw;
   height: 100cqh;
-  padding: 7.5cqw 8cqw 6cqw;
+  display: flex;
+  flex-direction: column;
+  padding: 7cqw 7cqw 5cqw;
+  color: var(--on-night);
+  background: var(--night);
+  overflow: visible;
 }
 
-.logo { width: 24cqw; height: auto; display: block; }
+/* The generated photo with the real app screen composited into the phone (compose_screen.py). Its dark top
+   third carries the headline; it is shifted up so the phone sits between headline and join panel. */
+.bg {
+  position: absolute;
+  z-index: 0;
+  left: calc(-1cqw - var(--bleed));
+  top: calc(-6cqw - var(--bleed));
+  width: calc(102cqw + 2 * var(--bleed));
+  height: auto;
+}
+/* A little darkening at the top and bottom keeps the type readable wherever the photo is busy. */
+.shade {
+  position: absolute;
+  z-index: 0;
+  inset: calc(-1 * var(--bleed));
+  background:
+    linear-gradient(180deg, rgba(17, 23, 24, 0.55) 0%, rgba(17, 23, 24, 0) 34%),
+    linear-gradient(0deg, rgba(17, 23, 24, 0.9) 0%, rgba(17, 23, 24, 0) 26%);
+}
+header, .join, footer { position: relative; z-index: 1; }
+
+.logo { width: 22cqw; height: auto; display: block; }
+
+.kicker {
+  display: inline-block;
+  margin-top: 6cqw;
+  padding: 1cqw 2.6cqw;
+  border-radius: 99cqw;
+  background: rgba(140, 203, 194, 0.16);
+  border: 0.25cqw solid rgba(140, 203, 194, 0.45);
+  color: var(--sea-light);
+  font-size: 3cqw;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
 
 h1 {
-  margin-top: 5.5cqw;
-  font-size: 7.7cqw;
-  line-height: 1.02;
-  font-weight: 650;
-  letter-spacing: -0.03em;
+  margin-top: 3cqw;
+  font-size: 9.6cqw;
+  line-height: 1;
+  font-weight: 680;
+  letter-spacing: -0.035em;
+  color: #fff;
 }
 
+/* A narrow column left of the phone. */
 .lede {
-  margin-top: 2.6cqw;
-  font-size: 3.4cqw;
-  line-height: 1.38;
-  color: var(--ink-2);
-  max-width: 40ch;
+  margin-top: 3.4cqw;
+  max-width: 31cqw;
+  font-size: 3.2cqw;
+  line-height: 1.4;
+  color: var(--on-night-2);
 }
 
-/* Two real app screens, no card art: the set grid, and the price block overlapping it bottom right.
-   The visual takes the height that is left, so the taller join card gets a taller grid. */
-.visual { position: relative; flex: 1; min-height: 0; margin-top: 4.5cqw; }
-.screen {
-  position: absolute;
-  overflow: hidden;
-  background: #fafbfc;
-  border: 0.3cqw solid var(--line);
-  border-radius: 3cqw;
-  box-shadow: 0 1.2cqw 4cqw rgba(38, 53, 60, 0.12);
-}
-.screen img { display: block; width: 100%; height: auto; }
-.screen.grid { left: 0; top: 0; bottom: 0; width: 50cqw; }
-/* A6 starts the screen at the slot legend (y 352 of 540 px width), the join card shows it from the top. */
-.screen.grid img { margin-top: calc(-352 / 540 * 50cqw); }
-.screen.price { right: 0; bottom: 2cqw; width: 46cqw; }
-
+/* Join panel: porcelain, so the QR code has full contrast. */
 .join {
+  margin-top: auto;
   display: flex;
   align-items: center;
-  gap: 5cqw;
-  margin-top: 4.5cqw;
+  gap: 4cqw;
+  padding: 3.6cqw;
+  border-radius: 4cqw;
+  background: var(--porcelain);
+  color: var(--ink);
+  box-shadow: 0 2cqw 6cqw rgba(0, 0, 0, 0.45);
 }
-.qr { width: 22cqw; height: 22cqw; flex: none; }
-ol { list-style: none; counter-reset: step; display: grid; gap: 1.6cqw; }
+.qr { width: 23cqw; height: 23cqw; flex: none; }
+.steps { min-width: 0; }
+.title { font-size: 3.9cqw; font-weight: 700; letter-spacing: -0.02em; }
+ol { list-style: none; counter-reset: step; margin-top: 1.6cqw; display: grid; gap: 0.9cqw; }
 li {
   counter-increment: step;
   display: grid;
-  grid-template-columns: 4.6cqw 1fr;
+  grid-template-columns: 4cqw 1fr;
   align-items: baseline;
-  font-size: 3.4cqw;
+  font-size: 3.1cqw;
   line-height: 1.25;
-  font-weight: 560;
+  font-weight: 540;
 }
-li::before {
-  content: counter(step);
-  color: var(--sea);
-  font-weight: 700;
-}
-
-.note {
-  margin-top: 3.4cqw;
-  padding: 1.8cqw 2.8cqw;
-  border-radius: 2cqw;
-  background: var(--tint);
-  color: var(--ink);
-  font-size: 2.7cqw;
-  line-height: 1.4;
-}
+li::before { content: counter(step); color: var(--sea); font-weight: 750; }
+.fine { margin-top: 1.8cqw; font-size: 2.3cqw; line-height: 1.35; color: var(--ink-2); }
+.fine span { white-space: nowrap; }
 
 footer {
   margin-top: 3cqw;
   display: flex;
   flex-direction: column;
   gap: 0.6cqw;
-  font-size: 2.3cqw;
+  font-size: 2.1cqw;
   line-height: 1.35;
-  color: var(--ink-2);
+  color: var(--on-night-2);
 }
-footer .url { font-size: 3.4cqw; font-weight: 650; color: var(--sea); letter-spacing: -0.01em; }
+footer .url { font-size: 3.4cqw; font-weight: 650; color: var(--sea-light); letter-spacing: -0.01em; }
 
-/* Join card (1080 × 1920): same type sizes as A6; the extra height goes to the screens. */
-.story .flyer { padding: 10cqw 8cqw 9cqw; }
-.story h1 { margin-top: 8cqw; }
-.story .visual { margin-top: 7cqw; }
-.story .screen.grid img { margin-top: 0; }
-.story .join { margin-top: 7cqw; }
-.story footer { margin-top: 4cqw; }
+/* Join card (1080 × 1920): the photo covers by height, so it is wider than the card and centred on the phone. */
+.story .flyer { padding: 10cqw 7cqw 7cqw; }
+.story .bg { width: auto; height: 100cqh; left: -14cqw; top: 0; }
+.story .kicker { margin-top: 9cqw; font-size: 3.4cqw; }
+.story h1 { font-size: 11cqw; }
+.story .lede { font-size: 3.4cqw; max-width: 33cqw; }
 
-/* A4 sheet with four A6 flyers and thin cut lines, for printing at home (home printers cannot print crop
-   marks at the paper edge, so the lines run through the sheet). */
-.a4 { width: 210mm; height: 297mm; position: relative; display: grid; grid-template-columns: 105mm 105mm; grid-template-rows: 148.5mm 148.5mm; }
-.a4 .sheet { width: 105mm; height: 148.5mm; }
-.a4 .cut { position: absolute; background: #c4ccd1; z-index: 5; }
-.a4 .cut.v { left: 104.9mm; top: 0; width: 0.2mm; height: 297mm; }
-.a4 .cut.h { top: 148.4mm; left: 0; height: 0.2mm; width: 210mm; }
+/* Print-shop A6 with 3 mm bleed: the page is 111 × 154 mm, the trimmed flyer sits 3 mm in. */
+.bleed .page { width: 111mm; height: 154mm; position: relative; overflow: hidden; }
+.bleed .page .sheet { position: absolute; left: 3mm; top: 3mm; width: 105mm; height: 148mm; }
+
+/* A4 sheet for printing at home: four flyers at 94 % with a hairline to cut along, inside the printable area. */
+.a4 {
+  width: 210mm;
+  height: 297mm;
+  display: grid;
+  grid-template-columns: repeat(2, 98.7mm);
+  grid-template-rows: repeat(2, 139.1mm);
+  gap: 4mm;
+  place-content: center;
+}
+.a4 .sheet { width: 98.7mm; height: 139.1mm; overflow: hidden; outline: 0.1mm solid #b8c2c7; }

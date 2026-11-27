@@ -18,10 +18,12 @@ const page = (bodyClass, body, size) => `<!doctype html><html lang="de"><head><m
 <body class="${bodyClass}">${body}</body></html>`;
 
 const docs = {
-  'flyer-a6': page('', `<div class="sheet" style="width:105mm;height:148mm">${flyer}</div>`, '105mm 148mm'),
-  'flyer-a4-4up': page('', `<div class="a4">${`<div class="sheet">${flyer}</div>`.repeat(4)}
-    <i class="cut v"></i><i class="cut h"></i></div>`, 'A4'),
-  'join-card': page('story', `<div class="sheet" style="width:540px;height:960px">${flyer}</div>`, '540px 960px'),
+  // Print shop: A6 with 3 mm bleed on every side (111 × 154 mm page, trim to 105 × 148 mm).
+  'flyer-a6-bleed': page('bleed', `<div class="page"><div class="sheet">${flyer}</div></div>`, '111mm 154mm'),
+  // Preview of the trimmed A6, PNG only.
+  'flyer-a6': page('', `<div class="sheet" style="width:105mm;height:148mm;overflow:hidden">${flyer}</div>`, '105mm 148mm'),
+  'flyer-a4-4up': page('', `<div class="a4">${`<div class="sheet">${flyer}</div>`.repeat(4)}</div>`, 'A4'),
+  'join-card': page('story', `<div class="sheet" style="width:540px;height:960px;overflow:hidden">${flyer}</div>`, '540px 960px'),
 };
 
 const out = join(here, 'out');
@@ -38,13 +40,12 @@ for (const [name, html] of Object.entries(docs)) {
   await tab.waitForLoadState('networkidle');
   if (name === 'join-card') {
     await tab.locator('.sheet').screenshot({ path: join(out, 'join-card-1080x1920.png') });
+  } else if (name === 'flyer-a6') {
+    await tab.setViewportSize({ width: 397, height: 560 });
+    await tab.locator('.sheet').screenshot({ path: join(out, 'flyer-a6-preview.png') });
+    await tab.setViewportSize({ width: 540, height: 960 });
   } else {
     await tab.pdf({ path: join(out, `${name}.pdf`), preferCSSPageSize: true, printBackground: true });
-    if (name === 'flyer-a6') {
-      await tab.setViewportSize({ width: 397, height: 560 });
-      await tab.locator('.sheet').screenshot({ path: join(out, 'flyer-a6-preview.png') });
-      await tab.setViewportSize({ width: 540, height: 960 });
-    }
   }
   console.log('wrote', name);
 }

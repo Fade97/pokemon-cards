@@ -1,25 +1,29 @@
 <!-- Tester flyer (DE), M2 in docs/release/tester-recruiting.md (#261). Fragment: build.mjs wraps it into the
-     A6 page, the A4 sheet (4 per page) and the 1080 × 1920 join card. All sizes are in cqw, so it scales. -->
+     A6 print page (with bleed), the A4 sheet (4 per page) and the 1080 × 1920 join card. Sizes are in cqw. -->
 <article class="flyer">
-  <img class="logo" src="../logo/foilark-horizontal.svg" alt="Foilark">
-  <h1>Android-Tester gesucht</h1>
-  <p class="lede">Pokémon-Karten offline scannen, sammeln und Preise sehen. Kostenlos, ohne Werbung.</p>
-  <div class="visual" aria-hidden="true">
-    <figure class="screen grid"><img src="assets/ui-set-grid.png" alt=""></figure>
-    <figure class="screen price"><img src="assets/ui-price.png" alt=""></figure>
-  </div>
+  <img class="bg" src="assets/hero-phone.png" alt="">
+  <div class="shade"></div>
+  <header>
+    <img class="logo" src="../logo/foilark-horizontal-night.svg" alt="Foilark">
+    <p class="kicker">Android-Tester gesucht</p>
+    <h1>Deine Karten.<br>Offline erkannt.</h1>
+    <p class="lede">Pokémon-Karten scannen, sammeln und Cardmarket-Preise sehen. Kostenlos, ohne Werbung.</p>
+  </header>
   <section class="join">
     <img class="qr" src="assets/qr-foilark-test.svg" alt="QR-Code zu foilark.app/test">
-    <ol>
-      <li>Code scannen und der Google-Gruppe beitreten</li>
-      <li>„Tester werden“ tippen</li>
-      <li>Foilark aus dem Play Store installieren</li>
-    </ol>
+    <div class="steps">
+      <p class="title">In 5 Minuten dabei</p>
+      <ol>
+        <li>Code scannen, Gruppe beitreten</li>
+        <li>„Tester werden“ tippen</li>
+        <li>Foilark aus dem Play Store laden</li>
+      </ol>
+      <p class="fine"><span>Gleiches Google-Konto wie im Play Store</span> · <span>14 Tage dabeibleiben</span> ·
+        <span>Android 8+</span></p>
+    </div>
   </section>
-  <p class="note">Mit demselben Google-Konto wie im Play Store. Bitte 14 Tage dabeibleiben.
-    Android 8 oder neuer, App auf Englisch.</p>
   <footer>
     <span class="url">foilark.app/test</span>
-    <span>Inoffizielles Fan-Projekt, nicht verbunden mit Nintendo oder The Pokémon Company.</span>
+    <span>Inoffizielles Fan-Projekt, nicht verbunden mit Nintendo oder The Pokémon Company. App auf Englisch.</span>
   </footer>
 </article>
