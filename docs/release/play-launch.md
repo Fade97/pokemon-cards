@@ -419,6 +419,8 @@ About 4 weeks from account creation to production, if nothing is rejected.
 
 ### Recruiting testers
 
+The full plan (roadmap, channels, material, copy, funnel) is in [tester-recruiting.md](tester-recruiting.md).
+
 - Friends and family with Android phones (best engagement; they must keep the app installed and opted in).
 - German TCG players (local game store, club, Discord) who collect anyway.
 - Communities that trade closed-test participation (for example on Reddit) fill numbers quickly, but Google asks
